@@ -16,12 +16,13 @@
 - Q: How much MyAnimeList data does the dashboard show in this feature? → A: The score and up to 3 genres on each recently-watched card, plus a "Top genres" section: the 5 genres with the most watched episodes, each with its share and episode count. A line says how much of the history is covered by matched seasons. Themes, demographics, studios and everything else visual wait for feature 004.
 - Q: What do "Top genres" count? → A: Fully watched episodes, the same rule as the "Episodes watched" figure. Shares are per genre over the fully watched episodes in matched seasons. Weighting by watch time is left to feature 004.
 - Q: When there's a backlog, which seasons are enriched first? → A: The most recently watched first: seasons ordered by their latest watch across all users. New lookups come before refreshes, and an operator's request goes to the front.
+- Q: Jikan is shutting down (and was unreachable for a whole evening); where does the data come from? → A: MyAnimeList's official API v2, authenticated with a free client id kept in Bella Baxter (`Frunchy__Mal__ClientId`), never in the repository. Jikan stays available as an alternative provider. Stored responses record which provider they came from. Without a client id the site still runs, with enrichment off.
 
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - The catalog learns what each anime is (Priority: P1)
 
-Frunchy's catalog today only knows what Crunchyroll's history pages say: titles, durations and thumbnails. In the background, without anyone doing anything, Frunchy looks up each Crunchyroll season it knows, movies included, on MyAnimeList (through Jikan, a free public MyAnimeList API) and records the match. It then keeps that anime's MyAnimeList details: genres, themes, demographic, studios, format (TV, movie, OVA…), year and season, score, original title and image.
+Frunchy's catalog today only knows what Crunchyroll's history pages say: titles, durations and thumbnails. In the background, without anyone doing anything, Frunchy looks up each Crunchyroll season it knows, movies included, on MyAnimeList (through MyAnimeList's official API) and records the match. It then keeps that anime's MyAnimeList details: genres, themes, demographic, studios, format (TV, movie, OVA…), year and season, score, original title and image.
 
 Each anime is looked up once. The details are kept in Frunchy, so viewing a dashboard never calls the external service. Imports and dashboards keep working exactly as today, whether enrichment has run, is running, or the external service is down.
 
@@ -39,7 +40,7 @@ Each anime is looked up once. The details are kept in Frunchy, so viewing a dash
 6. **Given** the external service answers "too many requests" or a temporary error (server error, gateway timeout, maintenance, no answer), **When** that happens for a lookup, **Then** the lookup is retried a few times with increasing waits, honouring any "retry after" the service gives. If it still fails, the work is kept and tried again later with growing delays.
 7. **Given** the external service is down for hours, **When** Frunchy keeps running or is restarted during the outage, **Then** no pending lookup is lost. Attempts slow down to a few per hour, and enrichment resumes on its own once the service is back.
 8. **Given** a lookup the external service definitively answers with "not found", or a search with no acceptable candidate, **When** it is recorded, **Then** it stays "no match" and isn't retried automatically. It's retried only when the operator asks (User Story 3) or the catalog's title for that season changes.
-9. **Given** enrichment is running through a large backlog (the real catalog: 336 series, 501 seasons), **When** it makes requests, **Then** it never goes above the service's published limits (3 requests per second, 60 per minute), with a safety margin.
+9. **Given** enrichment is running through a large backlog (the real catalog: 336 series, 501 seasons), **When** it makes requests, **Then** it never sends more than 1 request per second on average.
 10. **Given** a user deletes their account, **When** the deletion completes, **Then** the MyAnimeList data stays: it is shared catalog data, not personal data.
 
 ---
@@ -111,7 +112,7 @@ Anime details change slowly: a score moves, an airing show gains episodes or end
 - **Not anime, or not on MyAnimeList**: Crunchyroll listings that aren't on MyAnimeList (concerts, live action, some specials) end as "no match" after a search, not as errors.
 - **Adult entries**: MyAnimeList entries rated for adults only (hentai) are never candidates. Crunchyroll doesn't carry them, so a candidate like that is always a wrong match.
 - **Title changes**: when a later import changes a series' or season's Crunchyroll title, an automatic "no match" or ambiguous season is looked up again. Matched and manual seasons stay as they are.
-- **Rate-limited by MyAnimeList, not Jikan**: the service can be rate-limited by MyAnimeList itself and say so in its error. It's handled like any "too many requests".
+- **Refused by MyAnimeList**: MyAnimeList answers "forbidden" both to an unknown client id and to its overload protection. It's handled like a temporary failure (backed off, shown to the operator), never as a final answer.
 - **Restart mid-lookup**: a lookup interrupted by a restart is picked up again later, as with imports in feature 001. Running two Frunchy processes never looks up the same season twice at once.
 - **Unexpected response shape**: a response that can't be read is recorded as a failure with the reason, kept for the operator, and retried later. It never stops the rest of the backlog.
 - **Missing fields**: MyAnimeList fields that are unknown (no score yet, no year, no studio) are stored as unknown. A score of 0 from the service means "no score", not zero.
@@ -140,7 +141,7 @@ Anime details change slowly: a score moves, an airing show gains episodes or end
 
 **Respecting the service**
 
-- **FR-010**: Frunchy MUST NOT exceed the service's published limits (3 requests per second, 60 per minute). It MUST keep a margin, at most 1 request per second on average, across everything it does: lookups, refreshes and manual requests.
+- **FR-010**: Frunchy MUST stay well under the service's limits: at most 1 request per second on average, across everything it does (lookups, refreshes and manual requests). Jikan publishes 3 per second and 60 per minute; MyAnimeList's official API publishes none, so the same margin applies.
 - **FR-011**: Page views and imports MUST NEVER call the service. Only background enrichment and operator commands do.
 - **FR-012**: An anime whose details are held and younger than the refresh age MUST NOT be requested again. Refreshes MUST ask whether the details changed, so an unchanged anime returns without a new copy.
 
@@ -204,7 +205,7 @@ Anime details change slowly: a score moves, an airing show gains episodes or end
 
 ## Assumptions
 
-- **The service**: Jikan v4, free, unauthenticated, read-only, with published limits of 3 requests per second and 60 per minute, no daily cap. It may be rate-limited by MyAnimeList, caches responses for 24 hours, and supports "has this changed" checks. Searches aren't cached by the service and are the most failure-prone call: two failed while this feature was designed, while a lookup by id was served from its cache.
+- **The service**: MyAnimeList's official API v2 (free client id, read-only public data, no published rate limits). Jikan v4 (unofficial, 3 per second / 60 per minute) was the first choice and stays as an alternative provider; it was unreachable for a whole evening while this feature was built, and announced shutting down. Search results from the official API include English titles and synonyms, so a candidate is judged without an extra request.
 - **Crunchyroll ids don't appear in MyAnimeList data** (MyAnimeList links an old Crunchyroll address format), so matching is by title.
 - **Refresh ages**: 30 days, and 7 days while airing, are defaults chosen here. Faster refresh isn't needed for statistics.
 - **Score and genres as MyAnimeList states them**: the score is MyAnimeList's community score, not a personal rating. Genre and studio names aren't translated.

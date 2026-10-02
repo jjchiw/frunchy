@@ -43,8 +43,8 @@ let private matchSeason (db: DbConfig) (seasonId: string) (s: Spec) =
     task {
         let body = fullBody s
 
-        match JikanModel.parseFull body with
-        | Ok(anime, hash) -> do! MalCatalog.saveAnime db anime body hash None DateTimeOffset.UtcNow
+        match MalApiModel.parseFull body with
+        | Ok(anime, hash) -> do! MalCatalog.saveAnime db anime body hash None "mal-api" DateTimeOffset.UtcNow
         | Error e -> failwith e
 
         let! _ = MalCatalog.writeManual db seasonId (Some s.Id) DateTimeOffset.UtcNow
@@ -85,7 +85,7 @@ let ``matched cards show score, up to 3 genres and the MyAnimeList link; others 
         // An unmatched card is exactly what it was; the figures don't move; no request was made
         Assert.Equal((cards before)[otherIndex], (cards after)[otherIndex])
         Assert.Equal<string list>(stats before, stats after)
-        Assert.Empty app.Jikan.Requests
+        Assert.Empty app.Mal.Requests
     }
 
 [<Fact>]
@@ -108,9 +108,9 @@ let ``Top genres equal a hand count over fully watched episodes in matched seaso
         let! before = page app "en-US"
         Assert.DoesNotContain("data-top-genres", before) // nothing matched yet
 
-        routeSampleCatalog app.Jikan
+        routeSampleCatalog app.Mal
         let! _ = enrichAll app
-        app.Jikan.Clear()
+        app.Mal.Clear()
         let! html = page app "en-US"
         Assert.Contains("data-top-genres", html)
 
@@ -146,14 +146,14 @@ let ``Top genres equal a hand count over fully watched episodes in matched seaso
         let coverage = int (Math.Round(100m * decimal matched / decimal all, MidpointRounding.AwayFromZero))
         Assert.Contains($"data-genres-coverage=\"{coverage}\"", html)
         Assert.Contains($"Based on {coverage}%% of fully watched episodes", html)
-        Assert.Empty app.Jikan.Requests
+        Assert.Empty app.Mal.Requests
     }
 
 [<Fact>]
 let ``Spanish labels; MyAnimeList's genre names are not translated`` () =
     task {
         use! app = withSample ()
-        routeSampleCatalog app.Jikan
+        routeSampleCatalog app.Mal
         let! _ = enrichAll app
         let! html = page app "es-ES"
         Assert.Contains("Géneros principales", html)

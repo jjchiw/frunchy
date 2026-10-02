@@ -283,3 +283,46 @@ None of these are secrets; they live in `appsettings.json` and the tests overrid
 
 The import contract v1.2 doesn't change, and nothing the extension calls changes. Under the
 coordination rule, no message or task is needed for the extension session.
+
+## R13. Amendment: MyAnimeList's official API replaces Jikan as the default provider
+
+**Context** (2026-10-02, during implementation):
+- MyAnimeList was unreachable through Jikan for the whole implementation session. Every search, and
+  every `/full` not in Jikan's cache, returned 504 "Jikan failed to connect to MyAnimeList".
+- myanimelist.net itself answered 200 at the same time.
+- The owner reported that Jikan is shutting down.
+
+**Options looked at**:
+- **jikan-edge** (`jikan.lucashdo.com`, MIT, a Cloudflare Worker): it keeps serving cached copies
+  while MyAnimeList scraping fails, and allows 60 requests per minute. But it isn't Jikan-compatible:
+  camelCase fields, a different envelope and errors, and it refuses `limit` and `sfw`. Its search
+  results carry only the romaji title (no English title, synonyms, dates or rating), so every
+  candidate would need a details request, about 2–3 times the requests. It's also one person's
+  service scraping MyAnimeList's HTML.
+- **MyAnimeList's official API v2** (`api.myanimelist.net/v2`): it needs a free client id
+  (`X-MAL-CLIENT-ID`). Search returns the requested fields, including the English title and
+  synonyms, so candidates are judged in one request. Details include related anime, studios,
+  format, start date, score and rating. There are no published rate limits.
+
+**Decision**: the provider is a small adapter (`Frunchy:Mal:Provider`), and the default is the
+official API (`mal-api`). The owner registered an app and keeps the client id in Bella Baxter
+(`Frunchy__Mal__ClientId`). Jikan stays as `jikan`.
+- **Unchanged**: the matcher, queue, pacing, retries, storage, dashboard and commands. They only see
+  the shared `MalModel` records.
+- **Per provider**: paths, the parser (`MalApiModel` / `JikanModel`), error-body reading and
+  query shaping. MyAnimeList refuses very long queries, so they're cut at the subtitle; the matcher
+  compares full titles anyway.
+- **Stored bodies** record their provider (`source`), so `mal-rebuild` re-reads each with its own
+  parser.
+
+**Mapping notes** (contracts/mal-usage.md):
+- MyAnimeList's `genres` mixes genres, themes and demographics. They're split by MyAnimeList's
+  stable genre ids.
+- 403 means either a bad client id or DoS protection, so it's temporary and visible to the operator.
+- Adult entries are excluded by the matcher itself (rating "Rx", or the Hentai genre), whatever the
+  provider.
+
+**Fixtures**: `tests/FrunchyBackend.Tests/JsonSamples/mal/record.py` records real responses for the
+2026 sample. It reads the client id from the environment, e.g. under `bella run`, and never stores
+it. Until it has run, the integration tests use MyAnimeList-shaped bodies from
+`MalFixtures.fs`.

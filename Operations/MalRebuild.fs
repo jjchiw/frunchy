@@ -15,16 +15,16 @@ type RebuildCounts =
       /// Seasons whose decision needs data that isn't held; left as they are
       DataMissing: int }
 
-let private storedAnime (db: DbConfig) : Task<(int * string) list> =
+let private storedAnime (db: DbConfig) : Task<(int * string * string) list> =
     task {
         use conn = getConnection db
         do! conn.OpenAsync()
-        use cmd = new NpgsqlCommand("SELECT mal_id, raw::text FROM mal_anime ORDER BY mal_id", conn)
+        use cmd = new NpgsqlCommand("SELECT mal_id, raw::text, source FROM mal_anime ORDER BY mal_id", conn)
         use! r = cmd.ExecuteReaderAsync()
         let rows = ResizeArray()
 
         while r.Read() do
-            rows.Add(r.GetInt32 0, r.GetString 1)
+            rows.Add(r.GetInt32 0, r.GetString 1, r.GetString 2)
 
         return List.ofSeq rows
     }
@@ -75,13 +75,13 @@ let rebuild (db: DbConfig) : Task<RebuildCounts> =
         let! anime = storedAnime db
         let mutable rederived = 0
 
-        for _, raw in anime do
-            match JikanModel.parseFull raw with
+        for _, raw, source in anime do
+            match (MalClient.Provider.OfSource source).ParseDetails raw with
             | Ok(parsed, hash) ->
                 use conn = getConnection db
                 do! conn.OpenAsync()
                 use! tx = conn.BeginTransactionAsync()
-                do! MalCatalog.rederiveAnime conn tx parsed raw hash
+                do! MalCatalog.rederiveAnime conn tx parsed raw hash source
                 do! tx.CommitAsync()
                 rederived <- rederived + 1
             | Error _ -> ()
@@ -117,7 +117,7 @@ let rebuild (db: DbConfig) : Task<RebuildCounts> =
                     task { missing <- missing + 1 }
 
                 let! _ =
-                    Enrichment.resolveAndWrite db (JikanClient.Stored db) series (seasons |> List.map fst) write onDeferred
+                    Enrichment.resolveAndWrite db (MalClient.Stored db) series (seasons |> List.map fst) write onDeferred
 
                 ignore seriesId
 

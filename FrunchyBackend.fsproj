@@ -20,10 +20,12 @@
     <Compile Include="Infrastructure/SecurityEvents.fs" />
     <Compile Include="Infrastructure/AccountActions.fs" />
     <Compile Include="Infrastructure/WebAuth.fs" />
+    <Compile Include="Infrastructure/MalModel.fs" />
     <Compile Include="Infrastructure/JikanModel.fs" />
+    <Compile Include="Infrastructure/MalApiModel.fs" />
     <Compile Include="Infrastructure/MalMatching.fs" />
     <Compile Include="Infrastructure/MalCatalog.fs" />
-    <Compile Include="Infrastructure/JikanClient.fs" />
+    <Compile Include="Infrastructure/MalClient.fs" />
     <Compile Include="Views/Texts.fs" />
     <Compile Include="Views/Layout.fs" />
     <Compile Include="Handlers/Home.fs" />

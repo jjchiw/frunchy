@@ -48,7 +48,7 @@ let ``the sweep queues every season once, without touching imports`` () =
 let ``the sample is enriched: search, sequel links, the movie, dubs, one-entry shows`` () =
     task {
         use! app = withSample ()
-        routeSampleCatalog app.Jikan
+        routeSampleCatalog app.Mal
         let! figuresBefore = figures app.Db
         let! _ = enrichAll app
 
@@ -77,7 +77,9 @@ let ``the sample is enriched: search, sequel links, the movie, dubs, one-entry s
 
         // Details stored with the verbatim response, tags in MyAnimeList's order, relations
         let! raw = Db.scalar<string> app.Db "SELECT raw::text FROM mal_anime WHERE mal_id = 52991" []
-        Assert.Equal(FrunchyBackend.Tests.Infrastructure.FakeJikan.readFixture "full-52991.json", raw)
+        Assert.Equal(fullBody frieren1, raw)
+        let! source = Db.scalar<string> app.Db "SELECT source FROM mal_anime WHERE mal_id = 52991" []
+        Assert.Equal("mal-api", source)
         let! genres = Db.dump app.Db "SELECT t.name FROM mal_anime_tags a JOIN mal_tags t ON t.kind = a.kind AND t.tag_id = a.tag_id WHERE a.mal_id = 52991 AND a.kind = 'genre' ORDER BY a.position"
         Assert.Equal<string list>([ "Adventure"; "Award Winning"; "Drama"; "Fantasy" ], genres)
         let! score = Db.scalar<decimal> app.Db "SELECT score FROM mal_anime WHERE mal_id = 52991" []
@@ -88,15 +90,15 @@ let ``the sample is enriched: search, sequel links, the movie, dubs, one-entry s
         Assert.Equal(1L, noScore)
 
         // A dub makes no request of its own; the figures are untouched (SC-009)
-        Assert.Equal(1, app.Jikan.Count "search:The Weakest Tamer Began a Journey to Pick Up Trash")
+        Assert.Equal(1, app.Mal.Count "search:The Weakest Tamer Began a Journey to Pick Up Trash")
         let! figuresAfter = figures app.Db
         Assert.Equal<string list>(figuresBefore, figuresAfter)
 
         // Running again makes no requests (SC-005)
-        app.Jikan.Clear()
+        app.Mal.Clear()
         let! again = enrichAll app
         Assert.Empty again
-        Assert.Empty app.Jikan.Requests
+        Assert.Empty app.Mal.Requests
     }
 
 [<Fact>]
@@ -150,9 +152,9 @@ let ``no match is final; a title change queues it again`` () =
         let! platinum = matchOf app.Db "GYK5CNZ9G"
         Assert.StartsWith("GYK5CNZ9G no_match", platinum)
 
-        app.Jikan.Clear()
+        app.Mal.Clear()
         let! _ = enrichAll app
-        Assert.Empty app.Jikan.Requests
+        Assert.Empty app.Mal.Requests
 
         let! _ = Db.scalar<int> app.Db "UPDATE cr_seasons SET title = 'Platinum End (2021)' WHERE id = 'GYK5CNZ9G' RETURNING 1" []
         do! Enrichment.sweep app.Db
@@ -164,7 +166,7 @@ let ``no match is final; a title change queues it again`` () =
 let ``deleting a user leaves the MyAnimeList catalog and the matches`` () =
     task {
         use! app = withSample ()
-        routeSampleCatalog app.Jikan
+        routeSampleCatalog app.Mal
         let! _ = enrichAll app
         let! animeBefore = Db.count app.Db "mal_anime"
         let! matchesBefore = Db.count app.Db "cr_season_matches"

@@ -2,8 +2,9 @@ module FrunchyBackend.Tests.JikanModelTests
 
 open System
 open Xunit
+open FrunchyBackend.Infrastructure.MalModel
 open FrunchyBackend.Infrastructure.JikanModel
-open FrunchyBackend.Tests.Infrastructure.FakeJikan
+open FrunchyBackend.Tests.Infrastructure.FakeMal
 
 [<Fact>]
 let ``the recorded Frieren response parses into the stored fields`` () =

@@ -9,7 +9,7 @@ open FrunchyBackend.Workers
 open FrunchyBackend.Tests.Fixtures
 open FrunchyBackend.Tests.MalFixtures
 open FrunchyBackend.Tests.TestHelpers
-open FrunchyBackend.Tests.Infrastructure.FakeJikan
+open FrunchyBackend.Tests.Infrastructure.FakeMal
 open FrunchyBackend.Tests.Infrastructure.PostgresFixture
 
 let private enriched () =
@@ -18,9 +18,9 @@ let private enriched () =
         let! key = createUser app.Db "animenerd"
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db
-        routeSampleCatalog app.Jikan
+        routeSampleCatalog app.Mal
         let! _ = enrichAll app
-        app.Jikan.Clear()
+        app.Mal.Clear()
         return app
     }
 
@@ -29,6 +29,7 @@ let private cli (app: TestApp) (command: string) (args: string list) : Task<int>
     let env: Program.CliEnv =
         { Db = app.Db
           Http = httpFactory app
+          Mal = FrunchyBackend.Infrastructure.MalClient.readSettings (Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>(app.Services))
           Clock = TimeProvider.System }
 
     Program.cliCommands[command] env args
@@ -85,25 +86,25 @@ let ``mal-set: a held anime needs no request, a new one is fetched, an unknown i
         // Platinum End had no match; set it by hand to an anime already held → no request
         let! held = cli app "mal-set" [ "GYK5CNZ9G"; "15" ]
         Assert.Equal(0, held)
-        Assert.Empty app.Jikan.Requests
+        Assert.Empty app.Mal.Requests
         let! row = matchOf app.Db "GYK5CNZ9G"
         Assert.Equal("GYK5CNZ9G matched 15 manual -", row)
 
         // Not held → one request
-        routeFull app.Jikan (spec 48413 "Platinum End" (Some "Platinum End") "TV" "2021-10-08")
+        routeFull app.Mal (spec 48413 "Platinum End" (Some "Platinum End") "TV" "2021-10-08")
         let! fetched = cli app "mal-set" [ "GYK5CNZ9G"; "48413" ]
         Assert.Equal(0, fetched)
-        Assert.Equal(1, app.Jikan.Count "full:48413")
+        Assert.Equal(1, app.Mal.Count "details:48413")
 
         // 404 → exit 3, the season keeps its previous state
-        app.Jikan.Route("full:99999", [ Status 404 ])
+        app.Mal.Route("details:99999", [ Status 404 ])
         let! unknown = cli app "mal-set" [ "GYK5CNZ9G"; "99999" ]
         Assert.Equal(3, unknown)
         let! still = matchOf app.Db "GYK5CNZ9G"
         Assert.Equal("GYK5CNZ9G matched 48413 manual -", still)
 
         // Jikan down → exit 4; unknown season → exit 2
-        app.Jikan.Route("full:88888", [ Status 504 ])
+        app.Mal.Route("details:88888", [ Status 504 ])
         let! down = cli app "mal-set" [ "GYK5CNZ9G"; "88888" ]
         Assert.Equal(4, down)
         let! noSeason = cli app "mal-set" [ "NOPE"; "15" ]
@@ -111,11 +112,29 @@ let ``mal-set: a held anime needs no request, a new one is fetched, an unknown i
     }
 
 [<Fact>]
+let ``mal-set without a MyAnimeList client id changes nothing and says why`` () =
+    task {
+        use! app = enriched ()
+
+        let env: Program.CliEnv =
+            { Db = app.Db
+              Http = httpFactory app
+              Mal = { FrunchyBackend.Infrastructure.MalClient.readSettings (Microsoft.Extensions.Configuration.ConfigurationBuilder().Build()) with ClientId = None }
+              Clock = TimeProvider.System }
+
+        let! code = Program.cliCommands["mal-set"] env [ "GYK5CNZ9G"; "15" ]
+        Assert.Equal(4, code)
+        Assert.Empty app.Mal.Requests
+        let! row = matchOf app.Db "GYK5CNZ9G"
+        Assert.StartsWith("GYK5CNZ9G no_match", row)
+    }
+
+[<Fact>]
 let ``a manual match carries its dubs, and nothing automatic overwrites it (SC-008)`` () =
     task {
         use! app = enriched ()
         // The Weakest Tamer: set the original by hand; its English dub follows
-        routeFull app.Jikan (spec 77777 "Another Tamer" None "TV" "2024-01-01")
+        routeFull app.Mal (spec 77777 "Another Tamer" None "TV" "2024-01-01")
         let! code = cli app "mal-set" [ "GRK5CNJ14"; "77777" ]
         Assert.Equal(0, code)
         let! dub = matchOf app.Db "GYDQCGK5Q"
@@ -162,7 +181,7 @@ let ``mal-retry puts automatic seasons at the front and asks Jikan again`` () =
         let! _ = Db.scalar<int> app.Db "UPDATE cr_season_matches SET claimed_at = NULL RETURNING 1" []
 
         let! _ = enrichAll app
-        Assert.Equal(1, app.Jikan.Count "search:Frieren: Beyond Journey's End") // the stored search was dropped
+        Assert.Equal(1, app.Mal.Count "search:Frieren: Beyond Journey's End") // the stored search was dropped
         let! back = matchOf app.Db "GYE5CQMQ5"
         Assert.Equal("GYE5CQMQ5 matched 52991 search -", back)
 
@@ -185,7 +204,7 @@ let ``mal-rebuild sends no requests, keeps every decision, and is idempotent (SC
         let! second = MalRebuild.rebuild app.Db
         Assert.Equal(0, second.Changed)
         Assert.Equal(first.Unchanged, second.Unchanged)
-        Assert.Empty app.Jikan.Requests
+        Assert.Empty app.Mal.Requests
 
         let! after = matches app.Db
         Assert.Equal<string list>(before, after)

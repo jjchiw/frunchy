@@ -7,7 +7,9 @@
 ## Summary
 
 A new background worker matches every Crunchyroll season, movies included, to a MyAnimeList entry
-through Jikan, and stores the details in shared catalog tables. The imports aren't touched.
+and stores the details in shared catalog tables. The imports aren't touched. The data comes from
+MyAnimeList's official API v2 by default (a client id in Bella), or Jikan as an alternative. The
+provider is a small adapter; everything else is provider-independent (amendment, research R13).
 
 **Matching** (research R2):
 - A series' first season is found by **search**, with exact, deterministic title tiers.

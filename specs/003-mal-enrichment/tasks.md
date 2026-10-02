@@ -436,6 +436,41 @@ and tags are updated. A 404 → `missing_since`, and the details are kept.
 
 ---
 
+## Phase 8: Amendment: MyAnimeList's official API as the default provider (research R13)
+
+**Why**: Jikan was unreachable all session and is shutting down. The owner registered a MyAnimeList
+app, and the client id lives in Bella as `Frunchy__Mal__ClientId`.
+
+- [X] T037 Split the shared records and JSON helpers into `Infrastructure/MalModel.fs`
+  (`MalAnime`, `MalTag`, `MalRelation`, `ApiError`). `JikanModel.fs` keeps only Jikan's parser.
+- [X] T038 Create `Infrastructure/MalApiModel.fs`: the MyAnimeList API v2 parser (search nodes, details,
+  error body), mapping type, status, relation and rating names, splitting genres into genres,
+  themes and demographics by id, and reading partial dates (contracts/mal-usage.md).
+- [X] T039 Turn `JikanClient.fs` into `Infrastructure/MalClient.fs`:
+  - the `Provider` adapter (`mal-api` | `jikan`): paths, query shaping, parsers, errors;
+  - the `X-MAL-CLIENT-ID` header;
+  - 403 from MyAnimeList as temporary;
+  - `MalSettings.Missing` without a client id;
+  - the `Frunchy:Mal:*` settings.
+- [X] T040 Add a `source` column on `mal_anime` and `mal_searches` (bootstrap + `ALTER … IF NOT EXISTS`). Stored
+  bodies are re-read with their own provider's parser (`mal-rebuild`), and stored searches are reused
+  only by the same provider. Adult entries are filtered in the matcher (`isAdult`).
+- [X] T041 Worker and commands: the provider comes from `EnrichmentSettings`. The service stays off
+  with a warning when the client id is missing. `mal-set` exits 4 without one. `CliEnv` carries the
+  provider settings.
+- [X] T042 Tests (223/223):
+  - `FakeMal` (renamed) understands both providers' paths;
+  - `MalFixtures` builds MyAnimeList API-shaped bodies;
+  - new `MalApiModelTests` cover the parser, query shaping and settings;
+  - `mal-set` without a client id is tested.
+
+  Docs: spec clarification, research R13, `contracts/mal-usage.md`, data model, plan, quickstart,
+  README, CLAUDE.md, SCHEMA.md.
+- [ ] T043 **(needs the client id)** Record real fixtures with
+  `bella run -- python3 tests/FrunchyBackend.Tests/JsonSamples/mal/record.py`. Add an end-to-end test
+  over the whole 2026 sample replaying them (`FakeMal.LoadRecorded` on `JsonSamples/mal/`), and
+  report the automatic match rate as an early SC-001 reading.
+
 ## Dependencies & Execution Order
 
 - **Setup (T001–T003)**: T002 and T003 run in parallel with T001. T003 needs the network once.
@@ -448,6 +483,8 @@ and tags are updated. A 404 → `missing_since`, and the details are kept.
 - **US3 (T024–T029)**: needs US1 (`resolveSeason`, `MalCatalog`). T025 and T026 in parallel → T027
   → T028 → T029. It's independent of US2.
 - **US4 (T030–T031)**: needs US1's worker. It's independent of US2 and US3.
+- **Amendment (T037–T043)**: after the polish phase. T043, T035 and T036 need the owner's MyAnimeList
+  client id.
 - **Polish (T032–T036)**: after the stories. T035 needs the owner's go-ahead (real Jikan, real
   database); T036 is the owner's by-hand check.
 

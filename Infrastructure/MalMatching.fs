@@ -10,7 +10,7 @@ open System.Globalization
 open System.Text
 open System.Text.RegularExpressions
 open System.Threading.Tasks
-open FrunchyBackend.Infrastructure.JikanModel
+open FrunchyBackend.Infrastructure.MalModel
 
 // ---------------------------------------------------------------------------------------------
 // Titles
@@ -176,7 +176,7 @@ let bestTier (crTexts: CrText list) (candidateTitles: string list) =
     |> List.tryHead
 
 /// The candidates with the best tier any of them reaches (tier 1 beats tier 2)
-let private bestHits (texts: CrText list) (candidates: JikanAnime list) =
+let private bestHits (texts: CrText list) (candidates: MalAnime list) =
     let tiered = candidates |> List.choose (fun a -> bestTier texts a.AllTitles |> Option.map (fun t -> t, a))
 
     match tiered |> List.map fst |> List.sortBy id |> List.tryHead with
@@ -193,7 +193,11 @@ let private movieTypes = set [ "Movie" ]
 let private movieLikeTypes = set [ "Movie"; "Special"; "TV Special"; "OVA" ]
 let private ovaTypes = set [ "OVA"; "ONA"; "Special"; "TV Special" ]
 
-let private hasType (types: Set<string>) (a: JikanAnime) =
+/// Adult-only entries are never candidates (FR-005): rating "Rx - Hentai", or the Hentai genre
+let isAdult (a: MalAnime) =
+    (a.Rating |> Option.exists (fun r -> r.StartsWith "Rx")) || (a.ExplicitGenres |> List.exists (fun g -> g.Id = 12))
+
+let private hasType (types: Set<string>) (a: MalAnime) =
     match a.Type with
     | Some t -> types.Contains t
     | None -> false
@@ -222,7 +226,7 @@ type Candidate =
       Type: string option
       Year: int option }
 
-let candidateOf (a: JikanAnime) =
+let candidateOf (a: MalAnime) =
     { MalId = a.MalId
       Title = a.TitleEnglish |> Option.defaultValue a.Title
       Type = a.Type
@@ -256,8 +260,8 @@ type Fetch<'T> =
     | Unavailable of reason: string
 
 type Lookup =
-    { Search: string -> Task<Fetch<JikanAnime list>>
-      Full: int -> Task<Fetch<JikanAnime>> }
+    { Search: string -> Task<Fetch<MalAnime list>>
+      Full: int -> Task<Fetch<MalAnime>> }
 
 // ---------------------------------------------------------------------------------------------
 // Dubs
@@ -348,8 +352,8 @@ let private maxLinked = 20
 let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) : Task<Map<string, Outcome>> =
     task {
         // Memoized lookups for this series
-        let fulls = Dictionary<int, Fetch<JikanAnime>>()
-        let searches = Dictionary<string, Fetch<JikanAnime list>>()
+        let fulls = Dictionary<int, Fetch<MalAnime>>()
+        let searches = Dictionary<string, Fetch<MalAnime list>>()
         let mutable fetchedLinked = 0
 
         let full id =
@@ -368,6 +372,12 @@ let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) :
                 | true, f -> return f
                 | _ ->
                     let! f = lookup.Search q
+
+                    let f =
+                        match f with
+                        | Got results -> Got(results |> List.filter (isAdult >> not))
+                        | other -> other
+
                     searches[q] <- f
                     return f
             }
@@ -375,7 +385,7 @@ let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) :
         /// Fetch linked entries (capped); a temporary failure stops and reports
         let fetchAll (ids: int list) =
             task {
-                let results = ResizeArray<JikanAnime>()
+                let results = ResizeArray<MalAnime>()
                 let mutable failure = None
 
                 for id in ids |> List.distinct do
@@ -392,7 +402,7 @@ let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) :
             }
 
         // ---- the anchor: MyAnimeList's first season of the franchise -------------------------
-        let anchorTask: Lazy<Task<Result<JikanAnime, Outcome>>> =
+        let anchorTask: Lazy<Task<Result<MalAnime, Outcome>>> =
             lazy
                 (task {
                     match! search series.Title with
@@ -470,9 +480,9 @@ let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) :
         let anchor () = anchorTask.Force()
 
         /// The sequel chain from the anchor (TV/ONA only), in order
-        let sequelChain (first: JikanAnime) =
+        let sequelChain (first: MalAnime) =
             task {
-                let chain = ResizeArray<JikanAnime>()
+                let chain = ResizeArray<MalAnime>()
                 let seen = HashSet<int>([ first.MalId ])
                 let mutable current = Some first
                 let mutable failure = None
@@ -497,9 +507,9 @@ let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) :
             }
 
         /// Anchor plus everything reachable through Sequel/Prequel (any TV-like type)
-        let franchise (first: JikanAnime) =
+        let franchise (first: MalAnime) =
             task {
-                let pool = ResizeArray<JikanAnime>([ first ])
+                let pool = ResizeArray<MalAnime>([ first ])
                 let seen = HashSet<int>([ first.MalId ])
                 let mutable frontier = [ first ]
                 let mutable failure = None
@@ -522,13 +532,13 @@ let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) :
                 return List.ofSeq pool, failure
             }
 
-        let linkedEntries (first: JikanAnime) (accept: string -> bool) =
+        let linkedEntries (first: MalAnime) (accept: string -> bool) =
             first.Relations
             |> List.filter (fun r -> accept r.Relation)
             |> List.collect (fun r -> r.Entries)
 
         /// "Season N" relative to the anchor: an entry marked N, else the Nth season-entry of the chain
-        let byNumber (first: JikanAnime) (n: int) =
+        let byNumber (first: MalAnime) (n: int) =
             task {
                 if n <= 1 then
                     return Decided(Matched(first.MalId, BySearch, None))
@@ -566,7 +576,7 @@ let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) :
             }
 
         /// Fallback: search by the season's own title (the first text's string is the query)
-        let searchSeason (texts: CrText list) (accept: JikanAnime -> bool) =
+        let searchSeason (texts: CrText list) (accept: MalAnime -> bool) =
             task {
                 let query =
                     match List.head texts with

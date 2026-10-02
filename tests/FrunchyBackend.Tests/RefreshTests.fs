@@ -11,7 +11,7 @@ open FrunchyBackend.Tests.Fixtures
 open FrunchyBackend.Tests.MalFixtures
 open FrunchyBackend.Tests.TestHelpers
 open FrunchyBackend.Tests.ResilienceTests
-open FrunchyBackend.Tests.Infrastructure.FakeJikan
+open FrunchyBackend.Tests.Infrastructure.FakeMal
 open FrunchyBackend.Tests.Infrastructure.PostgresFixture
 
 /// The sample imported and enriched at a controllable "now"
@@ -23,9 +23,9 @@ let private enrichedWithClock () =
         let! key = createUser app.Db "animenerd"
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db
-        routeSampleCatalog app.Jikan
+        routeSampleCatalog app.Mal
         let! _ = enrichAllWith app clock
-        app.Jikan.Clear()
+        app.Mal.Clear()
         return app, clock
     }
 
@@ -37,7 +37,7 @@ let private times (app: TestApp) (malId: int) =
     }
 
 let private fullRequests (app: TestApp) =
-    app.Jikan.Requests |> List.filter (fun r -> r.StartsWith "full:")
+    app.Mal.Requests |> List.filter (fun r -> r.StartsWith "details:")
 
 [<Fact>]
 let ``nothing is refreshed before 30 days; after that each held anime once, unchanged ones keep their data`` () =
@@ -49,7 +49,7 @@ let ``nothing is refreshed before 30 days; after that each held anime once, unch
         clock.Now <- clock.Now.AddDays 29.0
         let! early = enrichAllWith app clock
         Assert.Empty early
-        Assert.Empty app.Jikan.Requests
+        Assert.Empty app.Mal.Requests
 
         clock.Now <- clock.Now.AddDays 2.0
         let! _ = enrichAllWith app clock
@@ -62,9 +62,9 @@ let ``nothing is refreshed before 30 days; after that each held anime once, unch
         Assert.True(DateTimeOffset(checkedAfter, TimeSpan.Zero) >= clock.Now.AddSeconds -1.0)
 
         // And then nothing more is due
-        app.Jikan.Clear()
+        app.Mal.Clear()
         let! _ = enrichAllWith app clock
-        Assert.Empty app.Jikan.Requests
+        Assert.Empty app.Mal.Requests
     }
 
 [<Fact>]
@@ -73,11 +73,11 @@ let ``an airing anime is refreshed after 7 days, and a changed body replaces the
         let! app, clock = enrichedWithClock ()
         use app = app
         let! _ = Db.scalar<int> app.Db "UPDATE mal_anime SET airing = true WHERE mal_id = 51009 RETURNING 1" []
-        routeFull app.Jikan { jjk2 with Score = Some 9.1; Genres = [ "Action"; "Drama" ]; Airing = true }
+        routeFull app.Mal { jjk2 with Score = Some 9.1; Genres = [ "Action"; "Drama" ]; Airing = true }
 
         clock.Now <- clock.Now.AddDays 8.0
         let! _ = enrichAllWith app clock
-        Assert.Equal<string list>([ "full:51009" ], fullRequests app)
+        Assert.Equal<string list>([ "details:51009" ], fullRequests app)
 
         let! score = Db.scalar<decimal> app.Db "SELECT score FROM mal_anime WHERE mal_id = 51009" []
         Assert.Equal(9.1m, score)
@@ -91,12 +91,12 @@ let ``with a stored ETag the refresh is conditional and 304 means unchanged`` ()
         let! app, clock = enrichedWithClock ()
         use app = app
         let! _ = Db.scalar<int> app.Db "UPDATE mal_anime SET etag = '\"abc\"' WHERE mal_id = 15 RETURNING 1" []
-        app.Jikan.Route("full:15", [ Status 304 ])
+        app.Mal.Route("details:15", [ Status 304 ])
         let! fetchedBefore, _ = times app 15
 
         clock.Now <- clock.Now.AddDays 31.0
         let! _ = enrichAllWith app clock
-        Assert.Contains(("full:15", "\"abc\""), app.Jikan.Conditional)
+        Assert.Contains(("details:15", "\"abc\""), app.Mal.Conditional)
         let! fetchedAfter, checkedAfter = times app 15
         Assert.Equal(fetchedBefore, fetchedAfter)
         Assert.True(DateTimeOffset(checkedAfter, TimeSpan.Zero) >= clock.Now.AddSeconds -1.0)
@@ -107,8 +107,8 @@ let ``a 404 keeps the last details and flags them; a 504 backs off and keeps the
     task {
         let! app, clock = enrichedWithClock ()
         use app = app
-        app.Jikan.Route("full:15", [ Status 404 ])
-        app.Jikan.Route("full:55998", [ Status 504 ])
+        app.Mal.Route("details:15", [ Status 404 ])
+        app.Mal.Route("details:55998", [ Status 504 ])
 
         clock.Now <- clock.Now.AddDays 31.0
         let! _ = enrichAllWith app clock
@@ -135,5 +135,5 @@ let ``new lookups go before refreshes`` () =
         let! _ = Db.scalar<int> app.Db "UPDATE cr_season_matches SET status = 'pending', mal_id = NULL, method = NULL, shared_from = NULL WHERE season_id = 'GYK5CNZ9G' RETURNING 1" []
         clock.Now <- clock.Now.AddDays 31.0
         let! _ = processNext app.Db (httpFactory app) clock settings
-        Assert.Equal<string list>([ "search:Platinum End" ], app.Jikan.Requests)
+        Assert.Equal<string list>([ "search:Platinum End" ], app.Mal.Requests)
     }

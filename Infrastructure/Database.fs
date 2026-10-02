@@ -169,7 +169,8 @@ let private schema =
     CREATE INDEX IF NOT EXISTS ix_security_events_user ON security_events (user_id, occurred_at DESC);
 
     -- MyAnimeList enrichment (feature 003): shared catalog data, nothing references users.
-    -- raw columns hold Jikan's responses verbatim; everything else is re-derivable (mal-rebuild).
+    -- raw columns hold the provider's responses verbatim (source says which provider); everything
+    -- else is re-derivable (mal-rebuild).
     CREATE INDEX IF NOT EXISTS ix_cr_episodes_season ON cr_episodes (season_id);
 
     CREATE TABLE IF NOT EXISTS mal_anime (
@@ -186,9 +187,10 @@ let private schema =
         aired_from           date NULL,
         year                 int NULL,
         season               text NULL,
-        score                numeric(4,2) NULL, -- NULL = no score (Jikan's 0)
+        score                numeric(4,2) NULL, -- NULL = no score (a missing or 0 score)
         image_url            text NULL,
         raw                  json NOT NULL,
+        source               text NOT NULL DEFAULT 'jikan', -- provider of raw: mal-api | jikan
         data_hash            text NOT NULL,
         etag                 text NULL,
         fetched_at           timestamptz NOT NULL,
@@ -231,8 +233,13 @@ let private schema =
     CREATE TABLE IF NOT EXISTS mal_searches (
         query       text PRIMARY KEY,
         raw         json NOT NULL,
+        source      text NOT NULL DEFAULT 'jikan', -- provider of raw: mal-api | jikan
         searched_at timestamptz NOT NULL
     );
+
+    -- Databases created before the provider switch (feature 003 amendment)
+    ALTER TABLE mal_anime ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'jikan';
+    ALTER TABLE mal_searches ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'jikan';
 
     -- One row per Crunchyroll season: its MyAnimeList match and its place in the enrichment queue
     CREATE TABLE IF NOT EXISTS cr_season_matches (

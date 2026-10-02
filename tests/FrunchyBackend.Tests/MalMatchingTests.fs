@@ -3,7 +3,7 @@ module FrunchyBackend.Tests.MalMatchingTests
 open System
 open System.Threading.Tasks
 open Xunit
-open FrunchyBackend.Infrastructure.JikanModel
+open FrunchyBackend.Infrastructure.MalModel
 open FrunchyBackend.Infrastructure.MalMatching
 
 // ---------------------------------------------------------------------------------------------
@@ -111,10 +111,10 @@ let anime id (title: string) (english: string option) (kind: string) (aired: str
         |> List.map (fun (r, ids) -> { Relation = r; Entries = ids |> List.map (fun i -> { Id = i; Name = $"#{i}" }) }) }
 
 /// A lookup over a fixed catalog; searches return the given ids; counts requests
-type Catalog(entries: JikanAnime list, searches: (string * int list) list) =
+type Catalog(entries: MalAnime list, searches: (string * int list) list) =
     let titles = entries |> List.map (fun a -> a.MalId, a.Title) |> Map.ofList
 
-    // Relation entries carry the related anime's default title, as Jikan's do
+    // Relation entries carry the related anime's default title, as the providers' do
     let byId =
         entries
         |> List.map (fun a ->
@@ -138,7 +138,7 @@ type Catalog(entries: JikanAnime list, searches: (string * int list) list) =
                 | None -> Task.FromResult(Got [])
           Full =
             fun id ->
-                this.Requests.Add $"full:{id}"
+                this.Requests.Add $"details:{id}"
 
                 match byId.TryFind id with
                 | Some a -> Task.FromResult(Got a)

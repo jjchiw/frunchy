@@ -14,11 +14,13 @@ open Npgsql
 open NpgsqlTypes
 open FrunchyBackend.Infrastructure
 open FrunchyBackend.Infrastructure.Database
-open FrunchyBackend.Infrastructure.JikanClient
+open FrunchyBackend.Infrastructure.MalClient
 open FrunchyBackend.Infrastructure.MalMatching
 
 type EnrichmentSettings =
-    { PauseAfterFailures: int
+    { /// Where MyAnimeList data comes from (Frunchy:Mal:*)
+      Provider: Provider
+      PauseAfterFailures: int
       PauseFor: TimeSpan
       RefreshAfterDays: int
       RefreshAiringAfterDays: int }
@@ -26,7 +28,8 @@ type EnrichmentSettings =
 let readSettings (config: IConfiguration) =
     let section = config.GetSection "Frunchy:Enrichment"
 
-    { PauseAfterFailures = section.GetValue<int>("PauseAfterFailures", 5)
+    { Provider = (MalClient.readSettings config).Provider
+      PauseAfterFailures = section.GetValue<int>("PauseAfterFailures", 5)
       PauseFor =
         match section["PauseFor"] with
         | null
@@ -337,19 +340,19 @@ let private refreshFailed (db: DbConfig) (malId: int) (error: string) (now: Date
     }
 
 /// Refresh one held anime (User Story 4, research R7)
-let private refreshAnime (db: DbConfig) (factory: IHttpClientFactory) (clock: TimeProvider) (malId: int) : Task<ProcessResult> =
+let private refreshAnime (db: DbConfig) (factory: IHttpClientFactory) (clock: TimeProvider) (provider: Provider) (malId: int) : Task<ProcessResult> =
     task {
         let now = clock.GetUtcNow()
         let! storedHash, etag = storedHashAndEtag db malId
 
-        match! get factory (fullPath malId) etag with
+        match! get provider factory (provider.DetailsPath malId) etag with
         | Ok(body, newEtag) ->
-            match JikanModel.parseFull body with
+            match provider.ParseDetails body with
             | Result.Ok(_, hash) when hash = storedHash ->
                 do! MalCatalog.touchChecked db malId now
                 return Done
             | Result.Ok(anime, hash) ->
-                do! MalCatalog.saveAnime db anime body hash newEtag now
+                do! MalCatalog.saveAnime db anime body hash newEtag provider.Name now
                 return Done
             | Result.Error e ->
                 do! refreshFailed db malId $"unreadable anime response: {e}" now
@@ -372,19 +375,19 @@ let processNext (db: DbConfig) (factory: IHttpClientFactory) (clock: TimeProvide
     task {
         do! sweep db
         let now = clock.GetUtcNow()
-        let source = Live(factory, db, clock)
+        let source = Live(factory, db, clock, settings.Provider)
 
         match! claimSeason db now true with
         | Some seasonId -> return! lookupSeason db source clock seasonId
         | None ->
             match! claimRefresh db now settings true with
-            | Some malId -> return! refreshAnime db factory clock malId
+            | Some malId -> return! refreshAnime db factory clock settings.Provider malId
             | None ->
                 match! claimSeason db now false with
                 | Some seasonId -> return! lookupSeason db source clock seasonId
                 | None ->
                     match! claimRefresh db now settings false with
-                    | Some malId -> return! refreshAnime db factory clock malId
+                    | Some malId -> return! refreshAnime db factory clock settings.Provider malId
                     | None -> return Idle
     }
 
@@ -408,32 +411,38 @@ type EnrichmentService(db: DbConfig, factory: IHttpClientFactory, clock: TimePro
 
     override _.ExecuteAsync(stoppingToken: CancellationToken) : Task =
         let settings = readSettings config
+        let mal = MalClient.readSettings config
 
         task {
-            logger.LogInformation("MyAnimeList enrichment worker started")
-            let mutable failures = 0
+            match mal.Missing with
+            | Some why ->
+                // The site runs without enrichment; the dashboards simply show no MyAnimeList data
+                logger.LogWarning("MyAnimeList enrichment is off: {Why}", why)
+            | None ->
+                logger.LogInformation("MyAnimeList enrichment worker started ({Provider})", mal.Provider.Name)
+                let mutable failures = 0
 
-            while not stoppingToken.IsCancellationRequested do
-                try
-                    let! result = processNext db factory clock settings
-                    let count, pause = afterResult settings failures result
-                    failures <- count
-
-                    match result, pause with
-                    | _, Some p ->
-                        logger.LogWarning("Jikan keeps failing; pausing enrichment for {Pause}", p)
-                        do! Task.Delay(p, clock, stoppingToken)
-                        logger.LogInformation("Resuming enrichment with one probe")
-                    | Idle, None -> do! Task.Delay(TimeSpan.FromSeconds 5.0, clock, stoppingToken)
-                    | _ -> ()
-                with
-                | :? OperationCanceledException when stoppingToken.IsCancellationRequested -> ()
-                | ex ->
-                    logger.LogError(ex, "Enrichment step failed")
-
+                while not stoppingToken.IsCancellationRequested do
                     try
-                        do! Task.Delay(TimeSpan.FromSeconds 5.0, clock, stoppingToken)
-                    with :? OperationCanceledException ->
-                        ()
+                        let! result = processNext db factory clock settings
+                        let count, pause = afterResult settings failures result
+                        failures <- count
+
+                        match result, pause with
+                        | _, Some p ->
+                            logger.LogWarning("{Provider} keeps failing; pausing enrichment for {Pause}", mal.Provider.Name, p)
+                            do! Task.Delay(p, clock, stoppingToken)
+                            logger.LogInformation("Resuming enrichment with one probe")
+                        | Idle, None -> do! Task.Delay(TimeSpan.FromSeconds 5.0, clock, stoppingToken)
+                        | _ -> ()
+                    with
+                    | :? OperationCanceledException when stoppingToken.IsCancellationRequested -> ()
+                    | ex ->
+                        logger.LogError(ex, "Enrichment step failed")
+
+                        try
+                            do! Task.Delay(TimeSpan.FromSeconds 5.0, clock, stoppingToken)
+                        with :? OperationCanceledException ->
+                            ()
         }
         :> Task

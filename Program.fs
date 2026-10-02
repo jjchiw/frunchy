@@ -242,9 +242,9 @@ let configureServices (config: IConfiguration) (services: IServiceCollection) =
     if config.GetValue<bool>(WorkerEnabledKey, true) then
         services.AddHostedService<ImportProcessorService>() |> ignore
 
-    // Feature 003: the paced, retried Jikan client and the enrichment worker
+    // Feature 003: the paced, retried MyAnimeList client and the enrichment worker
     services.TryAddSingleton<TimeProvider>(TimeProvider.System)
-    JikanClient.register config services |> ignore
+    MalClient.register config services |> ignore
 
     if config.GetValue<bool>(EnrichmentWorkerEnabledKey, true) then
         services.AddHostedService<Workers.Enrichment.EnrichmentService>() |> ignore
@@ -288,10 +288,11 @@ let buildApp (args: string array) (customize: WebApplicationBuilder -> unit) : W
     configureApp app
     app
 
-/// What an operator command can use: the database and, for mal-set, the paced Jikan client
+/// What an operator command can use: the database and, for mal-set, the paced MyAnimeList client
 type CliEnv =
     { Db: DbConfig
       Http: Net.Http.IHttpClientFactory
+      Mal: MalClient.MalSettings
       Clock: TimeProvider }
 
 let private dbOnly (run: DbConfig -> string list -> Task<int>) = fun (env: CliEnv) args -> run env.Db args
@@ -311,7 +312,7 @@ let cliCommands: Map<string, CliEnv -> string list -> Task<int>> =
           "mal-status", dbOnly Operations.MalStatus.run
           "mal-list", dbOnly Operations.MalList.run
           "mal-show", dbOnly Operations.MalShow.run
-          "mal-set", (fun env args -> Operations.MalSet.run env.Db env.Http env.Clock args)
+          "mal-set", (fun env args -> Operations.MalSet.run env.Db env.Http env.Clock env.Mal args)
           "mal-none", dbOnly Operations.MalNone.run
           "mal-retry", dbOnly Operations.MalRetry.run
           "mal-rebuild", dbOnly Operations.MalRebuild.run ]
@@ -322,12 +323,13 @@ let private runCli (command: string) (rest: string list) : int =
     addBellaSecrets Array.empty config
     let db = dbConfigFrom config
     let services = ServiceCollection()
-    JikanClient.register config services |> ignore
+    MalClient.register config services |> ignore
     use provider = services.BuildServiceProvider()
 
     let env =
         { Db = db
           Http = provider.GetRequiredService<Net.Http.IHttpClientFactory>()
+          Mal = MalClient.readSettings config
           Clock = TimeProvider.System }
 
     task {

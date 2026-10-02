@@ -9,7 +9,7 @@ open System.Threading.Tasks
 open Npgsql
 open NpgsqlTypes
 open FrunchyBackend.Infrastructure.Database
-open FrunchyBackend.Infrastructure.JikanModel
+open FrunchyBackend.Infrastructure.MalModel
 open FrunchyBackend.Infrastructure.MalMatching
 
 let private add (cmd: NpgsqlCommand) (name: string) (dbType: NpgsqlDbType) (value: obj) =
@@ -29,7 +29,7 @@ let private textOpt (v: string option) : obj = opt v
 
 /// Insert or replace an anime with its tags and relations, in the caller's transaction.
 /// `rederive` (mal-rebuild) keeps the fetch/check times, the etag and the refresh state.
-let private upsertAnimeWith (rederive: bool) (conn: NpgsqlConnection) (tx: NpgsqlTransaction) (a: JikanAnime) (raw: string) (dataHash: string) (etag: string option) (now: DateTimeOffset) : Task<unit> =
+let private upsertAnimeWith (rederive: bool) (conn: NpgsqlConnection) (tx: NpgsqlTransaction) (a: MalAnime) (raw: string) (dataHash: string) (etag: string option) (source: string) (now: DateTimeOffset) : Task<unit> =
     task {
         let freshness =
             if rederive then
@@ -43,16 +43,16 @@ let private upsertAnimeWith (rederive: bool) (conn: NpgsqlConnection) (tx: Npgsq
             new NpgsqlCommand(
                 $"""
                 INSERT INTO mal_anime (mal_id, url, title, title_english, title_japanese, synonyms, type, episodes, status, airing,
-                                       aired_from, year, season, score, image_url, raw, data_hash, etag, fetched_at, checked_at)
+                                       aired_from, year, season, score, image_url, raw, source, data_hash, etag, fetched_at, checked_at)
                 VALUES (@id, @url, @title, @en, @ja, @syn, @type, @episodes, @status, @airing,
-                        @aired, @year, @season, @score, @image, @raw, @hash, @etag, @now, @now)
+                        @aired, @year, @season, @score, @image, @raw, @source, @hash, @etag, @now, @now)
                 ON CONFLICT (mal_id) DO UPDATE SET
                     url = EXCLUDED.url, title = EXCLUDED.title, title_english = EXCLUDED.title_english,
                     title_japanese = EXCLUDED.title_japanese, synonyms = EXCLUDED.synonyms, type = EXCLUDED.type,
                     episodes = EXCLUDED.episodes, status = EXCLUDED.status, airing = EXCLUDED.airing,
                     aired_from = EXCLUDED.aired_from, year = EXCLUDED.year, season = EXCLUDED.season,
                     score = EXCLUDED.score, image_url = EXCLUDED.image_url, raw = EXCLUDED.raw,
-                    data_hash = EXCLUDED.data_hash{freshness}
+                    source = EXCLUDED.source, data_hash = EXCLUDED.data_hash{freshness}
                 """,
                 conn,
                 tx
@@ -74,6 +74,7 @@ let private upsertAnimeWith (rederive: bool) (conn: NpgsqlConnection) (tx: Npgsq
         add cmd "score" NpgsqlDbType.Numeric (opt a.Score)
         add cmd "image" NpgsqlDbType.Text (textOpt a.ImageUrl)
         add cmd "raw" NpgsqlDbType.Json raw
+        add cmd "source" NpgsqlDbType.Text source
         add cmd "hash" NpgsqlDbType.Text dataHash
         add cmd "etag" NpgsqlDbType.Text (textOpt etag)
         add cmd "now" NpgsqlDbType.TimestampTz now
@@ -138,18 +139,18 @@ let private upsertAnimeWith (rederive: bool) (conn: NpgsqlConnection) (tx: Npgsq
                 ()
     }
 
-let upsertAnime conn tx a raw dataHash etag now = upsertAnimeWith false conn tx a raw dataHash etag now
+let upsertAnime conn tx a raw dataHash etag source now = upsertAnimeWith false conn tx a raw dataHash etag source now
 
 /// Re-derive an anime's columns, tags and relations from its stored body (mal-rebuild)
-let rederiveAnime conn tx a raw dataHash = upsertAnimeWith true conn tx a raw dataHash None DateTimeOffset.MinValue
+let rederiveAnime conn tx a raw dataHash source = upsertAnimeWith true conn tx a raw dataHash None source DateTimeOffset.MinValue
 
-/// Store a `/full` response in its own transaction
-let saveAnime (db: DbConfig) (a: JikanAnime) (raw: string) (dataHash: string) (etag: string option) (now: DateTimeOffset) : Task<unit> =
+/// Store a details response (from provider `source`) in its own transaction
+let saveAnime (db: DbConfig) (a: MalAnime) (raw: string) (dataHash: string) (etag: string option) (source: string) (now: DateTimeOffset) : Task<unit> =
     task {
         use conn = getConnection db
         do! conn.OpenAsync()
         use! tx = conn.BeginTransactionAsync()
-        do! upsertAnime conn tx a raw dataHash etag now
+        do! upsertAnime conn tx a raw dataHash etag source now
         do! tx.CommitAsync()
     }
 
@@ -198,12 +199,12 @@ let markMissing (db: DbConfig) (malId: int) (now: DateTimeOffset) : Task<unit> =
         ()
     }
 
-/// The stored `/full` body of an anime, with when it was last confirmed
-let tryAnime (db: DbConfig) (malId: int) : Task<(string * string option * DateTimeOffset) option> =
+/// The stored details body of an anime: (body, etag, last confirmed, provider it came from)
+let tryAnime (db: DbConfig) (malId: int) : Task<(string * string option * DateTimeOffset * string) option> =
     task {
         use conn = getConnection db
         do! conn.OpenAsync()
-        use cmd = new NpgsqlCommand("SELECT raw::text, etag, checked_at FROM mal_anime WHERE mal_id = @id", conn)
+        use cmd = new NpgsqlCommand("SELECT raw::text, etag, checked_at, source FROM mal_anime WHERE mal_id = @id", conn)
         add cmd "id" NpgsqlDbType.Integer malId
         use! reader = cmd.ExecuteReaderAsync()
 
@@ -211,7 +212,7 @@ let tryAnime (db: DbConfig) (malId: int) : Task<(string * string option * DateTi
 
         if found then
             let etag = if reader.IsDBNull 1 then None else Some(reader.GetString 1)
-            return Some(reader.GetString 0, etag, reader.GetFieldValue<DateTimeOffset> 2)
+            return Some(reader.GetString 0, etag, reader.GetFieldValue<DateTimeOffset> 2, reader.GetString 3)
         else
             return None
     }
@@ -220,34 +221,36 @@ let tryAnime (db: DbConfig) (malId: int) : Task<(string * string option * DateTi
 // Searches
 // ---------------------------------------------------------------------------------------------
 
-let saveSearch (db: DbConfig) (query: string) (raw: string) (now: DateTimeOffset) : Task<unit> =
+let saveSearch (db: DbConfig) (query: string) (raw: string) (source: string) (now: DateTimeOffset) : Task<unit> =
     task {
         let! _ =
             exec
                 db
                 """
-                INSERT INTO mal_searches (query, raw, searched_at) VALUES (@q, @raw, @now)
-                ON CONFLICT (query) DO UPDATE SET raw = EXCLUDED.raw, searched_at = EXCLUDED.searched_at
+                INSERT INTO mal_searches (query, raw, source, searched_at) VALUES (@q, @raw, @source, @now)
+                ON CONFLICT (query) DO UPDATE SET raw = EXCLUDED.raw, source = EXCLUDED.source, searched_at = EXCLUDED.searched_at
                 """
                 (fun cmd ->
                     add cmd "q" NpgsqlDbType.Text query
                     add cmd "raw" NpgsqlDbType.Json raw
+                    add cmd "source" NpgsqlDbType.Text source
                     add cmd "now" NpgsqlDbType.TimestampTz now)
 
         ()
     }
 
-let trySearch (db: DbConfig) (query: string) : Task<(string * DateTimeOffset) option> =
+/// A stored search: (body, when, provider it came from)
+let trySearch (db: DbConfig) (query: string) : Task<(string * DateTimeOffset * string) option> =
     task {
         use conn = getConnection db
         do! conn.OpenAsync()
-        use cmd = new NpgsqlCommand("SELECT raw::text, searched_at FROM mal_searches WHERE query = @q", conn)
+        use cmd = new NpgsqlCommand("SELECT raw::text, searched_at, source FROM mal_searches WHERE query = @q", conn)
         add cmd "q" NpgsqlDbType.Text query
         use! reader = cmd.ExecuteReaderAsync()
         let! found = reader.ReadAsync()
 
         if found then
-            return Some(reader.GetString 0, reader.GetFieldValue<DateTimeOffset> 1)
+            return Some(reader.GetString 0, reader.GetFieldValue<DateTimeOffset> 1, reader.GetString 2)
         else
             return None
     }

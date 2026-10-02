@@ -29,7 +29,8 @@ mal_searches (stored search responses, by query)
 | `year` / `season` | `int` NULL / `text` NULL | e.g. 2023 / "fall" |
 | `score` | `numeric(4,2)` NULL | a score of `0` or `null` from the service is stored as NULL ("no score") |
 | `image_url` | `text` NULL | `images.webp.image_url`, or the jpg one |
-| `raw` | `json` NOT NULL | the full `/full` response body, verbatim |
+| `raw` | `json` NOT NULL | the full details response body, verbatim |
+| `source` | `text` NOT NULL | the provider `raw` came from: `mal-api` or `jikan` (research R13) |
 | `data_hash` | `text` NOT NULL | SHA-256 of `data` (change detection, research R7) |
 | `etag` | `text` NULL | stored only when the service sends one |
 | `fetched_at` | `timestamptz` NOT NULL | when the current `raw` was received |
@@ -75,6 +76,7 @@ seasons and movies (research R2.3).
 |---|---|---|
 | `query` | `text` PK | the exact `q` sent, after trimming |
 | `raw` | `json` NOT NULL | the response body, verbatim |
+| `source` | `text` NOT NULL | the provider: `mal-api` or `jikan`; a stored search is reused only by the same provider |
 | `searched_at` | `timestamptz` NOT NULL | |
 
 Only the latest response per query is kept. A new search of the same query replaces it. It's used

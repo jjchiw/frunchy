@@ -1,13 +1,13 @@
-/// Jikan-shaped bodies for integration tests (feature 003). The shape follows the recorded real
-/// response in JsonSamples/jikan/full-52991.json; these stand in for recordings until record.py has
-/// captured the rest (tasks T003). Also: a scripted MyAnimeList for some 2026-sample series.
+/// MyAnimeList API v2-shaped bodies for integration tests (feature 003, the default provider), and a
+/// scripted MyAnimeList for some 2026-sample series. They stand in for recorded responses until a
+/// client id is available to record real ones (tasks T003).
 module FrunchyBackend.Tests.MalFixtures
 
 open System.Text.Json
 open System.Threading.Tasks
 open FrunchyBackend.Infrastructure.Database
 open FrunchyBackend.Tests.Infrastructure
-open FrunchyBackend.Tests.Infrastructure.FakeJikan
+open FrunchyBackend.Tests.Infrastructure.FakeMal
 open FrunchyBackend.Tests.Infrastructure.PostgresFixture
 
 type Spec =
@@ -50,63 +50,63 @@ let private genreIds =
           "Supernatural", 37
           "Award Winning", 46 ]
 
-let private tag (kind: string) (name: string) =
-    {| mal_id = (if kind = "genre" then genreIds[name] else abs (name.GetHashCode()) % 10000)
-       ``type`` = "anime"
-       name = name
-       url = "" |}
+let private mediaType (kind: string) =
+    match kind with
+    | "TV" -> "tv"
+    | "Movie" -> "movie"
+    | "OVA" -> "ova"
+    | "ONA" -> "ona"
+    | "Special" -> "special"
+    | other -> other.ToLowerInvariant()
 
-let private animeObject (s: Spec) (withRelations: bool) =
+let private relationType (relation: string) =
+    relation.ToLowerInvariant().Replace(' ', '_').Replace('-', '_')
+
+/// The anime object as MyAnimeList's API v2 returns it (details, or a search result's `node`)
+let private animeObject (s: Spec) (details: bool) =
     let year = int (s.Aired.Substring(0, 4))
 
-    let titles =
-        [ yield {| ``type`` = "Default"; title = s.Title |}
-          match s.English with
-          | Some e -> yield {| ``type`` = "English"; title = e |}
-          | None -> () ]
-
-    let relations =
-        s.Relations
-        |> List.groupBy (fun (r, _, _) -> r)
-        |> List.map (fun (r, entries) ->
-            {| relation = r
-               entry = entries |> List.map (fun (_, id, name) -> {| mal_id = id; ``type`` = "anime"; name = name; url = "" |}) |})
-
     dict
-        [ yield "mal_id", box s.Id
-          yield "url", box $"https://myanimelist.net/anime/{s.Id}"
-          yield "titles", box titles
+        [ yield "id", box s.Id
           yield "title", box s.Title
-          yield "title_english", (match s.English with Some e -> box e | None -> null)
-          yield "type", box s.Kind
-          yield "episodes", box 12
-          yield "status", box (if s.Airing then "Currently Airing" else "Finished Airing")
-          yield "airing", box s.Airing
-          yield "aired", box {| from = s.Aired + "T00:00:00+00:00" |}
-          yield "score", (match s.Score with Some v -> box v | None -> box 0)
-          yield "year", box year
-          yield "season", box "fall"
-          yield "images", box {| jpg = {| image_url = $"https://cdn.myanimelist.net/images/anime/{s.Id}.jpg" |} |}
-          yield "genres", box (s.Genres |> List.map (tag "genre"))
-          yield "explicit_genres", box []
-          yield "themes", box []
-          yield "demographics", box []
-          yield "studios", box (s.Studios |> List.map (tag "studio"))
-          if withRelations then yield "relations", box relations ]
+          yield "main_picture", box {| medium = $"https://cdn.myanimelist.net/images/anime/{s.Id}.jpg"; large = $"https://cdn.myanimelist.net/images/anime/{s.Id}l.jpg" |}
+          yield "alternative_titles", box {| synonyms = [||]; en = defaultArg s.English ""; ja = "" |}
+          yield "start_date", box s.Aired
+          yield "start_season", box {| year = year; season = "fall" |}
+          yield "media_type", box (mediaType s.Kind)
+          yield "status", box (if s.Airing then "currently_airing" else "finished_airing")
+          yield "num_episodes", box 12
+          yield "rating", box "pg_13"
+          yield "nsfw", box "white"
+          match s.Score with
+          | Some v -> yield "mean", box v
+          | None -> ()
+          if details then
+              yield "genres", box (s.Genres |> List.map (fun g -> {| id = genreIds[g]; name = g |}))
+              yield "studios", box (s.Studios |> List.map (fun st -> {| id = abs (st.GetHashCode()) % 10000; name = st |}))
 
-let fullBody (s: Spec) =
-    JsonSerializer.Serialize {| data = animeObject s true |}
+              yield
+                  "related_anime",
+                  box (
+                      s.Relations
+                      |> List.map (fun (r, id, name) ->
+                          {| node = {| id = id; title = name |}
+                             relation_type = relationType r
+                             relation_type_formatted = r |})
+                  ) ]
+
+let fullBody (s: Spec) = JsonSerializer.Serialize(animeObject s true)
 
 let searchBody (specs: Spec list) =
     JsonSerializer.Serialize
-        {| data = specs |> List.map (fun s -> animeObject s false)
-           pagination = {| has_next_page = false |} |}
+        {| data = specs |> List.map (fun s -> {| node = animeObject s false |})
+           paging = {| |} |}
 
-/// Route a spec's /full and nothing else
-let routeFull (fake: FakeJikanHandler) (s: Spec) =
-    fake.Route($"full:{s.Id}", [ Body(fullBody s) ])
+/// Route a spec's details and nothing else
+let routeFull (fake: FakeMalHandler) (s: Spec) =
+    fake.Route($"details:{s.Id}", [ Body(fullBody s) ])
 
-let routeSearch (fake: FakeJikanHandler) (query: string) (results: Spec list) =
+let routeSearch (fake: FakeMalHandler) (query: string) (results: Spec list) =
     fake.Route($"search:{query}", [ Body(searchBody results) ])
 
 // ---------------------------------------------------------------------------------------------
@@ -151,11 +151,17 @@ let eyeshield =
         Score = Some 7.9
         Genres = [ "Sports" ] }
 
-/// Frieren uses the real recorded response; the rest are scripted
-let routeSampleCatalog (fake: FakeJikanHandler) =
-    fake.Route("full:52991", [ File "full-52991.json" ])
-    let frieren1 = { spec 52991 "Sousou no Frieren" (Some "Frieren: Beyond Journey's End") "TV" "2023-09-29" with Score = Some 9.26 }
+let frieren1 =
+    { spec 52991 "Sousou no Frieren" (Some "Frieren: Beyond Journey's End") "TV" "2023-09-29" with
+        Score = Some 9.26
+        Genres = [ "Adventure"; "Award Winning"; "Drama"; "Fantasy" ]
+        Studios = [ "Madhouse" ]
+        Relations = [ "Sequel", 59978, "Sousou no Frieren 2nd Season" ] }
+
+/// A scripted MyAnimeList for some series of the 2026 sample
+let routeSampleCatalog (fake: FakeMalHandler) =
     routeSearch fake "Frieren: Beyond Journey's End" [ frieren1; frierenS2 ]
+    routeFull fake frieren1
     routeFull fake frierenS2
     routeSearch fake "JUJUTSU KAISEN" [ jjk1; jjk2; jjk0 ]
 
@@ -171,7 +177,8 @@ let routeSampleCatalog (fake: FakeJikanHandler) =
 // ---------------------------------------------------------------------------------------------
 
 let settings: FrunchyBackend.Workers.Enrichment.EnrichmentSettings =
-    { PauseAfterFailures = 5
+    { Provider = FrunchyBackend.Infrastructure.MalClient.MalApi
+      PauseAfterFailures = 5
       PauseFor = System.TimeSpan.FromMinutes 5.0
       RefreshAfterDays = 30
       RefreshAiringAfterDays = 7 }

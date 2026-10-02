@@ -8,7 +8,7 @@
 
   <ItemGroup>
     <Compile Include="Infrastructure/FakeProvider.fs" />
-    <Compile Include="Infrastructure/FakeJikan.fs" />
+    <Compile Include="Infrastructure/FakeMal.fs" />
     <Compile Include="Infrastructure/Browser.fs" />
     <Compile Include="Infrastructure/PostgresFixture.fs" />
     <Compile Include="Fixtures.fs" />
@@ -37,6 +37,7 @@
     <Compile Include="CsrfTests.fs" />
     <Compile Include="AccountLocalizationTests.fs" />
     <Compile Include="JikanModelTests.fs" />
+    <Compile Include="MalApiModelTests.fs" />
     <Compile Include="MalMatchingTests.fs" />
     <Compile Include="MalFixtures.fs" />
     <Compile Include="EnrichmentTests.fs" />
@@ -49,7 +50,7 @@
 
   <ItemGroup>
     <None Include="../../JsonSamples/PostHistory.json;../../JsonSamples/crunchyroll-history-2026-sample.json" LinkBase="JsonSamples" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="JsonSamples/jikan/*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="JsonSamples/jikan/*.json;JsonSamples/mal/*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

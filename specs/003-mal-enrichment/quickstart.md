@@ -1,14 +1,16 @@
 # Quickstart: validate feature 003
 
 Contracts: [operator-cli](contracts/operator-cli.md), [dashboard](contracts/dashboard.md),
-[jikan-usage](contracts/jikan-usage.md). Data rules: [data-model](data-model.md). Decisions:
+[mal-usage](contracts/mal-usage.md). Data rules: [data-model](data-model.md). Decisions:
 [research](research.md).
 
 ## Prerequisites
 
 Everything from features 001 and 002: .NET 10, Docker, and Postgres in `postgres-postgres-1`. The
-automated tests need no network: Jikan is replaced by the recorded fixtures in
-`tests/FrunchyBackend.Tests/JsonSamples/jikan/`. Sections 3–4 use the real service.
+automated tests need no network: the provider is replaced by `FakeMal` with MyAnimeList API-shaped
+bodies (and, once recorded, real ones in `tests/FrunchyBackend.Tests/JsonSamples/mal/`).
+Sections 3–4 use the real service and need a MyAnimeList client id: register an app at
+https://myanimelist.net/apiconfig and store its Client ID in Bella as `Frunchy__Mal__ClientId`.
 
 ## 1. Automated validation (the gate)
 
@@ -34,7 +36,7 @@ Every feature 001 and 002 suite still passes (SC-009), plus:
 dotnet run --launch-profile http
 ```
 
-With the real database, the worker starts enriching (section 3). To look without touching Jikan,
+With the real database, the worker starts enriching (section 3). To look without calling MyAnimeList,
 start with `--Frunchy:EnrichmentWorkerEnabled=false` and check that `/u/jjchiw` renders exactly
 as before.
 
@@ -44,12 +46,13 @@ On the real `frunchydb` (501 seasons, 336 series). The first start creates the n
 existing tables only get one index.
 
 ```bash
-dotnet run --launch-profile http          # the worker starts at ~1 request/s
+bella run -- python3 tests/FrunchyBackend.Tests/JsonSamples/mal/record.py   # optional: real fixtures (~10 min)
+bella sdk run -- dotnet run --launch-profile http   # the worker starts at ~1 request/s
 dotnet run -- mal-status                  # from another terminal, every few minutes
 ```
 
 1. **Pace**: within about 30 minutes, `mal-status` shows no `pending` left apart from rows waiting
-   on `next_attempt_at` after Jikan failures. The log shows no 429 caused by our pace (SC-002).
+   on `next_attempt_at` after provider failures. The log shows no 429 caused by our pace (SC-002).
 2. **Match rate**: matched ÷ (all seasons) ≥ 85% (SC-001). Record the numbers in the validation log.
 3. **Accuracy**: pick 30 random automatic matches (`mal-show` on random series) and check each
    against MyAnimeList by hand. At most 1 may be wrong (SC-001).
@@ -69,7 +72,7 @@ dotnet run -- mal-status                  # from another terminal, every few min
 
 ## 5. Outage behaviour (optional, by hand)
 
-Start with `--Frunchy:Jikan:BaseUrl=http://127.0.0.1:9/` (nothing listens there). After 5 failed
+Start with `--Frunchy:Mal:BaseUrl=http://127.0.0.1:9/` (nothing listens there). After 5 failed
 lookups the log shows a 5-minute pause, then a single probe. `mal-status` shows growing
 `next_attempt_at` values. Restart with the real URL, and enrichment resumes without operator
 action (SC-003).
@@ -89,4 +92,9 @@ action (SC-003).
   Jikan. Every search returned 504 "Jikan failed to connect to MyAnimeList", and so did any `/full`
   Jikan didn't have cached. This is the failure mode US1's scenarios 6–7 and FR-013 to FR-015 are
   for. Fixture recording (T003) and the first real run (T035) wait for it to recover.
-- **T035 / T036**: pending (real run and the owner's accuracy check).
+- **Provider switch (research R13, T037–T042)**: MyAnimeList's official API is the default
+  provider, and Jikan is the alternative. `dotnet test` gives **223/223**, with 0 build warnings:
+  the 216 earlier tests, now on MyAnimeList-shaped bodies, plus 7 for the new parser, query
+  shaping, settings and `mal-set` without a client id.
+- **T003 (real fixtures), T035 (real run), T036 (accuracy check)**: waiting for the owner's
+  MyAnimeList client id.

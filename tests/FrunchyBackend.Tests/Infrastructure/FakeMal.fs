@@ -1,7 +1,8 @@
-/// A stand-in for Jikan (feature 003, research R9): serves recorded real responses from
-/// JsonSamples/jikan/ (manifest.json) or scripted replies, and logs every request.
-/// Tests never call the real service.
-module FrunchyBackend.Tests.Infrastructure.FakeJikan
+/// A stand-in for the MyAnimeList data provider (feature 003, research R9): serves recorded real
+/// responses from JsonSamples/ (manifest.json) or scripted replies, and logs every request.
+/// Understands both providers' paths (MyAnimeList API: anime?q=…, anime/{id}; Jikan: anime/{id}/full).
+/// Tests never call a real service.
+module FrunchyBackend.Tests.Infrastructure.FakeMal
 
 open System
 open System.Collections.Concurrent
@@ -20,36 +21,41 @@ type Reply =
     /// A recorded body (path relative to JsonSamples/jikan/)
     | File of string
     | Body of string
-    /// A status code with Jikan's error body
+    /// A status code with an error body
     | Status of int
     /// A 429 with a Retry-After header (seconds)
     | RetryAfter of int
     | Delay of TimeSpan * Reply
     | Throw of exn
 
-let fixturesDir =
-    Path.Combine(AppContext.BaseDirectory, "JsonSamples", "jikan")
+/// Recorded responses per provider: JsonSamples/mal/ (MyAnimeList API) and JsonSamples/jikan/
+let fixturesDirOf (provider: string) =
+    Path.Combine(AppContext.BaseDirectory, "JsonSamples", provider)
+
+let fixturesDir = fixturesDirOf "jikan"
 
 let readFixture (name: string) = File.ReadAllText(Path.Combine(fixturesDir, name))
 
+/// MyAnimeList's error shape ({ error, message }); `status` kept in the message for assertions
 let private errorBody (status: int) =
-    $$"""{"status":{{status}},"type":"FakeException","message":"fake {{status}}","error":null}"""
+    $$"""{"error":"fake_{{status}}","message":"fake {{status}}"}"""
 
-let emptySearch = """{"data":[],"pagination":{"has_next_page":false}}"""
+let emptySearch = """{"data":[],"paging":{}}"""
 
-/// Route key of a request: "search:<q>" or "full:<id>"
+/// Route key of a request: "search:<q>" or "details:<id>"
 let keyOf (uri: Uri) =
     let path = uri.AbsolutePath.TrimEnd('/')
     let segments = path.Split('/', StringSplitOptions.RemoveEmptyEntries)
 
     match segments |> Array.rev |> List.ofArray with
-    | "full" :: id :: "anime" :: _ -> $"full:{id}"
+    | "full" :: id :: "anime" :: _ -> $"details:{id}"
+    | id :: "anime" :: _ when fst (Int32.TryParse id) -> $"details:{id}"
     | "anime" :: _ ->
         let query = Web.HttpUtility.ParseQueryString uri.Query
         $"""search:{query["q"]}"""
     | _ -> "other:" + path
 
-type FakeJikanHandler() =
+type FakeMalHandler() =
     inherit HttpMessageHandler()
 
     let requests = ConcurrentQueue<string>()
@@ -57,7 +63,7 @@ type FakeJikanHandler() =
     let routes = ConcurrentDictionary<string, ConcurrentQueue<Reply>>()
     let lastReply = ConcurrentDictionary<string, Reply>()
 
-    /// Every request received, as "search:<q>" / "full:<id>", in order
+    /// Every request received, as "search:<q>" / "details:<id>", in order
     member _.Requests = List.ofSeq requests
 
     /// (key, If-None-Match) of every conditional request
@@ -73,15 +79,16 @@ type FakeJikanHandler() =
         routes[key] <- ConcurrentQueue(replies)
         lastReply.TryRemove key |> ignore
 
-    /// Load the recorded responses (manifest.json)
-    member this.LoadRecorded() =
-        use doc = JsonDocument.Parse(readFixture "manifest.json")
+    /// Load the recorded responses of a provider folder ("mal" or "jikan", with its manifest.json)
+    member this.LoadRecorded(provider: string) =
+        let dir = fixturesDirOf provider
+        use doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(dir, "manifest.json")))
 
         for entry in doc.RootElement.EnumerateObject() do
             let v = entry.Value
 
             match v.TryGetProperty "file" with
-            | true, f -> this.Route(entry.Name, [ File(f.GetString()) ])
+            | true, f -> this.Route(entry.Name, [ Body(File.ReadAllText(Path.Combine(dir, f.GetString()))) ])
             | _ ->
                 let status = v.GetProperty("status").GetInt32()
 
@@ -147,27 +154,29 @@ type FakeJikanHandler() =
             | None -> return respond 404 (errorBody 404)
         }
 
-/// Settings that make pacing and retries instant in tests
+/// Settings that make pacing and retries instant in tests (the default provider, a fake client id)
 let fastSettings =
-    [ "Frunchy:Jikan:BaseUrl", "http://jikan.test/v4/"
-      "Frunchy:Jikan:RequestsPerSecond", "1000"
-      "Frunchy:Jikan:RetryBaseDelay", "00:00:00.001"
-      "Frunchy:Jikan:AttemptTimeout", "00:00:02" ]
+    [ "Frunchy:Mal:Provider", "mal-api"
+      "Frunchy:Mal:ClientId", "test-client-id"
+      "Frunchy:Mal:BaseUrl", "http://mal.test/v2/"
+      "Frunchy:Mal:RequestsPerSecond", "1000"
+      "Frunchy:Mal:RetryBaseDelay", "00:00:00.001"
+      "Frunchy:Mal:AttemptTimeout", "00:00:02" ]
 
 /// Use `fake` as the "jikan" client's primary handler
-let useHandler (fake: FakeJikanHandler) (services: IServiceCollection) =
+let useHandler (fake: FakeMalHandler) (services: IServiceCollection) =
     services
-        .AddHttpClient(JikanClient.ClientName)
+        .AddHttpClient(MalClient.ClientName)
         .ConfigurePrimaryHttpMessageHandler(fun () -> fake :> HttpMessageHandler)
         .SetHandlerLifetime(Threading.Timeout.InfiniteTimeSpan)
     |> ignore
 
 /// An IHttpClientFactory wired like the app's (same pipeline), backed by `fake`
-let factory (fake: FakeJikanHandler) (extra: (string * string) list) : IHttpClientFactory =
+let factory (fake: FakeMalHandler) (extra: (string * string) list) : IHttpClientFactory =
     let config =
         ConfigurationBuilder().AddInMemoryCollection(dict (fastSettings @ extra)).Build() :> IConfiguration
 
     let services = ServiceCollection()
-    JikanClient.register config services |> ignore
+    MalClient.register config services |> ignore
     useHandler fake services
     services.BuildServiceProvider().GetRequiredService<IHttpClientFactory>()

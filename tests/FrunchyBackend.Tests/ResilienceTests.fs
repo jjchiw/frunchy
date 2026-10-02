@@ -8,19 +8,19 @@ open Microsoft.AspNetCore.Builder
 open Microsoft.Extensions.DependencyInjection
 open Xunit
 open FrunchyBackend.Infrastructure
-open FrunchyBackend.Infrastructure.JikanClient
+open FrunchyBackend.Infrastructure.MalClient
 open FrunchyBackend.Workers
 open FrunchyBackend.Workers.Enrichment
 open FrunchyBackend.Tests.Fixtures
 open FrunchyBackend.Tests.MalFixtures
 open FrunchyBackend.Tests.TestHelpers
-open FrunchyBackend.Tests.Infrastructure.FakeJikan
+open FrunchyBackend.Tests.Infrastructure.FakeMal
 open FrunchyBackend.Tests.Infrastructure.PostgresFixture
 
-let private fullKey = "full:52991"
+let private fullKey = "details:52991"
 
 let private client (extra: (string * string) list) =
-    let fake = new FakeJikanHandler()
+    let fake = new FakeMalHandler()
     fake, factory fake extra
 
 // ---------------------------------------------------------------------------------------------
@@ -33,7 +33,7 @@ let ``504, 504, then 200: retried until it works`` () =
         let fake, http = client []
         fake.Route(fullKey, [ Status 504; Status 504; File "full-52991.json" ])
 
-        match! get http (fullPath 52991) None with
+        match! get MalApi http (MalApi.DetailsPath 52991) None with
         | Ok(body, _) -> Assert.Contains("Sousou no Frieren", body)
         | other -> failwith $"expected Ok, got %A{other}"
 
@@ -46,7 +46,7 @@ let ``429 with Retry-After is honoured`` () =
         let fake, http = client []
         fake.Route(fullKey, [ RetryAfter 1; File "full-52991.json" ])
         let watch = Stopwatch.StartNew()
-        let! result = get http (fullPath 52991) None
+        let! result = get MalApi http (MalApi.DetailsPath 52991) None
         watch.Stop()
 
         match result with
@@ -62,7 +62,7 @@ let ``four 503s give up as temporary after exactly 4 attempts`` () =
         let fake, http = client []
         fake.Route(fullKey, [ Status 503 ])
 
-        match! get http (fullPath 52991) None with
+        match! get MalApi http (MalApi.DetailsPath 52991) None with
         | Temporary message -> Assert.Contains("503", message)
         | other -> failwith $"expected Temporary, got %A{other}"
 
@@ -74,19 +74,19 @@ let ``404 is not retried; 400 is definite; a dropped connection is temporary`` (
     task {
         let fake, http = client []
         fake.Route(fullKey, [ Status 404 ])
-        let! notFound = get http (fullPath 52991) None
+        let! notFound = get MalApi http (MalApi.DetailsPath 52991) None
         Assert.Equal(NotFound, notFound)
         Assert.Equal(1, fake.Count fullKey)
 
-        fake.Route("full:1", [ Status 400 ])
+        fake.Route("details:1", [ Status 400 ])
 
-        match! get http (fullPath 1) None with
+        match! get MalApi http (MalApi.DetailsPath 1) None with
         | Definite _ -> ()
         | other -> failwith $"expected Definite, got %A{other}"
 
-        fake.Route("full:2", [ Throw(HttpRequestException "connection reset") ])
+        fake.Route("details:2", [ Throw(HttpRequestException "connection reset") ])
 
-        match! get http (fullPath 2) None with
+        match! get MalApi http (MalApi.DetailsPath 2) None with
         | Temporary message -> Assert.Contains("connection", message)
         | other -> failwith $"expected Temporary, got %A{other}"
     }
@@ -97,7 +97,7 @@ let ``an unreadable 200 is a temporary failure for the matcher`` () =
         let! db = newDatabase ()
         let fake, http = client []
         fake.Route(fullKey, [ Body "<html>maintenance</html>" ])
-        let source = Live(http, db, TimeProvider.System)
+        let source = Live(http, db, TimeProvider.System, MalApi)
 
         match! source.Lookup.Full 52991 with
         | MalMatching.Unavailable reason -> Assert.StartsWith("unreadable", reason)
@@ -110,12 +110,12 @@ let ``an unreadable 200 is a temporary failure for the matcher`` () =
 [<Fact>]
 let ``requests are paced, retries included (FR-010)`` () =
     task {
-        let fake, http = client [ "Frunchy:Jikan:RequestsPerSecond", "2" ]
+        let fake, http = client [ "Frunchy:Mal:RequestsPerSecond", "2" ]
         fake.Route(fullKey, [ File "full-52991.json" ])
         let watch = Stopwatch.StartNew()
 
         for _ in 1..6 do
-            let! _ = get http (fullPath 52991) None
+            let! _ = get MalApi http (MalApi.DetailsPath 52991) None
             ()
 
         watch.Stop()
@@ -162,7 +162,7 @@ let ``a failing lookup backs off, doubling, and becomes failed from the third at
         // Only Frieren is due; every other season waits far in the future
         do! Enrichment.sweep app.Db
         let! _ = Db.scalar<int> app.Db "UPDATE cr_season_matches SET next_attempt_at = now() + interval '30 days' WHERE season_id <> 'GYE5CQMQ5' RETURNING 1" []
-        app.Jikan.Route("search:Frieren: Beyond Journey's End", [ Status 504 ])
+        app.Mal.Route("search:Frieren: Beyond Journey's End", [ Status 504 ])
 
         let! r1 = step app clock
         Assert.Equal(TemporaryFailure, r1)
@@ -177,10 +177,10 @@ let ``a failing lookup backs off, doubling, and becomes failed from the third at
         Assert.InRange((next - clock.Now).TotalMinutes, 1.5, 2.5)
 
         // Not due yet: nothing is sent
-        app.Jikan.Clear()
+        app.Mal.Clear()
         let! idle = step app clock
         Assert.Equal(Idle, idle)
-        Assert.Empty app.Jikan.Requests
+        Assert.Empty app.Mal.Requests
 
         clock.Now <- next.AddSeconds 1.0
         let! _ = step app clock
@@ -203,8 +203,8 @@ let ``one season's failure doesn't stop the others (FR-017)`` () =
     task {
         let! app, clock = appWithClock ()
         use app = app
-        routeSampleCatalog app.Jikan
-        app.Jikan.Route("search:Frieren: Beyond Journey's End", [ Status 504 ])
+        routeSampleCatalog app.Mal
+        app.Mal.Route("search:Frieren: Beyond Journey's End", [ Status 504 ])
         let! _ = enrichAllWith app clock
         let! frieren = matchOf app.Db "GYE5CQMQ5"
         Assert.StartsWith("GYE5CQMQ5 pending", frieren)
@@ -217,8 +217,8 @@ let ``a candidate whose details are gone is dropped, not retried`` () =
     task {
         let! app, clock = appWithClock ()
         use app = app
-        routeSearch app.Jikan "Eyeshield 21" [ eyeshield ]
-        app.Jikan.Route("full:15", [ Status 404 ])
+        routeSearch app.Mal "Eyeshield 21" [ eyeshield ]
+        app.Mal.Route("details:15", [ Status 404 ])
         let! _ = enrichAllWith app clock
         let! row = matchOf app.Db "G675KXENR"
         Assert.StartsWith("G675KXENR no_match", row)
