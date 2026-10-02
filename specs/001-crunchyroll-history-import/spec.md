@@ -36,7 +36,7 @@ As a Frunchy user with a personal sync key, I send one or more pages of my Crunc
 
 1. **Given** a user with no history in Frunchy, **When** they submit one page of Crunchyroll history, **Then** they immediately receive a confirmation with a submission reference, and the submission's status is "pending" or "processing".
 2. **Given** a submitted page, **When** background processing finishes, **Then** the status is "completed" and reports the number of entries received, processed, unresolved and failed, and these add up to the number of entries received.
-3. **Given** a first sync made of 15 pages (about 1,500 entries) sent one after another, **When** all are processed, **Then** every entry is reflected exactly once in the user's history.
+3. **Given** a first sync made of 64 pages (about 6,400 entries, the size of a real five-year history) sent one after another, **When** all are processed, **Then** every entry is reflected exactly once in the user's history.
 4. **Given** a page that was already processed, **When** the same page is submitted again, **Then** the user's totals are unchanged and no episode appears twice.
 5. **Given** a page where one entry has no episode details (no title, series or duration), **When** it is processed, **Then** that entry is kept, reported as "unresolved" in the status, excluded from the totals, and the rest of the page is processed normally.
 6. **Given** an entry that was unresolved in an earlier submission, **When** a later submission contains the same episode with full details, **Then** the episode becomes resolved and starts counting toward the totals.
@@ -103,7 +103,7 @@ The operator can also delete a user entirely when that user asks, removing every
 - **Non-episode content** (e.g. movies, if Crunchyroll's history includes them): kept and reported as unsupported in the status; excluded from totals in this feature.
 - **Paging information is opaque**: Crunchyroll's paging parameters (page numbers in 2022, an opaque cursor today) and its `total` field (a per-page count, not a whole-history count) MUST NOT be interpreted. Only the entries themselves and the history owner are used.
 - **Page size not fixed**: Crunchyroll decides how many entries a page has (the sample page reports `total: 100` but contains 101 entries). Submissions MUST NOT be rejected for having more than 100 entries; the accepted size needs comfortable headroom above Crunchyroll's page size.
-- **Very large first sync** (e.g. 5,000 entries): accepted and processed without the user having to keep the browser open after submitting.
+- **Very large first sync** (a real five-year history is 6,363 entries in 64 pages; plan for at least 10,000): accepted and processed without the user having to keep the browser open after submitting.
 - **Concurrent submissions from the same user**: each one is processed fully and the end result is the same as processing them one after another.
 - **Shared Crunchyroll account with several profiles**: each profile is its own history owner, so two people sharing an account can each have a Frunchy user. If another profile is active when the extension syncs, that submission is rejected as a mismatch instead of mixing histories.
 - **History owner mismatch**: a submission from a different history owner than the one bound to the user, or from one bound to another user, is rejected and nothing is stored. If a user legitimately changes Crunchyroll account or profile, the operator resets the binding.
@@ -181,12 +181,12 @@ The operator can also delete a user entirely when that user asks, removing every
 ### Measurable Outcomes
 
 - **SC-001**: A user submitting a 100-entry history page gets a confirmation in under 2 seconds.
-- **SC-002**: A first sync of 1,500 entries is fully reflected on the dashboard within 5 minutes of the last page being submitted.
+- **SC-002**: A first sync of 6,400 entries (64 pages) is fully reflected on the dashboard within 10 minutes of the last page being submitted.
 - **SC-003**: Every submitted entry is accounted for: received = processed + unresolved + unsupported + failed, for 100% of submissions.
-- **SC-004**: With the sample history (`JsonSamples/PostHistory.json`) processed, the dashboard shows exactly 29 series, 96 episodes and 39.3 hours, and the status reports 100 processed and 1 unresolved.
+- **SC-004**: With the sample history (`JsonSamples/PostHistory.json`) processed, the dashboard shows exactly 29 series, 96 episodes and 39.3 hours, and the status reports 100 processed and 1 unresolved. With the 2026 fixture (`JsonSamples/crunchyroll-history-2026-sample.json`, 4 pages, 400 entries) processed, the dashboard shows exactly 67 series, 298 episodes and 118.2 hours, 91 entries are reported unresolved, and the most recent episode is "Clevatess" episode 13 (2026-09-30).
 - **SC-005**: Submitting the same history 3 times leaves the totals identical to submitting it once (0 duplicate episodes).
 - **SC-006**: A rebuild from stored submissions produces totals and a recent-episodes list identical to the original processing, for 100% of tested users.
-- **SC-007**: The dashboard opens in under 2 seconds for a user with 5,000 watched episodes.
+- **SC-007**: The dashboard opens in under 2 seconds for a user with 10,000 watched episodes.
 - **SC-008**: A user with no history never sees placeholder or invented numbers on the dashboard.
 - **SC-009**: 100% of submissions with a missing, unknown or revoked sync key are rejected, and none of them leave stored data.
 - **SC-010**: After a user is deleted, none of their submissions, history or figures remain, and other users' figures are unchanged.
@@ -195,7 +195,7 @@ The operator can also delete a user entirely when that user asks, removing every
 
 ## Assumptions
 
-- **Payload freshness**: the sample (`JsonSamples/PostHistory.json`) dates from 2022–23. A live Crunchyroll capture from 2026 already shows changed paging (an opaque cursor). A current page, with signed playback URLs and personal data redacted, is added as a second test fixture before processing is implemented. Processing tolerates unknown or missing optional fields; an entry missing what's needed to count it is reported as unresolved or failed, never silently dropped.
+- **Payload freshness**: the sample (`JsonSamples/PostHistory.json`) dates from 2022–23. A live Crunchyroll capture from 2026 already shows changed paging (an opaque cursor). A current capture (2026-10-02, 64 pages, 6,363 entries) confirmed the entry shape is compatible: `panel.playback` is gone and a few optional episode fields were added. A 4-page excerpt is committed as the second fixture (`JsonSamples/crunchyroll-history-2026-sample.json`); the full capture stays local and out of version control. In real data about 4.6% of entries have no episode details (290 of 6,363, across 19 series), so unresolved entries are common, not exceptional. Processing tolerates unknown or missing optional fields; an entry missing what's needed to count it is reported as unresolved or failed, never silently dropped.
 - **Source of submissions**: the browser extension will send the pages it intercepts from Crunchyroll's history. Changing the extension is out of scope; this feature only defines and serves what it must send.
 - **Partial watches**: an entry not marked as fully watched doesn't count as a watched episode. Its watched portion (capped at the episode's duration) counts toward total hours. This is why the sample yields 96 episodes and 39.3 hours rather than 39.1.
 - **Series counting** uses Crunchyroll's series identifier, so seasons and dub variants of the same show count once.
@@ -210,4 +210,4 @@ The operator can also delete a user entirely when that user asks, removing every
 - **Public profiles**: dashboards are public, as on Last.fm. Telling a user that their history will be public happens when the operator creates their account. Private profiles are a later feature.
 - **Rewatch history**: Crunchyroll only keeps the latest watch date per episode, so past rewatches can't be recovered anyway. Keeping the original submissions means rewatch counting can be added later by reprocessing.
 - **Out of scope for this feature**: matching with MyAnimeList (genres, scores, studios, MAL cover art), Anime DNA, ratings, XP or collection ranks, Frunchy trends, community and followers, the AniList/MAL sync button, monthly sync statistics for the extension popup ("Este mes … vs mes anterior"), the weekly activity heatmap, streaks and episodes-per-day, series completion percentages (Crunchyroll's history doesn't say how many episodes a series has), a full-history page ("Ver historial completo" / "Cargar más"), favorites, dashboard period filters, real login/sign-up (feature 002 "Accounts"), and counting rewatches.
-- **Scale**: a long-time user may have several thousand entries. Sync frequency is low (a few times per day per user at most).
+- **Scale**: a long-time user may have several thousand entries (the real reference history: 6,363 entries, 5,921 fully watched episodes, 332 series, about 2,368 hours). Sync frequency is low (a few times per day per user at most).
