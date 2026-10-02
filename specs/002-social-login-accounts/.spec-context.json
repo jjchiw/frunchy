@@ -3,7 +3,7 @@
   "specName": "Accounts with Social Sign-In",
   "branch": "002-social-login-accounts",
   "currentStep": "implement",
-  "status": "implementing",
+  "status": "implemented",
   "history": [
     {
       "step": "specify",
@@ -417,7 +417,22 @@
       "kind": "complete",
       "by": "extension",
       "at": "2026-10-02T15:30:59.262Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T049",
+      "kind": "complete",
+      "by": "extension",
+      "at": "2026-10-02T16:24:11.808Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "complete",
+      "by": "extension",
+      "at": "2026-10-02T16:24:11.808Z"
     }
   ],
-  "currentTask": "T049"
+  "currentTask": "T050"
 }

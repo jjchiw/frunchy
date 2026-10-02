@@ -439,7 +439,7 @@ again, and another user is untouched.
 - [X] T048 Run `specs/002-social-login-accounts/quickstart.md` section 1 (`dotnet test`), plus
   section 3's negative checks with the fake provider, on a fresh database, and record the results
   in a "Validation log" in `specs/002-social-login-accounts/quickstart.md`.
-- [ ] T049 **(user, manual)** Register the Discord and/or Google OAuth apps, set the user secrets,
+- [X] T049 **(user, manual)** Register the Discord and/or Google OAuth apps, set the user secrets,
   run `dotnet run --launch-profile http`, and **claim `jjchiw` in `frunchydb` for real** (quickstart
   section 2). Expected: `/u/jjchiw` still shows 327 / 5,921 / 2,367.6 h. Record the result in the
   quickstart validation log.

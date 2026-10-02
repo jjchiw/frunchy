@@ -181,15 +181,28 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 1. Register a free OAuth app. **Discord**: Developer Portal → OAuth2, redirect
    `http://localhost:5099/signin-discord`. **Google**: Cloud Console → Credentials → OAuth client ID (Web),
    redirect `http://localhost:5099/signin-google`.
-2. Store the credentials as **user secrets**. They live outside the repo; never put them in `appsettings*.json`
-   (a test enforces this):
-   ```bash
-   dotnet user-secrets set "Frunchy:Auth:Providers:Discord:ClientId" "<id>"
-   dotnet user-secrets set "Frunchy:Auth:Providers:Discord:ClientSecret" "<secret>"
-   dotnet user-secrets set "Frunchy:Auth:Providers:Discord:Enabled" "true"
-   ```
-   In production use environment variables (`Frunchy__Auth__Providers__Discord__ClientSecret`) and set
-   `Frunchy:DataProtection:KeysPath` to a persistent directory so sessions survive restarts. The site
+2. Store the credentials **outside the repo**. Never put them in `appsettings*.json` (a test enforces this).
+   - **Bella Baxter** (our own secrets manager, recommended). In the Bella project `Frunchy`, environment
+     `development`, add the secrets with `__` as the section separator:
+     `Frunchy__Auth__Providers__Discord__ClientId`, `Frunchy__Auth__Providers__Discord__ClientSecret` and
+     `Frunchy__Auth__Providers__Discord__Enabled` = `true`. Then run through the Bella CLI, which hands the
+     app its Bella credentials (the app fetches the secrets itself, via `BellaBaxter.AspNet.Configuration`):
+     ```bash
+     bella sdk run -- dotnet run --launch-profile http
+     ```
+     Alternatively, store a Bella API key once (`dotnet user-secrets set "BellaBaxter:ApiKey" "bax-…"`) and
+     use plain `dotnet run`. Bella values override appsettings and user secrets; environment variables still
+     win. Secrets are polled every minute, and a rotated provider credential is used on the next sign-in
+     without a restart (enabling or disabling a provider still needs one). Without Bella credentials, Bella
+     isn't used at all.
+   - **User secrets**:
+     ```bash
+     dotnet user-secrets set "Frunchy:Auth:Providers:Discord:ClientId" "<id>"
+     dotnet user-secrets set "Frunchy:Auth:Providers:Discord:ClientSecret" "<secret>"
+     dotnet user-secrets set "Frunchy:Auth:Providers:Discord:Enabled" "true"
+     ```
+   In production use Bella or environment variables (`Frunchy__Auth__Providers__Discord__ClientSecret`) and
+   set `Frunchy:DataProtection:KeysPath` to a persistent directory so sessions survive restarts. The site
    refuses to start if a provider is enabled without its credentials.
 3. `dotnet run --launch-profile http` (Development, so user secrets are loaded) and open `/signin`.
 

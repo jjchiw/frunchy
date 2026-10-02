@@ -12,7 +12,9 @@ Contracts: [web-account](contracts/web-account.md), [configuration](contracts/co
     Authorized redirect URI: `http://localhost:5099/signin-google`.
   - **Discord**: Discord Developer Portal → New Application → OAuth2. Redirect:
     `http://localhost:5099/signin-discord`.
-- Store the credentials **as user secrets, never in a file in the repo**:
+- Store the credentials **in Bella Baxter** (project `Frunchy`, environment `development`, keys like
+  `Frunchy__Auth__Providers__Discord__ClientSecret`, plus `…__Enabled` = `true`) and run with
+  `bella sdk run -- dotnet run --launch-profile http`, or **as user secrets**, never in a file in the repo:
   ```bash
   dotnet user-secrets set "Frunchy:Auth:Providers:Discord:ClientId" "<id>"
   dotnet user-secrets set "Frunchy:Auth:Providers:Discord:ClientSecret" "<secret>"
@@ -80,4 +82,14 @@ dotnet run --launch-profile http            # http://localhost:5099
     is claimable. The copy was dropped; `frunchydb` itself was untouched.
   - **Section 3**: the negative checks are covered by the automated suites (single-use invite, refused
     claim on a linked account, startup refusal).
-- **T049, pending (you)**: claim `jjchiw` with a real Discord or Google login (section 2).
+- **2026-10-02 (T049)**, by hand on the real `frunchydb`, with a real Discord app:
+  - **Credentials**: the Discord credentials came from Bella Baxter (project `Frunchy`, environment
+    `development`) through `BellaBaxter.AspNet.Configuration`, with `bella sdk run`.
+  - **Schema upgrade**: the first start upgraded `frunchydb` to the 002 schema without data loss.
+  - **Claim**: Discord sign-in landed on `/signup` (an unlinked identity). "I already have a Frunchy
+    account" plus the current sync key claimed `jjchiw`.
+  - **Account page**: shows Discord as the sign-in method, an active sync key, the Crunchyroll
+    binding and the last 10 syncs. Security activity lists "Account claimed (Discord)", then
+    "Display name changed".
+  - **Dashboard**: `/u/jjchiw` is unchanged at 327 series / 5,921 episodes / 2,367.6 h / 98.6 days
+    (SC-002).

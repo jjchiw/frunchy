@@ -15,9 +15,16 @@
 | `Frunchy:DataProtection:KeysPath` | environment (production) | a persistent directory for cookie-encryption keys; dev uses the default key ring |
 
 **Secrets only** means:
+- **Bella Baxter** (added after 002, dogfooding our secrets manager): secrets keyed with `__`
+  (`Frunchy__Auth__Providers__Google__ClientSecret`) in the Bella environment, loaded by
+  `BellaBaxter.AspNet.Configuration` when Bella credentials are present (`bella sdk run`, or
+  `BellaBaxter:ApiKey` in user secrets or the environment). Precedence: appsettings < user secrets <
+  Bella < environment variables < command line. Bella is polled; `ClientId` and `ClientSecret` are
+  bound to the provider options from configuration, so a rotated value applies to the next sign-in
+  without a restart. `Enabled` is read once at startup.
 - **Development**: `dotnet user-secrets set "Frunchy:Auth:Providers:Google:ClientSecret" "…"`. The
   values live in the user profile, outside the repo. The fsproj gets a `UserSecretsId`.
-- **Production**: environment variables, e.g. `Frunchy__Auth__Providers__Google__ClientSecret`.
+- **Production**: Bella, or environment variables, e.g. `Frunchy__Auth__Providers__Google__ClientSecret`.
 - **Never** in `appsettings*.json` or any committed file. A test fails if a committed
   `appsettings*.json` contains a non-empty `ClientId` or `ClientSecret`.
 

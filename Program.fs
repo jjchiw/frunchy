@@ -8,6 +8,7 @@ open System.Threading.Tasks
 open Microsoft.AspNetCore.Antiforgery
 open Microsoft.AspNetCore.Authentication
 open Microsoft.AspNetCore.Authentication.Cookies
+open Microsoft.AspNetCore.Authentication.Google
 open Microsoft.AspNetCore.Authentication.OAuth
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.DataProtection
@@ -17,6 +18,8 @@ open Microsoft.AspNetCore.RateLimiting
 open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Logging
+open AspNet.Security.OAuth.Discord
+open BellaBaxter.AspNet.Configuration
 open Oxpecker
 open FrunchyBackend.Infrastructure
 open FrunchyBackend.Infrastructure.Database
@@ -117,6 +120,11 @@ let private withPrompt (events: OAuthEvents) =
 
             Task.CompletedTask
 
+/// A provider's ClientId and ClientSecret are bound from its configuration section instead of
+/// copied once, so a secret rotated in Bella Baxter is used on the next sign-in, without a restart
+let private bindCredentials<'T when 'T: not struct> (config: IConfiguration) (services: IServiceCollection) (scheme: string) (name: string) =
+    services.Configure<'T>(scheme, config.GetSection $"Frunchy:Auth:Providers:{name}") |> ignore
+
 /// Feature 002: browser sign-in with session + external cookies and the enabled providers (research R1, R2, R11)
 let configureAuth (config: IConfiguration) (services: IServiceCollection) =
     let settings = AuthConfig.read config
@@ -156,8 +164,6 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
             auth.AddGoogle(
                 "google",
                 fun o ->
-                    o.ClientId <- provider.ClientId
-                    o.ClientSecret <- provider.ClientSecret
                     o.SignInScheme <- WebAuth.ExternalScheme
                     o.CallbackPath <- PathString "/signin-google"
                     o.Scope.Clear()
@@ -166,14 +172,13 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
             )
             |> ignore
 
+            bindCredentials<GoogleOptions> config services "google" "Google"
             services.AddSingleton<AuthConfig.FrunchyProvider>(AuthConfig.provider "google" "Google" "google" (Some "select_account"))
             |> ignore
         | "Discord" ->
             auth.AddDiscord(
                 "discord",
                 fun o ->
-                    o.ClientId <- provider.ClientId
-                    o.ClientSecret <- provider.ClientSecret
                     o.SignInScheme <- WebAuth.ExternalScheme
                     o.CallbackPath <- PathString "/signin-discord"
                     o.Scope.Clear()
@@ -182,6 +187,7 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
             )
             |> ignore
 
+            bindCredentials<DiscordAuthenticationOptions> config services "discord" "Discord"
             services.AddSingleton<AuthConfig.FrunchyProvider>(AuthConfig.provider "discord" "Discord" "discord" (Some "consent"))
             |> ignore
         | _ -> ()
@@ -245,9 +251,25 @@ let configureApp (app: WebApplication) =
         .UseOxpecker(endpoints)
         .Run(notFoundHandler)
 
+/// Bella Baxter (our own secrets manager, dogfooded): when Bella credentials are present, from
+/// `bella sdk run` or `BellaBaxter:ApiKey` in user secrets, the environment's secrets join the
+/// configuration and are polled for changes. Secret keys use `__` for sections
+/// (`Frunchy__Auth__Providers__Discord__ClientSecret`). Bella overrides appsettings and user
+/// secrets; environment variables and the command line still win. Without credentials (plain
+/// `dotnet run`, the tests) nothing is added.
+let addBellaSecrets (args: string array) (config: ConfigurationManager) =
+    let isSet (value: string) = not (String.IsNullOrEmpty value)
+
+    if isSet (Environment.GetEnvironmentVariable "BELLA_BAXTER_API_KEY")
+       || isSet (Environment.GetEnvironmentVariable "BELLA_BAXTER_ACCESS_TOKEN")
+       || isSet config["BellaBaxter:ApiKey"] then
+        config.AddBellaSecrets(fun o -> o.AppClient <- "frunchy-backend") |> ignore
+        config.AddEnvironmentVariables().AddCommandLine(args) |> ignore
+
 /// The web app, composable so the integration tests can host it on a TestServer
 let buildApp (args: string array) (customize: WebApplicationBuilder -> unit) : WebApplication =
     let builder = WebApplication.CreateBuilder(args)
+    addBellaSecrets args builder.Configuration
     customize builder
     configureServices builder.Configuration builder.Services
     let app = builder.Build()
@@ -268,8 +290,10 @@ let private cliCommands: Map<string, DbConfig -> string list -> Task<int>> =
           "invite-revoke", Operations.InviteRevoke.run ]
 
 let private runCli (command: string) (rest: string list) : int =
-    // Same configuration sources as the web app (appsettings, environment, user secrets)
-    let db = dbConfigFrom (WebApplication.CreateBuilder(Array.empty).Configuration)
+    // Same configuration sources as the web app (appsettings, environment, user secrets, Bella)
+    let config = WebApplication.CreateBuilder(Array.empty).Configuration
+    addBellaSecrets Array.empty config
+    let db = dbConfigFrom config
 
     task {
         do! initializeSchema db

@@ -2,14 +2,18 @@ module FrunchyBackend.Tests.AuthConfigTests
 
 open System
 open System.IO
+open System.Net
+open System.Web
 open System.Text.Json
 open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.TestHost
 open Microsoft.Extensions.Configuration
+open Microsoft.Extensions.DependencyInjection
 open Xunit
 open FrunchyBackend
 open FrunchyBackend.Infrastructure
 open FrunchyBackend.Infrastructure.AuthConfig
+open FrunchyBackend.Tests.Infrastructure
 
 let private settings name enabled clientId secret =
     { Name = name; Enabled = enabled; ClientId = clientId; ClientSecret = secret }
@@ -79,3 +83,38 @@ let ``committed appsettings files contain no provider credentials`` () =
     for file in files do
         use doc = JsonDocument.Parse(File.ReadAllText file, JsonDocumentOptions(CommentHandling = JsonCommentHandling.Skip))
         Assert.Empty(offending (Path.GetFileName file) doc.RootElement)
+
+/// Credentials are bound, not copied: a rotated secret (e.g. updated in Bella Baxter, which reloads
+/// the configuration) is used by the next sign-in without restarting the site
+[<Fact>]
+let ``a rotated provider credential is used without a restart`` () =
+    task {
+        let! db = PostgresFixture.newDatabase ()
+
+        use! app =
+            PostgresFixture.createAppWith
+                db
+                [ "Frunchy:Auth:Providers:Discord:Enabled", "true"
+                  "Frunchy:Auth:Providers:Discord:ClientId", "first-client-id"
+                  "Frunchy:Auth:Providers:Discord:ClientSecret", "first-secret" ]
+                ignore
+
+        let clientIdSentToDiscord () =
+            task {
+                let! response = app.Client.GetAsync "/signin/discord"
+                Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
+                let location = response.Headers.Location
+                Assert.Equal("discord.com", location.Host)
+                return HttpUtility.ParseQueryString(location.Query)["client_id"]
+            }
+
+        let! before = clientIdSentToDiscord ()
+        Assert.Equal("first-client-id", before)
+
+        let config = app.Services.GetRequiredService<IConfiguration>() :?> IConfigurationRoot
+        config["Frunchy:Auth:Providers:Discord:ClientId"] <- "rotated-client-id"
+        config.Reload()
+
+        let! after = clientIdSentToDiscord ()
+        Assert.Equal("rotated-client-id", after)
+    }
