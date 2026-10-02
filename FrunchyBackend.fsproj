@@ -38,6 +38,7 @@
     <Compile Include="Handlers/Account/DisplayName.fs" />
     <Compile Include="Handlers/Account/ResetBinding.fs" />
     <Compile Include="Handlers/Account/Logins.fs" />
+    <Compile Include="Handlers/Account/DeleteAccount.fs" />
     <Compile Include="Operations/CreateUser.fs" />
     <Compile Include="Operations/RegenerateKey.fs" />
     <Compile Include="Operations/ResetBinding.fs" />

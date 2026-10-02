@@ -120,7 +120,16 @@ type Texts =
       SyncCounts: int -> int -> int -> int -> string
       SecurityEventsTitle: string
       SecurityEventLabel: string -> string
-      ByOperator: string }
+      ByOperator: string
+
+      // Delete my account (feature 002, US4)
+      DeleteAccountLink: string
+      DeleteTitle: string
+      DeleteWarning: string
+      DeleteTypeUsername: string -> string
+      DeleteButton: string
+      DeleteMismatch: string
+      AccountDeletedNotice: string }
 
 let en =
     { Lang = "en"
@@ -256,7 +265,15 @@ let en =
             | "reconfirmed" -> "Identity confirmed"
             | "display_name_changed" -> "Display name changed"
             | other -> other
-      ByOperator = "by the operator" }
+      ByOperator = "by the operator"
+
+      DeleteAccountLink = "Delete my account"
+      DeleteTitle = "Delete your account"
+      DeleteWarning = "This deletes your account and everything Frunchy holds about you: your synced history (including the original submissions), your dashboard, sign-in methods and security activity. It can't be undone."
+      DeleteTypeUsername = fun username -> $"Type your username ({username}) to confirm"
+      DeleteButton = "Delete my account forever"
+      DeleteMismatch = "That username doesn't match your account."
+      AccountDeletedNotice = "Your account and all your data have been deleted." }
 
 let es =
     { Lang = "es"
@@ -392,7 +409,15 @@ let es =
             | "reconfirmed" -> "Identidad confirmada"
             | "display_name_changed" -> "Nombre visible cambiado"
             | other -> other
-      ByOperator = "por el operador" }
+      ByOperator = "por el operador"
+
+      DeleteAccountLink = "Eliminar mi cuenta"
+      DeleteTitle = "Elimina tu cuenta"
+      DeleteWarning = "Esto elimina tu cuenta y todo lo que Frunchy guarda sobre ti: tu historial sincronizado (incluidos los envíos originales), tu dashboard, tus métodos de inicio de sesión y tu actividad de seguridad. No se puede deshacer."
+      DeleteTypeUsername = fun username -> $"Escribe tu nombre de usuario ({username}) para confirmar"
+      DeleteButton = "Eliminar mi cuenta para siempre"
+      DeleteMismatch = "Ese nombre de usuario no coincide con tu cuenta."
+      AccountDeletedNotice = "Tu cuenta y todos tus datos se han eliminado." }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =

@@ -45,7 +45,8 @@ let endpoints =
       yield! Handlers.Account.SyncKey.endpoint
       Handlers.Account.DisplayName.endpoint
       Handlers.Account.ResetBinding.endpoint
-      yield! Handlers.Account.Logins.endpoint ]
+      yield! Handlers.Account.Logins.endpoint
+      yield! Handlers.Account.DeleteAccount.endpoint ]
 
 let private isApi (ctx: HttpContext) =
     ctx.Request.Path.StartsWithSegments(PathString "/api")

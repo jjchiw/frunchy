@@ -387,7 +387,7 @@ again, and another user is untouched.
 
 ### Tests for User Story 4 (write first, must fail)
 
-- [ ] T040 [P] [US4] `tests/FrunchyBackend.Tests/DeleteAccountTests.fs`:
+- [X] T040 [P] [US4] `tests/FrunchyBackend.Tests/DeleteAccountTests.fs`:
   - **wrong username** typed → refused and nothing deleted;
   - **success**: every row of the user is gone, including `user_identities` and `security_events`
     (SC-006); the invite stays `used` with `used_by_user_id` NULL;
@@ -398,9 +398,9 @@ again, and another user is untouched.
 
 ### Implementation for User Story 4
 
-- [ ] T041 [US4] Add the delete-confirmation, warning and "account deleted" notice strings to
+- [X] T041 [US4] Add the delete-confirmation, warning and "account deleted" notice strings to
   `Views/Texts.fs` (en and es).
-- [ ] T042 [US4] Create `Handlers/Account/DeleteAccount.fs`, both endpoints wrapped in
+- [X] T042 [US4] Create `Handlers/Account/DeleteAccount.fs`, both endpoints wrapped in
   `WebAuth.requireFresh "/account/delete"`:
   - `GET /account/delete`: warning + "type your username" form;
   - `POST /account/delete`: `BindForm`, rate limit `account-write`, username must match

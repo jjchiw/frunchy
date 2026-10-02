@@ -32,6 +32,7 @@
     <Compile Include="ClaimTests.fs" />
     <Compile Include="AccountTests.fs" />
     <Compile Include="FreshAuthTests.fs" />
+    <Compile Include="DeleteAccountTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

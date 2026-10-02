@@ -176,6 +176,8 @@ let view (ctx: HttpContext) (t: Texts) (providers: AuthConfig.FrunchyProvider li
                 }
             }
         }
+
+        div(class' = "text-right") { a(href = "/account/delete", class' = "link link-error").data("delete-account", "") { t.DeleteAccountLink } }
     }
     |> Layout.page ctx t t.AccountTitle
 

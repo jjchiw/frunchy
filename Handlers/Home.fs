@@ -9,8 +9,11 @@ open FrunchyBackend.Views.Texts
 // View
 // ---------------------------------------------------------------------------
 
-let view (ctx: Microsoft.AspNetCore.Http.HttpContext) (t: Texts) =
+let view (ctx: Microsoft.AspNetCore.Http.HttpContext) (t: Texts) (deleted: bool) =
     div(class' = "space-y-8") {
+        if deleted then
+            div(class' = "alert alert-success").data("account-deleted", "") { span() { t.AccountDeletedNotice } }
+
         div(class' = "hero bg-base-200 rounded-lg") {
             div(class' = "hero-content text-center") {
                 div(class' = "max-w-xl") {
@@ -38,7 +41,9 @@ let view (ctx: Microsoft.AspNetCore.Http.HttpContext) (t: Texts) =
 // ---------------------------------------------------------------------------
 
 let handler: EndpointHandler =
-    fun ctx -> ctx.WriteHtmlView(view ctx (Texts.current ()))
+    fun ctx ->
+        let deleted = ctx.TryGetQueryValue "deleted" |> Option.isSome
+        ctx.WriteHtmlView(view ctx (Texts.current ()) deleted)
 
 // ---------------------------------------------------------------------------
 // Endpoint
