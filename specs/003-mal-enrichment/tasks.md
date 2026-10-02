@@ -466,10 +466,24 @@ app, and the client id lives in Bella as `Frunchy__Mal__ClientId`.
 
   Docs: spec clarification, research R13, `contracts/mal-usage.md`, data model, plan, quickstart,
   README, CLAUDE.md, SCHEMA.md.
-- [ ] T043 **(needs the client id)** Record real fixtures with
-  `bella run -- python3 tests/FrunchyBackend.Tests/JsonSamples/mal/record.py`. Add an end-to-end test
-  over the whole 2026 sample replaying them (`FakeMal.LoadRecorded` on `JsonSamples/mal/`), and
-  report the automatic match rate as an early SC-001 reading.
+- [X] T043 Record real fixtures and replay them over the whole 2026 sample.
+  - **Recording**: an opt-in test, `FRUNCHY_RECORD_MAL=1 bella run -- dotnet test --filter-method
+    "*record the 2026 sample*"`, runs the real worker against the real API through a recording
+    handler, so the fixtures are exactly what Frunchy requests. That gave 191 responses, with no
+    client id in them. A first, guessing Python recorder missed fallback searches and was replaced.
+  - **Replay** (`SampleEnrichmentTests`): **76/78 seasons (97.4%) matched automatically**, all
+    checked by hand in the report. The 2 left are Slime's "OVA Season 1" (several OVAs on
+    MyAnimeList, ambiguous) and Dara-san of the Reiwa Era (MyAnimeList: "Dara-san of Reiwa", 63082;
+    left for `mal-set`).
+  - **Matching fixes found by the real data** (research R13):
+    - `nsfw=true` on searches, since "gray" entries are hidden by default;
+    - "(2020)" and "(TV)" markers dropped from queries;
+    - a main-title match beats a synonym-only match;
+    - the sequel walk steps through TV specials;
+    - a season's own title is never cut on the Crunchyroll side;
+    - several first-season hits narrow to TV/ONA;
+    - OVA seasons also look at the series search's OVAs;
+    - every match fetches and stores its anime.
 
 ## Dependencies & Execution Order
 

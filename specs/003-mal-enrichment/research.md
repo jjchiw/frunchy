@@ -322,7 +322,24 @@ official API (`mal-api`). The owner registered an app and keeps the client id in
 - Adult entries are excluded by the matcher itself (rating "Rx", or the Hentai genre), whatever the
   provider.
 
-**Fixtures**: `tests/FrunchyBackend.Tests/JsonSamples/mal/record.py` records real responses for the
-2026 sample. It reads the client id from the environment, e.g. under `bella run`, and never stores
-it. Until it has run, the integration tests use MyAnimeList-shaped bodies from
-`MalFixtures.fs`.
+**Fixtures**: an opt-in recording test (`SampleEnrichmentTests`, run with `FRUNCHY_RECORD_MAL=1 bella
+run -- dotnet test …`) runs the real worker through a recording handler. The fixtures in
+`tests/FrunchyBackend.Tests/JsonSamples/mal/` are therefore exactly what Frunchy requests. The client
+id comes from the environment and is never stored. The other integration tests keep using the
+scripted MyAnimeList-shaped bodies of `MalFixtures.fs`.
+
+**What the real data changed** (2026 sample, 78 seasons: 65 → 73 → 76 matched):
+- **Hidden entries**: MyAnimeList's search hides "gray" entries (ecchi, even some PG-13 shows)
+  unless `nsfw=true`, so searches send it, and adult-only entries are still excluded by the matcher.
+- **Year markers**: a "(2020)" or "(TV)" in the query returns nothing, so they're dropped from the
+  query; the year still picks the remake.
+- **Synonyms**: another show listing "The Outcast" as a synonym made the series ambiguous. A match
+  on the main or English title now beats a synonym-only one.
+- **Specials in the chain**: a TV special ("Season 2 - Episode 0") sits between Mushoku Tensei
+  Part 2 and Season 2. The sequel walk now steps through it, and only TV/ONA entries count.
+- **Title cutting**: cutting "The Ancient Magus' Bride: Those Awaiting a Star" left the series name
+  and matched the anchor. Seasons never cut their own title now, and a search finds the OVA.
+- **Same-name shows**: "Bucchigiri?!" (TV, 2024) and an unrelated 1989 OVA "Bucchigiri" tied. With
+  several first-season hits, TV/ONA entries win.
+- **OVAs on later parts**: Moriarty's OVA hangs off Part 2, not the anchor, so OVA seasons also look
+  at the series search's OVAs.

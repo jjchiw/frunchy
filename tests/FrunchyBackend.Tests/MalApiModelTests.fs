@@ -86,6 +86,11 @@ let ``long titles are cut before searching MyAnimeList, short ones are sent as t
     Assert.Equal("The Strongest Tank's Labyrinth Raids", MalClient.MalApi.Query tank)
     Assert.Equal("Frieren: Beyond Journey's End", MalClient.MalApi.Query "Frieren: Beyond Journey's End")
     Assert.Equal(tank, MalClient.Jikan.Query tank)
+    // MyAnimeList finds nothing with a "(2020)" or "(TV)" marker in the query
+    Assert.Equal("Dragon Quest: The Adventure of Dai", MalClient.MalApi.Query "Dragon Quest: The Adventure of Dai (2020)")
+    Assert.Equal("The Fire Hunter: Season 1", MalClient.MalApi.Query "The Fire Hunter (TV): Season 1")
+    // "gray" entries (ecchi, some PG-13 shows) are only found with nsfw=true
+    Assert.Contains("&nsfw=true&", MalClient.MalApi.SearchPath "x")
     let long = String.replicate 20 "word "
     Assert.True((MalClient.MalApi.Query long).Length <= 64)
 

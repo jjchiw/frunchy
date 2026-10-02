@@ -175,13 +175,24 @@ let bestTier (crTexts: CrText list) (candidateTitles: string list) =
     |> List.sortBy id
     |> List.tryHead
 
-/// The candidates with the best tier any of them reaches (tier 1 beats tier 2)
-let private bestHits (texts: CrText list) (candidates: MalAnime list) =
-    let tiered = candidates |> List.choose (fun a -> bestTier texts a.AllTitles |> Option.map (fun t -> t, a))
+/// A candidate's main titles (default and English); synonyms are weaker evidence
+let private mainTitles (a: MalAnime) =
+    [ yield a.Title
+      yield! Option.toList a.TitleEnglish ]
 
-    match tiered |> List.map fst |> List.sortBy id |> List.tryHead with
+/// How well a candidate matches: (tier, 0 when a main title matches, 1 when only a synonym does)
+let private strength (texts: CrText list) (a: MalAnime) =
+    bestTier texts a.AllTitles
+    |> Option.map (fun tier -> tier, (if bestTier texts (mainTitles a) = Some tier then 0 else 1))
+
+/// The candidates with the best match any of them reaches: tier 1 beats tier 2, and within a tier a
+/// main-title match beats a synonym-only one ("The Outcast" as another show's synonym)
+let private bestHits (texts: CrText list) (candidates: MalAnime list) =
+    let ranked = candidates |> List.choose (fun a -> strength texts a |> Option.map (fun s -> s, a))
+
+    match ranked |> List.map fst |> List.sort |> List.tryHead with
     | None -> []
-    | Some best -> tiered |> List.filter (fun (t, _) -> t = best) |> List.map snd
+    | Some best -> ranked |> List.filter (fun (s, _) -> s = best) |> List.map snd
 
 // ---------------------------------------------------------------------------------------------
 // Formats
@@ -414,12 +425,12 @@ let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) :
                             |> List.filter (hasType tvTypes)
                             |> List.filter (fun a -> a.AllTitles |> List.exists (fun t -> (markOf t).Part |> Option.forall (fun p -> p <= 1)))
 
-                        let qualifying tier =
-                            candidates |> List.filter (fun a -> titleTier series.Title a.AllTitles = Some tier)
-
+                        // Several title hits (a 2024 TV show and an unrelated 1989 OVA of the same name):
+                        // a series' first season is a TV/ONA entry when one is among them
                         let tierHits =
-                            match qualifying 1 with
-                            | [] -> qualifying 2
+                            match bestHits [ Own series.Title ] candidates with
+                            | _ :: _ :: _ as several when several |> List.exists (hasType sequelTypes) ->
+                                several |> List.filter (hasType sequelTypes)
                             | hits -> hits
 
                         let tierHits =
@@ -479,15 +490,19 @@ let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) :
 
         let anchor () = anchorTask.Force()
 
-        /// The sequel chain from the anchor (TV/ONA only), in order
+        /// The sequel chain from the anchor, in order: it walks through any sequel (a TV special
+        /// "Episode 0" can sit between two seasons) but only TV/ONA entries count as seasons
         let sequelChain (first: MalAnime) =
             task {
                 let chain = ResizeArray<MalAnime>()
                 let seen = HashSet<int>([ first.MalId ])
                 let mutable current = Some first
                 let mutable failure = None
+                let mutable steps = 0
 
-                while current.IsSome && failure.IsNone && chain.Count < 12 do
+                while current.IsSome && failure.IsNone && steps < 16 do
+                    steps <- steps + 1
+
                     let sequels =
                         current.Value.Relations
                         |> List.filter (fun r -> r.Relation = "Sequel")
@@ -496,12 +511,15 @@ let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) :
 
                     let! fetched, err = fetchAll sequels
                     failure <- err
+                    let byAir = fetched |> List.sortBy (fun a -> a.AiredFrom |> Option.defaultValue DateOnly.MaxValue, a.MalId)
 
-                    match fetched |> List.filter (hasType sequelTypes) |> List.sortBy (fun a -> a.AiredFrom |> Option.defaultValue DateOnly.MaxValue) with
-                    | next :: _ ->
+                    // Prefer a TV/ONA sequel; otherwise step through the earliest other one
+                    match byAir |> List.filter (hasType sequelTypes), byAir with
+                    | next :: _, _ ->
                         chain.Add next
                         current <- Some next
-                    | [] -> current <- None
+                    | [], other :: _ -> current <- Some other
+                    | [], [] -> current <- None
 
                 return List.ofSeq chain, failure
             }
@@ -613,11 +631,13 @@ let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) :
                 let marked = mark relativeCore
                 let generic = marked.Base = ""
 
-                // Raw titles (normalization happens inside the comparison)
+                // Raw titles (normalization happens inside the comparison). A season's own title is
+                // never cut on the Crunchyroll side: "The Ancient Magus' Bride: Those Awaiting a Star"
+                // cut to "The Ancient Magus' Bride" would match the series instead of its OVA.
                 let texts =
                     [ if relativeCore <> "" && normalize title <> normalize series.Title && not ((normalize title).StartsWith(normalize series.Title + " ")) then
                           yield Combined $"{series.Title} {title}"
-                      yield Own title ]
+                      yield Combined title ]
                     |> List.distinct
 
                 let! anchored = anchor ()
@@ -689,17 +709,25 @@ let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) :
 
                     let! fetched, failure = fetchAll ids
 
+                    // The series search's OVA results too: an OVA can hang off a later part, not the anchor
+                    let! fromSearch =
+                        task {
+                            match! search series.Title with
+                            | Got results -> return results |> List.filter (hasType ovaTypes)
+                            | _ -> return []
+                        }
+
                     match failure with
                     | Some reason -> return Deferred reason
                     | None ->
-                        let ovas = fetched |> List.filter (hasType ovaTypes)
+                        let ovas = fetched @ fromSearch |> List.filter (hasType ovaTypes) |> List.distinctBy _.MalId
 
                         let titled = if generic then [] else bestHits texts ovas
 
                         match titled, ovas with
                         | [ one ], _ -> return Decided(Matched(one.MalId, ByLink, None))
                         | [], [ one ] -> return Decided(Matched(one.MalId, ByLink, None))
-                        | [], [] -> return Decided(NoMatch("no-linked-ova", []))
+                        | [], [] -> return! searchSeason texts (hasType ovaTypes)
                         | several, _ when not several.IsEmpty -> return Decided(Ambiguous("several-ovas", several |> List.truncate 5 |> List.map candidateOf))
                         | _, several -> return Decided(Ambiguous("several-ovas", several |> List.truncate 5 |> List.map candidateOf))
                 | Ova, Error(Decided _) -> return! searchSeason texts (hasType ovaTypes)
@@ -713,8 +741,22 @@ let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) :
             |> List.filter (fun o ->
                 pending.Contains o.Id || dubs |> List.exists (fun (d, orig) -> orig.Id = o.Id && pending.Contains d.Id))
 
+        // A match always points at a stored anime: fetch it when the decision came from search
+        // results alone (FK, and the stored details are what pages show)
+        let held (outcome: Outcome) =
+            task {
+                match outcome with
+                | Decided(Matched(id, _, _)) ->
+                    match! full id with
+                    | Got _ -> return outcome
+                    | Gone -> return Decided(NoMatch("not-found", []))
+                    | Unavailable reason -> return Deferred reason
+                | other -> return other
+            }
+
         for season in needed do
-            let! outcome = decideOriginal season
+            let! decided = decideOriginal season
+            let! outcome = held decided
             results[season.Id] <- outcome
 
         for dub, original in dubs do

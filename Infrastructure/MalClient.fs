@@ -49,10 +49,17 @@ type Provider =
         | MalApi -> "https://api.myanimelist.net/v2/"
         | Jikan -> "https://api.jikan.moe/v4/"
 
-    /// The search text actually sent. MyAnimeList refuses very long queries, so long titles are cut
-    /// at their subtitle, then at a word boundary; the matcher compares full titles anyway.
+    /// The search text actually sent. For MyAnimeList: "(2020)" / "(TV)" markers are dropped (its
+    /// search finds nothing with them; the matcher still uses the year), and long titles are cut at
+    /// their subtitle, then at a word boundary. The matcher compares full titles anyway.
     member p.Query(title: string) =
-        let title = title.Trim()
+        let title =
+            match p with
+            | MalApi -> Text.RegularExpressions.Regex.Replace(title, @"\((\d{4}|TV)\)", " ", Text.RegularExpressions.RegexOptions.IgnoreCase)
+            | Jikan -> title
+
+        let title = Text.RegularExpressions.Regex.Replace(title.Trim(), @"\s{2,}", " ")
+        let title = Text.RegularExpressions.Regex.Replace(title, @"\s+([:,!?])", "$1")
 
         match p with
         | Jikan -> title
@@ -69,7 +76,9 @@ type Provider =
 
     member p.SearchPath(query: string) =
         match p with
-        | MalApi -> $"anime?q={Uri.EscapeDataString query}&limit=10&fields={MalApiModel.SearchFields}"
+        // nsfw=true: by default MyAnimeList hides "gray" entries (ecchi, even some PG-13 shows);
+        // adult-only ones are excluded by the matcher (MalMatching.isAdult)
+        | MalApi -> $"anime?q={Uri.EscapeDataString query}&limit=10&nsfw=true&fields={MalApiModel.SearchFields}"
         | Jikan -> $"anime?q={Uri.EscapeDataString query}&limit=10&sfw"
 
     member p.DetailsPath(malId: int) =

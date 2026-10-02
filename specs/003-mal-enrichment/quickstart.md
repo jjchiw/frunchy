@@ -46,7 +46,7 @@ On the real `frunchydb` (501 seasons, 336 series). The first start creates the n
 existing tables only get one index.
 
 ```bash
-bella run -- python3 tests/FrunchyBackend.Tests/JsonSamples/mal/record.py   # optional: real fixtures (~10 min)
+FRUNCHY_RECORD_MAL=1 bella run -- dotnet test --filter-method "*record the 2026 sample*"   # optional: re-record fixtures (~4 min)
 bella sdk run -- dotnet run --launch-profile http   # the worker starts at ~1 request/s
 dotnet run -- mal-status                  # from another terminal, every few minutes
 ```
@@ -96,5 +96,11 @@ action (SC-003).
   provider, and Jikan is the alternative. `dotnet test` gives **223/223**, with 0 build warnings:
   the 216 earlier tests, now on MyAnimeList-shaped bodies, plus 7 for the new parser, query
   shaping, settings and `mal-set` without a client id.
-- **T003 (real fixtures), T035 (real run), T036 (accuracy check)**: waiting for the owner's
-  MyAnimeList client id.
+- **2026-10-02 (T043)**:
+  - **Fixtures**: real MyAnimeList fixtures were recorded through Bella (191 responses), and the
+    2026 sample replays at **76/78 = 97.4%** automatic matches, every one checked in the report.
+  - **The 2 left**: Slime "OVA Season 1" (ambiguous between several OVAs) and Dara-san of the Reiwa
+    Era. That one is to be set by hand: `bella sdk run -- dotnet run -- mal-set GS00377934JAJP
+    63082`.
+  - **Suite**: `dotnet test` gives 226 passed and 1 skipped (the opt-in recording test).
+- **T035 (real run on `frunchydb`) and T036 (accuracy check)**: pending, on the owner's go-ahead.

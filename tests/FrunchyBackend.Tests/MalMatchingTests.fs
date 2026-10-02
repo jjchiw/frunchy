@@ -306,3 +306,11 @@ let ``decisions are deterministic`` () =
     let catalog = Catalog([ s1; s2 ], [ "Frieren: Beyond Journey's End", [ 52991; 59978 ] ])
     let s = series "Frieren: Beyond Journey's End" [ season "A" "Season 1" 1 "ja-JP"; season "B" "Season 2" 2 "ja-JP" ]
     Assert.Equal<Map<string, Outcome>>(resolve catalog s, resolve catalog s)
+
+[<Fact>]
+let ``a main-title match beats a show that only lists the title as a synonym (The Outcast)`` () =
+    let s1 = { anime 33421 "Yi Ren Zhi Xia" (Some "The Outcast Season 1") "TV" "2016-07-08" [] with Synonyms = [ "Hitori no Shita - The Outcast" ] }
+    let other = { anime 61651 "Jian Ke" (Some "The Transcendent") "ONA" "2025-01-01" [] with Synonyms = [ "The Outcast" ] }
+    let catalog = Catalog([ s1; other ], [ "The Outcast", [ 33421; 61651 ] ])
+    let o = resolve catalog (series "The Outcast" [ season "A" "The Outcast Season 1" 1 "zh-CN" ])
+    Assert.Equal(Some 33421, matchedId o["A"])
