@@ -393,8 +393,9 @@ history gets the empty state; an unknown username gets 404.
   *(2026-10-02: the real `/u/…` page was checked with curl in en and es (67 / 298 / 118.2 / 4.9;
   "118,2", "Episodio 13"). The exact layout script was run under Node with Madrid and Buenos Aires
   time zones. That run found a rounding bug ("anteayer" for a watch at 00:46 local time yesterday),
-  fixed so that 1–7 days use calendar days in the viewer's time zone. A look in a real browser is
-  still worth doing.)*
+  fixed so that 1–7 days use calendar days in the viewer's time zone. **Confirmed in a real browser
+  (Chrome, 2026-10-02)** on `/u/jjchiw`: "47 seconds ago", and "yesterday · Oct 1, 2026, 12:46 AM"
+  for an episode watched 2026-09-30 22:46 UTC; the figures 19 / 97 / 38.8 / 1.6 match the database.)*
 
 **Checkpoint**: US1 and US2 both work independently. *(80/80 tests, including 10k events < 2 s.)*
 
