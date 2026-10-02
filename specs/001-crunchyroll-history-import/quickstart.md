@@ -101,3 +101,6 @@ Coordinate with the extension session (see plan.md, "Extension coordination"):
     401.
 
   Deviation from the original text: the reset command uses `docker exec` (no local `psql`).
+- **2026-10-02 (T052, section 4)**: real sync from the extension into `frunchydb` (68 pages). The
+  dashboard shows 327 / 5,921 / 2,367.6 h / 98.6 days and the database has 6,363 watch events and
+  290 unresolved entries across 19 series, all matching the reference capture.

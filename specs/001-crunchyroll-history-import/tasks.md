@@ -474,31 +474,43 @@ harness-tested, with the commit pending the user's check in Chrome.
 **Update 2 (2026-10-02)**: the profileId work is committed as `ce3d4ca` and verified in Chrome. First
 live run against :5099 into `frunchydb`: `jjchiw` is bound to `(3b6dd336-…, 3b6dd336-…)` (primary
 profile id = account id); 5 single-page imports all completed with 100 processed, and
-`watch_events` = 100, so the same page sent 5× was counted once. T052 (full history) is next. T032 is done, so T052 can run.
+`watch_events` = 100, so the same page sent 5× was counted once. T052 (full history) is next.
 
-- [ ] T044 [P] [US1] (extension) Options page with the backend base URL (default
+**T052 passed (2026-10-02)**: the user's full history was synced from Chrome into `frunchydb`.
+- 68 imports, all `completed`: 6,763 entries received = 6,473 processed + 290 unresolved, 0 failed
+  or unsupported.
+- 65 distinct pages; re-sent pages were deduplicated.
+- **6,363 watch events** and **290 unresolved across 19 series**, exactly the 2026-10-02 capture.
+- `/u/jjchiw` shows **327 series / 5,921 episodes / 2,367.6 h / 98.6 days**, exactly the numbers
+  predicted from the capture.
+
+T044–T049 and T051 are verified by this run (extension commits 3f65023, ae58bc1, ce3d4ca, plus the
+resend dedup). T050 (export-file upload) remains **intentionally unbuilt**; it was optional, and
+"Sync stored pages" covers recovery. T032 is done, so T052 can run.
+
+- [X] T044 [P] [US1] (extension) Options page with the backend base URL (default
   `http://localhost:5099`) and the sync key stored in `chrome.storage`, plus a "validate" action
   calling `GET /api/me` (200 → show the display name; 401 → "invalid key"). Files:
   `../browser-extension/src/components/Options.svelte`, `../browser-extension/src/options/index.ts`.
-- [ ] T045 [P] [US1] (extension) Relay each intercepted watch-history response as
+- [X] T045 [P] [US1] (extension) Relay each intercepted watch-history response as
   `{ url: this._url, body, capturedAt }` from content script → background, and POST it from the
   service worker to `/api/imports` with `Authorization: Bearer`, one page per request. Add the
   backend origin to `host_permissions`. Files: `../browser-extension/src/content/index.ts`,
   `../browser-extension/src/background/index.ts`, `../browser-extension/manifest.json`.
-- [ ] T046 [US1] (extension) Retry queue in `chrome.storage.local`: queue pages until a 202;
+- [X] T046 [US1] (extension) Retry queue in `chrome.storage.local`: queue pages until a 202;
   retry 5xx and network errors with backoff; never retry 4xx (surface them instead). File:
   `../browser-extension/src/background/index.ts`.
-- [ ] T047 [P] [US1] (extension) Map the API error codes (`unauthorized`, `invalid_submission`,
+- [X] T047 [P] [US1] (extension) Map the API error codes (`unauthorized`, `invalid_submission`,
   `history_owner_missing`, `history_owner_mismatch`, `history_owner_taken`, `payload_too_large`)
   to the extension's own user-facing messages, shown in the popup.
-- [ ] T048 [P] [US1] (extension) Popup: user name and "Abrir Dashboard Web" (`dashboardUrl`) from
+- [X] T048 [P] [US1] (extension) Popup: user name and "Abrir Dashboard Web" (`dashboardUrl`) from
   `GET /api/me`, last sync time, pages waiting to upload, and optional status polling of
   `GET /api/imports/{id}` until `completed`/`failed`. File: `../browser-extension/src/popup/index.ts`.
-- [ ] T049 [US1] (extension) Stop marker: store the newest `(id, date_played)` sent; on later
+- [X] T049 [US1] (extension) Stop marker: store the newest `(id, date_played)` sent; on later
   syncs, stop paging once a page contains it (the decoded cursor `{c,t}` may be used too).
 - [ ] T050 [P] [US1] (extension, optional) "Upload export file": POST an existing export JSON
   as-is to `/api/imports` (≤ 30,000,000 bytes).
-- [ ] T051 [US1] (extension) **Profile capture for T027**, with its user's OK, on their own
+- [X] T051 [US1] (extension) **Profile capture for T027**, with its user's OK, on their own
   account:
   - the watch-history request URL under profile A and, after switching, under profile B;
   - the id field names and values from `GET /accounts/v1/me` and
@@ -507,7 +519,7 @@ profile id = account id); 5 single-page imports all completed with 100 processed
     localStorage), or the JWT claim name only.
 
   Never send or log tokens or emails. Report the result to the backend session.
-- [ ] T052 [US1] (joint, after T032) End-to-end: the extension syncs the real history into the
+- [X] T052 [US1] (joint, after T032) End-to-end: the extension syncs the real history into the
   local backend on `:5099`. Check the counts reported by `GET /api/imports/{id}` and that
   `/u/{username}` shows about 327 series, 5,921 episodes and ≈ 2,367.6 h for the reference
   history (quickstart.md section 4). Both sessions report the result.
