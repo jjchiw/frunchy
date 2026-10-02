@@ -40,8 +40,12 @@ let endpoints =
       yield! Handlers.Auth.SignUp.endpoint
       Handlers.Auth.SignOut.endpoint
       yield! Handlers.Auth.Claim.endpoint
+      Handlers.Auth.Reconfirm.endpoint
       Handlers.Account.AccountPage.endpoint
-      yield! Handlers.Account.SyncKey.endpoint ]
+      yield! Handlers.Account.SyncKey.endpoint
+      Handlers.Account.DisplayName.endpoint
+      Handlers.Account.ResetBinding.endpoint
+      yield! Handlers.Account.Logins.endpoint ]
 
 let private isApi (ctx: HttpContext) =
     ctx.Request.Path.StartsWithSegments(PathString "/api")

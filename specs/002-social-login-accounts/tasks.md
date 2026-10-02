@@ -312,7 +312,7 @@ expected rows.
 
 ### Tests for User Story 3 (write first, must fail)
 
-- [ ] T031 [P] [US3] `tests/FrunchyBackend.Tests/AccountTests.fs`:
+- [X] T031 [P] [US3] `tests/FrunchyBackend.Tests/AccountTests.fs`:
   - **display name**: valid → the dashboard shows it immediately and `display_name_changed` is
     recorded; invalid → refused;
   - **binding reset** → binding cleared, history kept, `binding_reset` event;
@@ -325,7 +325,7 @@ expected rows.
     newest); the security events list shows the last 20 newest first (SC-013);
   - **deleted elsewhere**: the user deleted by the CLI while signed in → the next `/account` request
     is signed out and redirected.
-- [ ] T032 [P] [US3] `tests/FrunchyBackend.Tests/FreshAuthTests.fs`:
+- [X] T032 [P] [US3] `tests/FrunchyBackend.Tests/FreshAuthTests.fs`:
   - with `auth_time` older than 10 minutes, GET `/account/key` → redirect to `/signin/reconfirm` →
     test provider round trip with the **same** identity → back to `/account/key`, `reconfirmed`
     event (SC-012);
@@ -337,15 +337,15 @@ expected rows.
 
 ### Implementation for User Story 3
 
-- [ ] T033 [US3] Add the strings for display name, binding reset, logins and link/unlink messages,
+- [X] T033 [US3] Add the strings for display name, binding reset, logins and link/unlink messages,
   syncs and security-event labels (one per event type), and re-confirm to `Views/Texts.fs` (en and
   es).
-- [ ] T034 [P] [US3] Create `Handlers/Account/DisplayName.fs` (`POST /account/display-name`,
+- [X] T034 [P] [US3] Create `Handlers/Account/DisplayName.fs` (`POST /account/display-name`,
   `BindForm`, rate limit `account-write`, 1–60 characters, update + `display_name_changed` in one
   transaction).
-- [ ] T035 [P] [US3] Create `Handlers/Account/ResetBinding.fs` (`POST /account/binding/reset`,
+- [X] T035 [P] [US3] Create `Handlers/Account/ResetBinding.fs` (`POST /account/binding/reset`,
   calls `AccountActions.resetBinding db user User`).
-- [ ] T036 [US3] Create `Handlers/Account/Logins.fs`:
+- [X] T036 [US3] Create `Handlers/Account/Logins.fs`:
   - `GET /account/link/{provider}` challenges with mode `link`;
   - `POST /account/unlink/{provider}` does a conditional delete (only when the count > 1) +
     `identity_unlinked`, and refuses the last one.
@@ -353,21 +353,26 @@ expected rows.
   Extend `Handlers/Auth/Complete.fs` with **link mode**: if the identity is free → insert +
   `identity_linked`; if it's owned by someone else → refuse with the message; redirect to
   `/account`.
-- [ ] T037 [US3] Create `Handlers/Auth/Reconfirm.fs` (`GET /signin/reconfirm?returnUrl=`,
+- [X] T037 [US3] Create `Handlers/Auth/Reconfirm.fs` (`GET /signin/reconfirm?returnUrl=`,
   requireSignedIn): challenge the session's provider with mode `reconfirm` and its prompt
   (`select_account` for Google, `consent` for Discord, via `FrunchyProvider.ReconfirmPrompt`).
   Extend `Handlers/Auth/Complete.fs` with **reconfirm mode**: the identity must belong to the
   current user → re-issue the session with a new `auth_time` + `reconfirmed` → redirect to the local
   `returnUrl`; otherwise no change and back to `/account` with a message. Switch `WebAuth` to
   `TimeProvider`.
-- [ ] T038 [US3] Extend `Handlers/Account/AccountPage.fs` with the display-name form, the binding
+- [X] T038 [US3] Extend `Handlers/Account/AccountPage.fs` with the display-name form, the binding
   reset form, the link buttons (for providers not linked yet) and unlink buttons, the last 10
   syncs (`data-sync`) and the last 20 security events (`data-security-event`, via
   `SecurityEvents.recent`).
-- [ ] T039 [US3] Register the US3 endpoints in `Program.fs` and the fsproj, then run T031–T032
+- [X] T039 [US3] Register the US3 endpoints in `Program.fs` and the fsproj, then run T031–T032
   green plus everything earlier.
 
 **Checkpoint**: everything the operator could do for a user, the user can now do themselves.
+*(Done 2026-10-02: 147/147. Decisions:
+- one sign-in identity per provider per account, so "unlink provider X" is unambiguous; the tests
+  register a second fake provider `test2` for cross-provider linking;
+- `Layout.timeElement` is now shared by the dashboard and account page;
+- account actions report through `?msg=` notices.)*
 
 ---
 

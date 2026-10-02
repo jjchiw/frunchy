@@ -69,6 +69,76 @@ let private signInMode (ctx: HttpContext) (db: DbConfig) (ext: WebAuth.ExternalR
             ctx.Response.Redirect "/signup"
     }
 
+/// Account page "Link Google/Discord": attach the identity to the signed-in user (FR-012)
+let private linkMode (ctx: HttpContext) (db: DbConfig) (userId: Guid) (ext: WebAuth.ExternalResult) : Task =
+    task {
+        let! owner = tryLinkedUser db ext.Identity
+
+        let! outcome =
+            task {
+                match owner with
+                | Some o when o = userId -> return "linked"
+                | Some _ -> return "link-taken"
+                | None ->
+                    use connection = getConnection db
+                    do! connection.OpenAsync()
+                    use tx = connection.BeginTransaction()
+
+                    use sameProvider =
+                        new NpgsqlCommand(
+                            "SELECT EXISTS (SELECT 1 FROM user_identities WHERE user_id = @id AND provider = @provider)",
+                            connection,
+                            tx
+                        )
+
+                    sameProvider.Parameters.AddWithValue("id", userId) |> ignore
+                    sameProvider.Parameters.AddWithValue("provider", ext.Identity.Provider) |> ignore
+                    let! duplicate = sameProvider.ExecuteScalarAsync()
+
+                    if unbox<bool> duplicate then
+                        return "link-duplicate"
+                    else
+                        try
+                            use link =
+                                new NpgsqlCommand(
+                                    "INSERT INTO user_identities (provider, provider_user_id, user_id) VALUES (@provider, @subject, @id)",
+                                    connection,
+                                    tx
+                                )
+
+                            link.Parameters.AddWithValue("provider", ext.Identity.Provider) |> ignore
+                            link.Parameters.AddWithValue("subject", ext.Identity.ProviderUserId) |> ignore
+                            link.Parameters.AddWithValue("id", userId) |> ignore
+                            let! _ = link.ExecuteNonQueryAsync()
+                            do! SecurityEvents.record connection tx userId SecurityEventType.IdentityLinked (Some ext.Identity.Provider) Actor.User
+                            do! tx.CommitAsync()
+                            return "linked"
+                        with :? PostgresException as ex when ex.SqlState = PostgresErrorCodes.UniqueViolation ->
+                            return "link-taken"
+            }
+
+        do! WebAuth.clearExternal ctx
+        ctx.Response.Redirect $"/account?msg={outcome}"
+    }
+
+/// Re-confirmation for sensitive actions: only the current user's own identity refreshes auth_time (research R6)
+let private reconfirmMode (ctx: HttpContext) (db: DbConfig) (userId: Guid) (ext: WebAuth.ExternalResult) : Task =
+    task {
+        let! owner = tryLinkedUser db ext.Identity
+        do! WebAuth.clearExternal ctx
+
+        if owner = Some userId then
+            use connection = getConnection db
+            do! connection.OpenAsync()
+            use tx = connection.BeginTransaction()
+            do! SecurityEvents.record connection tx userId SecurityEventType.Reconfirmed (Some ext.Identity.Provider) Actor.User
+            do! tx.CommitAsync()
+            do! WebAuth.signInUser ctx userId ext.Identity.Provider
+            ctx.Response.Redirect(WebAuth.localReturnUrl (ext.ReturnUrl |> Option.defaultValue "") "/account")
+        else
+            ctx.Response.Redirect "/account?msg=reconfirm-failed"
+    }
+
 let handler: EndpointHandler =
     fun ctx ->
         task {
@@ -76,7 +146,14 @@ let handler: EndpointHandler =
 
             match! WebAuth.tryExternalResult ctx with
             | None -> ctx.Response.Redirect "/signin?error=failed"
-            | Some ext -> do! signInMode ctx db ext
+            | Some ext ->
+                match ext.Mode, WebAuth.currentUserId ctx with
+                | "link", Some userId -> do! linkMode ctx db userId ext
+                | "reconfirm", Some userId -> do! reconfirmMode ctx db userId ext
+                | ("link" | "reconfirm"), None ->
+                    do! WebAuth.clearExternal ctx
+                    ctx.Response.Redirect "/signin"
+                | _ -> do! signInMode ctx db ext
         }
 
 // ---------------------------------------------------------------------------

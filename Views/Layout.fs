@@ -51,6 +51,17 @@ let private navEnd (ctx: HttpContext) (t: Texts) =
             }
         }
 
+/// Exact instant for the viewer's browser to localize (the time script above); UTC fallback text without JS.
+/// Shared by the dashboard and the account page.
+let timeElement (t: Texts) (mode: string) (instant: System.DateTime) =
+    let utc = System.DateTime.SpecifyKind(instant, System.DateTimeKind.Utc)
+
+    time()
+        .attr("datetime", utc.ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture))
+        .data("fr-time", mode) {
+        utc.ToString("d MMM yyyy, HH:mm", t.Culture) + " UTC"
+    }
+
 /// Base HTML layout with DaisyUI + HTMX, in the request's language
 let page (ctx: HttpContext) (t: Texts) (titleText: string) (content: HtmlElement) =
     html(lang = t.Lang) {

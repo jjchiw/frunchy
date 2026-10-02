@@ -36,15 +36,7 @@ type DashboardModel =
       Figures: Figures option // None when nothing resolved has been watched yet
       Recent: RecentEpisode list }
 
-/// Exact instant for the viewer's browser to localize (Layout's Intl script); UTC fallback text without JS
-let private timeElement (t: Texts) (mode: string) (instant: DateTime) =
-    let utc = DateTime.SpecifyKind(instant, DateTimeKind.Utc)
-
-    time()
-        .attr("datetime", utc.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture))
-        .data("fr-time", mode) {
-        utc.ToString("d MMM yyyy, HH:mm", t.Culture) + " UTC"
-    }
+let private timeElement = Layout.timeElement
 
 let private statCard (label: string) (name: string) (invariantValue: string) (display: string) =
     div(class' = "stat bg-base-300 rounded-lg shadow") {

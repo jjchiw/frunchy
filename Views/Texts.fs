@@ -99,7 +99,28 @@ type Texts =
       SyncKeyLabel: string
       ClaimButton: string
       ClaimRefused: string
-      BackToSignUp: string }
+      BackToSignUp: string
+
+      // Managing the account (feature 002, US3)
+      SaveButton: string
+      DisplayNameSaved: string
+      BindingResetButton: string
+      BindingResetDone: string
+      LinkProvider: string -> string
+      UnlinkButton: string
+      IdentityLinkedNotice: string
+      IdentityUnlinkedNotice: string
+      LinkTaken: string
+      LinkDuplicate: string
+      UnlinkLast: string
+      ReconfirmFailed: string
+      RecentSyncsTitle: string
+      NoSyncsYet: string
+      SyncStatus: string -> string
+      SyncCounts: int -> int -> int -> int -> string
+      SecurityEventsTitle: string
+      SecurityEventLabel: string -> string
+      ByOperator: string }
 
 let en =
     { Lang = "en"
@@ -195,7 +216,47 @@ let en =
       SyncKeyLabel = "Sync key"
       ClaimButton = "Attach to my account"
       ClaimRefused = "We couldn't verify that key."
-      BackToSignUp = "Create a new account instead" }
+      BackToSignUp = "Create a new account instead"
+
+      SaveButton = "Save"
+      DisplayNameSaved = "Display name saved."
+      BindingResetButton = "Reset Crunchyroll binding"
+      BindingResetDone = "Binding reset: your next sync binds your Crunchyroll profile again. Your history is kept."
+      LinkProvider = fun provider -> $"Link {provider}"
+      UnlinkButton = "Remove"
+      IdentityLinkedNotice = "Sign-in method linked."
+      IdentityUnlinkedNotice = "Sign-in method removed."
+      LinkTaken = "That sign-in account is already linked to another Frunchy account."
+      LinkDuplicate = "You already have a sign-in method from that provider."
+      UnlinkLast = "You can't remove your last sign-in method."
+      ReconfirmFailed = "We couldn't confirm it's you. Try again with the sign-in method you used."
+      RecentSyncsTitle = "Recent syncs"
+      NoSyncsYet = "No syncs yet: connect the extension and open your Crunchyroll history."
+      SyncStatus =
+        fun status ->
+            match status with
+            | "pending" -> "Pending"
+            | "processing" -> "Processing"
+            | "completed" -> "Completed"
+            | "failed" -> "Failed"
+            | other -> other
+      SyncCounts = fun processed unresolved unsupported failed -> $"{processed} processed · {unresolved} unresolved · {unsupported} unsupported · {failed} failed"
+      SecurityEventsTitle = "Security activity"
+      SecurityEventLabel =
+        fun event ->
+            match event with
+            | "account_created" -> "Account created"
+            | "signed_in" -> "Signed in"
+            | "claimed" -> "Account claimed"
+            | "claim_refused" -> "Someone tried to claim this account with its sync key"
+            | "identity_linked" -> "Sign-in method linked"
+            | "identity_unlinked" -> "Sign-in method removed"
+            | "sync_key_generated" -> "New sync key"
+            | "binding_reset" -> "Crunchyroll binding reset"
+            | "reconfirmed" -> "Identity confirmed"
+            | "display_name_changed" -> "Display name changed"
+            | other -> other
+      ByOperator = "by the operator" }
 
 let es =
     { Lang = "es"
@@ -291,7 +352,47 @@ let es =
       SyncKeyLabel = "Clave de sincronización"
       ClaimButton = "Asociar a mi cuenta"
       ClaimRefused = "No pudimos verificar esa clave."
-      BackToSignUp = "Crear una cuenta nueva" }
+      BackToSignUp = "Crear una cuenta nueva"
+
+      SaveButton = "Guardar"
+      DisplayNameSaved = "Nombre visible guardado."
+      BindingResetButton = "Restablecer el vínculo con Crunchyroll"
+      BindingResetDone = "Vínculo restablecido: tu próxima sincronización vuelve a vincular tu perfil de Crunchyroll. Tu historial se conserva."
+      LinkProvider = fun provider -> $"Vincular {provider}"
+      UnlinkButton = "Quitar"
+      IdentityLinkedNotice = "Método de inicio de sesión vinculado."
+      IdentityUnlinkedNotice = "Método de inicio de sesión quitado."
+      LinkTaken = "Esa cuenta de inicio de sesión ya está vinculada a otra cuenta de Frunchy."
+      LinkDuplicate = "Ya tienes un método de inicio de sesión de ese proveedor."
+      UnlinkLast = "No puedes quitar tu último método de inicio de sesión."
+      ReconfirmFailed = "No pudimos confirmar que eres tú. Vuelve a intentarlo con el método de inicio de sesión que usaste."
+      RecentSyncsTitle = "Sincronizaciones recientes"
+      NoSyncsYet = "Aún no hay sincronizaciones: conecta la extensión y abre tu historial de Crunchyroll."
+      SyncStatus =
+        fun status ->
+            match status with
+            | "pending" -> "Pendiente"
+            | "processing" -> "Procesando"
+            | "completed" -> "Completada"
+            | "failed" -> "Fallida"
+            | other -> other
+      SyncCounts = fun processed unresolved unsupported failed -> $"{processed} procesados · {unresolved} sin resolver · {unsupported} no compatibles · {failed} fallidos"
+      SecurityEventsTitle = "Actividad de seguridad"
+      SecurityEventLabel =
+        fun event ->
+            match event with
+            | "account_created" -> "Cuenta creada"
+            | "signed_in" -> "Inicio de sesión"
+            | "claimed" -> "Cuenta reclamada"
+            | "claim_refused" -> "Alguien intentó reclamar esta cuenta con su clave de sincronización"
+            | "identity_linked" -> "Método de inicio de sesión vinculado"
+            | "identity_unlinked" -> "Método de inicio de sesión quitado"
+            | "sync_key_generated" -> "Nueva clave de sincronización"
+            | "binding_reset" -> "Vínculo con Crunchyroll restablecido"
+            | "reconfirmed" -> "Identidad confirmada"
+            | "display_name_changed" -> "Nombre visible cambiado"
+            | other -> other
+      ByOperator = "por el operador" }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =

@@ -30,6 +30,8 @@
     <Compile Include="SignUpTests.fs" />
     <Compile Include="SyncKeyTests.fs" />
     <Compile Include="ClaimTests.fs" />
+    <Compile Include="AccountTests.fs" />
+    <Compile Include="FreshAuthTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -38,12 +38,20 @@ type FakeProviderHandler(options: IOptionsMonitor<AuthenticationSchemeOptions>, 
                 context.Response.Redirect redirect
         }
 
-/// Register the fake provider (scheme + Frunchy provider registry entry) on a test app builder
+/// A second fake provider, so tests can link two different providers (like Discord + Google)
+[<Literal>]
+let Scheme2 = "test2"
+
+/// Register the fake providers (schemes + Frunchy provider registry entries) on a test app builder
 let register (builder: WebApplicationBuilder) =
     builder.Services
         .AddAuthentication()
         .AddScheme<AuthenticationSchemeOptions, FakeProviderHandler>(Scheme, ignore)
+        .AddScheme<AuthenticationSchemeOptions, FakeProviderHandler>(Scheme2, ignore)
     |> ignore
 
     builder.Services.AddSingleton<AuthConfig.FrunchyProvider>(AuthConfig.provider Scheme "Test" Scheme (Some "login"))
+    |> ignore
+
+    builder.Services.AddSingleton<AuthConfig.FrunchyProvider>(AuthConfig.provider Scheme2 "Test Two" Scheme2 (Some "login"))
     |> ignore
