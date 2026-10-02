@@ -54,3 +54,10 @@
     seasons (43 of 501), movies appear as seasons (season 0 or listed among the others), and season
     numbers are irregular (JUJUTSU KAISEN Season 3 is numbered 5), hence matching by title and links
     rather than by number.
+- Clarify session (2026-10-02): two questions answered.
+  - **Top genres** count fully watched episodes, the same rule as the "Episodes watched" figure
+    (FR-018a, SC-007).
+  - **Queue order**: operator requests first, then new lookups by the season's latest watch across
+    all users (most recent first), then refreshes (FR-002a, SC-002).
+  - **Numbers fixed in the same pass**: up to 3 short retries (FR-013), and a 5-minute pause after
+    5 failed lookups in a row, then a single probe (FR-015).

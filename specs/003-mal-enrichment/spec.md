@@ -14,6 +14,8 @@
 
 - Q: What is matched to MyAnimeList, each series or each season? → A: Each Crunchyroll season, movies included (they appear as seasons, e.g. "JUJUTSU KAISEN 0"), gets its own MyAnimeList entry. The series' first season is found by search, and later seasons and movies are found by following MyAnimeList's sequel and related links, comparing season titles. Season numbers aren't used to match, because Crunchyroll's numbering is irregular (JUJUTSU KAISEN Season 3 is numbered 5). A dubbed season ("Season 01 (English Dub)") shares the entry of the original-language season it dubs.
 - Q: How much MyAnimeList data does the dashboard show in this feature? → A: The score and up to 3 genres on each recently-watched card, plus a "Top genres" section: the 5 genres with the most watched episodes, each with its share and episode count. A line says how much of the history is covered by matched seasons. Themes, demographics, studios and everything else visual wait for feature 004.
+- Q: What do "Top genres" count? → A: Fully watched episodes, the same rule as the "Episodes watched" figure. Shares are per genre over the fully watched episodes in matched seasons. Weighting by watch time is left to feature 004.
+- Q: When there's a backlog, which seasons are enriched first? → A: The most recently watched first: seasons ordered by their latest watch across all users. New lookups come before refreshes, and an operator's request goes to the front.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -33,7 +35,7 @@ Each anime is looked up once. The details are kept in Frunchy, so viewing a dash
 2. **Given** a series whose first season is matched, **When** its later seasons and movies are matched, **Then** each gets its own MyAnimeList entry (for example JUJUTSU KAISEN, JUJUTSU KAISEN Season 2 and the movie JUJUTSU KAISEN 0 each get theirs), found through that entry's sequel and related links before any new search.
 3. **Given** a dubbed season ("Season 01 (English Dub)"), **When** it's matched, **Then** it shares the MyAnimeList entry of the original-language season it dubs, without a lookup of its own.
 4. **Given** a matched season, **When** its details are stored, **Then** Frunchy keeps the genres, themes, demographic, studios, format, year and season, episode count, score, original and English titles, image and a link to the MyAnimeList page, plus the external service's full response, so these fields can be re-derived later without asking again.
-5. **Given** an import arrives with series Frunchy has never seen, **When** the import is processed, **Then** it completes as before, without waiting for enrichment. The new seasons are queued for enrichment and picked up afterwards.
+5. **Given** an import arrives with series Frunchy has never seen, **When** the import is processed, **Then** it completes as before, without waiting for enrichment. The new seasons are queued for enrichment and picked up afterwards, the most recently watched first, so a new user's recent cards fill in before the rest of the backlog.
 6. **Given** the external service answers "too many requests" or a temporary error (server error, gateway timeout, maintenance, no answer), **When** that happens for a lookup, **Then** the lookup is retried a few times with increasing waits, honouring any "retry after" the service gives. If it still fails, the work is kept and tried again later with growing delays.
 7. **Given** the external service is down for hours, **When** Frunchy keeps running or is restarted during the outage, **Then** no pending lookup is lost. Attempts slow down to a few per hour, and enrichment resumes on its own once the service is back.
 8. **Given** a lookup the external service definitively answers with "not found", or a search with no acceptable candidate, **When** it is recorded, **Then** it stays "no match" and isn't retried automatically. It's retried only when the operator asks (User Story 3) or the catalog's title for that season changes.
@@ -57,7 +59,7 @@ Visiting a public dashboard (`/u/{username}`), a viewer now sees MyAnimeList inf
 3. **Given** the external service is down, **When** anyone views a dashboard, **Then** it loads as fast as today, from the data Frunchy already holds.
 4. **Given** a viewer whose browser prefers Spanish, **When** the dashboard is shown, **Then** every label Frunchy adds is in Spanish. Genre and studio names are shown as MyAnimeList provides them.
 5. **Given** the figures shown today (series, episodes, hours, days), **When** enrichment adds data, **Then** those figures don't change.
-6. **Given** a user with watched episodes in matched seasons, **When** the dashboard is shown, **Then** the "Top genres" section lists up to 5 genres ordered by watched episodes (ties by name). Each shows its episode count and its share of the watched episodes in matched seasons, plus the share of all watched episodes those seasons cover. An episode counts once for each genre of its season, so the shares can add up to more than 100%, and the section says so.
+6. **Given** a user with watched episodes in matched seasons, **When** the dashboard is shown, **Then** the "Top genres" section lists up to 5 genres ordered by fully watched episodes (ties by name), counted with the same rule as the "Episodes watched" figure. Each shows its episode count and its share of the fully watched episodes in matched seasons, plus the share of all fully watched episodes those seasons cover. An episode counts once for each genre of its season, so the shares can add up to more than 100%, and the section says so.
 7. **Given** a user with no watched episodes in a matched season, **When** the dashboard is shown, **Then** the "Top genres" section isn't shown at all.
 
 ---
@@ -122,6 +124,7 @@ Anime details change slowly: a score moves, an airing show gains episodes or end
 
 - **FR-001**: Every Crunchyroll season in the catalog, movies included, MUST get an enrichment state: pending, matched, ambiguous, no match, or failed (with the reason and number of attempts). Seasons MUST NOT be skipped silently.
 - **FR-002**: A new season arriving through an import MUST be queued for enrichment automatically. Import processing MUST NOT wait for or depend on enrichment.
+- **FR-002a**: Pending work MUST be taken in this order: operator requests first, then new lookups by the season's latest watch across all users (most recent first), then refreshes (oldest details first). Work waiting for its next attempt time after a failure is skipped until then.
 - **FR-003**: A series' first season (the lowest-numbered original-language season that isn't a movie) MUST be matched by searching MyAnimeList with the series title, and with the season title when it differs. The search terms MUST be compared against each candidate's titles (main, English, Japanese romanization and synonyms) after normalizing case, punctuation and season or dub markers.
 - **FR-003a**: The series' other original-language seasons and movies MUST be matched first among the entries reachable from the matched first season through MyAnimeList's sequel, prequel, side-story and related links, by comparing season titles and format. A new search, by season title, is made only when no linked entry qualifies.
 - **FR-003b**: A dubbed season MUST share the match of the original-language season of the same series that it dubs (same season title once dub markers are removed, or the same season number when titles don't help). It MUST NOT be looked up separately. When no original-language season exists, it's matched like an original.
@@ -143,16 +146,16 @@ Anime details change slowly: a score moves, an airing show gains episodes or end
 
 **Resilience**
 
-- **FR-013**: A temporary failure ("too many requests", server error, gateway timeout, maintenance, timeout, connection failure) MUST be retried a small number of times with increasing waits and jitter, honouring any "retry after" the service gives.
+- **FR-013**: A temporary failure ("too many requests", server error, gateway timeout, maintenance, timeout, connection failure) MUST be retried up to 3 times with increasing waits and jitter, honouring any "retry after" the service gives.
 - **FR-014**: When short retries are used up, the work MUST stay pending with a next attempt time that grows with each failure: starting around a minute, doubling, capped at 6 hours. It MUST survive restarts.
-- **FR-015**: While the service keeps failing, Frunchy MUST stop sending new requests for a while, rather than trying every pending season in turn. It MUST resume on its own once a probe request succeeds.
+- **FR-015**: While the service keeps failing (5 failed lookups in a row), Frunchy MUST pause all requests for 5 minutes, rather than trying every pending season in turn, and then send a single probe. When the probe fails, the pause starts again; when it succeeds, work resumes on its own.
 - **FR-016**: A definite "not found", or a search with no acceptable candidate, MUST be recorded as final ("no match") and not retried automatically, except when the season's Crunchyroll title changes or the operator asks.
 - **FR-017**: Every failure MUST be recorded per season with its reason and time. A failure for one season MUST NOT stop the others.
 
 **Dashboard**
 
 - **FR-018**: For matched seasons, each recently-watched card on the public dashboard MUST show the MyAnimeList score (only when MyAnimeList has one) and up to 3 genres in MyAnimeList's order, with a link to the anime's MyAnimeList page. All of it comes from data Frunchy already holds. Unmatched seasons MUST look exactly as today. The existing figures MUST NOT change.
-- **FR-018a**: The dashboard MUST show a "Top genres" section: the 5 MyAnimeList genres with the most watched episodes among the user's episodes in matched seasons (ties by name). Each shows its episode count and its share of those episodes. The section MUST also show the share of all the user's watched episodes that matched seasons cover. It MUST NOT be shown when no watched episode is in a matched season. Only genres count here, not themes or demographics.
+- **FR-018a**: The dashboard MUST show a "Top genres" section: the 5 MyAnimeList genres with the most fully watched episodes among the user's episodes in matched seasons (ties by name). It counts with the same rule as the "Episodes watched" figure, so a movie counts as one. Each genre shows its episode count and its share of those episodes. The section MUST also show the share of all the user's fully watched episodes that matched seasons cover. It MUST NOT be shown when no fully watched episode is in a matched season. Only genres count here, not themes or demographics.
 - **FR-019**: Every label added to pages MUST come from the English and Spanish texts. Genre, theme and studio names are shown as MyAnimeList provides them.
 
 **Operator**
@@ -190,12 +193,12 @@ Anime details change slowly: a score moves, an airing show gains episodes or end
 ### Measurable Outcomes
 
 - **SC-001**: On the real catalog (501 seasons in 336 series), at least 85% of seasons are matched automatically. A hand check of 30 random automatic matches finds no more than 1 wrong.
-- **SC-002**: With the service healthy, the first enrichment of the real catalog finishes within 30 minutes, without a single "too many requests" answer caused by Frunchy's own pace.
+- **SC-002**: With the service healthy, the first enrichment of the real catalog finishes within 30 minutes, without a single "too many requests" answer caused by Frunchy's own pace. Even with a backlog, the seasons on a user's recently-watched cards are enriched within 5 minutes of their import being processed.
 - **SC-003**: During a service outage of any length, including restarts, no pending lookup is lost. After the outage, enrichment completes with no operator action, and during it Frunchy sends at most a few requests per hour.
 - **SC-004**: With the service unreachable, dashboards load in under 1 second, as today, and imports are processed as today.
 - **SC-005**: Running enrichment again over an already-enriched catalog sends no requests for details younger than the refresh age.
 - **SC-006**: Re-deciding all automatic matches from stored responses sends zero requests and gives the same matches when run twice.
-- **SC-007**: The "Top genres" counts equal a hand count over the user's watched episodes in matched seasons, and adding a match changes them on the next page view.
+- **SC-007**: The "Top genres" counts equal a hand count over the user's fully watched episodes in matched seasons, and adding a match changes them on the next page view.
 - **SC-008**: A manual fix by the operator shows on the dashboard on the next page view after its details are held, and survives any number of automatic re-runs.
 - **SC-009**: Every test from features 001 and 002 still passes, and the dashboard figures (series, episodes, hours, days) are identical before and after enrichment.
 
