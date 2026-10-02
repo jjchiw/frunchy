@@ -433,6 +433,12 @@ committed **by the browser-extension session** in `../browser-extension`. The ba
 sends it contract changes and readiness signals, and checks a task off here only when that
 session reports it done. File paths are suggestions; the extension session owns its layout.
 
+**Status reported by the extension session (2026-10-02)**: T044–T049 are built and
+harness-tested with mocked fetch, but **not committed and not run against a live backend**, so
+they stay unchecked until they're committed and pass T052. T050 not started (optional; "Sync
+stored pages" covers resending from local storage). T051 waits on a second Crunchyroll profile.
+T052 waits on T032.
+
 - [ ] T044 [P] [US1] (extension) Options page with the backend base URL (default
   `http://localhost:5099`) and the sync key stored in `chrome.storage`, plus a "validate" action
   calling `GET /api/me` (200 → show the display name; 401 → "invalid key"). Files:
@@ -449,7 +455,7 @@ session reports it done. File paths are suggestions; the extension session owns 
   `history_owner_missing`, `history_owner_mismatch`, `history_owner_taken`, `payload_too_large`)
   to the extension's own user-facing messages, shown in the popup.
 - [ ] T048 [P] [US1] (extension) Popup: user name and "Abrir Dashboard Web" (`dashboardUrl`) from
-  `GET /api/me`, last sync time, pages sent/queued, and optional status polling of
+  `GET /api/me`, last sync time, pages waiting to upload, and optional status polling of
   `GET /api/imports/{id}` until `completed`/`failed`. File: `../browser-extension/src/popup/index.ts`.
 - [ ] T049 [US1] (extension) Stop marker: store the newest `(id, date_played)` sent; on later
   syncs, stop paging once a page contains it (the decoded cursor `{c,t}` may be used too).
