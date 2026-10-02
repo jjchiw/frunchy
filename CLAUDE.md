@@ -20,7 +20,8 @@ dotnet run -- user-create <username> "<Name>"      # operator CLI; prints the sy
 
 - .NET SDK 10. xUnit v3 runs on Microsoft.Testing.Platform, which needs the root `global.json`'s `"test": { "runner": "Microsoft.Testing.Platform" }`. No linter.
 - Connection string: `ConnectionStrings:Database` in `appsettings.json` (`postgres/postgres@localhost:5432/frunchydb`), or the `ConnectionStrings__Database` env var. Local Postgres runs in Docker (container `postgres-postgres-1`) and there is no local `psql`, so use `docker exec postgres-postgres-1 createdb -U postgres <db>`. The app refuses the pre-001 legacy layout (`LegacySchemaException`); reset it as described in the README.
-- Operator CLI: `user-create`, `user-regenerate-key`, `user-reset-binding`, `user-rebuild`, `user-delete --yes`, `user-list` (`specs/001-crunchyroll-history-import/contracts/operator-cli.md`).
+- Operator CLI: `user-create`, `user-regenerate-key`, `user-reset-binding`, `user-rebuild`, `user-delete --yes`, `user-list`, `invite-create [--days N]`, `invite-list`, `invite-revoke <id>` (`contracts/operator-cli.md` in specs 001 and 002).
+- **Provider credentials** (Discord/Google) go **only** in Bella Baxter (our own secrets manager, loaded by `BellaBaxter.AspNet.Configuration` in `Program.addBellaSecrets` when Bella credentials are present; run with `bella sdk run -- dotnet run --launch-profile http`; keys use `__`, e.g. `Frunchy__Auth__Providers__Discord__ClientSecret`), `dotnet user-secrets` (dev; loaded in the Development environment) or environment variables. Never put them in `appsettings*.json`: a test fails if any committed appsettings file has a non-empty `ClientId`/`ClientSecret`, and the site refuses to start with an enabled provider missing them.
 - `JsonSamples/PostHistory.json` (2022, one raw page) and `JsonSamples/crunchyroll-history-2026-sample.json` (2026, 4 pages in the import envelope) are the test fixtures. Full personal captures (`crunchyroll-history-YYYY-MM-DD.json`) are gitignored and must never be committed. `.private/test.http` is stale (old `/post-history` route).
 
 ## The browser extension
@@ -37,6 +38,7 @@ dotnet run -- user-create <username> "<Name>"      # operator CLI; prints the sy
 
 **Routes**:
 - `GET /` (home) and `GET /u/{username}`: the public dashboard. Figures are computed by SQL at request time from `watch_events`.
+- Browser sign-in (feature 002, `Handlers/Auth/`): `/signin`, `/signin/{provider}`, `/signin/complete`, `/signup`, `/claim`, `/signin/reconfirm`, `POST /signout`. Private owner pages (`Handlers/Account/`): `/account`, `/account/key`, `/account/display-name`, `/account/binding/reset`, `/account/link|unlink/{provider}`, `/account/delete`.
 - `POST /api/imports`, `GET /api/imports/{id}`, `GET /api/me`: JSON for the extension. They're authenticated by `Authorization: Bearer <syncKey>` (`Infrastructure/Auth.fs`; only a SHA-256 of the key is stored) and return errors as `{ error, message }` (`Infrastructure/ApiErrors.fs`).
 
 **Ingestion pipeline** (the core flow):
@@ -56,10 +58,27 @@ ImportProcessorService → processNext: claim the oldest pending import (FOR UPD
 - **Unresolved entries** create a stub `cr_episodes` row (no `duration_ms`). They're excluded from the figures until a later page brings the details.
 - **Paging fields** (`page` cursor, `total`, `meta`) are opaque and never read.
 
+**Browser auth (feature 002)** uses ASP.NET Core's own handlers: Google (first-party) and Discord (`AspNet.Security.OAuth.Discord`). No identity server. `Infrastructure/WebAuth.fs` holds two cookie schemes:
+- `frunchy.external`: 10 minutes, carries `(provider, provider user id)` from the provider callback to `/signin/complete`, which acts in one of 3 modes (signin, link, reconfirm, passed in the challenge properties);
+- `frunchy.session`: 30 days sliding, with an `auth_time` claim. Generating a key and deleting the account use `requireFresh`, which needs a sign-in within 10 minutes; otherwise `/signin/reconfirm` sends the user back to the same provider.
+
+More rules:
+- **Forms**: every state-changing POST uses `WebAuth.readValidatedForm`, which checks the antiforgery verdict of `UseAntiforgery` first.
+- **Rate limits**: per IP, via `RequireRateLimiting` (`signin`, `signup`, `claim`, `account-write`).
+- **Sign-up** is invite-only (`invites`, consumed in the same transaction that creates the user).
+- **Claiming**: operator-created accounts are claimed with their sync key, only while they have no `user_identities` row.
+- **One identity per provider per account.**
+- **Security events**: every account action records one in `security_events` (via `Infrastructure/SecurityEvents.record`, in the action's transaction).
+- **Shared actions**: `Infrastructure/AccountActions.fs` (regenerate key, reset binding, delete) is shared by the CLI and the web, so they behave identically.
+
 **Data access** is raw Npgsql with hand-written SQL. There's no ORM or repository layer. `DbConfig` is a DI singleton (`ctx.GetService<DbConfig>()`). The schema is the idempotent `initializeSchema` in `Infrastructure/Database.fs`, with no migrations: schema changes go there and into `SCHEMA.md`. Everything personal hangs off `users` with `ON DELETE CASCADE`, and the catalog tables are shared. Raw pages are only ever deleted by `user-delete` (the constitution's single exception).
 
 **Localization**: every user-facing string lives in `Views/Texts.fs` (a typed record with `en` and `es` values). The language comes from `Accept-Language` only. Views never contain literals. ViewEngine writes non-ASCII as `&#NNN;`, so tests decode with `readHtml`. Times are rendered as `<time datetime="…Z" data-fr-time>` with a UTC fallback, and the layout's `Intl` script localizes them in the viewer's time zone.
 
-**Tests** (`tests/FrunchyBackend.Tests`): one Postgres Testcontainer per run with a fresh database per test (`PostgresFixture.newApp`). The real app runs on a TestServer with the hosted worker disabled, and tests call `ImportProcessor.processNext` directly (`TestHelpers.processAll`). Fixture builders live in `Fixtures.fs` (`syntheticPages`, `envelopeOf`, …).
+**Tests** (`tests/FrunchyBackend.Tests`): one Postgres Testcontainer per run (`max_connections=500`) with a fresh database per test (`PostgresFixture.newApp`).
+- **Fake providers**: `test` and `test2` (`Infrastructure/FakeProvider.fs`) are registered only by the tests. `GET /signin/test?sub=abc` acts like a provider round trip, and `?fail=1` simulates a cancellation.
+- **`Browser`** (`Infrastructure/Browser.fs`) keeps cookies, follows redirects with `Get`, and posts forms with their antiforgery token (`PostForm`).
+- **Helpers**: `AuthHelpers.signedUp` / `connectExtension` give a signed-in user with a key.
+- **Time**: the 10-minute rule is tested with a `TimeProvider` registered via `createAppWith`. The real app runs on a TestServer with the hosted worker disabled, and tests call `ImportProcessor.processNext` directly (`TestHelpers.processAll`). Fixture builders live in `Fixtures.fs` (`syntheticPages`, `envelopeOf`, …).
 
 **Design references**: `design/` holds HTML/PNG mockups (dashboard, anime DNA profile, extension popup) and `design/neo_scrobble_profile/DESIGN.md` (tokens). Mockup elements without a real data source (ratings, ranks, trends) are out of scope until a feature adds the data.

@@ -128,6 +128,45 @@ let private schema =
     );
 
     CREATE INDEX IF NOT EXISTS ix_watch_events_user_watched ON watch_events (user_id, watched_at DESC);
+
+    -- Accounts (feature 002): a signed-up user has no sync key until "Connect extension"
+    ALTER TABLE users ALTER COLUMN sync_key_hash DROP NOT NULL;
+    ALTER TABLE users ALTER COLUMN sync_key_created_at DROP NOT NULL;
+
+    -- One provider identity belongs to at most one user (shape of ASP.NET Core Identity's user logins)
+    CREATE TABLE IF NOT EXISTS user_identities (
+        provider         text NOT NULL,
+        provider_user_id text NOT NULL,
+        user_id          uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        linked_at        timestamptz NOT NULL DEFAULT now(),
+        last_used_at     timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (provider, provider_user_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS ix_user_identities_user ON user_identities (user_id);
+
+    -- One-time sign-up invites (only the code's hash is stored); not personal data
+    CREATE TABLE IF NOT EXISTS invites (
+        id              uuid PRIMARY KEY,
+        code_hash       text NOT NULL UNIQUE,
+        created_at      timestamptz NOT NULL DEFAULT now(),
+        expires_at      timestamptz NOT NULL,
+        revoked_at      timestamptz NULL,
+        used_at         timestamptz NULL,
+        used_by_user_id uuid NULL REFERENCES users(id) ON DELETE SET NULL
+    );
+
+    -- Account security events shown to the user (no IP or device data)
+    CREATE TABLE IF NOT EXISTS security_events (
+        id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        user_id     uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        occurred_at timestamptz NOT NULL DEFAULT now(),
+        event       text NOT NULL,
+        provider    text NULL,
+        actor       text NOT NULL CHECK (actor IN ('user', 'operator'))
+    );
+
+    CREATE INDEX IF NOT EXISTS ix_security_events_user ON security_events (user_id, occurred_at DESC);
     """
 
 /// Create the schema if missing (idempotent). Fails fast on the legacy placeholder layout.

@@ -1,28 +1,18 @@
 module FrunchyBackend.Operations.ResetBinding
 
 open System.Threading.Tasks
-open Npgsql
 open FrunchyBackend.Domains.Identity
+open FrunchyBackend.Infrastructure
 open FrunchyBackend.Infrastructure.Database
 
 /// Forget the user's Crunchyroll history owner; the next accepted submission binds again. History is kept.
 let resetBinding (db: DbConfig) (rawUsername: string) : Task<bool> =
     task {
-        match Username.tryCreate rawUsername with
+        match! AccountActions.tryUserIdByUsername db rawUsername with
+        | Some userId ->
+            do! AccountActions.resetBinding db userId Actor.Operator
+            return true
         | None -> return false
-        | Some username ->
-            use connection = getConnection db
-            do! connection.OpenAsync()
-
-            use cmd =
-                new NpgsqlCommand(
-                    "UPDATE users SET cr_account_id = NULL, cr_profile_id = NULL WHERE username = @username",
-                    connection
-                )
-
-            cmd.Parameters.AddWithValue("username", username) |> ignore
-            let! updated = cmd.ExecuteNonQueryAsync()
-            return updated = 1
     }
 
 /// `user-reset-binding <username>`

@@ -7,11 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Infrastructure/FakeProvider.fs" />
+    <Compile Include="Infrastructure/Browser.fs" />
     <Compile Include="Infrastructure/PostgresFixture.fs" />
     <Compile Include="Fixtures.fs" />
     <Compile Include="IdentityTests.fs" />
     <Compile Include="DatabaseTests.fs" />
     <Compile Include="TestHelpers.fs" />
+    <Compile Include="AuthHelpers.fs" />
     <Compile Include="HomeTests.fs" />
     <Compile Include="CrunchyrollPageTests.fs" />
     <Compile Include="CreateImportTests.fs" />
@@ -20,6 +23,18 @@
     <Compile Include="ImportProcessorTests.fs" />
     <Compile Include="DashboardTests.fs" />
     <Compile Include="OperationsTests.fs" />
+    <Compile Include="AuthConfigTests.fs" />
+    <Compile Include="AccountActionsTests.fs" />
+    <Compile Include="InviteOperationsTests.fs" />
+    <Compile Include="SignInTests.fs" />
+    <Compile Include="SignUpTests.fs" />
+    <Compile Include="SyncKeyTests.fs" />
+    <Compile Include="ClaimTests.fs" />
+    <Compile Include="AccountTests.fs" />
+    <Compile Include="FreshAuthTests.fs" />
+    <Compile Include="DeleteAccountTests.fs" />
+    <Compile Include="CsrfTests.fs" />
+    <Compile Include="AccountLocalizationTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,6 +1,9 @@
 module FrunchyBackend.Views.Layout
 
+open Microsoft.AspNetCore.Http
+open Oxpecker
 open Oxpecker.ViewEngine
+open FrunchyBackend.Infrastructure
 open FrunchyBackend.Views.Texts
 
 /// Rewrites every <time data-fr-time> into the viewer's language and time zone.
@@ -33,8 +36,34 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 """
 
+/// Navbar right side: "Sign in", or the signed-in user's name, Account and a sign-out form (POST + antiforgery)
+let private navEnd (ctx: HttpContext) (t: Texts) =
+    match WebAuth.currentNav ctx with
+    | WebAuth.SignedOut -> div(class' = "flex-none") { a(href = "/signin", class' = "btn btn-ghost btn-sm") { t.NavSignIn } }
+    | WebAuth.SignedIn displayName ->
+        div(class' = "flex-none flex items-center gap-2") {
+            span(class' = "text-sm text-gray-400").data("nav", "user") { displayName }
+            a(href = "/account", class' = "btn btn-ghost btn-sm") { t.NavAccount }
+
+            form(method = "post", action = "/signout") {
+                ctx.GetAntiforgeryInput()
+                button(type' = "submit", class' = "btn btn-ghost btn-sm") { t.NavSignOut }
+            }
+        }
+
+/// Exact instant for the viewer's browser to localize (the time script above); UTC fallback text without JS.
+/// Shared by the dashboard and the account page.
+let timeElement (t: Texts) (mode: string) (instant: System.DateTime) =
+    let utc = System.DateTime.SpecifyKind(instant, System.DateTimeKind.Utc)
+
+    time()
+        .attr("datetime", utc.ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture))
+        .data("fr-time", mode) {
+        utc.ToString("d MMM yyyy, HH:mm", t.Culture) + " UTC"
+    }
+
 /// Base HTML layout with DaisyUI + HTMX, in the request's language
-let page (t: Texts) (titleText: string) (content: HtmlElement) =
+let page (ctx: HttpContext) (t: Texts) (titleText: string) (content: HtmlElement) =
     html(lang = t.Lang) {
         head() {
             title() { $"{titleText} | {t.SiteName}" }
@@ -54,6 +83,7 @@ let page (t: Texts) (titleText: string) (content: HtmlElement) =
         body(class' = "bg-base-100").attr("data-theme", "dark") {
             div(class' = "navbar bg-base-200 sticky top-0 z-50 shadow-lg") {
                 div(class' = "flex-1") { a(href = "/", class' = "btn btn-ghost text-xl") { $"🎬 {t.SiteName}" } }
+                navEnd ctx t
             }
             div(class' = "container mx-auto px-4 py-8") { content }
             footer(class' = "footer footer-center bg-base-200 text-base-content p-4 mt-16") {
@@ -63,7 +93,7 @@ let page (t: Texts) (titleText: string) (content: HtmlElement) =
     }
 
 /// Simple message page (404, 500) in the request's language
-let messagePage (t: Texts) (heading: string) (body: string) =
+let messagePage (ctx: HttpContext) (t: Texts) (heading: string) (body: string) =
     div(class' = "hero bg-base-200 rounded-lg") {
         div(class' = "hero-content text-center") {
             div(class' = "max-w-md") {
@@ -73,4 +103,4 @@ let messagePage (t: Texts) (heading: string) (body: string) =
             }
         }
     }
-    |> page t heading
+    |> page ctx t heading

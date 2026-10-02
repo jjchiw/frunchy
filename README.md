@@ -29,13 +29,17 @@ Each endpoint is a self-contained slice in `Handlers/`, laid out top to bottom a
 Handlers/
 ├── Home.fs                      GET  /
 ├── Users/Dashboard.fs           GET  /u/{username}          public dashboard
+├── Auth/                        /signin, /signin/{provider}, /signin/complete, /signup, /claim, /signin/reconfirm, /signout
+├── Account/                     /account, /account/key, /account/display-name, /account/binding/reset,
+│                                /account/link|unlink/{provider}, /account/delete   (signed-in owner only)
 └── Api/
     ├── CreateImport.fs          POST /api/imports           submit history pages
     ├── GetImportStatus.fs       GET  /api/imports/{id}      submission status
     └── WhoAmI.fs                GET  /api/me                who a sync key belongs to
 Operations/                      operator CLI commands, one file each (user-create, user-rebuild, …)
 Workers/ImportProcessor.fs       background worker: Postgres as the job queue
-Infrastructure/                  schema bootstrap, Crunchyroll page parser, auth, API errors
+Infrastructure/                  schema bootstrap, Crunchyroll page parser, sync-key auth, API errors,
+                                 WebAuth (browser sessions), AuthConfig (providers), AccountActions (shared by CLI and web)
 Views/Texts.fs, Views/Layout.fs  typed en/es UI text and the shared layout
 Program.fs                       composition root: DI, middleware, endpoints, CLI dispatch
 ```
@@ -109,6 +113,24 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 - `GET /`: home, explains how to sync
 - `GET /u/{username}`: public dashboard (series, episodes, hours, days, recent episodes), English or Spanish
   from the browser's `Accept-Language`
+- Accounts (feature 002): `/signin`, `/signup`, `/claim` and the private `/account` pages. See
+  [Accounts](#accounts) and [`contracts/web-account.md`](specs/002-social-login-accounts/contracts/web-account.md).
+
+## Accounts
+
+- **Sign in** with Discord or Google. Frunchy never stores passwords, emails or avatars, only "provider +
+  that provider's stable user id".
+- **Sign-up is invite-only**: the operator runs `dotnet run -- invite-create`, which prints a one-time code
+  valid for 7 days. The first sign-in asks for the code, a username (the dashboard address, fixed) and a
+  display name.
+- **Existing accounts** created by the operator are claimed once: sign in, choose "I already have an
+  account" and paste the account's current sync key. This works only while the account has no sign-in
+  method yet.
+- **`/account`**: rename the display name, "Connect extension" (a new sync key shown once; the old one
+  stops working), reset the Crunchyroll binding, link or unlink Discord/Google (never the last one), see
+  the last 10 syncs and the last 20 security events, and delete the account. A new key and deletion need
+  a sign-in within the last 10 minutes; otherwise you re-confirm with your provider.
+- The extension keeps using the sync key exactly as before (import contract v1.2).
 
 ## Tech Stack
 
@@ -154,11 +176,45 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
    dotnet test
    ```
 
+### Sign-in providers (optional locally; the tests use a fake provider)
+
+1. Register a free OAuth app. **Discord**: Developer Portal → OAuth2, redirect
+   `http://localhost:5099/signin-discord`. **Google**: Cloud Console → Credentials → OAuth client ID (Web),
+   redirect `http://localhost:5099/signin-google`.
+2. Store the credentials **outside the repo**. Never put them in `appsettings*.json` (a test enforces this).
+   - **Bella Baxter** (our own secrets manager, recommended). In the Bella project `Frunchy`, environment
+     `development`, add the secrets with `__` as the section separator:
+     `Frunchy__Auth__Providers__Discord__ClientId`, `Frunchy__Auth__Providers__Discord__ClientSecret` and
+     `Frunchy__Auth__Providers__Discord__Enabled` = `true`. Then run through the Bella CLI, which hands the
+     app its Bella credentials (the app fetches the secrets itself, via `BellaBaxter.AspNet.Configuration`):
+     ```bash
+     bella sdk run -- dotnet run --launch-profile http
+     ```
+     Alternatively, store a Bella API key once (`dotnet user-secrets set "BellaBaxter:ApiKey" "bax-…"`) and
+     use plain `dotnet run`. Bella values override appsettings and user secrets; environment variables still
+     win. Secrets are polled every minute, and a rotated provider credential is used on the next sign-in
+     without a restart (enabling or disabling a provider still needs one). Without Bella credentials, Bella
+     isn't used at all.
+   - **User secrets**:
+     ```bash
+     dotnet user-secrets set "Frunchy:Auth:Providers:Discord:ClientId" "<id>"
+     dotnet user-secrets set "Frunchy:Auth:Providers:Discord:ClientSecret" "<secret>"
+     dotnet user-secrets set "Frunchy:Auth:Providers:Discord:Enabled" "true"
+     ```
+   In production use Bella or environment variables (`Frunchy__Auth__Providers__Discord__ClientSecret`) and
+   set `Frunchy:DataProtection:KeysPath` to a persistent directory so sessions survive restarts. The site
+   refuses to start if a provider is enabled without its credentials.
+3. `dotnet run --launch-profile http` (Development, so user secrets are loaded) and open `/signin`.
+
 ### Operator commands
 
-`dotnet run -- <command>`: `user-create <username> <displayName>`, `user-regenerate-key <username>`,
-`user-reset-binding <username>`, `user-rebuild <username>`, `user-delete <username> --yes`, `user-list`.
-Details are in [`contracts/operator-cli.md`](specs/001-crunchyroll-history-import/contracts/operator-cli.md).
+`dotnet run -- <command>`:
+- **Users**: `user-create <username> <displayName>`, `user-regenerate-key <username>`,
+  `user-reset-binding <username>`, `user-rebuild <username>`, `user-delete <username> --yes`, `user-list`.
+- **Invites** (feature 002): `invite-create [--days N]`, `invite-list`, `invite-revoke <id>`.
+
+Details are in [`001 contracts/operator-cli.md`](specs/001-crunchyroll-history-import/contracts/operator-cli.md)
+and [`002 contracts/operator-cli.md`](specs/002-social-login-accounts/contracts/operator-cli.md).
 
 ## What's NOT Included (MVP)
 
@@ -179,7 +235,7 @@ Features are built through spec-kit (`specs/###-name/`), in this order:
 | # | Feature | Status |
 |---|---|---|
 | 001 | **Crunchyroll history import + real dashboard**: raw import, normalization to watch events, import status, public per-user dashboard (`/u/{username}`), sync-key identity bound to the user's Crunchyroll account, English/Spanish UI | Implemented ([spec](specs/001-crunchyroll-history-import/spec.md)) |
-| 002 | **Accounts**: sign in through an external provider (Discord / Google / AniList, decided in its spec), self-service sign-up, sync key and account deletion. **Required before inviting a second user.** | Planned |
+| 002 | **Accounts**: sign in through an external provider (Discord / Google / AniList, decided in its spec), self-service sign-up, sync key and account deletion. **Required before inviting a second user.** | Implemented ([spec](specs/002-social-login-accounts/spec.md)) |
 | 003 | **MAL enrichment**: match Crunchyroll seasons to MyAnimeList via Jikan (rate-limited, per distinct anime): genres, studios, cover art, scores | Planned |
 | 004 | **Anime DNA profile**: genre distribution, favourite studio, dominant decade, viewing pace, insignia anime | Planned |
 

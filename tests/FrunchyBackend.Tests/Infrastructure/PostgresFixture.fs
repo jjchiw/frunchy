@@ -17,7 +17,8 @@ open FrunchyBackend.Infrastructure.Database
 let private container =
     lazy
         (task {
-            let c = PostgreSqlBuilder("postgres:16-alpine").Build()
+            // Every test gets its own database (and its own connection pool), so allow plenty of clients
+            let c = PostgreSqlBuilder("postgres:16-alpine").WithCommand("-c", "max_connections=500").Build()
             do! c.StartAsync()
             return c
         })
@@ -31,7 +32,9 @@ let newDatabase () : Task<DbConfig> =
         do! admin.OpenAsync()
         use create = new NpgsqlCommand($"CREATE DATABASE {name}", admin)
         let! _ = create.ExecuteNonQueryAsync()
-        let csb = NpgsqlConnectionStringBuilder(c.GetConnectionString(), Database = name)
+        let csb =
+            NpgsqlConnectionStringBuilder(c.GetConnectionString(), Database = name, MaxPoolSize = 10, ConnectionIdleLifetime = 10, ConnectionPruningInterval = 5)
+
         let db = { connectionString = csb.ConnectionString }
         do! initializeSchema db
         return db
@@ -46,36 +49,52 @@ let newEmptyDatabase () : Task<DbConfig> =
         do! admin.OpenAsync()
         use create = new NpgsqlCommand($"CREATE DATABASE {name}", admin)
         let! _ = create.ExecuteNonQueryAsync()
-        let csb = NpgsqlConnectionStringBuilder(c.GetConnectionString(), Database = name)
+        let csb =
+            NpgsqlConnectionStringBuilder(c.GetConnectionString(), Database = name, MaxPoolSize = 10, ConnectionIdleLifetime = 10, ConnectionPruningInterval = 5)
+
         return { connectionString = csb.ConnectionString }
     }
 
-/// The real app (Program.buildApp) on an in-process TestServer, background worker disabled
+/// The real app (Program.buildApp) on an in-process TestServer, background worker disabled,
+/// with the fake `test` sign-in provider registered (feature 002)
 type TestApp(app: WebApplication, client: HttpClient, db: DbConfig) =
     member _.Client = client
     member _.Db = db
+    member _.Services = app.Services
+
+    /// A fresh browser (own cookie jar) speaking the given language
+    member _.NewBrowser(?language: string) =
+        new Browser.Browser(app.GetTestServer().CreateHandler(), defaultArg language "en")
 
     interface IAsyncDisposable with
         member _.DisposeAsync() =
             client.Dispose()
             app.DisposeAsync()
 
-let createApp (db: DbConfig) : Task<TestApp> =
+/// The app with extra configuration and an extra builder customization (e.g. a test clock)
+let createAppWith (db: DbConfig) (extraConfig: (string * string) list) (customize: WebApplicationBuilder -> unit) : Task<TestApp> =
     task {
         let app =
             Program.buildApp Array.empty (fun builder ->
                 builder.WebHost.UseTestServer() |> ignore
 
                 builder.Configuration.AddInMemoryCollection(
-                    dict
+                    dict (
                         [ "ConnectionStrings:Database", db.connectionString
                           Program.WorkerEnabledKey, "false" ]
+                        @ extraConfig
+                    )
                 )
-                |> ignore)
+                |> ignore
+
+                FakeProvider.register builder
+                customize builder)
 
         do! app.StartAsync()
         return new TestApp(app, app.GetTestClient(), db)
     }
+
+let createApp (db: DbConfig) : Task<TestApp> = createAppWith db [] ignore
 
 /// Fresh database + app in one call
 let newApp () : Task<TestApp> =

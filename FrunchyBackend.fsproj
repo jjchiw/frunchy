@@ -4,6 +4,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <!-- The nested test project must not be picked up by the Web SDK's default globs -->
     <DefaultItemExcludes>$(DefaultItemExcludes);tests/**</DefaultItemExcludes>
+    <!-- Provider credentials live in `dotnet user-secrets` (outside the repo) or the environment -->
+    <UserSecretsId>frunchy-backend</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,6 +16,10 @@
     <Compile Include="Infrastructure/CrunchyrollPage.fs" />
     <Compile Include="Infrastructure/ApiErrors.fs" />
     <Compile Include="Infrastructure/Auth.fs" />
+    <Compile Include="Infrastructure/AuthConfig.fs" />
+    <Compile Include="Infrastructure/SecurityEvents.fs" />
+    <Compile Include="Infrastructure/AccountActions.fs" />
+    <Compile Include="Infrastructure/WebAuth.fs" />
     <Compile Include="Views/Texts.fs" />
     <Compile Include="Views/Layout.fs" />
     <Compile Include="Handlers/Home.fs" />
@@ -21,12 +27,27 @@
     <Compile Include="Handlers/Api/GetImportStatus.fs" />
     <Compile Include="Handlers/Api/WhoAmI.fs" />
     <Compile Include="Handlers/Users/Dashboard.fs" />
+    <Compile Include="Handlers/Auth/SignIn.fs" />
+    <Compile Include="Handlers/Auth/Complete.fs" />
+    <Compile Include="Handlers/Auth/SignUp.fs" />
+    <Compile Include="Handlers/Auth/SignOut.fs" />
+    <Compile Include="Handlers/Auth/Claim.fs" />
+    <Compile Include="Handlers/Auth/Reconfirm.fs" />
+    <Compile Include="Handlers/Account/AccountPage.fs" />
+    <Compile Include="Handlers/Account/SyncKey.fs" />
+    <Compile Include="Handlers/Account/DisplayName.fs" />
+    <Compile Include="Handlers/Account/ResetBinding.fs" />
+    <Compile Include="Handlers/Account/Logins.fs" />
+    <Compile Include="Handlers/Account/DeleteAccount.fs" />
     <Compile Include="Operations/CreateUser.fs" />
     <Compile Include="Operations/RegenerateKey.fs" />
     <Compile Include="Operations/ResetBinding.fs" />
     <Compile Include="Operations/RebuildUser.fs" />
     <Compile Include="Operations/DeleteUser.fs" />
     <Compile Include="Operations/ListUsers.fs" />
+    <Compile Include="Operations/InviteCreate.fs" />
+    <Compile Include="Operations/InviteList.fs" />
+    <Compile Include="Operations/InviteRevoke.fs" />
     <Compile Include="Workers/ImportProcessor.fs" />
     <Compile Include="Program.fs" />
     <Folder Include="design\" />
@@ -38,5 +59,8 @@
     <PackageReference Include="Oxpecker.Htmx" Version="4.0.*" />
     <PackageReference Include="Oxpecker.Alpine" Version="0.3.*" />
     <PackageReference Include="Npgsql" Version="10.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.*" />
+    <PackageReference Include="AspNet.Security.OAuth.Discord" Version="10.0.*" />
+    <PackageReference Include="BellaBaxter.AspNet.Configuration" Version="0.1.1-preview.122" />
   </ItemGroup>
 </Project>

@@ -20,6 +20,8 @@ Everything comes from CDNs in `Views/Layout.fs`; there's no frontend build step.
 | `GET /` | `Handlers/Home.fs` | what Frunchy is and how to sync from the extension (no user list) |
 | `GET /u/{username}` | `Handlers/Users/Dashboard.fs` | public dashboard: series, episodes, hours, days, 6 most recent episodes, last sync, sync-in-progress notice, empty state |
 | unknown `/u/…` or any other path | `Program.fs` / the slice | localized 404 page (`/api/…` paths get the JSON error shape instead) |
+| `GET /signin`, `/signup`, `/claim` | `Handlers/Auth/*.fs` | provider buttons; invite + username + display name; "I already have an account" (sync key) |
+| `GET /account`, `/account/key`, `/account/delete` | `Handlers/Account/*.fs` | private owner pages: display name, connect extension (key shown once), Crunchyroll binding, sign-in methods, last 10 syncs, last 20 security events, deletion |
 
 The old placeholder `/dashboard` and `/profile` pages were removed in feature 001: they showed invented
 numbers in hardcoded Spanish. The "Anime DNA" profile comes back with feature 004. The page contract
@@ -32,8 +34,12 @@ Views belong to their endpoint's **vertical slice** in `Handlers/`: view at the 
 the handler, and the route at the bottom. Small components (stat cards, recent items) stay in the slice
 that uses them. Only cross-slice UI lives in `Views/`:
 
-- `Views/Layout.fs`: `page texts title content` (`<html lang>`, CDN scripts, navbar, footer, the time
-  script) and `messagePage` for 404 and error pages.
+- `Views/Layout.fs`: `page ctx texts title content` (`<html lang>`, CDN scripts, navbar, footer, the time
+  script), `messagePage` for 404, 429 and error pages, and `timeElement`, the shared `<time>` helper.
+- The **navbar** shows "Sign in" when signed out. Signed in, it shows the display name, "Account" and a
+  sign-out button, which is a POST form with an antiforgery token: sign-out is never a GET link.
+- **Forms**: every state-changing form renders `ctx.GetAntiforgeryInput()` and posts. Actions answer with a
+  redirect to `/account?msg=…`, which shows a localized notice.
 - `Views/Texts.fs`: every user-facing string.
 
 ## Languages (en default, es)

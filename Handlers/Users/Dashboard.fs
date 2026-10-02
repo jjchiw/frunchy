@@ -36,15 +36,7 @@ type DashboardModel =
       Figures: Figures option // None when nothing resolved has been watched yet
       Recent: RecentEpisode list }
 
-/// Exact instant for the viewer's browser to localize (Layout's Intl script); UTC fallback text without JS
-let private timeElement (t: Texts) (mode: string) (instant: DateTime) =
-    let utc = DateTime.SpecifyKind(instant, DateTimeKind.Utc)
-
-    time()
-        .attr("datetime", utc.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture))
-        .data("fr-time", mode) {
-        utc.ToString("d MMM yyyy, HH:mm", t.Culture) + " UTC"
-    }
+let private timeElement = Layout.timeElement
 
 let private statCard (label: string) (name: string) (invariantValue: string) (display: string) =
     div(class' = "stat bg-base-300 rounded-lg shadow") {
@@ -109,7 +101,7 @@ let private header (t: Texts) (m: DashboardModel) =
             div(class' = "alert alert-info").attr("data-sync-in-progress", "") { span() { t.SyncInProgress } }
     }
 
-let view (t: Texts) (m: DashboardModel) =
+let view (ctx: Microsoft.AspNetCore.Http.HttpContext) (t: Texts) (m: DashboardModel) =
     div(class' = "space-y-8") {
         header t m
 
@@ -133,10 +125,10 @@ let view (t: Texts) (m: DashboardModel) =
                 }
             }
     }
-    |> Layout.page t m.DisplayName
+    |> Layout.page ctx t m.DisplayName
 
-let notFoundView (t: Texts) =
-    Layout.messagePage t t.UserNotFoundTitle t.UserNotFoundBody
+let notFoundView (ctx: Microsoft.AspNetCore.Http.HttpContext) (t: Texts) =
+    Layout.messagePage ctx t t.UserNotFoundTitle t.UserNotFoundBody
 
 // ---------------------------------------------------------------------------
 // Data access (data-model.md, "Dashboard figures"); only resolved episodes count
@@ -269,10 +261,10 @@ let handler (rawUsername: string) : EndpointHandler =
                 | None -> Task.FromResult None
 
             match model with
-            | Some m -> return! ctx.WriteHtmlView(view t m)
+            | Some m -> return! ctx.WriteHtmlView(view ctx t m)
             | None ->
                 ctx.SetStatusCode 404
-                return! ctx.WriteHtmlView(notFoundView t)
+                return! ctx.WriteHtmlView(notFoundView ctx t)
         }
 
 // ---------------------------------------------------------------------------
