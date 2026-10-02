@@ -118,3 +118,34 @@ let ``a rotated provider credential is used without a restart`` () =
         let! after = clientIdSentToDiscord ()
         Assert.Equal("rotated-client-id", after)
     }
+
+/// A failed provider round trip (cancelled, reloaded callback, "Correlation failed") lands on the
+/// sign-in page's "try again" message, and the correlation cookie works over plain http
+[<Fact>]
+let ``a failed provider round trip shows the sign-in page, not an exception`` () =
+    task {
+        let! db = PostgresFixture.newDatabase ()
+
+        use! app =
+            PostgresFixture.createAppWith
+                db
+                [ "Frunchy:Auth:Providers:Discord:Enabled", "true"
+                  "Frunchy:Auth:Providers:Discord:ClientId", "id"
+                  "Frunchy:Auth:Providers:Discord:ClientSecret", "secret" ]
+                ignore
+
+        // Starting sign-in sets the correlation cookie: SameSite=Lax, not Secure over http
+        let! start = app.Client.GetAsync "/signin/discord"
+        Assert.Equal(HttpStatusCode.Redirect, start.StatusCode)
+
+        let correlation =
+            start.Headers.GetValues "Set-Cookie" |> Seq.find (fun c -> c.StartsWith ".AspNetCore.Correlation.")
+
+        Assert.Contains("samesite=lax", correlation.ToLowerInvariant())
+        Assert.DoesNotContain("secure", correlation.ToLowerInvariant())
+
+        // A callback the handler can't correlate (here: a state it never issued)
+        let! callback = app.Client.GetAsync "/signin-discord?code=abc&state=not-ours"
+        Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode)
+        Assert.Equal("/signin?error=failed", string callback.Headers.Location)
+    }

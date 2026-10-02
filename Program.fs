@@ -114,15 +114,49 @@ let localizationOptions () =
 let dbConfigFrom (config: IConfiguration) : DbConfig =
     { connectionString = config.GetConnectionString "Database" }
 
-/// Adds `prompt=` to the provider's authorization URL when a round trip asks for it (re-confirmation)
-let private withPrompt (events: OAuthEvents) =
-    events.OnRedirectToAuthorizationEndpoint <-
+/// Provider round-trip settings shared by Google and Discord:
+/// - `prompt=` on the authorization URL when a round trip asks for it (re-confirmation);
+/// - a failed or cancelled round trip (the user pressed Cancel, a reloaded callback, "Correlation
+///   failed") is logged and lands on the sign-in page's "try again" message, or on the account page
+///   for link and re-confirm, never on an exception page (contracts/web-account.md "Messages");
+/// - the correlation cookie is SameSite=Lax and secure only on https. The default (None + Secure)
+///   breaks over plain http in some browsers; Lax cookies are still sent on the provider's
+///   top-level redirect back.
+let private roundTrip (options: OAuthOptions) =
+    options.CorrelationCookie.SameSite <- SameSiteMode.Lax
+    options.CorrelationCookie.SecurePolicy <- CookieSecurePolicy.SameAsRequest
+
+    options.Events.OnRedirectToAuthorizationEndpoint <-
         fun context ->
             match context.Properties.Items.TryGetValue WebAuth.PromptKey with
             | true, prompt when not (String.IsNullOrEmpty prompt) ->
                 context.Response.Redirect(context.RedirectUri + "&prompt=" + Uri.EscapeDataString prompt)
             | _ -> context.Response.Redirect context.RedirectUri
 
+            Task.CompletedTask
+
+    options.Events.OnRemoteFailure <-
+        fun context ->
+            context.HttpContext
+                .GetLogger("Frunchy.SignIn")
+                .LogWarning(context.Failure, "Sign-in with {Scheme} failed: {Reason}", context.Scheme.Name, context.Failure.Message)
+
+            let mode =
+                match context.Properties with
+                | null -> None
+                | p ->
+                    match p.Items.TryGetValue WebAuth.ModeKey with
+                    | true, m -> Some m
+                    | _ -> None
+
+            context.Response.Redirect(
+                match mode with
+                | Some "link" -> "/account?msg=link-failed"
+                | Some "reconfirm" -> "/account?msg=reconfirm-failed"
+                | _ -> "/signin?error=failed"
+            )
+
+            context.HandleResponse()
             Task.CompletedTask
 
 /// A provider's ClientId and ClientSecret are bound from its configuration section instead of
@@ -173,7 +207,7 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
                     o.CallbackPath <- PathString "/signin-google"
                     o.Scope.Clear()
                     o.Scope.Add "openid" // only the stable id is used (FR-021)
-                    withPrompt o.Events
+                    roundTrip o
             )
             |> ignore
 
@@ -188,7 +222,7 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
                     o.CallbackPath <- PathString "/signin-discord"
                     o.Scope.Clear()
                     o.Scope.Add "identify" // only the stable id is used (FR-021)
-                    withPrompt o.Events
+                    roundTrip o
             )
             |> ignore
 
