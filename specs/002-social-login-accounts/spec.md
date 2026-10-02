@@ -15,6 +15,9 @@
 - Q: Who can sign up? → A: Invite-only. Sign-up needs a one-time invite code created by the operator; it expires after 7 days. Opening sign-up to everyone is later work.
 - Q: How does an existing operator-created account get claimed? → A: Signed in with the new provider identity, the owner enters their current sync key once on an "I already have an account" page. This works only for accounts that have no linked identity yet.
 - Q: Do sensitive actions need extra confirmation? → A: Generating a sync key and deleting the account require a sign-in within the last 10 minutes; otherwise the user re-confirms with their provider first.
+- Q: Should the account page show the user's sync history? → A: Yes. It shows the last 10 submissions, each with received time, status and counts (processed, unresolved, unsupported, failed). There's no per-entry issue list.
+- Q: Should account security events be recorded? → A: Yes. They're stored per user, and the last 20 are shown on the account page (time, event, provider). They're deleted with the account.
+- Q: Can the display name be changed later? → A: Yes, on the account page (1–60 characters), and the dashboard shows it immediately. The username stays fixed.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -63,9 +66,11 @@ Someone whose account was created by the operator before this feature (e.g. "jjc
 ### User Story 3 - Manage my account (Priority: P2)
 
 A signed-in user manages their account in one place:
-- see their username and a link to their public dashboard;
+- see their username and a link to their public dashboard, and change their display name;
 - generate a new sync key, which revokes the old one, for example after losing it or reinstalling the extension;
 - see whether their account is bound to a Crunchyroll history (account and profile), and reset that binding themselves if they changed profile;
+- see their last 10 syncs (when, status, and how many entries were processed or unresolved);
+- see their last 20 security events (sign-ins, logins linked or unlinked, new sync keys, binding resets, claims), so they'd notice activity that wasn't theirs;
 - link a second provider (add Google to a Discord-created account, or the reverse);
 - unlink a provider, as long as one remains;
 - sign out.
@@ -82,7 +87,11 @@ A signed-in user manages their account in one place:
 4. **Given** a signed-in user, **When** they try to link a provider identity that's already linked to a different Frunchy account, **Then** it's refused with an explanation, and neither account changes.
 5. **Given** a user with two linked identities, **When** they unlink one, **Then** it can no longer be used to sign in. **When** they try to unlink the last one, **Then** it's refused.
 6. **Given** a bound user, **When** they reset their Crunchyroll binding and confirm, **Then** their history is kept, the binding is cleared, and the next accepted submission binds again (same effect as the operator's reset).
-7. **Given** a signed-in user, **When** they sign out, **Then** that browser is no longer signed in. The extension's sync key keeps working, because signing out doesn't revoke it.
+7. **Given** a signed-in user with synced history, **When** they open their account page, **Then** they see their last 10 submissions, newest first, each with received time, status and its processed / unresolved / unsupported / failed counts. A user without submissions sees a hint to connect the extension.
+8. **Given** a signed-in user, **When** they open their account page, **Then** they see their last 20 security events, newest first, each with time, event and provider where relevant.
+9. **Given** someone enters the sync key of an already-linked account on the claim page, **When** the claim is refused, **Then** a "claim refused" event is recorded on that account, so the owner can see their key may be known to someone else.
+10. **Given** a signed-in user, **When** they change their display name to a valid one (1–60 characters), **Then** the account page and their public dashboard show the new name right away. An empty or longer name is refused with an explanation, and the username never changes.
+11. **Given** a signed-in user, **When** they sign out, **Then** that browser is no longer signed in. The extension's sync key keeps working, because signing out doesn't revoke it.
 
 ---
 
@@ -145,13 +154,26 @@ A user can delete their own account and everything Frunchy holds about them, wit
   - a dashboard link;
   - linked providers;
   - whether a sync key is active (never the key itself);
-  - the Crunchyroll binding status.
+  - the Crunchyroll binding status;
+  - the last 10 submissions (received time, status, counts), newest first. Entry-level issue details aren't shown;
+  - the last 20 security events (FR-022).
 - **FR-010**: Users MUST be able to generate a sync key ("Connect extension"). The key is shown exactly once, and generating a new one immediately revokes the previous one. The sync key keeps working for the extension exactly as in the import contract (v1.2); signing in or out doesn't affect it.
+- **FR-010a**: Users MUST be able to change their display name (1–60 characters) from the account page, and the public dashboard MUST show the new name immediately. The username MUST NOT be changeable.
 - **FR-011**: Users MUST be able to reset their own Crunchyroll binding, with the same effect as the operator command.
 - **FR-012**: Users MUST be able to link another enabled provider identity that's not linked elsewhere. They MUST be able to unlink a provider only if at least one other remains.
 - **FR-013**: Users MUST be able to delete their account after typing their username to confirm. The effect is the same as the operator deletion (all data, raw submissions included, linked identities included; constitution I exception), and it signs them out.
 - **FR-014**: Generating a sync key and deleting the account MUST require a sign-in within the last 10 minutes. Otherwise the user MUST re-confirm with their provider first and then return to the action.
 - **FR-015**: Account pages MUST be reachable only by the signed-in owner. Unauthenticated visitors MUST be redirected to sign-in and returned afterwards.
+
+- **FR-022**: The system MUST record a security event for each of these, on the affected account:
+  - sign-in, and account creation;
+  - account claimed, and claim refused because the account is already linked;
+  - identity linked or unlinked;
+  - sync key generated, by the user or by the operator;
+  - Crunchyroll binding reset, by the user or by the operator;
+  - provider re-confirmation.
+
+  An event stores only the time, the event type and the provider, with no IP address or device details. Events MUST be deleted with the account.
 
 **Operation and configuration**
 
@@ -171,6 +193,7 @@ A user can delete their own account and everything Frunchy holds about them, wit
 - **Linked Identity**: a provider (Discord, Google) plus that provider's stable user identifier, belonging to exactly one user, with linked-at and last-used times. A user has one or more once they've signed in; operator-created users have none until they claim.
 - **Session**: a signed-in browser. It belongs to one user, ends at sign-out or after 30 days of inactivity, and is never shared with the extension.
 - **Pending Sign-up**: a provider identity that has authenticated but has no account yet, waiting for a username. It is short-lived and not an account.
+- **Security Event**: one record per sensitive account action: time, event type, provider (if any) and actor (user or operator). Owned by the user and deleted with them.
 - **Invite**: a one-time code created by the operator. It's valid for 7 days, can be revoked, and once used records which account it created.
 - **Claim**: proof of ownership of an operator-created account (its current sync key), accepted only while the account has no linked identity.
 
@@ -190,11 +213,12 @@ A user can delete their own account and everything Frunchy holds about them, wit
 - **SC-010**: 100% of sign-up attempts without a valid invite code are refused, and every code creates at most one account.
 - **SC-011**: The sync-key claim succeeds only for accounts with no linked identity (0 claims accepted on already-linked accounts in tests).
 - **SC-012**: 100% of key generations and deletions attempted more than 10 minutes after sign-in go through provider re-confirmation first.
+- **SC-013**: Every action listed in FR-022 produces exactly one security event on the right account, visible on the account page (verified for each action in tests).
 
 ## Assumptions
 
 - **Providers**: Discord and Google in this feature; AniList and others later (the identity model allows adding providers without changing accounts).
-- **Usernames can't be changed** after creation in this feature: the dashboard address must stay stable. Display names are set at sign-up; editing either is later work.
+- **Usernames can't be changed** after creation in this feature: the dashboard address must stay stable. Display names are set at sign-up and can be edited on the account page.
 - **No email** is collected or stored; Frunchy doesn't send email in this feature.
 - **Operator commands stay** as a recovery tool (for example for a user whose only provider was disabled, or an unclaimed account whose key was lost). New operator commands: create, list and revoke invites.
 - **Opening sign-up** to everyone (no invite) is later work; the invite rule is the only gate in this feature.
