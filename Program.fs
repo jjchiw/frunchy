@@ -33,7 +33,14 @@ let endpoints =
       Handlers.Api.CreateImport.endpoint
       Handlers.Api.GetImportStatus.endpoint
       Handlers.Api.WhoAmI.endpoint
-      Handlers.Users.Dashboard.endpoint ]
+      Handlers.Users.Dashboard.endpoint
+      // Feature 002: sign-in and the private account pages
+      Handlers.Auth.SignIn.endpoint
+      Handlers.Auth.Complete.endpoint
+      yield! Handlers.Auth.SignUp.endpoint
+      Handlers.Auth.SignOut.endpoint
+      Handlers.Account.AccountPage.endpoint
+      yield! Handlers.Account.SyncKey.endpoint ]
 
 let private isApi (ctx: HttpContext) =
     ctx.Request.Path.StartsWithSegments(PathString "/api")
@@ -249,7 +256,10 @@ let private cliCommands: Map<string, DbConfig -> string list -> Task<int>> =
           "user-reset-binding", Operations.ResetBinding.run
           "user-rebuild", Operations.RebuildUser.run
           "user-delete", Operations.DeleteUser.run
-          "user-list", Operations.ListUsers.run ]
+          "user-list", Operations.ListUsers.run
+          "invite-create", Operations.InviteCreate.run
+          "invite-list", Operations.InviteList.run
+          "invite-revoke", Operations.InviteRevoke.run ]
 
 let private runCli (command: string) (rest: string list) : int =
     // Same configuration sources as the web app (appsettings, environment, user secrets)

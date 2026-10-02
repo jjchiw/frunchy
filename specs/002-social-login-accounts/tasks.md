@@ -167,12 +167,12 @@ Sign out, then `/signin/test?sub=new1` → straight to `/account`.
 
 ### Tests for User Story 1 (write first, must fail)
 
-- [ ] T014 [P] [US1] `tests/FrunchyBackend.Tests/InviteOperationsTests.fs`:
+- [X] T014 [P] [US1] `tests/FrunchyBackend.Tests/InviteOperationsTests.fs`:
   - `invite-create` prints `inv_` + 12 characters once and stores only the hash;
   - `--days 1` sets `expires_at`;
   - `invite-list` shows active/used/revoked/expired states;
   - `invite-revoke`: exit 0, 2 for an unknown id, 3 for one that isn't active.
-- [ ] T015 [P] [US1] `tests/FrunchyBackend.Tests/SignInTests.fs`:
+- [X] T015 [P] [US1] `tests/FrunchyBackend.Tests/SignInTests.fs`:
   - **`/signin` page**: lists the `test` provider only; with no providers it shows the unavailable
     message;
   - **unknown identity** → redirect to `/signup`, and no user row exists;
@@ -184,7 +184,7 @@ Sign out, then `/signin/test?sub=new1` → straight to `/account`.
   - **sign-out**: POST `/signout` ends only that Browser's session (a second Browser stays signed
     in);
   - **language**: en and es texts on `/signin`.
-- [ ] T016 [P] [US1] `tests/FrunchyBackend.Tests/SignUpTests.fs`:
+- [X] T016 [P] [US1] `tests/FrunchyBackend.Tests/SignUpTests.fs`:
   - **invite refusals**: missing, unknown, used, revoked and expired codes are each refused with the
     single localized message, and no user, identity or event row is created (SC-010);
   - **username refusals**: taken, invalid and reserved usernames are refused; a display name that's
@@ -194,7 +194,7 @@ Sign out, then `/signin/test?sub=new1` → straight to `/account`.
   - **atomicity**: two Browsers racing the same code → exactly one account;
   - **abandoned sign-up**: GET `/signup` then nothing → no rows;
   - **new account**: has no sync key (`sync_key_hash` NULL).
-- [ ] T017 [P] [US1] `tests/FrunchyBackend.Tests/SyncKeyTests.fs`:
+- [X] T017 [P] [US1] `tests/FrunchyBackend.Tests/SyncKeyTests.fs`:
   - a freshly signed-up user: GET `/account/key` → confirm → POST → a page with `data-new-sync-key`
     whose key gives 200 on `/api/me`;
   - reloading `/account` never shows the key again;
@@ -203,19 +203,19 @@ Sign out, then `/signin/test?sub=new1` → straight to `/account`.
 
 ### Implementation for User Story 1
 
-- [ ] T018 [P] [US1] Create `Operations/InviteCreate.fs`, `Operations/InviteList.fs` and
+- [X] T018 [P] [US1] Create `Operations/InviteCreate.fs`, `Operations/InviteList.fs` and
   `Operations/InviteRevoke.fs` per contracts/operator-cli.md (they use the `Invite` helpers from
   T005), and add `invite-create`, `invite-list` and `invite-revoke` to the CLI map in `Program.fs`.
-- [ ] T019 [US1] Add to `Views/Texts.fs` (en and es) the strings for the sign-in page, sign-up form
+- [X] T019 [US1] Add to `Views/Texts.fs` (en and es) the strings for the sign-in page, sign-up form
   and its refusal messages, "I already have an account" link text, the account page basics, the
   "Connect extension" confirmation, the key-shown-once page with paste instructions, provider
   cancel/failure, and 429.
-- [ ] T020 [US1] Create `Handlers/Auth/SignIn.fs`:
+- [X] T020 [US1] Create `Handlers/Auth/SignIn.fs`:
   - `GET /signin` lists the registered `FrunchyProvider`s;
   - `GET /signin/{provider}` challenges the provider's scheme with mode `signin` and a local
     `returnUrl`;
   - rate limit `signin` via `configureEndpoint`.
-- [ ] T021 [US1] Create `Handlers/Auth/Complete.fs` (`GET /signin/complete`), with the `signin`
+- [X] T021 [US1] Create `Handlers/Auth/Complete.fs` (`GET /signin/complete`), with the `signin`
   mode only for now:
   1. authenticate `frunchy.external` and read `(provider, NameIdentifier)`;
   2. delete the external cookie when finished;
@@ -224,7 +224,7 @@ Sign out, then `/signin/test?sub=new1` → straight to `/account`.
   4. otherwise keep the external cookie and redirect to `/signup`.
 
   A missing or failed external result → `/signin` with the cancel/failure message.
-- [ ] T022 [US1] Create `Handlers/Auth/SignUp.fs`:
+- [X] T022 [US1] Create `Handlers/Auth/SignUp.fs`:
   - `GET /signup` needs a pending external identity (else → `/signin`) and renders the form
     (invite code, username, display name), with antiforgery and a link to `/claim`;
   - `POST /signup` (`BindForm`, rate limit `signup`) validates, then in **one transaction**
@@ -232,15 +232,15 @@ Sign out, then `/signin/test?sub=new1` → straight to `/account`.
     (NULL key), the identity and `account_created`; on any refusal it rolls back and re-renders
     with the message;
   - on success: sign in, delete the external cookie, redirect to `/account`.
-- [ ] T023 [US1] Create `Handlers/Auth/SignOut.fs` (`POST /signout`, `BindForm` for antiforgery,
+- [X] T023 [US1] Create `Handlers/Auth/SignOut.fs` (`POST /signout`, `BindForm` for antiforgery,
   sign out of `frunchy.session`, redirect `/`).
-- [ ] T024 [US1] Create `Handlers/Account/AccountPage.fs` (`GET /account`,
+- [X] T024 [US1] Create `Handlers/Account/AccountPage.fs` (`GET /account`,
   `WebAuth.requireSignedIn`):
   - sections for username, display name, the dashboard link `/u/{username}`, the key-active flag,
     the linked identities and the Crunchyroll binding status;
   - a "Connect extension" button to `/account/key`;
   - the `data-account` and `data-identity` hooks from contracts/web-account.md.
-- [ ] T025 [US1] Create `Handlers/Account/SyncKey.fs`:
+- [X] T025 [US1] Create `Handlers/Account/SyncKey.fs`:
   - `GET /account/key`: confirmation page with a POST form;
   - `POST /account/key`: `BindForm`, rate limit `account-write`, calls
     `AccountActions.regenerateKey db user User`, and renders the key once with `data-new-sync-key`
@@ -248,10 +248,16 @@ Sign out, then `/signin/test?sub=new1` → straight to `/account`.
 
   Both are wrapped in `WebAuth.requireFresh "/account/key"`; the reconfirm page comes in US3, and a
   new user is fresh anyway.
-- [ ] T026 [US1] Register the US1 endpoints in `Program.fs` and the files in the fsproj, then run
+- [X] T026 [US1] Register the US1 endpoints in `Program.fs` and the files in the fsproj, then run
   T014–T017 green, plus all earlier tests.
 
 **Checkpoint**: an invited person can join and connect the extension without the operator.
+*(Done 2026-10-02: 127/127, stable over 3 runs. Notes:
+- Sign-up inserts the user first and then consumes the invite in the same transaction; the invite's FK
+  to the user isn't deferrable. A race on one code still yields exactly one account.
+- POST handlers validate antiforgery explicitly (`WebAuth.readValidatedForm`).
+- Test infra: the test Postgres runs with `max_connections=500` and small per-database pools; 127
+  tests with one database each had hit the 100-connection default.)*
 
 ---
 

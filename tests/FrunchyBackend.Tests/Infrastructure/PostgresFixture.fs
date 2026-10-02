@@ -17,7 +17,8 @@ open FrunchyBackend.Infrastructure.Database
 let private container =
     lazy
         (task {
-            let c = PostgreSqlBuilder("postgres:16-alpine").Build()
+            // Every test gets its own database (and its own connection pool), so allow plenty of clients
+            let c = PostgreSqlBuilder("postgres:16-alpine").WithCommand("-c", "max_connections=500").Build()
             do! c.StartAsync()
             return c
         })
@@ -31,7 +32,9 @@ let newDatabase () : Task<DbConfig> =
         do! admin.OpenAsync()
         use create = new NpgsqlCommand($"CREATE DATABASE {name}", admin)
         let! _ = create.ExecuteNonQueryAsync()
-        let csb = NpgsqlConnectionStringBuilder(c.GetConnectionString(), Database = name)
+        let csb =
+            NpgsqlConnectionStringBuilder(c.GetConnectionString(), Database = name, MaxPoolSize = 10, ConnectionIdleLifetime = 10, ConnectionPruningInterval = 5)
+
         let db = { connectionString = csb.ConnectionString }
         do! initializeSchema db
         return db
@@ -46,7 +49,9 @@ let newEmptyDatabase () : Task<DbConfig> =
         do! admin.OpenAsync()
         use create = new NpgsqlCommand($"CREATE DATABASE {name}", admin)
         let! _ = create.ExecuteNonQueryAsync()
-        let csb = NpgsqlConnectionStringBuilder(c.GetConnectionString(), Database = name)
+        let csb =
+            NpgsqlConnectionStringBuilder(c.GetConnectionString(), Database = name, MaxPoolSize = 10, ConnectionIdleLifetime = 10, ConnectionPruningInterval = 5)
+
         return { connectionString = csb.ConnectionString }
     }
 

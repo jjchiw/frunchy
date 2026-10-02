@@ -50,7 +50,48 @@ type Texts =
       TooManyRequestsTitle: string
       TooManyRequestsBody: string
       FormExpiredTitle: string
-      FormExpiredBody: string }
+      FormExpiredBody: string
+
+      // Sign in / sign up (feature 002, US1)
+      SignInTitle: string
+      SignInIntro: string
+      SignInWith: string -> string
+      SignInUnavailable: string
+      SignInFailed: string
+      SignUpTitle: string
+      SignUpIntro: string
+      InviteCodeLabel: string
+      UsernameLabel: string
+      UsernameHint: string
+      DisplayNameLabel: string
+      CreateAccountButton: string
+      HaveAccountLink: string
+      InviteInvalid: string
+      UsernameInvalid: string
+      UsernameTaken: string
+      DisplayNameInvalid: string
+      IdentityAlreadyUsed: string
+
+      // Account page and "Connect extension" (feature 002, US1)
+      AccountTitle: string
+      AccountUsername: string
+      AccountDisplayName: string
+      AccountDashboard: string
+      AccountSyncKey: string
+      AccountKeyActive: string
+      AccountKeyMissing: string
+      AccountSignInMethods: string
+      AccountBinding: string
+      AccountBound: string
+      AccountUnbound: string
+      ConnectExtension: string
+      KeyConfirmTitle: string
+      KeyConfirmBody: string
+      KeyConfirmButton: string
+      KeyShownTitle: string
+      KeyShownBody: string
+      KeyShownOnce: string
+      BackToAccount: string }
 
 let en =
     { Lang = "en"
@@ -100,7 +141,46 @@ let en =
       TooManyRequestsTitle = "Too many attempts"
       TooManyRequestsBody = "Please wait a few minutes and try again."
       FormExpiredTitle = "This form expired"
-      FormExpiredBody = "Reload the page and try again." }
+      FormExpiredBody = "Reload the page and try again."
+
+      SignInTitle = "Sign in"
+      SignInIntro = "Sign in or create your Frunchy account. Frunchy never asks for a password."
+      SignInWith = fun provider -> $"Sign in with {provider}"
+      SignInUnavailable = "Sign-in isn't available right now."
+      SignInFailed = "Sign-in was cancelled or failed; try again."
+      SignUpTitle = "Create your account"
+      SignUpIntro = "First time here with this account. Enter your invite code and choose how you'll appear."
+      InviteCodeLabel = "Invite code"
+      UsernameLabel = "Username"
+      UsernameHint = "Your public dashboard address: 3-30 characters, a-z 0-9 _ -. It can't be changed later."
+      DisplayNameLabel = "Display name"
+      CreateAccountButton = "Create account"
+      HaveAccountLink = "I already have a Frunchy account"
+      InviteInvalid = "This invite code isn't valid."
+      UsernameInvalid = "That username isn't allowed: use 3-30 characters (a-z 0-9 _ -), starting with a letter or digit."
+      UsernameTaken = "That username is already taken."
+      DisplayNameInvalid = "The display name must be 1-60 characters."
+      IdentityAlreadyUsed = "This sign-in account is already linked to a Frunchy account. Sign in again."
+
+      AccountTitle = "Your account"
+      AccountUsername = "Username"
+      AccountDisplayName = "Display name"
+      AccountDashboard = "Public dashboard"
+      AccountSyncKey = "Extension"
+      AccountKeyActive = "A sync key is active."
+      AccountKeyMissing = "No sync key yet: connect the extension to start syncing."
+      AccountSignInMethods = "Sign-in methods"
+      AccountBinding = "Crunchyroll history"
+      AccountBound = "Bound to a Crunchyroll profile."
+      AccountUnbound = "Not bound yet: your first sync binds it."
+      ConnectExtension = "Connect extension"
+      KeyConfirmTitle = "Connect the extension"
+      KeyConfirmBody = "This creates a new sync key. Any previous key stops working immediately."
+      KeyConfirmButton = "Create sync key"
+      KeyShownTitle = "Your sync key"
+      KeyShownBody = "Paste this key in the Frunchy extension's options."
+      KeyShownOnce = "It's shown only once: Frunchy doesn't keep a copy."
+      BackToAccount = "Back to your account" }
 
 let es =
     { Lang = "es"
@@ -150,7 +230,46 @@ let es =
       TooManyRequestsTitle = "Demasiados intentos"
       TooManyRequestsBody = "Espera unos minutos y vuelve a intentarlo."
       FormExpiredTitle = "Este formulario caducó"
-      FormExpiredBody = "Recarga la página y vuelve a intentarlo." }
+      FormExpiredBody = "Recarga la página y vuelve a intentarlo."
+
+      SignInTitle = "Iniciar sesión"
+      SignInIntro = "Inicia sesión o crea tu cuenta de Frunchy. Frunchy nunca te pide una contraseña."
+      SignInWith = fun provider -> $"Iniciar sesión con {provider}"
+      SignInUnavailable = "El inicio de sesión no está disponible ahora mismo."
+      SignInFailed = "El inicio de sesión se canceló o falló; vuelve a intentarlo."
+      SignUpTitle = "Crea tu cuenta"
+      SignUpIntro = "Es la primera vez que entras con esta cuenta. Escribe tu código de invitación y elige cómo aparecerás."
+      InviteCodeLabel = "Código de invitación"
+      UsernameLabel = "Nombre de usuario"
+      UsernameHint = "La dirección de tu dashboard público: 3-30 caracteres, a-z 0-9 _ -. No se puede cambiar después."
+      DisplayNameLabel = "Nombre visible"
+      CreateAccountButton = "Crear cuenta"
+      HaveAccountLink = "Ya tengo una cuenta de Frunchy"
+      InviteInvalid = "Este código de invitación no es válido."
+      UsernameInvalid = "Ese nombre de usuario no está permitido: usa 3-30 caracteres (a-z 0-9 _ -), empezando por una letra o un número."
+      UsernameTaken = "Ese nombre de usuario ya está en uso."
+      DisplayNameInvalid = "El nombre visible debe tener entre 1 y 60 caracteres."
+      IdentityAlreadyUsed = "Esta cuenta de inicio de sesión ya está vinculada a una cuenta de Frunchy. Vuelve a iniciar sesión."
+
+      AccountTitle = "Tu cuenta"
+      AccountUsername = "Nombre de usuario"
+      AccountDisplayName = "Nombre visible"
+      AccountDashboard = "Dashboard público"
+      AccountSyncKey = "Extensión"
+      AccountKeyActive = "Hay una clave de sincronización activa."
+      AccountKeyMissing = "Aún no hay clave de sincronización: conecta la extensión para empezar a sincronizar."
+      AccountSignInMethods = "Métodos de inicio de sesión"
+      AccountBinding = "Historial de Crunchyroll"
+      AccountBound = "Vinculado a un perfil de Crunchyroll."
+      AccountUnbound = "Aún sin vincular: tu primera sincronización lo vincula."
+      ConnectExtension = "Conectar la extensión"
+      KeyConfirmTitle = "Conecta la extensión"
+      KeyConfirmBody = "Esto crea una nueva clave de sincronización. Cualquier clave anterior deja de funcionar al instante."
+      KeyConfirmButton = "Crear clave de sincronización"
+      KeyShownTitle = "Tu clave de sincronización"
+      KeyShownBody = "Pega esta clave en las opciones de la extensión de Frunchy."
+      KeyShownOnce = "Solo se muestra una vez: Frunchy no guarda una copia."
+      BackToAccount = "Volver a tu cuenta" }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =

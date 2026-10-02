@@ -14,6 +14,7 @@
     <Compile Include="IdentityTests.fs" />
     <Compile Include="DatabaseTests.fs" />
     <Compile Include="TestHelpers.fs" />
+    <Compile Include="AuthHelpers.fs" />
     <Compile Include="HomeTests.fs" />
     <Compile Include="CrunchyrollPageTests.fs" />
     <Compile Include="CreateImportTests.fs" />
@@ -24,6 +25,10 @@
     <Compile Include="OperationsTests.fs" />
     <Compile Include="AuthConfigTests.fs" />
     <Compile Include="AccountActionsTests.fs" />
+    <Compile Include="InviteOperationsTests.fs" />
+    <Compile Include="SignInTests.fs" />
+    <Compile Include="SignUpTests.fs" />
+    <Compile Include="SyncKeyTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

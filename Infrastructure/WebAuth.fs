@@ -5,6 +5,7 @@ module FrunchyBackend.Infrastructure.WebAuth
 open System
 open System.Security.Claims
 open System.Threading.Tasks
+open Microsoft.AspNetCore.Antiforgery
 open Microsoft.AspNetCore.Authentication
 open Microsoft.AspNetCore.Authentication.Cookies
 open Microsoft.AspNetCore.Http
@@ -214,3 +215,19 @@ let challenge (ctx: HttpContext) (provider: string) (scheme: string) (mode: stri
     props.Items[ReturnUrlKey] <- returnUrl
     prompt |> Option.iter (fun p -> props.Items[PromptKey] <- p)
     ctx.ChallengeAsync(scheme, props)
+
+/// Read a posted form after validating its antiforgery token (throws AntiforgeryValidationException → 400)
+let readValidatedForm (ctx: HttpContext) : Task<IFormCollection> =
+    task {
+        do! ctx.RequestServices.GetRequiredService<IAntiforgery>().ValidateRequestAsync ctx
+        return! ctx.Request.ReadFormAsync ctx.RequestAborted
+    }
+
+let formValue (form: IFormCollection) (name: string) =
+    match form.TryGetValue name with
+    | true, v -> (string v).Trim()
+    | _ -> ""
+
+let redirectTo (ctx: HttpContext) (location: string) : Task =
+    ctx.Response.Redirect location
+    Task.CompletedTask
