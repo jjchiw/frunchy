@@ -38,6 +38,12 @@ type Texts =
       SpecialLabel: string
       Minutes: int -> string
       InProgress: string
+      // MyAnimeList enrichment on the dashboard (feature 003)
+      TopGenresTitle: string
+      TopGenresEpisodes: int64 -> string
+      TopGenresCoverage: int -> string
+      MyAnimeListLink: string
+      ScoreLabel: string
       EmptyTitle: string
       EmptyBody: string
       UserNotFoundTitle: string
@@ -167,6 +173,13 @@ let en =
       SpecialLabel = "Special"
       Minutes = fun m -> $"{m} min"
       InProgress = "In progress"
+      TopGenresTitle = "Top genres"
+      TopGenresEpisodes =
+        fun n -> if n = 1L then "1 episode" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} episodes"""
+      TopGenresCoverage =
+        fun p -> $"Based on {p}%% of fully watched episodes. An episode counts in each of its genres."
+      MyAnimeListLink = "MyAnimeList"
+      ScoreLabel = "MyAnimeList score"
       EmptyTitle = "No history yet"
       EmptyBody =
         "Install the Frunchy extension, paste your sync key in its options and open your Crunchyroll history: your numbers appear here a moment later."
@@ -311,6 +324,13 @@ let es =
       SpecialLabel = "Especial"
       Minutes = fun m -> $"{m} min"
       InProgress = "En curso"
+      TopGenresTitle = "Géneros principales"
+      TopGenresEpisodes =
+        fun n -> if n = 1L then "1 episodio" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} episodios"""
+      TopGenresCoverage =
+        fun p -> $"Basado en el {p}%% de los episodios vistos completos. Un episodio cuenta en cada uno de sus géneros."
+      MyAnimeListLink = "MyAnimeList"
+      ScoreLabel = "Puntuación en MyAnimeList"
       EmptyTitle = "Todavía no hay historial"
       EmptyBody =
         "Instala la extensión de Frunchy, pega tu clave de sincronización en sus opciones y abre tu historial de Crunchyroll: tus números aparecerán aquí en unos instantes."

@@ -20,6 +20,10 @@
     <Compile Include="Infrastructure/SecurityEvents.fs" />
     <Compile Include="Infrastructure/AccountActions.fs" />
     <Compile Include="Infrastructure/WebAuth.fs" />
+    <Compile Include="Infrastructure/JikanModel.fs" />
+    <Compile Include="Infrastructure/MalMatching.fs" />
+    <Compile Include="Infrastructure/MalCatalog.fs" />
+    <Compile Include="Infrastructure/JikanClient.fs" />
     <Compile Include="Views/Texts.fs" />
     <Compile Include="Views/Layout.fs" />
     <Compile Include="Handlers/Home.fs" />
@@ -48,6 +52,14 @@
     <Compile Include="Operations/InviteCreate.fs" />
     <Compile Include="Operations/InviteList.fs" />
     <Compile Include="Operations/InviteRevoke.fs" />
+    <Compile Include="Workers/Enrichment.fs" />
+    <Compile Include="Operations/MalStatus.fs" />
+    <Compile Include="Operations/MalList.fs" />
+    <Compile Include="Operations/MalShow.fs" />
+    <Compile Include="Operations/MalSet.fs" />
+    <Compile Include="Operations/MalNone.fs" />
+    <Compile Include="Operations/MalRetry.fs" />
+    <Compile Include="Operations/MalRebuild.fs" />
     <Compile Include="Workers/ImportProcessor.fs" />
     <Compile Include="Program.fs" />
     <Folder Include="design\" />
@@ -62,5 +74,6 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.*" />
     <PackageReference Include="AspNet.Security.OAuth.Discord" Version="10.0.*" />
     <PackageReference Include="BellaBaxter.AspNet.Configuration" Version="0.1.1-preview.122" />
+    <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />
   </ItemGroup>
 </Project>

@@ -163,8 +163,10 @@ SCHEMA.md  README.md  CLAUDE.md     # updated in the polish phase
 
 **Structure Decision**: the same single project.
 - **Compile order**: Domains → Infrastructure (…, `WebAuth`, then `JikanModel`, `MalMatching`,
-  `MalCatalog`, `JikanClient`) → Views → Handlers → Operations → Workers (`ImportProcessor`,
-  `Enrichment`) → Program.
+  `MalCatalog`, `JikanClient`) → Views → Handlers → Operations (existing) → `Workers/Enrichment.fs`
+  → `Operations/Mal*` → `Workers/ImportProcessor.fs` → Program. The enrichment worker compiles
+  before the mal-* commands because `mal-rebuild` reuses its `resolveAndWrite` (changed during
+  implementation).
 - **CLI dispatch**: the operator commands currently take `DbConfig -> string list -> Task<int>`.
   The mal-* commands that need the client (`mal-set`) get it through a small `CliEnv` record
   (`Db`, `Services`) that `runCli` builds. The existing commands are adapted mechanically and keep

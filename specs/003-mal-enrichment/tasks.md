@@ -29,14 +29,14 @@ its own.
 
 ## Phase 1: Setup
 
-- [ ] T001 Update `FrunchyBackend.fsproj`:
+- [X] T001 Update `FrunchyBackend.fsproj`:
   - add `<PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />`;
   - add the new files in compile order (plan "Structure Decision"): `Infrastructure/JikanModel.fs`,
     `MalMatching.fs`, `MalCatalog.fs` and `JikanClient.fs` after `WebAuth.fs`; `Operations/Mal*.fs`
     after `InviteRevoke.fs`; `Workers/Enrichment.fs` after `ImportProcessor.fs`.
 
   Create each file as an empty module so `dotnet build` passes with 0 warnings.
-- [ ] T002 [P] Add the defaults of research R11 to `appsettings.json`:
+- [X] T002 [P] Add the defaults of research R11 to `appsettings.json`:
   - `Frunchy:EnrichmentWorkerEnabled` = true;
   - `Frunchy:Jikan`: `BaseUrl`, `RequestsPerSecond` 1, `RetryBaseDelay` `00:00:02`,
     `AttemptTimeout` `00:00:15`;
@@ -46,8 +46,10 @@ its own.
   No secrets: Jikan needs none.
 - [ ] T003 [P] Record the Jikan fixtures, a one-time network task, in
   `tests/FrunchyBackend.Tests/JsonSamples/jikan/`.
-  - **`record.sh`**: paced `curl` with 1.5 s sleeps that saves bodies as `<name>.json` and the
-    status in a sidecar `<name>.status` when it isn't 200. It retries 504s a few times.
+  - **`record.py`** (Python, implemented instead of a shell script): paced at 1 request per 1.2 s,
+    retries 429/5xx, crawls each 2026-sample series (search, then `/full` of the top results and
+    their chains), trims bodies to the fields Frunchy reads, and maps keys to files in
+    `manifest.json`.
   - **Responses to record**:
     - `search-frieren` (`anime?q=Frieren: Beyond Journey's End&limit=10&sfw`);
     - `full-52991` (Frieren S1) and `full-59978` (S2);
@@ -65,11 +67,16 @@ its own.
 
   Fill in the exact ids in the script header once recorded.
 
+  **Status (2026-10-02)**: `record.py` is written, but MyAnimeList was unreachable through Jikan all
+  evening (every search and uncached `/full` returned 504). Only Frieren's `/full`, recorded during
+  design, is in the fixtures. The other tests use Jikan-shaped bodies from
+  `tests/FrunchyBackend.Tests/MalFixtures.fs`. Re-run `record.py` when Jikan answers searches again.
+
 ---
 
 ## Phase 2: Foundational (blocks every story)
 
-- [ ] T004 Extend `initializeSchema` in `Infrastructure/Database.fs` with the 6 tables of
+- [X] T004 Extend `initializeSchema` in `Infrastructure/Database.fs` with the 6 tables of
   data-model.md and their constraints:
   - `mal_anime`, `mal_tags`, `mal_anime_tags`, `mal_relations`, `mal_searches`,
     `cr_season_matches`;
@@ -80,9 +87,9 @@ its own.
 
   No table references `users`. Running it twice is a no-op (an existing test in `DatabaseTests`
   covers idempotency; extend it to the new tables).
-- [ ] T005 [P] Update `SCHEMA.md` with the six tables, the new index, the shared-catalog note (not
+- [X] T005 [P] Update `SCHEMA.md` with the six tables, the new index, the shared-catalog note (not
   deleted with a user) and the rebuild statement from data-model.md.
-- [ ] T006 [P] Create `Infrastructure/JikanModel.fs`:
+- [X] T006 [P] Create `Infrastructure/JikanModel.fs`:
   - **records**: `JikanTitle`, `JikanTag { Id; Name }`, `JikanRelation { Relation; Entries:
     (id * type * name) list }`, `JikanAnime` (all fields of data-model `mal_anime`, plus
     genres/explicitGenres/themes/demographics/studios and relations), `JikanError { Status; Type;
@@ -94,7 +101,7 @@ its own.
   - **rules**: score `0` or `null` → `None`; the main title is `titles[type=Default]`; English,
     Japanese and synonyms come from `titles`; the image is `webp` first, then `jpg`; `dataHash` is
     the SHA-256 hex of the `data` element's raw text.
-- [ ] T007 [P] Unit tests in `tests/FrunchyBackend.Tests/JikanModelTests.fs`, against the T003
+- [X] T007 [P] Unit tests in `tests/FrunchyBackend.Tests/JikanModelTests.fs`, against the T003
   fixtures:
   - Frieren's full parses (titles, type TV, aired 2023-09-29, fall 2023, score 9.26, genres in order
     Adventure / Award Winning / Drama / Fantasy, demographic Shounen, Sequel → 59978, only
@@ -104,7 +111,7 @@ its own.
   - the error body parses;
   - unknown extra fields are ignored;
   - a broken body → `Error`.
-- [ ] T008 Create `Infrastructure/JikanClient.fs` (research R4, contracts/jikan-usage.md):
+- [X] T008 Create `Infrastructure/JikanClient.fs` (research R4, contracts/jikan-usage.md):
   - **`register (config) (services)`**: a named `HttpClient` "jikan" with `BaseAddress` and a
     `User-Agent` of `Frunchy-Backend/{version}`, plus `AddResilienceHandler("jikan", …)` with, from
     outermost:
@@ -123,13 +130,13 @@ its own.
     - `Live (client, db, clock)` stores every response (`MalCatalog`) before returning it;
     - `Stored (db)` reads only `mal_searches` and `mal_anime.raw`, returning `Unknown` for anything
       not held (research R8).
-- [ ] T009 [P] Create `tests/FrunchyBackend.Tests/Infrastructure/FakeJikan.fs`, an `HttpMessageHandler`:
+- [X] T009 [P] Create `tests/FrunchyBackend.Tests/Infrastructure/FakeJikan.fs`, an `HttpMessageHandler`:
   - **routes** from `(path, query)` to a fixture file, a status code with an error body, a delay or
     an exception, plus `Then` sequences (e.g. 504, 504, then 200);
   - **`Requests`**: a thread-safe log;
   - **a helper** to register it as the "jikan" primary handler on a `WebApplicationBuilder`, with
     instant settings (`RequestsPerSecond` 1000, `RetryBaseDelay` 1 ms, `AttemptTimeout` 2 s).
-- [ ] T010 Create `Infrastructure/MalCatalog.fs` (SQL only, data-model.md):
+- [X] T010 Create `Infrastructure/MalCatalog.fs` (SQL only, data-model.md):
   - `upsertAnime (conn, tx) (anime) (raw) (etag) (now)`: the columns, then tags and relations
     deleted and re-inserted; `data_hash` set; `fetched_at` and `checked_at` = now;
   - `touchChecked`, `markMissing`, `upsertSearch`, `tryAnimeRaw`, `trySearchRaw`;
@@ -138,7 +145,7 @@ its own.
   - **guard**: every automatic write has `WHERE method IS DISTINCT FROM 'manual'`, so manual rows
     are never overwritten (FR-006);
   - `seasonsOfSeries`, `animeHeld`.
-- [ ] T011 Update `Program.fs` and the tests' fixture:
+- [X] T011 Update `Program.fs` and the tests' fixture:
   - call `JikanClient.register` in `configureServices`;
   - `EnrichmentWorkerEnabledKey "Frunchy:EnrichmentWorkerEnabled"`;
   - refactor the CLI map to take a `CliEnv { Db: DbConfig; Services: IServiceProvider }` that
@@ -146,7 +153,7 @@ its own.
     existing commands just use `env.Db`, and their behaviour is unchanged;
   - `PostgresFixture.createAppWith` sets `Frunchy:EnrichmentWorkerEnabled=false` and installs a
     `FakeJikan` (default: every route 404) that the test can reach from `TestApp`.
-- [ ] T012 [P] Client-level tests in `tests/FrunchyBackend.Tests/ResilienceTests.fs`, through
+- [X] T012 [P] Client-level tests in `tests/FrunchyBackend.Tests/ResilienceTests.fs`, through
   `FakeJikan`:
   - 504, 504, then 200 → `Ok` after 3 attempts;
   - 429 with `Retry-After: 1` → the waits are honoured (measured);
@@ -177,7 +184,7 @@ Imports aren't touched.
 
 ### Tests for User Story 1 (write first, must fail)
 
-- [ ] T013 [P] [US1] Unit tests in `tests/FrunchyBackend.Tests/MalMatchingTests.fs` (research R2).
+- [X] T013 [P] [US1] Unit tests in `tests/FrunchyBackend.Tests/MalMatchingTests.fs` (research R2).
   - **Normalization**: case, accents, punctuation, `(English Dub)`, "The Movie", a leading "the".
   - **Season markers**: "2nd Season" = "Season 2" = "Part 2"; roman "II"; generic titles ("Season
     01" is generic; "JUJUTSU KAISEN Season 3" is generic with marker 3).
@@ -192,7 +199,7 @@ Imports aren't touched.
     with no original is matched like an original.
   - **No guessing**: with no qualifier → no match; and the decision is deterministic (same inputs,
     same output).
-- [ ] T014 [P] [US1] Integration tests in `tests/FrunchyBackend.Tests/EnrichmentTests.fs`.
+- [X] T014 [P] [US1] Integration tests in `tests/FrunchyBackend.Tests/EnrichmentTests.fs`.
   - **Discovery (FR-002)**: after an import, `cr_season_matches` has one `pending` row per season;
     `ImportProcessor` itself is unchanged and its suites still pass; running the discovery sweep
     twice inserts nothing new.
@@ -210,7 +217,7 @@ Imports aren't touched.
   - **User deletion**: `user-delete` leaves every `mal_*` row and `cr_season_matches` (FR-009).
   - **Concurrency**: two `processNext` calls in parallel never claim the same season (`SKIP LOCKED`).
   - **Stale claims**: a claim older than 10 minutes is reclaimed.
-- [ ] T015 [P] [US1] Durable-resilience tests, added to `ResilienceTests.fs` at worker level with a
+- [X] T015 [P] [US1] Durable-resilience tests, added to `ResilienceTests.fs` at worker level with a
   `TimeProvider`:
   - a lookup whose calls keep returning 504 → `pending`, attempts 1, `next_attempt_at` ≈ now + 1 min;
     then 2 and 4 min; the status becomes `failed` from attempt 3; the delay is capped at 6 h
@@ -223,7 +230,7 @@ Imports aren't touched.
 
 ### Implementation for User Story 1
 
-- [ ] T016 [P] [US1] Implement `Infrastructure/MalMatching.fs` as pure functions (research R2):
+- [X] T016 [P] [US1] Implement `Infrastructure/MalMatching.fs` as pure functions (research R2):
   - `normalize`, `seasonMarker`, `isGeneric`, `isDub`, `stripDub`, `isMovieListing`;
   - `titleTier (crTitle) (anime) : int option`;
   - `decideFirstSeason (seriesTitle) (seasonTitle) (candidates) (sequelChainOf) :
@@ -233,12 +240,12 @@ Imports aren't touched.
   - `Decision = Matched of malId * method | Ambiguous of Candidate list | NoMatch of reason`.
 
   No I/O: anything that would need data takes it as an argument.
-- [ ] T017 [US1] Implement discovery and the claim in `Workers/Enrichment.fs`:
+- [X] T017 [US1] Implement discovery and the claim in `Workers/Enrichment.fs`:
   - `sweep db`: the `INSERT … WHERE NOT EXISTS` of the pending rows, and the re-queueing on title
     change (automatic `no_match` and `ambiguous` only);
   - `claimNext db now`: reset stale claims (> 10 min), then `FOR UPDATE SKIP LOCKED` in the FR-002a
     order, using `max(watched_at)` per season over `watch_events ⋈ cr_episodes`.
-- [ ] T018 [US1] Implement `resolveSeason (source: IJikanSource) db clock seasonId` in
+- [X] T018 [US1] Implement `resolveSeason (source: IJikanSource) db clock seasonId` in
   `Workers/Enrichment.fs`:
   - **dub**: follow the original (match the original first if it's still pending, in the same job);
   - **first season**: search with the series title (plus the season title when not generic), then
@@ -250,7 +257,7 @@ Imports aren't touched.
 
   A `Temporary` anywhere → `setTemporaryFailure` with `min(6 h, 1 min × 2^(n−1)) × jitter`, and the
   error goes up to the caller for the pause counter.
-- [ ] T019 [US1] Implement in `Workers/Enrichment.fs`:
+- [X] T019 [US1] Implement in `Workers/Enrichment.fs`:
   - `processNext db source clock : Task<ProcessResult>` (`Idle | Done | TemporaryFailure`): the
     sweep, then claim and resolve one season;
   - `EnrichmentService`, a `BackgroundService` looping on `processNext`. It sleeps 5 s when idle and
@@ -278,7 +285,7 @@ genres" section (contracts/dashboard.md).
 
 ### Tests for User Story 2 (write first, must fail)
 
-- [ ] T020 [P] [US2] Integration tests in `tests/FrunchyBackend.Tests/DashboardMalTests.fs`:
+- [X] T020 [P] [US2] Integration tests in `tests/FrunchyBackend.Tests/DashboardMalTests.fs`:
   - **matched cards**: the score has 2 decimals and is omitted when NULL; at most 3 genres, joined
     with ` / `, in position order; the link points to `mal_anime.url` with `target=_blank`;
   - **unmatched cards**: an unmatched or `pending` season's card HTML equals what the same page
@@ -292,13 +299,13 @@ genres" section (contracts/dashboard.md).
 
 ### Implementation for User Story 2
 
-- [ ] T021 [P] [US2] Add to `Views/Texts.fs` (en and es): `TopGenresTitle`, `TopGenresEpisodes n`,
+- [X] T021 [P] [US2] Add to `Views/Texts.fs` (en and es): `TopGenresTitle`, `TopGenresEpisodes n`,
   `TopGenresCoverage p`, `MyAnimeListLink` and `ScoreLabel`.
-- [ ] T022 [US2] Extend the recently-watched query and card in `Handlers/Users/Dashboard.fs`:
+- [X] T022 [US2] Extend the recently-watched query and card in `Handlers/Users/Dashboard.fs`:
   - left join `cr_season_matches` (matched) and `mal_anime`, plus a lateral subquery for the top 3
     genres;
   - render the score, genres and link only when they're present (contract hooks `data-mal-*`).
-- [ ] T023 [US2] Add the "Top genres" section to `Handlers/Users/Dashboard.fs`:
+- [X] T023 [US2] Add the "Top genres" section to `Handlers/Users/Dashboard.fs`:
   - its own private query (fully watched, known duration, matched season, `kind = genre`, top 5,
     plus the coverage count);
   - rendered after the figures with bars, `data-top-genres`, `data-genre`, `data-genre-episodes`,
@@ -322,7 +329,7 @@ and the rebuild sends zero requests.
 
 ### Tests for User Story 3 (write first, must fail)
 
-- [ ] T024 [P] [US3] Integration tests in `tests/FrunchyBackend.Tests/MalOperationsTests.fs`, calling
+- [X] T024 [P] [US3] Integration tests in `tests/FrunchyBackend.Tests/MalOperationsTests.fs`, calling
   the commands through `Program`'s CLI map with a `CliEnv` over the test database and `FakeJikan`:
   - **`mal-status`**: counts per status and method, anime held, refreshes due;
   - **`mal-list`**: the queue order and the `--status` filter, with the candidates printed for
@@ -345,15 +352,15 @@ and the rebuild sends zero requests.
 
 ### Implementation for User Story 3
 
-- [ ] T025 [P] [US3] Create `Operations/MalStatus.fs`, `Operations/MalList.fs` and
+- [X] T025 [P] [US3] Create `Operations/MalStatus.fs`, `Operations/MalList.fs` and
   `Operations/MalShow.fs` (read-only, contract output columns).
-- [ ] T026 [P] [US3] Create `Operations/MalSet.fs` and `Operations/MalNone.fs`:
+- [X] T026 [P] [US3] Create `Operations/MalSet.fs` and `Operations/MalNone.fs`:
   - `mal-set` uses `IJikanSource.Live` from `env.Services` only when the anime isn't held, and maps
     `NotFound` → exit 3 and `Temporary` → exit 4;
   - both write `method manual` through `MalCatalog` and update the dubs that follow the season.
-- [ ] T027 [US3] Create `Operations/MalRetry.fs`: a season or series id; automatic rows → `pending`
+- [X] T027 [US3] Create `Operations/MalRetry.fs`: a season or series id; automatic rows → `pending`
   with `requested_at = now` and `attempts = 0`; manual rows → set `mal_anime.refresh_requested_at`.
-- [ ] T028 [US3] Create `Operations/MalRebuild.fs`:
+- [X] T028 [US3] Create `Operations/MalRebuild.fs`:
   1. re-derive every `mal_anime` row (columns, tags, relations) from `raw` with
      `JikanModel.parseFull`;
   2. re-run `resolveSeason` with `IJikanSource.Stored` for every automatic row, in season order,
@@ -361,7 +368,7 @@ and the rebuild sends zero requests.
   3. print the counts (re-derived, unchanged, changed, data missing).
 
   It must never construct the live client.
-- [ ] T029 [US3] Add `mal-status`, `mal-list`, `mal-show`, `mal-set`, `mal-none`, `mal-retry` and
+- [X] T029 [US3] Add `mal-status`, `mal-list`, `mal-show`, `mal-set`, `mal-none`, `mal-retry` and
   `mal-rebuild` to the CLI map in `Program.fs`, and print their usage on bad arguments (exit 1).
 
 **Checkpoint**: US3 is complete, and the operator can fix every non-matched season.
@@ -379,7 +386,7 @@ and tags are updated. A 404 → `missing_since`, and the details are kept.
 
 ### Tests for User Story 4 (write first, must fail)
 
-- [ ] T030 [P] [US4] Integration tests in `tests/FrunchyBackend.Tests/RefreshTests.fs`
+- [X] T030 [P] [US4] Integration tests in `tests/FrunchyBackend.Tests/RefreshTests.fs`
   (`TimeProvider`):
   - **not due**: nothing is refreshed before 30 days (7 for an airing anime);
   - **ordering**: new lookups are processed before refreshes (FR-002a);
@@ -392,7 +399,7 @@ and tags are updated. A 404 → `missing_since`, and the details are kept.
 
 ### Implementation for User Story 4
 
-- [ ] T031 [US4] Add refresh to `Workers/Enrichment.fs`:
+- [X] T031 [US4] Add refresh to `Workers/Enrichment.fs`:
   - claim a due `mal_anime` row (data-model "Due for refresh", `refresh_requested_at` first) when no
     season lookup is claimable;
   - `full` with the stored `etag`;
@@ -407,13 +414,13 @@ and tags are updated. A 404 → `missing_since`, and the details are kept.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T032 [P] Update `README.md`: the enrichment feature, the `mal-*` commands, the
+- [X] T032 [P] Update `README.md`: the enrichment feature, the `mal-*` commands, the
   `Frunchy:Jikan:*` and `Frunchy:Enrichment:*` settings, and the roadmap (003 Implemented).
-- [ ] T033 [P] Update `CLAUDE.md`:
+- [X] T033 [P] Update `CLAUDE.md`:
   - the architecture section: the enrichment worker and its queue, the `JikanClient` pipeline, "tests
     never call Jikan; `FakeJikan` + `JsonSamples/jikan/`", and manual rows never overwritten;
   - the commands list.
-- [ ] T034 Run the full `dotnet test` with 0 build warnings. Record the counts in the quickstart's
+- [X] T034 Run the full `dotnet test` with 0 build warnings. Record the counts in the quickstart's
   validation log.
 - [ ] T035 With the owner's go-ahead, run the first real enrichment on `frunchydb` (quickstart §3).
   The schema change only adds tables and an index. Record in the validation log:

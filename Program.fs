@@ -17,6 +17,7 @@ open Microsoft.AspNetCore.Localization
 open Microsoft.AspNetCore.RateLimiting
 open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
+open Microsoft.Extensions.DependencyInjection.Extensions
 open Microsoft.Extensions.Logging
 open AspNet.Security.OAuth.Discord
 open BellaBaxter.AspNet.Configuration
@@ -29,6 +30,10 @@ open FrunchyBackend.Workers.ImportProcessor
 /// Set to false (the integration tests do) to run without the background import worker
 [<Literal>]
 let WorkerEnabledKey = "Frunchy:ImportWorkerEnabled"
+
+/// Set to false (the integration tests do) to run without the MyAnimeList enrichment worker
+[<Literal>]
+let EnrichmentWorkerEnabledKey = "Frunchy:EnrichmentWorkerEnabled"
 
 // One vertical slice per endpoint, see Handlers/
 let endpoints =
@@ -237,6 +242,13 @@ let configureServices (config: IConfiguration) (services: IServiceCollection) =
     if config.GetValue<bool>(WorkerEnabledKey, true) then
         services.AddHostedService<ImportProcessorService>() |> ignore
 
+    // Feature 003: the paced, retried Jikan client and the enrichment worker
+    services.TryAddSingleton<TimeProvider>(TimeProvider.System)
+    JikanClient.register config services |> ignore
+
+    if config.GetValue<bool>(EnrichmentWorkerEnabledKey, true) then
+        services.AddHostedService<Workers.Enrichment.EnrichmentService>() |> ignore
+
     configureAuth config services
     services.AddRouting().AddOxpecker() |> ignore
 
@@ -276,28 +288,51 @@ let buildApp (args: string array) (customize: WebApplicationBuilder -> unit) : W
     configureApp app
     app
 
-// Operator CLI: `dotnet run -- <command> [args]` (contracts/operator-cli.md)
-let private cliCommands: Map<string, DbConfig -> string list -> Task<int>> =
+/// What an operator command can use: the database and, for mal-set, the paced Jikan client
+type CliEnv =
+    { Db: DbConfig
+      Http: Net.Http.IHttpClientFactory
+      Clock: TimeProvider }
+
+let private dbOnly (run: DbConfig -> string list -> Task<int>) = fun (env: CliEnv) args -> run env.Db args
+
+// Operator CLI: `dotnet run -- <command> [args]` (contracts/operator-cli.md in specs 001, 002, 003)
+let cliCommands: Map<string, CliEnv -> string list -> Task<int>> =
     Map
-        [ "user-create", Operations.CreateUser.run
-          "user-regenerate-key", Operations.RegenerateKey.run
-          "user-reset-binding", Operations.ResetBinding.run
-          "user-rebuild", Operations.RebuildUser.run
-          "user-delete", Operations.DeleteUser.run
-          "user-list", Operations.ListUsers.run
-          "invite-create", Operations.InviteCreate.run
-          "invite-list", Operations.InviteList.run
-          "invite-revoke", Operations.InviteRevoke.run ]
+        [ "user-create", dbOnly Operations.CreateUser.run
+          "user-regenerate-key", dbOnly Operations.RegenerateKey.run
+          "user-reset-binding", dbOnly Operations.ResetBinding.run
+          "user-rebuild", dbOnly Operations.RebuildUser.run
+          "user-delete", dbOnly Operations.DeleteUser.run
+          "user-list", dbOnly Operations.ListUsers.run
+          "invite-create", dbOnly Operations.InviteCreate.run
+          "invite-list", dbOnly Operations.InviteList.run
+          "invite-revoke", dbOnly Operations.InviteRevoke.run
+          "mal-status", dbOnly Operations.MalStatus.run
+          "mal-list", dbOnly Operations.MalList.run
+          "mal-show", dbOnly Operations.MalShow.run
+          "mal-set", (fun env args -> Operations.MalSet.run env.Db env.Http env.Clock args)
+          "mal-none", dbOnly Operations.MalNone.run
+          "mal-retry", dbOnly Operations.MalRetry.run
+          "mal-rebuild", dbOnly Operations.MalRebuild.run ]
 
 let private runCli (command: string) (rest: string list) : int =
     // Same configuration sources as the web app (appsettings, environment, user secrets, Bella)
     let config = WebApplication.CreateBuilder(Array.empty).Configuration
     addBellaSecrets Array.empty config
     let db = dbConfigFrom config
+    let services = ServiceCollection()
+    JikanClient.register config services |> ignore
+    use provider = services.BuildServiceProvider()
+
+    let env =
+        { Db = db
+          Http = provider.GetRequiredService<Net.Http.IHttpClientFactory>()
+          Clock = TimeProvider.System }
 
     task {
         do! initializeSchema db
-        return! cliCommands[command] db rest
+        return! cliCommands[command] env rest
     }
     |> fun t -> t.GetAwaiter().GetResult()
 

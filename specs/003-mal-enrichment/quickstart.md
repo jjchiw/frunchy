@@ -76,4 +76,17 @@ action (SC-003).
 
 ## Validation log
 
-- *(empty; filled in during and after implementation)*
+- **2026-10-02 (T034)**: `dotnet test` gives **213/213**, with 0 build warnings.
+  - **Earlier suites**: features 001 and 002 unchanged and green (159, including the extended schema
+    test).
+  - **New**: 54 tests. `JikanModelTests` (4, against the recorded Frieren response),
+    `MalMatchingTests` (16), `EnrichmentTests` (6, the 2026 sample end to end through `FakeJikan`),
+    `ResilienceTests` (11), `DashboardMalTests` (4), `MalOperationsTests` (8), `RefreshTests` (5).
+  - **Smoke test**: on a throwaway database, `mal-status` and `mal-set` ran through the real CLI, and
+    the web host started with "MyAnimeList enrichment worker started" and served `/`. The database
+    was then dropped.
+- **Jikan outage**: during the whole implementation session, MyAnimeList was unreachable through
+  Jikan. Every search returned 504 "Jikan failed to connect to MyAnimeList", and so did any `/full`
+  Jikan didn't have cached. This is the failure mode US1's scenarios 6–7 and FR-013 to FR-015 are
+  for. Fixture recording (T003) and the first real run (T035) wait for it to recover.
+- **T035 / T036**: pending (real run and the owner's accuracy check).
