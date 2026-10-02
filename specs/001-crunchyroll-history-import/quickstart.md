@@ -9,8 +9,10 @@ How to show the feature works. Contracts: [import-api](contracts/import-api.md),
 - .NET SDK 10, Docker Desktop running (for the tests' Testcontainers), and a local PostgreSQL for
   manual runs (`appsettings.json` → `ConnectionStrings:Database`).
 - **One-time reset of the dev database.** The new schema replaces the legacy placeholder tables,
-  and the app refuses to start on the legacy layout (research R14):
-  `dropdb frunchydb && createdb frunchydb`.
+  and the app refuses to start on the legacy layout (research R14). There's no local `psql`;
+  Postgres runs in Docker, so:
+  `docker exec postgres-postgres-1 dropdb -U postgres frunchydb && docker exec postgres-postgres-1 createdb -U postgres frunchydb`.
+  Any other empty database works too, via `ConnectionStrings__Database`.
 
 ## 1. Automated validation (the gate)
 
@@ -82,3 +84,17 @@ Coordinate with the extension session (see plan.md, "Extension coordination"):
 2. Visit crunchyroll.com/history. Pages flow in as `POST /api/imports`, one page per request.
 3. `/u/animenerd` reflects the full history after the last page (6,363 entries in the reference
    capture → 327 series, 5,921 episodes, ≈ 2,367.6 h).
+
+## Validation log
+
+- **2026-10-02 (T057)**: sections 1–3 run on a fresh database (`frunchy_quickstart`, dropped
+  afterwards). All results as expected:
+  - 88/88 tests;
+  - 2026 sample: 202 in ~0.2 s, then `{400, 309, 91, 0, 0}`; dashboard 67 / 298 / 118.2 / 4.9 (es
+    "118,2", "Episodio 13"), first item "Clevatess" Episode 13;
+  - 401 / 409 `history_owner_taken` / 400 as listed; figures unchanged after 2 re-submits and after
+    `user-rebuild`;
+  - key regeneration revoked the old key; delete removed 3 imports and 400 watch events, then 404 /
+    401.
+
+  Deviation from the original text: the reset command uses `docker exec` (no local `psql`).

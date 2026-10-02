@@ -136,6 +136,7 @@ and meant for logs and debugging.
 | `history_owner_taken` | 409 |
 | `payload_too_large` | 413 |
 | `not_found` | 404 |
+| `server_error` | 500 (unexpected; safe to retry with backoff) |
 
 ## History owner
 
@@ -152,7 +153,7 @@ URL turns out not to identify the profile.
 
 ## Change log
 
-- v1.1 (2026-10-02): `counts.received` is set when the submission is accepted; the other counts
+- v1.1 (2026-10-02): added the `server_error` (500) code; `counts.received` is set when the submission is accepted; the other counts
   stay 0 until `completed`. `profileId` is implemented as optional (owner = account + profile
   when present); see research R5 status.
 - v1 (2026-10-02): first version. Replaces the old `POST /imports` with

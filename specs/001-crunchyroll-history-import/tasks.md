@@ -500,24 +500,24 @@ T052 waits on T032.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T053 [P] Update `README.md`:
+- [X] T053 [P] Update `README.md`:
   - API section → `/api/imports`, `/api/imports/{id}`, `/api/me`, linking
     `specs/001-crunchyroll-history-import/contracts/import-api.md`;
   - Getting Started → the dev DB reset, `dotnet run --launch-profile http`, operator CLI commands
     and `dotnet test` (needs Docker);
   - Roadmap → 001 "Implemented".
-- [ ] T054 [P] Update `FRONTEND.md`: routes (`/`, `/u/{username}`), `Views/Texts.fs` (typed
+- [X] T054 [P] Update `FRONTEND.md`: routes (`/`, `/u/{username}`), `Views/Texts.fs` (typed
   en/es; how to add a string or a language), the `<time data-fr-time>` + `Intl` contract, and
   the removed placeholder pages.
-- [ ] T055 [P] Update `CLAUDE.md`: turn "Active feature" into the current architecture (new
+- [X] T055 [P] Update `CLAUDE.md`: turn "Active feature" into the current architecture (new
   routes, schema, worker semantics, CLI, tests, `dotnet test` from the root), and remove the
   statements made stale by this feature (`/dashboard`, `/imports`, `ImportProcessor` "only
   counts").
-- [ ] T056 Check that no user-facing string literal is left in `Handlers/**/*.fs` or
+- [X] T056 Check that no user-facing string literal is left in `Handlers/**/*.fs` or
   `Views/Layout.fs` outside `Views/Texts.fs`, and fix any found (FR-017, SC-011).
-- [ ] T057 Run the full `quickstart.md` validation (sections 1–3) on a fresh database, and record
+- [X] T057 Run the full `quickstart.md` validation (sections 1–3) on a fresh database, and record
   any deviation in `specs/001-crunchyroll-history-import/quickstart.md`.
-- [ ] T058 If the contract changed during implementation, update
+- [X] T058 If the contract changed during implementation, update
   `specs/001-crunchyroll-history-import/contracts/import-api.md` (change log) and send the diff
   to the extension session.
 

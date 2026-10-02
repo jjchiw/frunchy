@@ -28,13 +28,16 @@ Each endpoint is a self-contained slice in `Handlers/`, laid out top to bottom a
 ```
 Handlers/
 ├── Home.fs                      GET  /
-├── Dashboard.fs                 GET  /dashboard
-├── Profile.fs                   GET  /profile
-└── Imports/
-    ├── CreateImport.fs          POST /imports
-    └── GetImportStatus.fs       GET  /imports/{importId}
-Views/Layout.fs                  shared page layout (the only cross-slice view)
-Program.fs                       composition root: DI, middleware, list of slice endpoints
+├── Users/Dashboard.fs           GET  /u/{username}          public dashboard
+└── Api/
+    ├── CreateImport.fs          POST /api/imports           submit history pages
+    ├── GetImportStatus.fs       GET  /api/imports/{id}      submission status
+    └── WhoAmI.fs                GET  /api/me                who a sync key belongs to
+Operations/                      operator CLI commands, one file each (user-create, user-rebuild, …)
+Workers/ImportProcessor.fs       background worker: Postgres as the job queue
+Infrastructure/                  schema bootstrap, Crunchyroll page parser, auth, API errors
+Views/Texts.fs, Views/Layout.fs  typed en/es UI text and the shared layout
+Program.fs                       composition root: DI, middleware, endpoints, CLI dispatch
 ```
 
 Adding an endpoint = new file in `Handlers/`, add it to `FrunchyBackend.fsproj` (before `Program.fs`; F# compile order matters) and add its `endpoint` to the list in `Program.fs`.
@@ -63,80 +66,49 @@ Adding an endpoint = new file in `Handlers/`, add it to `FrunchyBackend.fsproj` 
 ### Data Flow
 
 ```
-Extension
+Extension (Crunchyroll history pages, verbatim)
     ↓
-POST /imports (202 Accepted)
+POST /api/imports  (Bearer sync key; history owner checked; 202 Accepted)
     ↓
-cr_imports table (raw, immutable)
+cr_imports + cr_import_pages   (raw pages stored exactly as received, never modified)
     ↓
-ImportProcessorService (Background)
-    ├─ Parse JSON
-    ├─ Normalize
-    ├─ Lookup/Create Anime
-    └─ Create watch_events
+ImportProcessorService  (polls; claims with FOR UPDATE SKIP LOCKED)
+    ├─ parse each entry: processed / unresolved / unsupported / failed
+    ├─ upsert shared catalog: cr_series, cr_seasons, cr_episodes
+    └─ upsert watch_events  (one per user + episode, newest watch wins)
     ↓
-watch_events table (core domain)
-    ↓
-Projections (Analytics)
+GET /u/{username}  (figures computed from watch_events at request time)
 ```
 
 ## Database Schema
 
-**Core Tables:**
-- `users` - User identity
-- `cr_imports` - Raw imports (never delete)
-- `watch_events` - Normalized watch events (core asset)
-- `anime` - Anime catalog with JSONB metadata
-- `import_records` - Processing status
-
-**Projection Tables:**
-- `user_genre_stats` - Cached genre statistics
-- `anime_stats` - Cached anime statistics
-- `user_dna` - User anime profile snapshot
+- **Identity**: `users` (username, display name, SHA-256 of the sync key, bound Crunchyroll history owner)
+- **Raw**: `cr_imports` (submissions + status/counts), `cr_import_pages` (verbatim `json` pages), `cr_import_entry_issues`
+- **Catalog** (shared): `cr_series`, `cr_seasons`, `cr_episodes` (no `duration_ms` = unresolved)
+- **Derived**: `watch_events`; the dashboard figures are computed from it, with no projection tables yet
 
 See `SCHEMA.md` for full details.
 
 ## API Endpoints
 
-### Import Endpoint
-```
-POST /imports
-Content-Type: application/json
+The full contract, shared with the browser extension, is in
+[`specs/001-crunchyroll-history-import/contracts/import-api.md`](specs/001-crunchyroll-history-import/contracts/import-api.md).
+Every call needs `Authorization: Bearer <syncKey>`.
 
-{
-  "user_id": "uuid",
-  "data": "{...full crunchyroll export json...}"
-}
+| Endpoint | What |
+|---|---|
+| `POST /api/imports` | `{ "pages": [ { "url", "body", "capturedAt" } ] }`, Crunchyroll pages verbatim (1–100 per request, ≤ 30 MB) → `202 { importId, status, statusUrl, entriesReceived }` |
+| `GET /api/imports/{id}` | `{ status: pending\|processing\|completed\|failed, counts, issues[] }` (owner only) |
+| `GET /api/me` | `{ username, displayName, dashboardUrl, lastSyncAt, historyOwnerBound }` |
 
-Response: 202 Accepted
-{
-  "import_id": "uuid",
-  "status": "Accepted",
-  "message": "Import queued for processing"
-}
-```
-
-### Check Import Status
-```
-GET /imports/{importId}
-
-Response: 200 OK
-{
-  "import_id": "uuid",
-  "status": "Pending|Processing|Completed|Failed",
-  "processed_watch_events": 42,
-  "error_message": null
-}
-
-404 Not Found if the id is unknown or not a valid GUID.
-```
-
-> `user_id` must already exist in the `users` table (foreign key); there is no sign-up flow yet.
+Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 401, `invalid_submission` /
+`history_owner_missing` 400, `history_owner_mismatch` / `history_owner_taken` 409, `payload_too_large` 413,
+`not_found` 404, `server_error` 500.
 
 ### HTML Pages
-- `GET /` - Home
-- `GET /dashboard` - Stats and recent watches (placeholder data for now)
-- `GET /profile` - Anime DNA profile (placeholder data for now)
+- `GET /`: home, explains how to sync
+- `GET /u/{username}`: public dashboard (series, episodes, hours, days, recent episodes), English or Spanish
+  from the browser's `Accept-Language`
 
 ## Tech Stack
 
@@ -150,31 +122,43 @@ Response: 200 OK
 ## Getting Started
 
 ### Prerequisites
-- .NET 10.0+
-- PostgreSQL 14+
+- .NET SDK 10
+- PostgreSQL 14+ (locally it runs in Docker: container `postgres-postgres-1`)
+- Docker running, for the tests (Testcontainers)
 
 ### Setup
 
-1. **Install dependencies:**
-```bash
-dotnet restore
-```
+1. **Database**: `appsettings.json` → `ConnectionStrings:Database` (default
+   `Host=localhost;Port=5432;Username=postgres;Password=postgres;Database=frunchydb`), or override with the
+   `ConnectionStrings__Database` environment variable. The schema is created on startup.
 
-2. **Configure database** in `appsettings.json`:
-```json
-{
-  "ConnectionStrings": {
-    "Database": "Host=localhost;Port=5432;Username=postgres;Password=postgres;Database=frunchydb"
-  }
-}
-```
+   Databases from before feature 001 have a legacy placeholder layout, which the app refuses. Reset once
+   (there's no local `psql`, so run it inside the Postgres container, or use DBeaver):
+   ```bash
+   docker exec postgres-postgres-1 dropdb -U postgres frunchydb
+   docker exec postgres-postgres-1 createdb -U postgres frunchydb
+   ```
 
-3. **Run the application:**
-```bash
-dotnet run
-```
+2. **Create a user**, which prints their sync key once (paste it in the extension):
+   ```bash
+   dotnet run -- user-create animenerd "AnimeNerd"
+   ```
 
-The database schema will be automatically initialized on startup. The app listens on `https://localhost:5001` (see `Properties/launchSettings.json`); override with `dotnet run --urls http://localhost:5000`.
+3. **Run** on `http://localhost:5099` (the URL the extension uses in development):
+   ```bash
+   dotnet run --launch-profile http
+   ```
+
+4. **Test** from the repo root (`FrunchyBackend.slnx`):
+   ```bash
+   dotnet test
+   ```
+
+### Operator commands
+
+`dotnet run -- <command>`: `user-create <username> <displayName>`, `user-regenerate-key <username>`,
+`user-reset-binding <username>`, `user-rebuild <username>`, `user-delete <username> --yes`, `user-list`.
+Details are in [`contracts/operator-cli.md`](specs/001-crunchyroll-history-import/contracts/operator-cli.md).
 
 ## What's NOT Included (MVP)
 
@@ -194,12 +178,11 @@ Features are built through spec-kit (`specs/###-name/`), in this order:
 
 | # | Feature | Status |
 |---|---|---|
-| 001 | **Crunchyroll history import + real dashboard**: raw import, normalization to watch events, import status, public per-user dashboard (`/u/{username}`), sync-key identity bound to the user's Crunchyroll account, English/Spanish UI | Specified ([spec](specs/001-crunchyroll-history-import/spec.md)) |
+| 001 | **Crunchyroll history import + real dashboard**: raw import, normalization to watch events, import status, public per-user dashboard (`/u/{username}`), sync-key identity bound to the user's Crunchyroll account, English/Spanish UI | Implemented ([spec](specs/001-crunchyroll-history-import/spec.md)) |
 | 002 | **Accounts**: sign in through an external provider (Discord / Google / AniList, decided in its spec), self-service sign-up, sync key and account deletion. **Required before inviting a second user.** | Planned |
 | 003 | **MAL enrichment**: match Crunchyroll seasons to MyAnimeList via Jikan (rate-limited, per distinct anime): genres, studios, cover art, scores | Planned |
 | 004 | **Anime DNA profile**: genre distribution, favourite studio, dominant decade, viewing pace, insignia anime | Planned |
 
-Already in place: domain models, schema bootstrap, the raw import endpoint and a background processor skeleton.
 
 ## Key Design Decisions
 

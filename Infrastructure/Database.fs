@@ -142,7 +142,7 @@ let initializeSchema (config: DbConfig) : Task<unit> =
         if unbox<bool> legacy then
             raise (
                 LegacySchemaException
-                    "The database has the legacy pre-001 schema (placeholder tables, never real data). Reset the dev database and start again: dropdb frunchydb && createdb frunchydb"
+                    "The database has the legacy pre-001 schema (placeholder tables, never real data). Reset the dev database and start again: dropdb frunchydb && createdb frunchydb (locally: docker exec postgres-postgres-1 dropdb -U postgres frunchydb, then createdb), see README Getting Started"
             )
 
         use cmd = new NpgsqlCommand(schema, connection)
