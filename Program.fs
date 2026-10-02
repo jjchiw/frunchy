@@ -39,6 +39,7 @@ let endpoints =
       Handlers.Auth.Complete.endpoint
       yield! Handlers.Auth.SignUp.endpoint
       Handlers.Auth.SignOut.endpoint
+      yield! Handlers.Auth.Claim.endpoint
       Handlers.Account.AccountPage.endpoint
       yield! Handlers.Account.SyncKey.endpoint ]
 

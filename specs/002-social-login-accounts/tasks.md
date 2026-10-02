@@ -272,7 +272,7 @@ shows the existing username, and the dashboard is identical.
 
 ### Tests for User Story 2 (write first, must fail)
 
-- [ ] T027 [P] [US2] `tests/FrunchyBackend.Tests/ClaimTests.fs`:
+- [X] T027 [P] [US2] `tests/FrunchyBackend.Tests/ClaimTests.fs`:
   - **success**: claim with the key of an identity-less account → linked, signed in, `claimed`
     event; `/u/{username}` stats and recent list identical before and after (SC-002);
   - **already-linked account**: correct key → refused with the generic message, and a
@@ -284,8 +284,8 @@ shows the existing username, and the dashboard is identical.
 
 ### Implementation for User Story 2
 
-- [ ] T028 [US2] Add the claim strings (en and es) to `Views/Texts.fs`.
-- [ ] T029 [US2] Create `Handlers/Auth/Claim.fs`:
+- [X] T028 [US2] Add the claim strings (en and es) to `Views/Texts.fs`.
+- [X] T029 [US2] Create `Handlers/Auth/Claim.fs`:
   - `GET /claim`: needs a pending external identity; a form for the sync key;
   - `POST /claim`: `BindForm`, rate limit `claim`. Then:
     1. look the user up by `SyncKey.hash`;
@@ -293,7 +293,7 @@ shows the existing username, and the dashboard is identical.
        `claimed` → commit → sign in → `/account`;
     3. if the user has identities → `claim_refused` (`actor = user`) and the generic message;
     4. if not found → the same generic message.
-- [ ] T030 [US2] Register the claim endpoints in `Program.fs` and the fsproj, then run T027 green
+- [X] T030 [US2] Register the claim endpoints in `Program.fs` and the fsproj, then run T027 green
   plus everything earlier.
 
 **Checkpoint**: you can attach Discord or Google to `jjchiw` and keep the 5,921 episodes.

@@ -91,7 +91,15 @@ type Texts =
       KeyShownTitle: string
       KeyShownBody: string
       KeyShownOnce: string
-      BackToAccount: string }
+      BackToAccount: string
+
+      // Claim an operator-created account (feature 002, US2)
+      ClaimTitle: string
+      ClaimIntro: string
+      SyncKeyLabel: string
+      ClaimButton: string
+      ClaimRefused: string
+      BackToSignUp: string }
 
 let en =
     { Lang = "en"
@@ -180,7 +188,14 @@ let en =
       KeyShownTitle = "Your sync key"
       KeyShownBody = "Paste this key in the Frunchy extension's options."
       KeyShownOnce = "It's shown only once: Frunchy doesn't keep a copy."
-      BackToAccount = "Back to your account" }
+      BackToAccount = "Back to your account"
+
+      ClaimTitle = "I already have an account"
+      ClaimIntro = "If your Frunchy account was created for you, paste its current sync key (from the extension's options) to attach this sign-in to it."
+      SyncKeyLabel = "Sync key"
+      ClaimButton = "Attach to my account"
+      ClaimRefused = "We couldn't verify that key."
+      BackToSignUp = "Create a new account instead" }
 
 let es =
     { Lang = "es"
@@ -269,7 +284,14 @@ let es =
       KeyShownTitle = "Tu clave de sincronización"
       KeyShownBody = "Pega esta clave en las opciones de la extensión de Frunchy."
       KeyShownOnce = "Solo se muestra una vez: Frunchy no guarda una copia."
-      BackToAccount = "Volver a tu cuenta" }
+      BackToAccount = "Volver a tu cuenta"
+
+      ClaimTitle = "Ya tengo una cuenta"
+      ClaimIntro = "Si tu cuenta de Frunchy se creó por ti, pega su clave de sincronización actual (de las opciones de la extensión) para asociarle este inicio de sesión."
+      SyncKeyLabel = "Clave de sincronización"
+      ClaimButton = "Asociar a mi cuenta"
+      ClaimRefused = "No pudimos verificar esa clave."
+      BackToSignUp = "Crear una cuenta nueva" }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =
