@@ -1,0 +1,137 @@
+<!-- Source: https://github.com/Lanayx/Oxpecker/blob/develop/src/Oxpecker.Alpine/README.md (commit 62649df), MIT License. Mirrors https://lanayx.github.io/Oxpecker/src/Oxpecker.Alpine/ -->
+<!-- Documents the develop branch; see ../SKILL.md for what the versions pinned in this repo support. -->
+
+# Oxpecker.Alpine
+
+`Oxpecker.Alpine` extends `Oxpecker.ViewEngine` with typed [Alpine.js](https://alpinejs.dev) directives.
+
+[Nuget package](https://www.nuget.org/packages/Oxpecker.Alpine) `dotnet add package Oxpecker.Alpine`
+
+Each Alpine directive is exposed as a fluent extension method on `HtmlTag`, so attributes chain directly onto a tag with zero allocation overhead. The `{ children }` builder syntax still works at the end of the chain:
+
+```fsharp
+open Oxpecker.ViewEngine
+open Oxpecker.Alpine
+
+let dropdown =
+    div().xData("{ open: false }") {
+        button(type' = "button").xOn("click", "open = !open") { "Toggle" }
+        div().xShow("open").xOn("click.outside", "open = false") {
+            "Dropdown contents"
+        }
+    }
+```
+
+## Documentation
+
+Please refer to the [official Alpine.js site](https://alpinejs.dev) for directive behavior and supported expressions.
+
+## API
+
+After opening the `Oxpecker.Alpine` namespace you'll get access to the Alpine directives:
+
+| Method        | Renders             | Notes                                                                 |
+|---------------|---------------------|-----------------------------------------------------------------------|
+| `xData`       | `x-data`            | Valueless and value overloads.                                        |
+| `xInit`       | `x-init`            |                                                                       |
+| `xEffect`     | `x-effect`          |                                                                       |
+| `xShow`       | `x-show`            | Optional `modifiers` overload (e.g. `XShowModifier.important`).       |
+| `xBind`       | `x-bind:<name>`     | `name` may include modifiers (e.g. `"class.camel"`).                  |
+| `xOn`         | `x-on:<event>`      | `event` may include modifiers (e.g. `"submit.prevent.once"`).         |
+| `xText`       | `x-text`            |                                                                       |
+| `xHtml`       | `x-html`            |                                                                       |
+| `xModel`      | `x-model`           | Optional `modifiers` overload (e.g. `XModelModifier.number`).         |
+| `xModelable`  | `x-modelable`       |                                                                       |
+| `xFor`        | `x-for`             |                                                                       |
+| `xIf`         | `x-if`              |                                                                       |
+| `xTransition` | `x-transition`      | Valueless; optional `modifiers` overload.                             |
+| `xTransitionOn` | `x-transition:<stage>` | Valueless stage-specific transition with `modifiers`.            |
+| `xTransitionClassesOn` | `x-transition:<stage>` | Stage-specific transition carrying a CSS class list.      |
+| `xRef`        | `x-ref`             |                                                                       |
+| `xId`         | `x-id`              |                                                                       |
+| `xCloak`      | `x-cloak`           | Boolean — only renders when `true`.                                   |
+| `xIgnore`     | `x-ignore`          | Boolean — only renders when `true`.                                   |
+| `xTeleport`   | `x-teleport`        |                                                                       |
+
+### Directive Arguments And Modifiers
+
+For `xOn` and `xBind`, modifiers are written directly into the directive name string, exactly as you would in markup:
+
+```fsharp
+// Renders x-on:submit.prevent.once="save()"
+form().xOn("submit.prevent.once", "save()") { ... }
+
+// Or compose them with the bundled XOnModifier helpers:
+form().xOn("submit" + XOnModifier.prevent + XOnModifier.once, "save()") { ... }
+
+// Renders x-bind:class="open ? '' : 'hidden'"
+div().xBind("class", "open ? '' : 'hidden'") { ... }
+```
+
+Other directives expose an optional `modifiers` parameter that is appended verbatim to the attribute name. Pass it with the leading `.` (the bundled helper modules already include it):
+
+```fsharp
+// Renders x-show.important="open"
+div().xShow("open", XShowModifier.important) { ... }
+
+// Renders x-model.number.debounce.500ms="age"
+input().xModel("age", XModelModifier.number + XModelModifier.debounceMs 500)
+
+// Renders x-transition.duration.500ms
+div().xTransition(XTransitionModifier.durationMs 500) { ... }
+
+// Renders x-transition:enter.duration.300ms
+div().xTransitionOn(XTransitionStage.enter, XTransitionModifier.durationMs 300) { ... }
+```
+
+Alpine's other transition form applies CSS classes per stage instead of modifiers, which is what you need for effects the modifiers don't cover (e.g. a translate). Use `xTransitionClassesOn` for it:
+
+```fsharp
+// Renders x-transition:enter="transition ease-out duration-200"
+//         x-transition:enter-start="opacity-0 translate-y-1.5"
+//         x-transition:enter-end="opacity-100 translate-y-0"
+div()
+    .xShow("open")
+    .xTransitionClassesOn(XTransitionStage.enter, "transition ease-out duration-200")
+    .xTransitionClassesOn(XTransitionStage.enterStart, "opacity-0 translate-y-1.5")
+    .xTransitionClassesOn(XTransitionStage.enterEnd, "opacity-100 translate-y-0") { ... }
+```
+
+The following helper modules expose the most common Alpine modifier names as constants and helper functions. Each value already includes the leading `.` and can be concatenated with `+`:
+
+| Module                | Examples                                                                 |
+|-----------------------|--------------------------------------------------------------------------|
+| `XShowModifier`       | `important`                                                              |
+| `XOnModifier`         | `prevent`, `stop`, `outside`, `window`, `document`, `once`, `debounce`, `debounceMs n`, `throttle`, `throttleMs n`, `self`, `camel`, `dot`, `passive`, `passiveFalse`, `capture` |
+| `XOnKey`              | `shift`, `enter`, `space`, `ctrl`, `cmd`, `meta`, `alt`, `up`, `down`, `left`, `right`, `escape`, `tab`, `capsLock`, `equal`, `period`, `comma`, `slash` |
+| `XModelModifier`      | `number`, `boolean`, `lazy'`, `change`, `blur`, `enter`, `fill`, `debounce`, `debounceMs n`, `throttle`, `throttleMs n` |
+| `XTransitionModifier` | `durationMs n`, `delayMs n`, `opacity`, `scale n`, `scaleOrigin "top"`   |
+| `XTransitionStage`    | `enter`, `enterStart`, `enterEnd`, `leave`, `leaveStart`, `leaveEnd` (stage names for `xTransitionClassesOn`, no leading `.`) |
+
+Custom modifier strings are also accepted; just remember to include the leading `.`:
+
+```fsharp
+input().xModel("query", ".debounce.250ms")
+```
+
+### Valueless Directives
+
+Use the parameterless overloads for directives Alpine allows without values:
+
+```fsharp
+// Renders x-data
+div().xData() { ... }
+
+// Renders x-transition
+div().xTransition() { ... }
+```
+
+Boolean-style directives only render when `true`:
+
+```fsharp
+// Renders x-cloak
+div().xCloak(true) { ... }
+
+// Does not render x-cloak
+div().xCloak(false) { ... }
+```

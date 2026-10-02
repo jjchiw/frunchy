@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Types.fs" />
+    <Compile Include="Domains/Catalog.fs" />
+    <Compile Include="Domains/Identity.fs" />
+    <Compile Include="Domains/Tracking.fs" />
+    <Compile Include="Domains/Analytics.fs" />
+    <Compile Include="Infrastructure/Database.fs" />
+    <Compile Include="Views/Layout.fs" />
+    <Compile Include="Handlers/Home.fs" />
+    <Compile Include="Handlers/Dashboard.fs" />
+    <Compile Include="Handlers/Profile.fs" />
+    <Compile Include="Handlers/Imports/CreateImport.fs" />
+    <Compile Include="Handlers/Imports/GetImportStatus.fs" />
+    <Compile Include="Workers/ImportProcessor.fs" />
+    <Compile Include="Program.fs" />
+    <Folder Include="design\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Oxpecker" Version="2.1.1" />
+    <PackageReference Include="Oxpecker.ViewEngine" Version="2.1.*" />
+    <PackageReference Include="Oxpecker.Htmx" Version="4.0.*" />
+    <PackageReference Include="Oxpecker.Alpine" Version="0.3.*" />
+    <PackageReference Include="FSharp.Data" Version="6.2.0" />
+    <PackageReference Include="Npgsql" Version="8.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+</Project>
