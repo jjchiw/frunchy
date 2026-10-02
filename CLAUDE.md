@@ -21,6 +21,12 @@ dotnet run          # needs a reachable PostgreSQL; schema is created on startup
 - `Properties/launchSettings.json` binds to `https://localhost:5001`. Use `dotnet run --urls http://localhost:5099` for a quick smoke test with curl.
 - `.private/test.http` holds sample requests with real Crunchyroll payloads. Its `/post-history` route no longer exists; the current one is `POST /imports`, with body `{ user_id, data: "<json string>" }`.
 
+## Active feature
+
+`specs/001-crunchyroll-history-import/` (branch `001-crunchyroll-history-import`) is planned, not implemented yet. Read `plan.md`, `data-model.md` and `contracts/` before changing ingestion, the dashboard or the schema. It replaces several things described below: `/api/imports` + `/api/me` instead of `/imports`, `/u/{username}` instead of `/dashboard` and `/profile`, a new schema, operator CLI commands (`dotnet run -- user-create …`), `Views/Texts.fs` for en/es text, and a `tests/FrunchyBackend.Tests` project (`dotnet test` from the root via `FrunchyBackend.slnx`, needs Docker).
+
+**The browser extension** (`../browser-extension`) is built by its own Claude session. Never edit that repo. `contracts/import-api.md` is the shared interface: send it changes with SendMessage (find the session with ListAgents by its cwd).
+
 ## Architecture
 
 **Load the `oxpecker` skill** (`.claude/skills/oxpecker/`) before touching routes, handlers, views, htmx or Alpine. It covers the API, the upstream examples, and which documented features the pinned package versions **don't** have (the upstream docs track a newer `develop` branch).
