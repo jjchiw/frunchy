@@ -415,28 +415,28 @@ again, and another user is untouched.
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
-- [ ] T043 [P] `tests/FrunchyBackend.Tests/CsrfTests.fs`: every state-changing POST (`/signup`,
+- [X] T043 [P] `tests/FrunchyBackend.Tests/CsrfTests.fs`: every state-changing POST (`/signup`,
   `/claim`, `/signout`, `/account/display-name`, `/account/key`, `/account/binding/reset`,
   `/account/unlink/{p}`, `/account/delete`) **without** an antiforgery token is rejected and
   changes nothing. `/api/imports` with a Bearer key still works without a token (contract v1.2
   unchanged).
-- [ ] T044 [P] `tests/FrunchyBackend.Tests/AccountLocalizationTests.fs`: every new page (`/signin`,
+- [X] T044 [P] `tests/FrunchyBackend.Tests/AccountLocalizationTests.fs`: every new page (`/signin`,
   `/signup`, `/claim`, `/account`, `/account/key`, `/account/delete`, `/signin/reconfirm`, the 429
   page) renders with `lang="es"` and Spanish text for `Accept-Language: es`, and English for `fr`
   (SC-007).
-- [ ] T045 Check that no user-facing string literal is left in `Handlers/Auth/*.fs`,
+- [X] T045 Check that no user-facing string literal is left in `Handlers/Auth/*.fs`,
   `Handlers/Account/*.fs` or `Views/Layout.fs` outside `Views/Texts.fs`, and fix any found
   (FR-020).
-- [ ] T046 [P] Update `README.md`:
+- [X] T046 [P] Update `README.md`:
   - an "Accounts" section: sign-in, invites, claiming;
   - Getting Started: registering the Google and Discord apps, `dotnet user-secrets set …` (never in
     appsettings), `invite-create`;
   - Roadmap: 002 → Implemented.
-- [ ] T047 [P] Update `FRONTEND.md` (navbar states, `/signin`, `/signup`, `/claim`, `/account*`
+- [X] T047 [P] Update `FRONTEND.md` (navbar states, `/signin`, `/signup`, `/claim`, `/account*`
   pages, fresh-auth behaviour) and `CLAUDE.md`: turn the 002 "Active feature" note into the
   architecture (auth schemes, `WebAuth`, `AccountActions`, the fake test provider), list the new
   operator commands, and repeat the secrets rule.
-- [ ] T048 Run `specs/002-social-login-accounts/quickstart.md` section 1 (`dotnet test`), plus
+- [X] T048 Run `specs/002-social-login-accounts/quickstart.md` section 1 (`dotnet test`), plus
   section 3's negative checks with the fake provider, on a fresh database, and record the results
   in a "Validation log" in `specs/002-social-login-accounts/quickstart.md`.
 - [ ] T049 **(user, manual)** Register the Discord and/or Google OAuth apps, set the user secrets,

@@ -216,10 +216,18 @@ let challenge (ctx: HttpContext) (provider: string) (scheme: string) (mode: stri
     prompt |> Option.iter (fun p -> props.Items[PromptKey] <- p)
     ctx.ChallengeAsync(scheme, props)
 
-/// Read a posted form after validating its antiforgery token (throws AntiforgeryValidationException → 400)
+/// Read a posted form after validating its antiforgery token (throws AntiforgeryValidationException → 400).
+/// UseAntiforgery has usually validated already and recorded the verdict in IAntiforgeryValidationFeature;
+/// ASP.NET then refuses to read an invalid form, so the verdict must be checked first.
 let readValidatedForm (ctx: HttpContext) : Task<IFormCollection> =
     task {
-        do! ctx.RequestServices.GetRequiredService<IAntiforgery>().ValidateRequestAsync ctx
+        match ctx.Features.Get<IAntiforgeryValidationFeature>() with
+        | null -> do! ctx.RequestServices.GetRequiredService<IAntiforgery>().ValidateRequestAsync ctx
+        | feature when not feature.IsValid ->
+            let reason = if isNull feature.Error then "Antiforgery validation failed." else feature.Error.Message
+            raise (AntiforgeryValidationException reason)
+        | _ -> ()
+
         return! ctx.Request.ReadFormAsync ctx.RequestAborted
     }
 

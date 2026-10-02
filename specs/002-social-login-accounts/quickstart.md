@@ -65,3 +65,19 @@ dotnet run --launch-profile http            # http://localhost:5099
   appears in `jjchiw`'s security events.
 - Set `Frunchy:Auth:Providers:Google:Enabled=true` without a secret: the app refuses to start and
   names the missing setting.
+
+## Validation log
+
+- **2026-10-02 (T048)**:
+  - **Section 1**: `dotnet test` gives 157/157 (feature 001's suites unchanged and green, plus 002's
+    sign-up, sign-in, claim, account, fresh-auth, delete, CSRF, localization, configuration and invite
+    suites).
+  - **Real processes on a fresh database**: `invite-create` prints `inv_…` once, and `invite-list` shows
+    it `active`. Starting with `Frunchy__Auth__Providers__Google__Enabled=true` and no credentials
+    refuses with "Provider 'Google' is enabled but Frunchy:Auth:Providers:Google:ClientId is missing…".
+  - **Upgrade path**: on a copy of the real `frunchydb`, the 002 bootstrap kept `jjchiw` (bound, 68
+    imports, 6,363 watch events) and made `sync_key_hash` nullable, with no identities, so the account
+    is claimable. The copy was dropped; `frunchydb` itself was untouched.
+  - **Section 3**: the negative checks are covered by the automated suites (single-use invite, refused
+    claim on a linked account, startup refusal).
+- **T049, pending (you)**: claim `jjchiw` with a real Discord or Google login (section 2).

@@ -33,6 +33,8 @@
     <Compile Include="AccountTests.fs" />
     <Compile Include="FreshAuthTests.fs" />
     <Compile Include="DeleteAccountTests.fs" />
+    <Compile Include="CsrfTests.fs" />
+    <Compile Include="AccountLocalizationTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
