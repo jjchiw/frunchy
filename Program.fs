@@ -106,7 +106,13 @@ let buildApp (args: string array) (customize: WebApplicationBuilder -> unit) : W
 
 // Operator CLI: `dotnet run -- <command> [args]` (contracts/operator-cli.md)
 let private cliCommands: Map<string, DbConfig -> string list -> Task<int>> =
-    Map [ "user-create", Operations.CreateUser.run ]
+    Map
+        [ "user-create", Operations.CreateUser.run
+          "user-regenerate-key", Operations.RegenerateKey.run
+          "user-reset-binding", Operations.ResetBinding.run
+          "user-rebuild", Operations.RebuildUser.run
+          "user-delete", Operations.DeleteUser.run
+          "user-list", Operations.ListUsers.run ]
 
 let private runCli (command: string) (rest: string list) : int =
     // Same configuration sources as the web app (appsettings, environment, user secrets)

@@ -410,7 +410,7 @@ other user intact.
 
 ### Tests for User Story 3 (write first, must fail)
 
-- [ ] T037 [P] [US3] `tests/FrunchyBackend.Tests/OperationsTests.fs`:
+- [X] T037 [P] [US3] `tests/FrunchyBackend.Tests/OperationsTests.fs`:
   - **rebuild**: dashboard figures and recent list identical before and after, and
     `cr_import_pages` bodies byte-identical before and after (SC-006);
   - **regenerate key**: the old key → 401, the new one → 200 on `/api/me`;
@@ -424,24 +424,26 @@ other user intact.
 
 ### Implementation for User Story 3
 
-- [ ] T038 [P] [US3] Create `Operations/RegenerateKey.fs` (`user-regenerate-key <username>`): new
+- [X] T038 [P] [US3] Create `Operations/RegenerateKey.fs` (`user-regenerate-key <username>`): new
   key, replace `sync_key_hash` and `sync_key_created_at`, print the key once.
-- [ ] T039 [P] [US3] Create `Operations/ResetBinding.fs` (`user-reset-binding <username>`): set
+- [X] T039 [P] [US3] Create `Operations/ResetBinding.fs` (`user-reset-binding <username>`): set
   `cr_account_id` and `cr_profile_id` to NULL.
-- [ ] T040 [P] [US3] Create `Operations/RebuildUser.fs` (`user-rebuild <username>`): in one
+- [X] T040 [P] [US3] Create `Operations/RebuildUser.fs` (`user-rebuild <username>`): in one
   transaction, delete the user's `watch_events` and their imports' `cr_import_entry_issues`, then
   set their imports to `pending` with counts, `error`, `processing_started_at` and `completed_at`
   cleared; print the number of imports queued (research R13).
-- [ ] T041 [P] [US3] Create `Operations/DeleteUser.fs` (`user-delete <username> --yes`): refuse
+- [X] T041 [P] [US3] Create `Operations/DeleteUser.fs` (`user-delete <username> --yes`): refuse
   without `--yes`; `DELETE FROM users WHERE id = …` (the cascade removes everything, and blocks
   behind the worker's `FOR UPDATE`); print the removed counts gathered before deleting.
-- [ ] T042 [P] [US3] Create `Operations/ListUsers.fs` (`user-list`): username, display name,
+- [X] T042 [P] [US3] Create `Operations/ListUsers.fs` (`user-list`): username, display name,
   bound yes/no, import count, last sync.
-- [ ] T043 [US3] Wire `user-regenerate-key`, `user-reset-binding`, `user-rebuild`, `user-delete`
+- [X] T043 [US3] Wire `user-regenerate-key`, `user-reset-binding`, `user-rebuild`, `user-delete`
   and `user-list` into the CLI dispatch in `Program.fs` and the fsproj compile list, with the exit
   codes from contracts/operator-cli.md. Makes T037 pass.
 
-**Checkpoint**: all three stories work independently. `dotnet test` is green.
+**Checkpoint**: all three stories work independently. `dotnet test` is green. *(88/88. The CLI was
+checked against the real scratch DB, including the exit codes. Rebuild and delete lock the user's
+imports first, so they can't deadlock with the worker.)*
 
 ---
 

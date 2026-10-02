@@ -22,6 +22,11 @@
     <Compile Include="Handlers/Api/WhoAmI.fs" />
     <Compile Include="Handlers/Users/Dashboard.fs" />
     <Compile Include="Operations/CreateUser.fs" />
+    <Compile Include="Operations/RegenerateKey.fs" />
+    <Compile Include="Operations/ResetBinding.fs" />
+    <Compile Include="Operations/RebuildUser.fs" />
+    <Compile Include="Operations/DeleteUser.fs" />
+    <Compile Include="Operations/ListUsers.fs" />
     <Compile Include="Workers/ImportProcessor.fs" />
     <Compile Include="Program.fs" />
     <Folder Include="design\" />

@@ -19,6 +19,7 @@
     <Compile Include="WhoAmITests.fs" />
     <Compile Include="ImportProcessorTests.fs" />
     <Compile Include="DashboardTests.fs" />
+    <Compile Include="OperationsTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
