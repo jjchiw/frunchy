@@ -39,6 +39,6 @@
 - Iteration 2 (2026-10-02): user answers applied: Q1 B (per-user sync key, operator-created), Q2 A (update,
   newest date wins), Q3 A (all-time only). Recorded under Clarifications. Added FR-001a/b, SC-009 and acceptance
   scenarios 8–10 for US1. All items pass.
-- Assumption added without a user decision: the MVP web dashboard shows one operator-configured user (no login).
-  Worth confirming in `/speckit-clarify`.
+- Clarify session 2026-10-02: the single-configured-user assumption was replaced by public per-user dashboards
+  (`/u/{username}`), as decided by the user.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`.

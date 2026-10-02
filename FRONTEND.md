@@ -44,7 +44,7 @@ Small components such as `statCard`, `watchCard` and `genreBar` stay in the slic
 | `GET /dashboard` | `Handlers/Dashboard.fs` | Stat cards (animes, episodes, hours) and a grid of recent watches |
 | `GET /profile` | `Handlers/Profile.fs` | Top 5 genres with percentage bars and the "Anime DNA" card (hours, favorite) |
 
-Dashboard and profile still render **hardcoded placeholder data** (marked `TODO` in their handlers). User-facing text is in Spanish.
+Dashboard and profile still render **hardcoded placeholder data** (marked `TODO` in their handlers). Today the views have hardcoded Spanish text. Per constitution v1.1.0 all UI text moves to per-language text (English default, Spanish), which is being introduced in feature 001.
 
 ## View-engine notes
 
