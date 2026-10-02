@@ -23,6 +23,15 @@ dotnet run -- user-create <username> "<Name>"      # operator CLI; prints the sy
 - Operator CLI: `user-create`, `user-regenerate-key`, `user-reset-binding`, `user-rebuild`, `user-delete --yes`, `user-list` (`specs/001-crunchyroll-history-import/contracts/operator-cli.md`).
 - `JsonSamples/PostHistory.json` (2022, one raw page) and `JsonSamples/crunchyroll-history-2026-sample.json` (2026, 4 pages in the import envelope) are the test fixtures. Full personal captures (`crunchyroll-history-YYYY-MM-DD.json`) are gitignored and must never be committed. `.private/test.http` is stale (old `/post-history` route).
 
+## Active feature
+
+`specs/002-social-login-accounts/` (branch `002-social-login-accounts`) is **planned, not implemented**. It covers:
+- Discord/Google sign-in via ASP.NET Core handlers;
+- invite-only sign-up, and claiming operator-created accounts by their sync key;
+- the `/account` page.
+
+Read its `plan.md`, `research.md` and `contracts/` before touching auth, sessions, `users`, or the operator CLI. Provider secrets go only in `dotnet user-secrets` or the environment, never in `appsettings*.json`.
+
 ## The browser extension
 
 `../browser-extension` is built by **its own Claude session**. Never edit that repo. `specs/001-crunchyroll-history-import/contracts/import-api.md` is the shared interface. Send it any change with SendMessage (find the session with ListAgents by its cwd), and include that session in the plan, tasks and implementation of any feature touching the contract.

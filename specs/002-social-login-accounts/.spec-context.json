@@ -2,8 +2,8 @@
   "workflow": "speckit",
   "specName": "Accounts with Social Sign-In",
   "branch": "002-social-login-accounts",
-  "currentStep": "specify",
-  "status": "specified",
+  "currentStep": "plan",
+  "status": "planned",
   "history": [
     {
       "step": "specify",
@@ -11,6 +11,13 @@
       "kind": "start",
       "by": "extension",
       "at": "2026-10-02T13:33:30.827Z"
+    },
+    {
+      "step": "plan",
+      "substep": null,
+      "kind": "complete",
+      "by": "extension",
+      "at": "2026-10-02T14:25:35.859Z"
     }
   ]
 }
