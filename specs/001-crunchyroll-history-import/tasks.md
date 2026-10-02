@@ -460,6 +460,11 @@ they stay unchecked until they're committed and pass T052. T050 not started (opt
 stored pages" covers resending from local storage). T051 waits on a second Crunchyroll profile.
 T052 waits on T032.
 
+**Update (2026-10-02)**: T044–T049 are committed in the extension repo as `3f65023` plus the fix
+`ae58bc1`. The service worker had loaded the content-script chunk (both entries were named
+`index.ts`), crashed and never relayed pages; it's fixed and verified in Chrome. T051 is in progress:
+the user is capturing a second Crunchyroll profile. T032 is done, so T052 can run.
+
 - [ ] T044 [P] [US1] (extension) Options page with the backend base URL (default
   `http://localhost:5099`) and the sync key stored in `chrome.storage`, plus a "validate" action
   calling `GET /api/me` (200 → show the display name; 401 → "invalid key"). Files:
