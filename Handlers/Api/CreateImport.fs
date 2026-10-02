@@ -131,13 +131,20 @@ let private parseSubmission (root: JsonElement) : Result<Submission, Rejection> 
                 | None ->
                     let pageList = parsed |> List.choose Result.toOption
 
+                    // Crunchyroll's history URL only identifies the account: every profile of an account
+                    // shares it (verified with a second-profile capture, research R5), so the client must
+                    // say which profile the pages belong to. Without it, profiles would be mixed.
                     let profileId =
                         match root.TryGetProperty "profileId" with
                         | true, p when p.ValueKind = JsonValueKind.String && not (String.IsNullOrWhiteSpace(p.GetString())) ->
                             Ok(Some(p.GetString()))
-                        | true, p when p.ValueKind = JsonValueKind.Null -> Ok None
-                        | false, _ -> Ok None
-                        | _ -> Error(invalid "'profileId' must be a non-empty string")
+                        | true, p when p.ValueKind <> JsonValueKind.String && p.ValueKind <> JsonValueKind.Null ->
+                            Error(invalid "'profileId' must be a string")
+                        | _ ->
+                            Error(
+                                ownerMissing
+                                    "'profileId' is required: Crunchyroll's history URL identifies the account, not the profile, so send the active Crunchyroll profile id."
+                            )
 
                     let owners = pageList |> List.map (fun p -> CrunchyrollPage.tryHistoryOwner p.Url)
 

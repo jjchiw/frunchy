@@ -41,8 +41,9 @@ dotnet run -- user-create <username> "<Name>"      # operator CLI; prints the sy
 
 **Ingestion pipeline** (the core flow):
 ```
-extension → POST /api/imports → validate envelope { pages: [ { url, body, capturedAt } ] }
-          → bind/verify the Crunchyroll history owner (account id from the page URL path; one owner per user)
+extension → POST /api/imports → validate envelope { profileId, pages: [ { url, body, capturedAt } ] }
+          → bind/verify the Crunchyroll history owner = (account id from the page URL path, required profileId);
+            the URL id is shared by every profile of an account, so profileId keeps profiles apart
           → cr_imports (pending) + cr_import_pages (body stored verbatim as `json`, never modified) → 202
 ImportProcessorService → processNext: claim the oldest pending import (FOR UPDATE SKIP LOCKED; stale claims > 10 min retried)
           → Infrastructure/CrunchyrollPage.parsePage classifies each entry: processed / unresolved (no panel) / unsupported / failed

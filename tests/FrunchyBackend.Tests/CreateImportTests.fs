@@ -80,7 +80,8 @@ let ``malformed submissions are invalid and store nothing`` () =
               $"""{{"pages":[{{"body":{page}}}]}}"""
               $"""{{"pages":[{{"url":"{url}"}}]}}"""
               $"""{{"pages":[{{"url":"{url}","body":{{"total":1}}}}]}}"""
-              $"""{{"pages":[{{"url":"{url}","body":{page},"capturedAt":"yesterday"}}]}}""" ] do
+              $"""{{"profileId":"p","pages":[{{"url":"{url}","body":{page},"capturedAt":"yesterday"}}]}}"""
+              $"""{{"profileId":42,"pages":[{{"url":"{url}","body":{page}}}]}}""" ] do
             do! assertRejected app (Some key) json 400 "invalid_submission"
     }
 
@@ -132,4 +133,39 @@ let ``re-sending an accepted page is accepted again (dedup happens in processing
         let! first = submitAccepted app key (load2022Envelope ())
         let! second = submitAccepted app key (load2022Envelope ())
         Assert.NotEqual(first, second)
+    }
+
+[<Fact>]
+let ``a submission without profileId is rejected because the url doesn't identify the profile`` () =
+    task {
+        use! app = newApp ()
+        let! key = createUser app.Db "animenerd"
+        let page = pageOf [ syntheticEntry "E1" "S1" DateTime.UtcNow true 1400 ]
+        do! assertRejected app (Some key) (envelopeWithoutProfile [ historyUrl RealAccountId, page ]) 400 "history_owner_missing"
+        do! assertRejected app (Some key) (load2026SampleRaw ()) 400 "history_owner_missing"
+        do! assertRejected app (Some key) (envelopeForProfile " " [ historyUrl RealAccountId, page ]) 400 "history_owner_missing"
+    }
+
+[<Fact>]
+let ``two profiles of one Crunchyroll account are different history owners`` () =
+    task {
+        use! app = newApp ()
+        let! keyA = createUser app.Db "usera"
+        let! keyB = createUser app.Db "userb"
+        let page = pageOf [ syntheticEntry "E1" "S1" DateTime.UtcNow true 1400 ]
+        // same account id in the URL, as in the real second-profile capture
+        let! _ = submitAccepted app keyA (envelopeForProfile "profile-a" [ historyUrl RealAccountId, page ])
+        let! _ = submitAccepted app keyB (envelopeForProfile "profile-b" [ historyUrl RealAccountId, page ])
+        let! owners = Db.dump app.Db "SELECT username, cr_account_id, cr_profile_id FROM users ORDER BY username"
+        Assert.Equal<string list>([ $"usera|{RealAccountId}|profile-a"; $"userb|{RealAccountId}|profile-b" ], owners)
+    }
+
+[<Fact>]
+let ``another profile's history can't be mixed into a bound user`` () =
+    task {
+        use! app = newApp ()
+        let! key = createUser app.Db "usera"
+        let page = pageOf [ syntheticEntry "E1" "S1" DateTime.UtcNow true 1400 ]
+        let! _ = submitAccepted app key (envelopeForProfile "profile-a" [ historyUrl RealAccountId, page ])
+        do! assertRejected app (Some key) (envelopeForProfile "profile-b" [ historyUrl RealAccountId, page ]) 409 "history_owner_mismatch"
     }

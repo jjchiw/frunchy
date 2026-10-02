@@ -1,6 +1,6 @@
 # Contract: Import API (backend ↔ browser extension)
 
-**Status**: v1. Final except for one pending item, `profileId` (see [History owner](#history-owner)).
+**Status**: v1.2. Final. `profileId` is **required** (see [History owner](#history-owner)).
 **Consumers**: the browser extension (`../browser-extension`, its own Claude session) and the
 integration tests in `tests/FrunchyBackend.Tests`.
 **Base URL (dev)**: `http://localhost:5099` (launch profile `http`); `https://localhost:5001` also
@@ -29,7 +29,7 @@ Content-Type: application/json
 ```jsonc
 {
   "exportedAt": "2026-10-02T08:44:53.031Z",   // optional, informational
-  "profileId": "…",                           // optional: PENDING, see History owner
+  "profileId": "…",                           // REQUIRED: the active Crunchyroll profile id
   "pages": [                                  // 1–100 pages
     {
       "url": "https://www.crunchyroll.com/content/v2/3b6dd336-f005-5b47-9b98-b26a174a2010/watch-history?locale=en-US&page=eyJjIjoi…&page_size=100",
@@ -56,7 +56,7 @@ Content-Type: application/json
 |---|---|---|
 | **202 Accepted** | stored and queued | `{ "importId": "uuid", "status": "pending", "statusUrl": "/api/imports/{importId}", "entriesReceived": 100 }` |
 | 400 `invalid_submission` | not JSON, no `pages`, 0 or >100 pages, a page without string `url` or without `body.data` array | error |
-| 400 `history_owner_missing` | a page URL doesn't contain `/content/v2/{id}/watch-history`, pages disagree on the id, or `profileId` is required but missing | error |
+| 400 `history_owner_missing` | `profileId` missing or empty, a page URL doesn't contain `/content/v2/{id}/watch-history`, or pages disagree on the id | error |
 | 401 `unauthorized` | missing, unknown or revoked key | error |
 | 409 `history_owner_mismatch` | the user is bound to a different Crunchyroll history owner | error |
 | 409 `history_owner_taken` | this history owner is bound to another Frunchy user | error |
@@ -140,19 +140,23 @@ and meant for logs and debugging.
 
 ## History owner
 
-The history owner is `accountId` from the page URL path, plus `profileId` **if** Crunchyroll's
-URL turns out not to identify the profile.
+The history owner is **`(accountId, profileId)`**: `accountId` comes from the page URL path and
+`profileId` from the envelope.
 
-- **PENDING** until the extension's capture under two profiles is in (research R5). Until then,
-  the backend accepts `profileId` as optional and includes it in the owner when present.
-- If the capture shows the path id is per account, the backend will **require** `profileId`
-  (400 `history_owner_missing` without it). The extension then reads it from wherever the capture
-  shows it is available, never from or by forwarding the auth token.
-- The backend session will message the extension session with the outcome. No other part of this
-  contract depends on it.
+- A capture of a second profile of the same account showed that Crunchyroll's history URL carries
+  the **account** id, which is the same for every profile, and the payload contains no profile field
+  (research R5). Without `profileId`, two profiles' histories would be merged.
+- `profileId` is therefore **required** (400 `history_owner_missing` when missing or empty). Send the
+  id of the Crunchyroll profile that was active when the pages were captured. The extension reads it
+  from wherever it's available, never from or by forwarding the auth token.
+- Two profiles of one account are different history owners, so each can belong to a different
+  Frunchy user. A user bound to profile A who submits profile B's pages gets 409
+  `history_owner_mismatch`.
 
 ## Change log
 
+- v1.2 (2026-10-02): **`profileId` is required** (breaking for clients that omit it): the history URL
+  doesn't identify the profile. See History owner.
 - v1.1 (2026-10-02): added the `server_error` (500) code; `counts.received` is set when the submission is accepted; the other counts
   stay 0 until `completed`. `profileId` is implemented as optional (owner = account + profile
   when present); see research R5 status.

@@ -34,7 +34,7 @@ users ──1:n── cr_imports ──1:n── cr_import_pages            (raw
 | `sync_key_hash` | text NOT NULL UNIQUE | hex SHA-256 of the key; the key itself is never stored (R4) |
 | `sync_key_created_at` | timestamptz NOT NULL | |
 | `cr_account_id` | text NULL | set on first accepted submission (FR-001e) |
-| `cr_profile_id` | text NULL | only when the history owner includes a profile (R5, pending capture) |
+| `cr_profile_id` | text NULL | the Crunchyroll profile; set together with `cr_account_id` (required on submissions, R5) |
 | `created_at` | timestamptz NOT NULL default now() | |
 
 Unique index `ux_users_history_owner` on `(cr_account_id, coalesce(cr_profile_id, ''))` WHERE
@@ -190,8 +190,9 @@ Expected values: `PostHistory.json` → 29 / 96 / 39.3 h / 1.6 days.
 1. `Authorization: Bearer <key>` resolves to a user → else 401 `unauthorized`.
 2. Body is JSON with `pages` as an array of 1–100 objects, each with a string `url` and an object
    `body` that has an array `data` → else 400 `invalid_submission`.
-3. Every page URL path matches `/content/v2/{accountId}/watch-history`, with the same `accountId`
-   on all pages (+ `profileId` if required, R5) → else 400 `history_owner_missing`.
+3. `profileId` is a non-empty string, and every page URL path matches
+   `/content/v2/{accountId}/watch-history` with the same `accountId` on all pages (R5) → else 400
+   `history_owner_missing`.
 4. Owner = user's binding, or the user is unbound and the owner is free → else 409
    `history_owner_mismatch` / `history_owner_taken`.
 5. Body ≤ 30,000,000 bytes → else 413 `payload_too_large`.

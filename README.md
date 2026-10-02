@@ -97,7 +97,7 @@ Every call needs `Authorization: Bearer <syncKey>`.
 
 | Endpoint | What |
 |---|---|
-| `POST /api/imports` | `{ "pages": [ { "url", "body", "capturedAt" } ] }`, Crunchyroll pages verbatim (1–100 per request, ≤ 30 MB) → `202 { importId, status, statusUrl, entriesReceived }` |
+| `POST /api/imports` | `{ "profileId", "pages": [ { "url", "body", "capturedAt" } ] }`, Crunchyroll pages verbatim (1–100 per request, ≤ 30 MB) → `202 { importId, status, statusUrl, entriesReceived }` |
 | `GET /api/imports/{id}` | `{ status: pending\|processing\|completed\|failed, counts, issues[] }` (owner only) |
 | `GET /api/me` | `{ username, displayName, dashboardUrl, lastSyncAt, historyOwnerBound }` |
 

@@ -84,11 +84,20 @@ about Crunchyroll data come from the two fixtures (`JsonSamples/PostHistory.json
 
   Either way the stored shape is the same. Tasks put a gate before the binding implementation.
 
-  **Status 2026-10-02 (T027)**: no capture yet. The implemented default: `profileId` is
+  **DECIDED 2026-10-02 (T027)**: a second-profile capture of the same account
+  (`JsonSamples/other_profile_crunchyroll-history-2026-10-02.json`, gitignored: 1 page, 20 entries,
+  3 of them also in the main profile's history) uses the **same** path id `3b6dd336-…`, and its
+  payload has no profile field anywhere. The URL id is account-level, so **`profileId` is
+  required** on every submission (400 `history_owner_missing` without it). The owner is
+  `(accountId, profileId)`. Without this, a second profile's sync would be merged into the first
+  user's history, and the 3 shared episodes would be resolved by "newest wins", corrupting both.
+  The extension supplies the active profile id; where it reads it is its own concern (T051 part c).
+
+  ~~Status 2026-10-02 (T027): no capture yet. The implemented default: `profileId` is
   **optional**. When present it's part of the owner key `(accountId, profileId)`; when absent the
   owner is the account. Binding compares both exactly, so a user bound without a profile gets
   `history_owner_mismatch` if `profileId` later starts being sent. That case needs one
-  `user-reset-binding`. Revisit when T051's capture arrives.
+  `user-reset-binding`. Revisit when T051's capture arrives.~~ (superseded by the decision above)
 
 ## R6. Background processing (Postgres as the job queue)
 

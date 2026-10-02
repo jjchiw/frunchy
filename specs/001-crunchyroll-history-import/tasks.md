@@ -269,7 +269,7 @@ unchanged. Wrong key → 401, other user's owner → 409, nothing stored.
     `/content/v2/{accountId}/watch-history` and ignores the query.
 
   Makes T021 pass.
-- [ ] T027 [US1] **GATE: history-owner rule (research R5).** Collect the extension session's
+- [X] T027 [US1] **GATE: history-owner rule (research R5).** Collect the extension session's
   profile capture (task T051). Decide whether `profileId` is required, and record the decision in
   `specs/001-crunchyroll-history-import/research.md` (R5) and
   `specs/001-crunchyroll-history-import/contracts/import-api.md` ("History owner", plus the
@@ -278,8 +278,9 @@ unchanged. Wrong key → 401, other user's owner → 409, nothing stored.
   If the capture isn't available when T028 starts, proceed with the designed default (optional
   `profileId`, included in the owner when present), record that, and keep this task open.
 
-  *(2026-10-02: no capture yet, so the default is implemented and recorded in research R5 and the
-  contract change log. Still open until T051 arrives.)*
+  *(2026-10-02: **decided**. The second-profile capture uses the same URL id, so `profileId` is
+  **required** (contract v1.2, research R5), with tests for missing profile, two profiles → two users,
+  and other profile → 409. The rule has been sent to the extension session.)*
 - [X] T028 [US1] Create `Handlers/Api/CreateImport.fs`. Top to bottom:
   - **contract**: request parsing with `JsonDocument` (keep each page's `GetRawText()`), and the
     202 response record;
@@ -462,8 +463,9 @@ T052 waits on T032.
 
 **Update (2026-10-02)**: T044–T049 are committed in the extension repo as `3f65023` plus the fix
 `ae58bc1`. The service worker had loaded the content-script chunk (both entries were named
-`index.ts`), crashed and never relayed pages; it's fixed and verified in Chrome. T051 is in progress:
-the user is capturing a second Crunchyroll profile. T032 is done, so T052 can run.
+`index.ts`), crashed and never relayed pages; it's fixed and verified in Chrome. T051 parts (a)/(b): the
+second-profile capture shows the same URL id (account-level) and no profile field, which decided T027.
+Part (c), where the extension reads the active profile id, is still open with the extension session. T032 is done, so T052 can run.
 
 - [ ] T044 [P] [US1] (extension) Options page with the backend base URL (default
   `http://localhost:5099`) and the sync key stored in `chrome.storage`, plus a "validate" action

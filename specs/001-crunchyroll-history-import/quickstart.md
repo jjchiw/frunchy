@@ -38,12 +38,15 @@ dotnet run --launch-profile http                    # http://localhost:5099
 dotnet run -- user-create animenerd "AnimeNerd"     # prints the sync key once → export KEY=frk_...
 ```
 
-Submit the 2026 fixture (it's already in the envelope format) and poll its status:
+Submit the 2026 fixture and poll its status. The fixture is the extension's export envelope; add the
+required `profileId` (any id for a manual run):
 
 ```bash
+python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); d["profileId"]="profile-main"; print(json.dumps(d))' \
+  JsonSamples/crunchyroll-history-2026-sample.json > /tmp/frunchy-sample.json
 curl -s -X POST http://localhost:5099/api/imports \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
-  --data-binary @JsonSamples/crunchyroll-history-2026-sample.json
+  --data-binary @/tmp/frunchy-sample.json
 # → 202 {"importId":"…","status":"pending",…,"entriesReceived":400}
 
 curl -s http://localhost:5099/api/imports/<importId> -H "Authorization: Bearer $KEY"

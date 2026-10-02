@@ -32,7 +32,7 @@ let private episodes entries =
         | _ -> None)
 
 let private pages2026 () =
-    use doc = JsonDocument.Parse(load2026Sample ())
+    use doc = JsonDocument.Parse(load2026SampleRaw ())
 
     [ for page in doc.RootElement.GetProperty("pages").EnumerateArray() ->
           page.GetProperty("url").GetString(), page.GetProperty("body").GetRawText() ]
