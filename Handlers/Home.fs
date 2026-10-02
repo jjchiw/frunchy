@@ -9,7 +9,7 @@ open FrunchyBackend.Views.Texts
 // View
 // ---------------------------------------------------------------------------
 
-let view (t: Texts) =
+let view (ctx: Microsoft.AspNetCore.Http.HttpContext) (t: Texts) =
     div(class' = "space-y-8") {
         div(class' = "hero bg-base-200 rounded-lg") {
             div(class' = "hero-content text-center") {
@@ -31,14 +31,14 @@ let view (t: Texts) =
             }
         }
     }
-    |> Layout.page t t.HomeTitle
+    |> Layout.page ctx t t.HomeTitle
 
 // ---------------------------------------------------------------------------
 // Handler
 // ---------------------------------------------------------------------------
 
 let handler: EndpointHandler =
-    fun ctx -> ctx.WriteHtmlView(view (Texts.current ()))
+    fun ctx -> ctx.WriteHtmlView(view ctx (Texts.current ()))
 
 // ---------------------------------------------------------------------------
 // Endpoint

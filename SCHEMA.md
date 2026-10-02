@@ -29,13 +29,25 @@ Everything personal hangs off `users` with `ON DELETE CASCADE`, so `user-delete`
 | `id` | uuid PK | |
 | `username` | text UNIQUE | `^[a-z0-9][a-z0-9_-]{2,29}$`, lowercase; used in `/u/{username}` |
 | `display_name` | text | |
-| `sync_key_hash` | text UNIQUE | lowercase hex SHA-256 of `frk_…`; the key itself is never stored |
+| `sync_key_hash` | text UNIQUE NULL | lowercase hex SHA-256 of `frk_…`; the key itself is never stored; NULL until a key is generated |
 | `sync_key_created_at` | timestamptz | |
 | `cr_account_id`, `cr_profile_id` | text NULL | Crunchyroll history owner, bound on the first accepted submission |
 | `created_at` | timestamptz | |
 
 `ux_users_history_owner` on `(cr_account_id, coalesce(cr_profile_id, ''))`: one history owner
 belongs to at most one user.
+
+## Accounts (feature 002)
+
+| Table | Key | Notes |
+|---|---|---|
+| `user_identities` | `(provider, provider_user_id)` | a sign-in identity (`google`, `discord`) belongs to exactly one user; same shape as ASP.NET Core Identity's user logins. Personal, cascades on user delete |
+| `invites` | `id`, unique `code_hash` | one-time sign-up codes (SHA-256 only), `expires_at` = created + 7 days, `revoked_at`, `used_at`, `used_by_user_id` (`ON DELETE SET NULL`, so an invite stays "used" after its account is deleted). Not personal data |
+| `security_events` | identity `id` | per-user account events (`signed_in`, `claimed`, `claim_refused`, `identity_linked`/`unlinked`, `sync_key_generated`, `binding_reset`, `reconfirmed`, `display_name_changed`, `account_created`) with `actor` user/operator. No IP or device data. Personal, cascades on user delete |
+
+`users.sync_key_hash` and `users.sync_key_created_at` are **nullable**: a user who signed up on the
+website has no key until "Connect extension". Sessions aren't stored (encrypted cookies), and
+provider tokens, emails and avatars are never stored.
 
 ## Tracking
 

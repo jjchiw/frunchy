@@ -41,7 +41,16 @@ type Texts =
       EmptyTitle: string
       EmptyBody: string
       UserNotFoundTitle: string
-      UserNotFoundBody: string }
+      UserNotFoundBody: string
+
+      // Navigation and generic web errors (feature 002)
+      NavSignIn: string
+      NavAccount: string
+      NavSignOut: string
+      TooManyRequestsTitle: string
+      TooManyRequestsBody: string
+      FormExpiredTitle: string
+      FormExpiredBody: string }
 
 let en =
     { Lang = "en"
@@ -83,7 +92,15 @@ let en =
       EmptyBody =
         "Install the Frunchy extension, paste your sync key in its options and open your Crunchyroll history: your numbers appear here a moment later."
       UserNotFoundTitle = "User not found"
-      UserNotFoundBody = "There's no Frunchy profile with this name." }
+      UserNotFoundBody = "There's no Frunchy profile with this name."
+
+      NavSignIn = "Sign in"
+      NavAccount = "Account"
+      NavSignOut = "Sign out"
+      TooManyRequestsTitle = "Too many attempts"
+      TooManyRequestsBody = "Please wait a few minutes and try again."
+      FormExpiredTitle = "This form expired"
+      FormExpiredBody = "Reload the page and try again." }
 
 let es =
     { Lang = "es"
@@ -125,7 +142,15 @@ let es =
       EmptyBody =
         "Instala la extensión de Frunchy, pega tu clave de sincronización en sus opciones y abre tu historial de Crunchyroll: tus números aparecerán aquí en unos instantes."
       UserNotFoundTitle = "Usuario no encontrado"
-      UserNotFoundBody = "No hay ningún perfil de Frunchy con este nombre." }
+      UserNotFoundBody = "No hay ningún perfil de Frunchy con este nombre."
+
+      NavSignIn = "Iniciar sesión"
+      NavAccount = "Cuenta"
+      NavSignOut = "Cerrar sesión"
+      TooManyRequestsTitle = "Demasiados intentos"
+      TooManyRequestsBody = "Espera unos minutos y vuelve a intentarlo."
+      FormExpiredTitle = "Este formulario caducó"
+      FormExpiredBody = "Recarga la página y vuelve a intentarlo." }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =

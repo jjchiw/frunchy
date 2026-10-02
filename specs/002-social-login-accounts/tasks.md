@@ -34,13 +34,13 @@ is an optional "shipped" message in Polish.
 
 ## Phase 1: Setup
 
-- [ ] T001 Update `FrunchyBackend.fsproj`:
+- [X] T001 Update `FrunchyBackend.fsproj`:
   - add `Microsoft.AspNetCore.Authentication.Google` `10.0.*` and `AspNet.Security.OAuth.Discord`
     `10.0.*`;
   - add `<UserSecretsId>frunchy-backend</UserSecretsId>` to the PropertyGroup (research R11).
 
   `dotnet build` must still have 0 warnings.
-- [ ] T002 [P] Add to `appsettings.json` a section
+- [X] T002 [P] Add to `appsettings.json` a section
   `"Frunchy": { "Auth": { "Providers": { "Google": { "Enabled": false }, "Discord": { "Enabled": false } } } }`,
   with **no** `ClientId` or `ClientSecret` keys (contracts/configuration.md).
 
@@ -48,7 +48,7 @@ is an optional "shipped" message in Polish.
 
 ## Phase 2: Foundational (blocks every story)
 
-- [ ] T003 Extend `initializeSchema` in `Infrastructure/Database.fs` (data-model.md):
+- [X] T003 Extend `initializeSchema` in `Infrastructure/Database.fs` (data-model.md):
   - `ALTER TABLE users ALTER COLUMN sync_key_hash DROP NOT NULL` and the same for
     `sync_key_created_at` (idempotent);
   - `CREATE TABLE IF NOT EXISTS user_identities` with PK `(provider, provider_user_id)`, an FK to
@@ -58,9 +58,9 @@ is an optional "shipped" message in Polish.
     `(user_id, occurred_at DESC)`.
 
   Then make `Infrastructure/Auth.fs` tolerate a NULL `sync_key_hash` (lookup unchanged).
-- [ ] T004 [P] Update `SCHEMA.md` with the changed `users` columns and the three new tables:
+- [X] T004 [P] Update `SCHEMA.md` with the changed `users` columns and the three new tables:
   personal vs not personal, the cascade on delete, and that invites survive as `used`.
-- [ ] T005 [P] Extend `Domains/Identity.fs`:
+- [X] T005 [P] Extend `Domains/Identity.fs`:
   - a `reservedUsernames` set (data-model.md "Validation rules");
   - `Username.tryCreate` refuses reserved names;
   - `ProviderIdentity = { Provider: string; ProviderUserId: string }`;
@@ -69,11 +69,11 @@ is an optional "shipped" message in Polish.
 
   Also an `Invite` code helper: `generate()` gives `inv_` + 12 Crockford base32 characters,
   `normalize` (trim, uppercase the body), and `hash` (SHA-256 lowercase hex).
-- [ ] T006 [P] Create `Infrastructure/SecurityEvents.fs`:
+- [X] T006 [P] Create `Infrastructure/SecurityEvents.fs`:
   - `record (connection) (tx) (userId) (event) (provider: string option) (actor)`, which inserts in
     the caller's transaction;
   - `recent (db) (userId) (limit)`, which returns the newest first.
-- [ ] T007 Create `Infrastructure/AccountActions.fs` (research R9), moving the core SQL out of
+- [X] T007 Create `Infrastructure/AccountActions.fs` (research R9), moving the core SQL out of
   `Operations/RegenerateKey.fs`, `Operations/ResetBinding.fs` and `Operations/DeleteUser.fs`:
   - `regenerateKey (db) (userId) (actor) : Task<string>` and `resetBinding (db) (userId) (actor)`,
     each recording its security event in the same transaction;
@@ -84,13 +84,13 @@ is an optional "shipped" message in Polish.
   Rewrite the three Operations files to parse args → `AccountActions` → print/exit codes. Add a
   linked-providers column to `Operations/ListUsers.fs`, and make `Operations/CreateUser.fs` refuse
   reserved names (exit 3). Feature 001's `OperationsTests` must still pass unchanged.
-- [ ] T008 [P] Create `Infrastructure/AuthConfig.fs`:
+- [X] T008 [P] Create `Infrastructure/AuthConfig.fs`:
   - read `Frunchy:Auth:Providers:{Google,Discord}` into `ProviderSettings` records;
   - `validate (settings) : Result<unit, string>` returns the exact message of
     contracts/configuration.md for an enabled provider missing `ClientId` or `ClientSecret`;
   - a `FrunchyProvider` record (`Name`, `DisplayName`, `Scheme`, `ReconfirmPrompt`) used as the
     provider registry type.
-- [ ] T009 Create `Infrastructure/WebAuth.fs` (research R2, R3, R6):
+- [X] T009 Create `Infrastructure/WebAuth.fs` (research R2, R3, R6):
   - scheme name constants `frunchy.session` and `frunchy.external`;
   - `signInUser (ctx) (userId) (provider)`, which issues the session with claims `sub`, `auth_time`
     (UTC) and `amr_provider`, and updates `user_identities.last_used_at`;
@@ -102,7 +102,7 @@ is an optional "shipped" message in Polish.
   - `Nav` (`SignedOut | SignedIn of displayName`) and `currentNav ctx`;
   - `validatePrincipal` (signs out when the user no longer exists);
   - the external-cookie "mode" item (`signin | link | reconfirm`) set on challenge properties.
-- [ ] T010 Wire auth into `Program.fs`:
+- [X] T010 Wire auth into `Program.fs`:
   - `AddAuthentication(frunchy.session)`:
     - session cookie with `ExpireTimeSpan 30 days`, `SlidingExpiration`, HttpOnly, `SameSite Lax`,
       `OnValidatePrincipal = WebAuth.validatePrincipal`;
@@ -118,13 +118,13 @@ is an optional "shipped" message in Polish.
     UseAntiforgery → errorHandler → UseOxpecker → notFound`.
 
   The CLI path skips provider validation.
-- [ ] T011 Add a `nav: WebAuth.Nav` parameter to `Views/Layout.fs` `page` and `messagePage`. The
+- [X] T011 Add a `nav: WebAuth.Nav` parameter to `Views/Layout.fs` `page` and `messagePage`. The
   navbar shows "Sign in" (→ `/signin`) when signed out. Signed in, it shows the display name, an
   "Account" link and a "Sign out" button: a POST form to `/signout` with `ctx.GetAntiforgeryInput()`.
   Since the form needs `ctx`, `page` takes `ctx`. Update the callers in `Handlers/Home.fs`,
   `Handlers/Users/Dashboard.fs` and `Program.fs` (404/500), and add the nav strings in en and es to
   `Views/Texts.fs`.
-- [ ] T012 Create the test infrastructure:
+- [X] T012 Create the test infrastructure:
   - `tests/FrunchyBackend.Tests/Infrastructure/FakeProvider.fs`: an `AuthenticationHandler` scheme
     `test` whose challenge immediately signs an external principal (`NameIdentifier` = query
     `sub`) into `frunchy.external`, keeps the challenge properties' mode and `returnUrl`, and
@@ -136,7 +136,7 @@ is an optional "shipped" message in Polish.
     field and cookie.
   - Extend `PostgresFixture.createApp` to accept extra configuration and call
     `registerFakeProvider`.
-- [ ] T013 [P] Foundational tests:
+- [X] T013 [P] Foundational tests:
   - `tests/FrunchyBackend.Tests/AuthConfigTests.fs`:
     - enabled Google without a secret → the exact error message;
     - disabled → ok;
@@ -149,6 +149,10 @@ is an optional "shipped" message in Polish.
   - The navbar renders "Sign in" on `/` and `/u/{username}` in en and es.
 
 **Checkpoint**: `dotnet test` is green: feature 001's 88 tests plus the foundational ones.
+*(Done 2026-10-02: 104/104. Deviations: rate limits are partitioned by IP only (no extra
+per-identity partition for `claim`; IP already covers it at this scale). The provider name travels in
+the challenge properties rather than the principal's authentication type. Antiforgery failures render
+a localized 400 page.)*
 
 ---
 

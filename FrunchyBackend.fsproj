@@ -4,6 +4,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <!-- The nested test project must not be picked up by the Web SDK's default globs -->
     <DefaultItemExcludes>$(DefaultItemExcludes);tests/**</DefaultItemExcludes>
+    <!-- Provider credentials live in `dotnet user-secrets` (outside the repo) or the environment -->
+    <UserSecretsId>frunchy-backend</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,6 +16,10 @@
     <Compile Include="Infrastructure/CrunchyrollPage.fs" />
     <Compile Include="Infrastructure/ApiErrors.fs" />
     <Compile Include="Infrastructure/Auth.fs" />
+    <Compile Include="Infrastructure/AuthConfig.fs" />
+    <Compile Include="Infrastructure/SecurityEvents.fs" />
+    <Compile Include="Infrastructure/AccountActions.fs" />
+    <Compile Include="Infrastructure/WebAuth.fs" />
     <Compile Include="Views/Texts.fs" />
     <Compile Include="Views/Layout.fs" />
     <Compile Include="Handlers/Home.fs" />
@@ -38,5 +44,7 @@
     <PackageReference Include="Oxpecker.Htmx" Version="4.0.*" />
     <PackageReference Include="Oxpecker.Alpine" Version="0.3.*" />
     <PackageReference Include="Npgsql" Version="10.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.*" />
+    <PackageReference Include="AspNet.Security.OAuth.Discord" Version="10.0.*" />
   </ItemGroup>
 </Project>
