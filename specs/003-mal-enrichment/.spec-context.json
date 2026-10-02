@@ -2,8 +2,8 @@
   "workflow": "speckit",
   "specName": "MyAnimeList Enrichment",
   "branch": "003-mal-enrichment",
-  "currentStep": "specify",
-  "status": "specified",
+  "currentStep": "plan",
+  "status": "planned",
   "history": [
     {
       "step": "specify",
@@ -11,6 +11,13 @@
       "kind": "start",
       "by": "extension",
       "at": "2026-10-02T17:23:03.114Z"
+    },
+    {
+      "step": "plan",
+      "substep": null,
+      "kind": "complete",
+      "by": "extension",
+      "at": "2026-10-02T17:47:09.470Z"
     }
   ],
   "telemetryInstanceId": "0f8187ce-1e65-4f87-bedb-0f68ca84d6ae"
