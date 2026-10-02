@@ -84,6 +84,12 @@ about Crunchyroll data come from the two fixtures (`JsonSamples/PostHistory.json
 
   Either way the stored shape is the same. Tasks put a gate before the binding implementation.
 
+  **Status 2026-10-02 (T027)**: no capture yet. The implemented default: `profileId` is
+  **optional**. When present it's part of the owner key `(accountId, profileId)`; when absent the
+  owner is the account. Binding compares both exactly, so a user bound without a profile gets
+  `history_owner_mismatch` if `profileId` later starts being sent. That case needs one
+  `user-reset-binding`. Revisit when T051's capture arrives.
+
 ## R6. Background processing (Postgres as the job queue)
 
 - **Decision**: the status lives on `cr_imports` (`pending → processing → completed | failed`).

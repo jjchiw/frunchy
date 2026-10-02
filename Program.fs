@@ -20,7 +20,11 @@ open FrunchyBackend.Workers.ImportProcessor
 let WorkerEnabledKey = "Frunchy:ImportWorkerEnabled"
 
 // One vertical slice per endpoint, see Handlers/
-let endpoints = [ Handlers.Home.endpoint ]
+let endpoints =
+    [ Handlers.Home.endpoint
+      Handlers.Api.CreateImport.endpoint
+      Handlers.Api.GetImportStatus.endpoint
+      Handlers.Api.WhoAmI.endpoint ]
 
 let private isApi (ctx: HttpContext) =
     ctx.Request.Path.StartsWithSegments(PathString "/api")
@@ -78,9 +82,7 @@ let configureServices (config: IConfiguration) (services: IServiceCollection) =
     services.AddSingleton<DbConfig>(dbConfigFrom config) |> ignore
 
     if config.GetValue<bool>(WorkerEnabledKey, true) then
-        services.AddHostedService<ImportProcessorService>(fun sp ->
-            new ImportProcessorService(sp.GetRequiredService<DbConfig>()))
-        |> ignore
+        services.AddHostedService<ImportProcessorService>() |> ignore
 
     services.AddRouting().AddOxpecker() |> ignore
 

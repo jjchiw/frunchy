@@ -89,7 +89,8 @@ Returns the status only to the owning user's key. Any other key, or an unknown i
 - `status`: `pending` | `processing` | `completed` | `failed`.
   - `failed` means the whole submission couldn't be processed, and `error` says why.
   - Problems with individual entries never fail the submission; they're listed in `issues`.
-- `counts`: zero until `completed`. `received` = `processed + unresolved + unsupported + failed`.
+- `counts`: `received` is known when the submission is accepted; the others are 0 until `completed`, when
+  `received` = `processed + unresolved + unsupported + failed`.
 - `issues`: every non-processed entry, with its page index (0-based, in submission order), entry
   index within that page, Crunchyroll episode id (when present), outcome, and reason in English.
 - Suggested polling: every 2–5 s until `completed` or `failed`. A 64-page submission completes in
@@ -151,5 +152,8 @@ URL turns out not to identify the profile.
 
 ## Change log
 
+- v1.1 (2026-10-02): `counts.received` is set when the submission is accepted; the other counts
+  stay 0 until `completed`. `profileId` is implemented as optional (owner = account + profile
+  when present); see research R5 status.
 - v1 (2026-10-02): first version. Replaces the old `POST /imports` with
   `{ user_id, data: "<string>" }` and its snake_case responses.

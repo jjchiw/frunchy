@@ -206,7 +206,7 @@ unchanged. Wrong key → 401, other user's owner → 409, nothing stored.
 
 ### Tests for User Story 1 (write first, must fail)
 
-- [ ] T021 [P] [US1] `tests/FrunchyBackend.Tests/CrunchyrollPageTests.fs` (unit, against
+- [X] T021 [P] [US1] `tests/FrunchyBackend.Tests/CrunchyrollPageTests.fs` (unit, against
   `Infrastructure/CrunchyrollPage`):
   - 2022 page → 100 episode entries (96 fully, 4 partial) + 1 unresolved;
   - 2026 sample → 309 episode entries + 91 unresolved, 0 unsupported/failed;
@@ -219,7 +219,7 @@ unchanged. Wrong key → 401, other user's owner → 409, nothing stored.
   - owner extraction from absolute and relative URLs and with opaque cursor queries;
   - pages with different account ids → error; a URL without `/content/v2/{id}/watch-history` →
     error.
-- [ ] T022 [P] [US1] `tests/FrunchyBackend.Tests/CreateImportTests.fs` (integration):
+- [X] T022 [P] [US1] `tests/FrunchyBackend.Tests/CreateImportTests.fs` (integration):
   - 202 body shape (`importId`, `status:"pending"`, `statusUrl`, `entriesReceived:101`);
   - stored `cr_import_pages.body` text equals the submitted page JSON text exactly;
   - 401 for missing/unknown key;
@@ -232,15 +232,15 @@ unchanged. Wrong key → 401, other user's owner → 409, nothing stored.
   - 413 `payload_too_large` for a body over 30,000,000 bytes;
   - for **every** rejection: `cr_imports` and `cr_import_pages` row counts unchanged and binding
     unchanged (SC-009, SC-012).
-- [ ] T023 [P] [US1] `tests/FrunchyBackend.Tests/GetImportStatusTests.fs`: `pending` right after
+- [X] T023 [P] [US1] `tests/FrunchyBackend.Tests/GetImportStatusTests.fs`: `pending` right after
   POST; after `ImportProcessor.processNext`, `completed` with counts
   `{received:101, processed:100, unresolved:1, unsupported:0, failed:0}` and one `unresolved`
   issue with page/index/episodeId/reason; the 2026 sample → `{400, 309, 91, 0, 0}`; another
   user's key → 404; unknown id → 404; bad key → 401.
-- [ ] T024 [P] [US1] `tests/FrunchyBackend.Tests/WhoAmITests.fs`: valid key → `username`,
+- [X] T024 [P] [US1] `tests/FrunchyBackend.Tests/WhoAmITests.fs`: valid key → `username`,
   `displayName`, absolute `dashboardUrl` ending `/u/{username}`, `lastSyncAt: null` and
   `historyOwnerBound:false` before any import, set after a 202; revoked or unknown key → 401.
-- [ ] T025 [P] [US1] `tests/FrunchyBackend.Tests/ImportProcessorTests.fs` (calls `processNext`
+- [X] T025 [P] [US1] `tests/FrunchyBackend.Tests/ImportProcessorTests.fs` (calls `processNext`
   directly):
   - counts add up for both fixtures (SC-003);
   - submitting the 2022 envelope 3 times → identical `watch_events` table (SC-005);
@@ -256,7 +256,7 @@ unchanged. Wrong key → 401, other user's owner → 409, nothing stored.
 
 ### Implementation for User Story 1
 
-- [ ] T026 [US1] Create `Infrastructure/CrunchyrollPage.fs` (pure, no I/O), after
+- [X] T026 [US1] Create `Infrastructure/CrunchyrollPage.fs` (pure, no I/O), after
   `Infrastructure/Database.fs` in the fsproj:
   - `ParsedEntry` DU: `Episode of EpisodeFacts | Unresolved of UnresolvedFacts | Unsupported of
     id * reason | Failed of id option * reason`;
@@ -277,7 +277,10 @@ unchanged. Wrong key → 401, other user's owner → 409, nothing stored.
 
   If the capture isn't available when T028 starts, proceed with the designed default (optional
   `profileId`, included in the owner when present), record that, and keep this task open.
-- [ ] T028 [US1] Create `Handlers/Api/CreateImport.fs`. Top to bottom:
+
+  *(2026-10-02: no capture yet, so the default is implemented and recorded in research R5 and the
+  contract change log. Still open until T051 arrives.)*
+- [X] T028 [US1] Create `Handlers/Api/CreateImport.fs`. Top to bottom:
   - **contract**: request parsing with `JsonDocument` (keep each page's `GetRawText()`), and the
     202 response record;
   - **SQL**: `private` binding check/set and the insert of `cr_imports` (`pending`,
@@ -290,16 +293,16 @@ unchanged. Wrong key → 401, other user's owner → 409, nothing stored.
   - **endpoint**: `POST [ route "/api/imports" handler ]`.
 
   Register it in `Program.fs` endpoints. Makes T022 pass.
-- [ ] T029 [P] [US1] Create `Handlers/Api/GetImportStatus.fs`: the contract record per
+- [X] T029 [P] [US1] Create `Handlers/Api/GetImportStatus.fs`: the contract record per
   contracts/import-api.md; `private` SQL loading the import **only where `user_id` = the
   authenticated user**, plus its issues ordered by `page_index, entry_index`; the handler returns
   404 `not_found` when there's no row; endpoint
   `GET [ routef "/api/imports/{%O:guid}" handler ]`. Register it in `Program.fs`. Makes T023 pass
   (together with T031).
-- [ ] T030 [P] [US1] Create `Handlers/Api/WhoAmI.fs`: the contract record; `private` SQL for
+- [X] T030 [P] [US1] Create `Handlers/Api/WhoAmI.fs`: the contract record; `private` SQL for
   `max(received_at)`; `dashboardUrl` built from `ctx.Request.Scheme` + `Host` + `/u/{username}`;
   endpoint `GET [ route "/api/me" handler ]`. Register it in `Program.fs`. Makes T024 pass.
-- [ ] T031 [US1] Rewrite `Workers/ImportProcessor.fs`:
+- [X] T031 [US1] Rewrite `Workers/ImportProcessor.fs`:
   - `claimNext` first resets stale `processing` imports (> 10 min) to `pending`, then
     `SELECT … WHERE status='pending' ORDER BY received_at LIMIT 1 FOR UPDATE SKIP LOCKED`, sets
     `processing` + `processing_started_at`, and commits;
@@ -319,13 +322,15 @@ unchanged. Wrong key → 401, other user's owner → 409, nothing stored.
     false, honouring cancellation.
 
   Makes T023 and T025 pass.
-- [ ] T032 [US1] Run the US1 suites (`dotnet test --filter` on the US1 test classes) plus
+- [X] T032 [US1] Run the US1 suites (`dotnet test --filter` on the US1 test classes) plus
   `quickstart.md` section 2's curl steps against `dotnet run --launch-profile http`, checking the
   status counts `{400, 309, 91, 0, 0}` for the 2026 sample. Then send the extension session the
   readiness message: "backend ready on http://localhost:5099; create a key with
   `dotnet run -- user-create …`; please run task T052".
 
 **Checkpoint**: US1 is fully functional and independently testable through the API alone.
+*(Verified 2026-10-02: 65/65 tests; the 64-page sync processes in ≈2.4 s; the real app on :5099
+gives 202 in 0.22 s and the 2026 sample completes `{400, 309, 91, 0, 0}`.)*
 
 ---
 

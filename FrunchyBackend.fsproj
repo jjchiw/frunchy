@@ -11,11 +11,15 @@
     <Compile Include="Domains/Catalog.fs" />
     <Compile Include="Domains/Tracking.fs" />
     <Compile Include="Infrastructure/Database.fs" />
+    <Compile Include="Infrastructure/CrunchyrollPage.fs" />
     <Compile Include="Infrastructure/ApiErrors.fs" />
     <Compile Include="Infrastructure/Auth.fs" />
     <Compile Include="Views/Texts.fs" />
     <Compile Include="Views/Layout.fs" />
     <Compile Include="Handlers/Home.fs" />
+    <Compile Include="Handlers/Api/CreateImport.fs" />
+    <Compile Include="Handlers/Api/GetImportStatus.fs" />
+    <Compile Include="Handlers/Api/WhoAmI.fs" />
     <Compile Include="Operations/CreateUser.fs" />
     <Compile Include="Workers/ImportProcessor.fs" />
     <Compile Include="Program.fs" />
@@ -28,6 +32,5 @@
     <PackageReference Include="Oxpecker.Htmx" Version="4.0.*" />
     <PackageReference Include="Oxpecker.Alpine" Version="0.3.*" />
     <PackageReference Include="Npgsql" Version="10.0.3" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
 </Project>

@@ -11,7 +11,13 @@
     <Compile Include="Fixtures.fs" />
     <Compile Include="IdentityTests.fs" />
     <Compile Include="DatabaseTests.fs" />
+    <Compile Include="TestHelpers.fs" />
     <Compile Include="HomeTests.fs" />
+    <Compile Include="CrunchyrollPageTests.fs" />
+    <Compile Include="CreateImportTests.fs" />
+    <Compile Include="GetImportStatusTests.fs" />
+    <Compile Include="WhoAmITests.fs" />
+    <Compile Include="ImportProcessorTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
