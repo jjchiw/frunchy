@@ -468,7 +468,12 @@ second-profile capture shows the same URL id (account-level) and no profile fiel
 Part (c) is answered: `profile_id` comes from Crunchyroll's token response (primary source)
 and multiprofile `is_selected` (secondary); no tokens are kept (research R5). Uploads now send
 top-level `profileId`, and the queue and stop marker are keyed per profile. That work is built and
-harness-tested, with the commit pending the user's check in Chrome. T032 is done, so T052 can run.
+harness-tested, with the commit pending the user's check in Chrome.
+
+**Update 2 (2026-10-02)**: the profileId work is committed as `ce3d4ca` and verified in Chrome. First
+live run against :5099 into `frunchydb`: `jjchiw` is bound to `(3b6dd336-…, 3b6dd336-…)` (primary
+profile id = account id); 5 single-page imports all completed with 100 processed, and
+`watch_events` = 100, so the same page sent 5× was counted once. T052 (full history) is next. T032 is done, so T052 can run.
 
 - [ ] T044 [P] [US1] (extension) Options page with the backend base URL (default
   `http://localhost:5099`) and the sync key stored in `chrome.storage`, plus a "validate" action
