@@ -40,7 +40,22 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+Gates from `.specify/memory/constitution.md` (v1.0.0). Mark each ✅ / ❌ (❌ needs a row in
+Complexity Tracking):
+
+- [ ] **I. Core asset**: raw imports untouched; every new derived table states how it is
+      rebuilt from raw imports
+- [ ] **II. Boring tech**: no new broker/queue framework/ORM/event store/service; Postgres used
+      as the job queue; design sized to the ~0.6 events/s reference
+- [ ] **III. Vertical slices**: each endpoint = one `Handlers/` file (view/contract → SQL →
+      handler → endpoint with verb); `Program.fs` only wires; workers in `Workers/`
+- [ ] **IV. Idempotent async ingestion**: endpoints persist + 202; heavy/external work in
+      workers; dedup key defined; external APIs per distinct anime and rate-limited;
+      per-item failure status + error
+- [ ] **V. Tests**: integration tests per slice/worker against real Postgres with
+      `JsonSamples/` payloads; unit tests for parsing/normalization
+- [ ] **Constraints**: Spanish UI, CDN-only frontend, schema in `Infrastructure/Database.fs`
+      + `SCHEMA.md` updated, APIs exist in pinned package versions
 
 ## Project Structure
 
@@ -65,7 +80,16 @@ specs/[###-feature]/
 -->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
+# Frunchy layout (DEFAULT for this repo): show only the files this feature touches
+Handlers/<Feature>/<Slice>.fs     # one file per endpoint (vertical slice)
+Workers/<Name>.fs                 # BackgroundService workers
+Infrastructure/Database.fs        # schema bootstrap (initializeSchema)
+Views/Layout.fs                   # shared UI only
+Domains/*.fs                      # shared domain types
+tests/FrunchyBackend.Tests/       # integration (real Postgres) + unit tests
+SCHEMA.md                         # kept in sync with schema changes
+
+# [REMOVE IF UNUSED] Option 1: Single project
 src/
 ├── models/
 ├── services/
