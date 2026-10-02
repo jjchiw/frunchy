@@ -485,7 +485,7 @@ profile id = account id); 5 single-page imports all completed with 100 processed
   predicted from the capture.
 
 T044–T049 and T051 are verified by this run (extension commits 3f65023, ae58bc1, ce3d4ca, plus the
-resend dedup). T050 (export-file upload) remains **intentionally unbuilt**; it was optional, and
+resend dedup 809cf5d, the build that ran T052). T050 (export-file upload) remains **intentionally unbuilt**; it was optional, and
 "Sync stored pages" covers recovery. T032 is done, so T052 can run.
 
 - [X] T044 [P] [US1] (extension) Options page with the backend base URL (default
