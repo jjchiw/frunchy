@@ -2,8 +2,8 @@
   "workflow": "speckit",
   "specName": "Crunchyroll Watch-History Import with Real Dashboard",
   "branch": "001-crunchyroll-history-import",
-  "currentStep": "plan",
-  "status": "planned",
+  "currentStep": "tasks",
+  "status": "ready-to-implement",
   "history": [
     {
       "step": "specify",
@@ -18,6 +18,13 @@
       "kind": "complete",
       "by": "extension",
       "at": "2026-10-02T09:03:05.544Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "complete",
+      "by": "extension",
+      "at": "2026-10-02T09:09:46.970Z"
     }
   ]
 }
