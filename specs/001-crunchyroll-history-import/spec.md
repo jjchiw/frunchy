@@ -101,6 +101,7 @@ The operator can also delete a user entirely when that user asks, removing every
 - **Out-of-order submissions** (an older page arrives after a newer one): the result is the same as if they had arrived in chronological order. For each episode, the most recent watch date wins.
 - **Same series split across seasons, or dubs listed as separate seasons** (e.g. "Ranking of Kings" season 2 with the same title as season 1): counts as one series.
 - **Non-episode content** (e.g. movies, if Crunchyroll's history includes them): kept and reported as unsupported in the status; excluded from totals in this feature.
+- **Paging information is opaque**: Crunchyroll's paging parameters (page numbers in 2022, an opaque cursor today) and its `total` field (a per-page count, not a whole-history count) MUST NOT be interpreted. Only the entries themselves and the history owner are used.
 - **Page size not fixed**: Crunchyroll decides how many entries a page has (the sample page reports `total: 100` but contains 101 entries). Submissions MUST NOT be rejected for having more than 100 entries; the accepted size needs comfortable headroom above Crunchyroll's page size.
 - **Very large first sync** (e.g. 5,000 entries): accepted and processed without the user having to keep the browser open after submitting.
 - **Concurrent submissions from the same user**: each one is processed fully and the end result is the same as processing them one after another.
@@ -194,6 +195,7 @@ The operator can also delete a user entirely when that user asks, removing every
 
 ## Assumptions
 
+- **Payload freshness**: the sample (`JsonSamples/PostHistory.json`) dates from 2022–23. A live Crunchyroll capture from 2026 already shows changed paging (an opaque cursor). A current page, with signed playback URLs and personal data redacted, is added as a second test fixture before processing is implemented. Processing tolerates unknown or missing optional fields; an entry missing what's needed to count it is reported as unresolved or failed, never silently dropped.
 - **Source of submissions**: the browser extension will send the pages it intercepts from Crunchyroll's history. Changing the extension is out of scope; this feature only defines and serves what it must send.
 - **Partial watches**: an entry not marked as fully watched doesn't count as a watched episode. Its watched portion (capped at the episode's duration) counts toward total hours. This is why the sample yields 96 episodes and 39.3 hours rather than 39.1.
 - **Series counting** uses Crunchyroll's series identifier, so seasons and dub variants of the same show count once.
