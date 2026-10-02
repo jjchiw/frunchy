@@ -465,7 +465,10 @@ T052 waits on T032.
 `ae58bc1`. The service worker had loaded the content-script chunk (both entries were named
 `index.ts`), crashed and never relayed pages; it's fixed and verified in Chrome. T051 parts (a)/(b): the
 second-profile capture shows the same URL id (account-level) and no profile field, which decided T027.
-Part (c), where the extension reads the active profile id, is still open with the extension session. T032 is done, so T052 can run.
+Part (c) is answered: `profile_id` comes from Crunchyroll's token response (primary source)
+and multiprofile `is_selected` (secondary); no tokens are kept (research R5). Uploads now send
+top-level `profileId`, and the queue and stop marker are keyed per profile. That work is built and
+harness-tested, with the commit pending the user's check in Chrome. T032 is done, so T052 can run.
 
 - [ ] T044 [P] [US1] (extension) Options page with the backend base URL (default
   `http://localhost:5099`) and the sync key stored in `chrome.storage`, plus a "validate" action

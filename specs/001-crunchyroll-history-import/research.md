@@ -93,6 +93,17 @@ about Crunchyroll data come from the two fixtures (`JsonSamples/PostHistory.json
   user's history, and the 3 shared episodes would be resolved by "newest wins", corrupting both.
   The extension supplies the active profile id; where it reads it is its own concern (T051 part c).
 
+  **Profile id source (T051 c, reported by the extension session)**: Crunchyroll's own
+  `POST /auth/v1/token` response (on page load, refreshed every 300 s) has top-level `profile_id`
+  and `account_id`. That is the primary source, since it reflects the active profile.
+  `GET /accounts/v1/me/multiprofile` → `profiles[].profile_id` with `is_selected: true` is the
+  secondary source. `GET /accounts/v1/me` has only `account_id`. The extension copies just those
+  two ids out of the token response and never stores or forwards `access_token`/`refresh_token`. The
+  ids are UUIDs and stable across sessions. The **primary profile's id equals the account id**
+  (`3b6dd336-…`), which is why the URL id looked like a profile id; a second profile has its own
+  UUID. For the backend this means the primary profile's owner is `(3b6dd336-…, 3b6dd336-…)`, and
+  nothing else changes.
+
   ~~Status 2026-10-02 (T027): no capture yet. The implemented default: `profileId` is
   **optional**. When present it's part of the owner key `(accountId, profileId)`; when absent the
   owner is the account. Binding compares both exactly, so a user bound without a profile gets
