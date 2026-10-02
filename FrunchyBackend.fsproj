@@ -20,6 +20,7 @@
     <Compile Include="Handlers/Api/CreateImport.fs" />
     <Compile Include="Handlers/Api/GetImportStatus.fs" />
     <Compile Include="Handlers/Api/WhoAmI.fs" />
+    <Compile Include="Handlers/Users/Dashboard.fs" />
     <Compile Include="Operations/CreateUser.fs" />
     <Compile Include="Workers/ImportProcessor.fs" />
     <Compile Include="Program.fs" />

@@ -24,7 +24,8 @@ let endpoints =
     [ Handlers.Home.endpoint
       Handlers.Api.CreateImport.endpoint
       Handlers.Api.GetImportStatus.endpoint
-      Handlers.Api.WhoAmI.endpoint ]
+      Handlers.Api.WhoAmI.endpoint
+      Handlers.Users.Dashboard.endpoint ]
 
 let private isApi (ctx: HttpContext) =
     ctx.Request.Path.StartsWithSegments(PathString "/api")

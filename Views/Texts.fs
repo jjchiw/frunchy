@@ -21,7 +21,27 @@ type Texts =
       NotFoundBody: string
       ErrorTitle: string
       ErrorBody: string
-      BackHome: string }
+      BackHome: string
+
+      // Public dashboard (/u/{username})
+      PublicProfileNote: string
+      LastSync: string
+      NeverSynced: string
+      NewestEpisode: string
+      SyncInProgress: string
+      StatSeries: string
+      StatEpisodes: string
+      StatHours: string
+      StatDays: string
+      RecentTitle: string
+      EpisodeLabel: int -> string
+      SpecialLabel: string
+      Minutes: int -> string
+      InProgress: string
+      EmptyTitle: string
+      EmptyBody: string
+      UserNotFoundTitle: string
+      UserNotFoundBody: string }
 
 let en =
     { Lang = "en"
@@ -43,7 +63,27 @@ let en =
       NotFoundBody = "There's nothing at this address."
       ErrorTitle = "Something went wrong"
       ErrorBody = "We couldn't complete your request. Please try again later."
-      BackHome = "Back to home" }
+      BackHome = "Back to home"
+
+      PublicProfileNote = "This profile is public: anyone with the link can see these numbers."
+      LastSync = "Last sync"
+      NeverSynced = "Not synced yet"
+      NewestEpisode = "Newest episode"
+      SyncInProgress = "A sync is being processed; the numbers update when it finishes."
+      StatSeries = "Series"
+      StatEpisodes = "Episodes watched"
+      StatHours = "Hours watched"
+      StatDays = "Days of life"
+      RecentTitle = "Recently watched"
+      EpisodeLabel = fun n -> $"Episode {n}"
+      SpecialLabel = "Special"
+      Minutes = fun m -> $"{m} min"
+      InProgress = "In progress"
+      EmptyTitle = "No history yet"
+      EmptyBody =
+        "Install the Frunchy extension, paste your sync key in its options and open your Crunchyroll history: your numbers appear here a moment later."
+      UserNotFoundTitle = "User not found"
+      UserNotFoundBody = "There's no Frunchy profile with this name." }
 
 let es =
     { Lang = "es"
@@ -65,7 +105,27 @@ let es =
       NotFoundBody = "No hay nada en esta dirección."
       ErrorTitle = "Algo salió mal"
       ErrorBody = "No pudimos completar tu solicitud. Inténtalo de nuevo más tarde."
-      BackHome = "Volver al inicio" }
+      BackHome = "Volver al inicio"
+
+      PublicProfileNote = "Este perfil es público: cualquiera con el enlace puede ver estos números."
+      LastSync = "Última sincronización"
+      NeverSynced = "Aún sin sincronizar"
+      NewestEpisode = "Último episodio"
+      SyncInProgress = "Se está procesando una sincronización; los números se actualizan al terminar."
+      StatSeries = "Series"
+      StatEpisodes = "Episodios vistos"
+      StatHours = "Horas vistas"
+      StatDays = "Días de vida"
+      RecentTitle = "Últimos vistos"
+      EpisodeLabel = fun n -> $"Episodio {n}"
+      SpecialLabel = "Especial"
+      Minutes = fun m -> $"{m} min"
+      InProgress = "En curso"
+      EmptyTitle = "Todavía no hay historial"
+      EmptyBody =
+        "Instala la extensión de Frunchy, pega tu clave de sincronización en sus opciones y abre tu historial de Crunchyroll: tus números aparecerán aquí en unos instantes."
+      UserNotFoundTitle = "Usuario no encontrado"
+      UserNotFoundBody = "No hay ningún perfil de Frunchy con este nombre." }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =

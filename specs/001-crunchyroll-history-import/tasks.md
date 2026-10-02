@@ -345,7 +345,7 @@ history gets the empty state; an unknown username gets 404.
 
 ### Tests for User Story 2 (write first, must fail)
 
-- [ ] T033 [P] [US2] `tests/FrunchyBackend.Tests/DashboardTests.fs` (parse the HTML and assert on
+- [X] T033 [P] [US2] `tests/FrunchyBackend.Tests/DashboardTests.fs` (parse the HTML and assert on
   `data-stat` / `data-recent-item` hooks from contracts/dashboard-ui.md):
   - **figures**: the 2022 fixture → series 29, episodes 96, hours `39.3` (en) / `39,3` (es),
     days 1.6; the 2026 sample → 67 / 298 / 118.2, and the first recent item is "Clevatess",
@@ -363,7 +363,7 @@ history gets the empty state; an unknown username gets 404.
 
 ### Implementation for User Story 2
 
-- [ ] T034 [US2] Add the dashboard strings to `Views/Texts.fs` (both `en` and `es`):
+- [X] T034 [US2] Add the dashboard strings to `Views/Texts.fs` (both `en` and `es`):
   - stat labels: series, episodes, hours, days;
   - section titles: recent episodes, last sync;
   - notices: public profile, sync in progress;
@@ -372,7 +372,7 @@ history gets the empty state; an unknown username gets 404.
     `minutes: int -> string`; the in-progress badge;
   - "user not found" title/body;
   - number formatting via the culture.
-- [ ] T035 [US2] Create `Handlers/Users/Dashboard.fs`. Top to bottom:
+- [X] T035 [US2] Create `Handlers/Users/Dashboard.fs`. Top to bottom:
   - **views**: header (display name, public notice, last-sync `<time data-fr-time>`, in-progress
     notice); stats with `data-stat` hooks; recent list with `data-recent-item`, thumbnail
     (`loading="lazy"`), episode label, minutes, badge and `<time>`; empty state; a "user not
@@ -385,11 +385,17 @@ history gets the empty state; an unknown username gets 404.
   - **endpoint**: `GET [ routef "/u/{%s}" handler ]`.
 
   Register it in `Program.fs`. Makes T033 pass.
-- [ ] T036 [US2] Manual check per `quickstart.md` section 2. Open `/u/animenerd` in a real
+- [X] T036 [US2] Manual check per `quickstart.md` section 2. Open `/u/animenerd` in a real
   browser in English and Spanish and confirm the `Intl` script turns `<time>` into relative +
   local time (e.g. "hace 2 horas · …").
 
-**Checkpoint**: US1 and US2 both work independently.
+  *(2026-10-02: the real `/u/…` page was checked with curl in en and es (67 / 298 / 118.2 / 4.9;
+  "118,2", "Episodio 13"). The exact layout script was run under Node with Madrid and Buenos Aires
+  time zones. That run found a rounding bug ("anteayer" for a watch at 00:46 local time yesterday),
+  fixed so that 1–7 days use calendar days in the viewer's time zone. A look in a real browser is
+  still worth doing.)*
+
+**Checkpoint**: US1 and US2 both work independently. *(80/80 tests, including 10k events < 2 s.)*
 
 ---
 

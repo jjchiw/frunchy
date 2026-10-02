@@ -18,6 +18,7 @@
     <Compile Include="GetImportStatusTests.fs" />
     <Compile Include="WhoAmITests.fs" />
     <Compile Include="ImportProcessorTests.fs" />
+    <Compile Include="DashboardTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

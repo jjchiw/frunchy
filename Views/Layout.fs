@@ -14,15 +14,20 @@ document.addEventListener('DOMContentLoaded', function () {
   var dtf = new Intl.DateTimeFormat(lang, { dateStyle: 'medium', timeStyle: 'short' });
   var units = [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400],
                ['hour', 3600], ['minute', 60], ['second', 1]];
+  var dayStart = function (ms) { var d = new Date(ms); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  var relative = function (date) {
+    var seconds = (date.getTime() - Date.now()) / 1000;
+    // 1-7 days: calendar days in the viewer's time zone, so "yesterday" means the previous local date
+    if (Math.abs(seconds) >= 86400 && Math.abs(seconds) < 604800)
+      return rtf.format(Math.round((dayStart(date.getTime()) - dayStart(Date.now())) / 86400000), 'day');
+    var unit = units.find(function (u) { return Math.abs(seconds) >= u[1]; }) || units[units.length - 1];
+    return rtf.format(Math.round(seconds / unit[1]), unit[0]);
+  };
   document.querySelectorAll('time[data-fr-time]').forEach(function (el) {
     var date = new Date(el.getAttribute('datetime'));
     if (isNaN(date.getTime())) return;
-    var seconds = (date.getTime() - Date.now()) / 1000;
-    var unit = units.find(function (u) { return Math.abs(seconds) >= u[1]; }) || units[units.length - 1];
     var absolute = dtf.format(date);
-    el.textContent = el.getAttribute('data-fr-time') === 'relative'
-      ? rtf.format(Math.round(seconds / unit[1]), unit[0]) + ' · ' + absolute
-      : absolute;
+    el.textContent = el.getAttribute('data-fr-time') === 'relative' ? relative(date) + ' · ' + absolute : absolute;
     el.title = date.toISOString();
   });
 });
