@@ -20,7 +20,7 @@
 - Q: Which time zone do "Ayer", "Hace 3 días" and clock times on the dashboard use? → A: The viewer's own browser time zone. The page carries exact times, and the viewer's browser shows them relative and local, in the page's language.
 - Q: Can a user and their history be deleted? → A: Yes. The operator can delete a user, which removes all their data (original submissions, history, dashboard). This is an explicit exception to constitution Principle I (amended in v1.1.0).
 - Q: How much i18n goes into this feature? → A: English (default) and Spanish. The language follows the viewer's browser preference and falls back to English; there's no language switcher yet. All UI text comes from per-language text, never hardcoded in views.
-- Q: How do we stop one Crunchyroll history being attached to several profiles, or a stolen key being fed someone else's history? → A: Bind each Frunchy user to the Crunchyroll account their history comes from. The first accepted submission binds it; submissions from another Crunchyroll account are rejected; one Crunchyroll account can belong to only one Frunchy user. Real login (sign in with an external provider) is feature 002 "Accounts", required before a second user is invited.
+- Q: How do we stop one Crunchyroll history being attached to several profiles, or a stolen key being fed someone else's history? → A: Bind each Frunchy user to the Crunchyroll history owner their history comes from: the Crunchyroll profile when the account has profiles, otherwise the account. The first accepted submission binds it; submissions from another Crunchyroll account are rejected; one Crunchyroll account can belong to only one Frunchy user. Real login (sign in with an external provider) is feature 002 "Accounts", required before a second user is invited.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -46,10 +46,10 @@ As a Frunchy user with a personal sync key, I send one or more pages of my Crunc
 10. **Given** a user's submission status reference, **When** a different user's sync key is used to query it, **Then** the status is not disclosed.
 11. **Given** a valid sync key, **When** the extension asks who it belongs to, **Then** it receives the user's display name, username, dashboard address and last sync time (empty if never synced).
 12. **Given** an unknown or revoked sync key, **When** the extension asks who it belongs to, **Then** the request is rejected as unauthorized, so the extension can tell the user their key is wrong.
-13. **Given** a user with no Crunchyroll account bound yet, **When** their first submission is accepted, **Then** the user becomes bound to the Crunchyroll account that submission came from.
-14. **Given** a user bound to Crunchyroll account X, **When** a submission from Crunchyroll account Y arrives with that user's key, **Then** it is rejected immediately with an explanatory error and nothing is stored.
-15. **Given** Crunchyroll account X is bound to user A, **When** user B submits history from account X, **Then** it is rejected immediately and nothing is stored.
-16. **Given** a submission that doesn't say which Crunchyroll account it came from, **When** it is submitted, **Then** it is rejected immediately with an explanatory error.
+13. **Given** a user with no Crunchyroll history owner bound yet, **When** their first submission is accepted, **Then** the user becomes bound to the history owner (account, plus profile if any) that submission came from.
+14. **Given** a user bound to Crunchyroll history owner X, **When** a submission from history owner Y (another account, or another profile of the same account) arrives with that user's key, **Then** it is rejected immediately with an explanatory error and nothing is stored.
+15. **Given** Crunchyroll history owner X is bound to user A, **When** user B submits history from X, **Then** it is rejected immediately and nothing is stored.
+16. **Given** a submission whose Crunchyroll history owner can't be identified, **When** it is submitted, **Then** it is rejected immediately with an explanatory error.
 
 ---
 
@@ -104,8 +104,9 @@ The operator can also delete a user entirely when that user asks, removing every
 - **Page size not fixed**: Crunchyroll decides how many entries a page has (the sample page reports `total: 100` but contains 101 entries). Submissions MUST NOT be rejected for having more than 100 entries; the accepted size needs comfortable headroom above Crunchyroll's page size.
 - **Very large first sync** (e.g. 5,000 entries): accepted and processed without the user having to keep the browser open after submitting.
 - **Concurrent submissions from the same user**: each one is processed fully and the end result is the same as processing them one after another.
-- **Crunchyroll account mismatch**: a submission from a different Crunchyroll account than the one bound to the user, or from an account bound to another user, is rejected and nothing is stored. If a user legitimately changes Crunchyroll account, the operator resets the binding.
-- **Single-page history**: the Crunchyroll account must still be identifiable even when the page has no next/previous page link (the submission carries the address the page was fetched from).
+- **Shared Crunchyroll account with several profiles**: each profile is its own history owner, so two people sharing an account can each have a Frunchy user. If another profile is active when the extension syncs, that submission is rejected as a mismatch instead of mixing histories.
+- **History owner mismatch**: a submission from a different history owner than the one bound to the user, or from one bound to another user, is rejected and nothing is stored. If a user legitimately changes Crunchyroll account or profile, the operator resets the binding.
+- **Single-page history**: the history owner must still be identifiable even when the page has no next/previous page link (the submission carries the address the page was fetched from).
 - **Unknown or revoked sync key**: the submission is rejected as unauthorized and nothing is stored (FR-001).
 - **Watch date moves backwards** (an older page re-sent after a newer one): the newer date is kept (FR-011).
 - **Resumed partial watch**: a later submission marks a previously partial episode as fully watched; it starts counting as a watched episode, with no duplicate.
@@ -125,9 +126,9 @@ The operator can also delete a user entirely when that user asks, removing every
 - **FR-001a**: The operator MUST be able to create a user with a unique, URL-safe username and a display name, which issues that user's sync key, and to regenerate a user's key. Regenerating revokes the previous key immediately. Issued keys MUST NOT be retrievable afterwards; a lost key can only be regenerated.
 - **FR-001b**: Submission status MUST only be disclosed to requests authenticated with the owning user's sync key.
 - **FR-001c**: The system MUST provide a "who am I" lookup authenticated by sync key, returning the user's display name, username, dashboard address and last sync time. An unknown or revoked key MUST be rejected as unauthorized.
-- **FR-001d**: Each submission MUST identify the Crunchyroll account it came from, using the account identifier in the address Crunchyroll's history was fetched from. Submissions without an identifiable account MUST be rejected.
-- **FR-001e**: The system MUST bind a user to the Crunchyroll account of their first accepted submission. It MUST reject submissions from any other Crunchyroll account for that user, and submissions from a Crunchyroll account already bound to a different user. Rejected submissions store nothing.
-- **FR-001f**: The operator MUST be able to reset a user's Crunchyroll account binding, so their next accepted submission binds again. Already-imported history is kept.
+- **FR-001d**: Each submission MUST identify its Crunchyroll history owner: the Crunchyroll account and, when the account has profiles, the profile whose history it is. Submissions whose history owner can't be identified MUST be rejected.
+- **FR-001e**: The system MUST bind a user to the Crunchyroll history owner of their first accepted submission. It MUST reject submissions from any other history owner for that user, and submissions from a history owner already bound to a different user. Rejected submissions store nothing. Two profiles of the same Crunchyroll account are different history owners, so each can belong to a different Frunchy user, and one profile's history can never be mixed into another's Frunchy user.
+- **FR-001f**: The operator MUST be able to reset a user's Crunchyroll history owner binding, so their next accepted submission binds again. Already-imported history is kept.
 - **FR-002**: The system MUST accept a submission containing one or more Crunchyroll watch-history pages in the exact form Crunchyroll returns them (page total, list of entries, paging information).
 - **FR-003**: The system MUST confirm receipt of a valid submission immediately, with a submission reference, without waiting for processing to finish.
 - **FR-004**: The system MUST reject a submission immediately, with an explanatory error and without storing anything, when it is not a Crunchyroll history page (not parseable or missing its list of entries).
@@ -164,7 +165,7 @@ The operator can also delete a user entirely when that user asks, removing every
 ### Key Entities
 
 - **User**: a Frunchy user that owns submissions and a watch history. Created by the operator; in this feature it has a unique URL-safe username (used in the dashboard address), a display name and one active sync key.
-- **Crunchyroll Account Binding**: the Crunchyroll account a user's history comes from (identified by Crunchyroll's account identifier). At most one per user, and each Crunchyroll account belongs to at most one user.
+- **Crunchyroll History Owner Binding**: the Crunchyroll history owner a user's history comes from: account identifier plus profile identifier when profiles exist. At most one per user, and each history owner belongs to at most one user.
 - **Sync Key**: a secret credential that identifies a user's submissions. One active key per user; it can be regenerated, which revokes the previous one.
 - **History Submission**: one delivery of one or more Crunchyroll history pages, stored exactly as received. It has a reference, an owner, a received time, a processing status and per-status entry counts.
 - **Submission Entry Outcome**: the result of processing one entry of a submission: processed, unresolved, unsupported or failed, with a reason when it isn't processed.
@@ -189,7 +190,7 @@ The operator can also delete a user entirely when that user asks, removing every
 - **SC-009**: 100% of submissions with a missing, unknown or revoked sync key are rejected, and none of them leave stored data.
 - **SC-010**: After a user is deleted, none of their submissions, history or figures remain, and other users' figures are unchanged.
 - **SC-011**: Every piece of interface text on the dashboard, empty state and "user not found" page exists in both English and Spanish, and switching the browser's preferred language changes all of it (0 untranslated strings).
-- **SC-012**: 100% of submissions whose Crunchyroll account doesn't match the user's binding, or is bound to another user, are rejected, and none leave stored data.
+- **SC-012**: 100% of submissions whose Crunchyroll history owner doesn't match the user's binding, or is bound to another user, are rejected, and none leave stored data.
 
 ## Assumptions
 
@@ -200,7 +201,7 @@ The operator can also delete a user entirely when that user asks, removing every
 - **Relative times** are computed against the viewer's current time and local time zone, in the page's language ("2 hours ago" / "Hace 2 horas", "Yesterday" / "Ayer"), with the clock time shown alongside as in the design.
 - **Language selection** is automatic from the browser preference; a manual language switcher and more languages are later work. The extension's own language is decided in the extension.
 - **Deletion** is an operator action on request; there's no self-service delete button in this feature. A deleted username may be reused later.
-- **Crunchyroll account identifier**: the sample's history address contains it (`/content/v2/3b6dd336-…/watch-history`). Whether it identifies the Crunchyroll account or a profile within it is confirmed during planning; the binding uses whichever Crunchyroll puts in that address.
+- **Crunchyroll history owner identifier**: the sample's history address contains an identifier (`/content/v2/3b6dd336-…/watch-history`). Community documentation calls it the account id, and Crunchyroll switches profiles through the login session rather than the address, so the address alone may not identify the profile. Before the binding rule is implemented, the planning phase confirms with a real capture from a multi-profile account where the profile identifier comes from (address, session or the profile list). If the extension has to send it separately, that becomes part of the submission contract.
 - **Rebuild** is an operator action (no end-user button) and may run in the background.
 - **Binding is a consistency check, not proof of ownership**: Crunchyroll offers no third-party sign-in, and a determined attacker could forge submissions. Proving identity is the job of feature 002 "Accounts".
 - **Operator actions** (create user, regenerate sync key, reset Crunchyroll binding, rebuild, delete) don't need a polished UI in this feature. A simple operator-only mechanism is enough.
