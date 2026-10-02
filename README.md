@@ -188,16 +188,18 @@ The database schema will be automatically initialized on startup. The app listen
 
 **Why?** Keep it boring and simple until we discover the interesting analytics that users actually want to see. That will drive the architecture evolution.
 
-## Next Steps
+## Roadmap
 
-1. ✅ Domain models & database schema
-2. ✅ Import ingestion endpoint
-3. ✅ Background processor
-4. ⏳ Anime matching service (Jikan integration)
-5. ⏳ Watch event projections
-6. ⏳ Dashboard endpoints (stats, recent watches)
-7. ⏳ User analytics
-8. ⏳ Anime metadata enrichment
+Features are built through spec-kit (`specs/###-name/`), in this order:
+
+| # | Feature | Status |
+|---|---|---|
+| 001 | **Crunchyroll history import + real dashboard**: raw import, normalization to watch events, import status, public per-user dashboard (`/u/{username}`), sync-key identity bound to the user's Crunchyroll account, English/Spanish UI | Specified ([spec](specs/001-crunchyroll-history-import/spec.md)) |
+| 002 | **Accounts**: sign in through an external provider (Discord / Google / AniList, decided in its spec), self-service sign-up, sync key and account deletion. **Required before inviting a second user.** | Planned |
+| 003 | **MAL enrichment**: match Crunchyroll seasons to MyAnimeList via Jikan (rate-limited, per distinct anime): genres, studios, cover art, scores | Planned |
+| 004 | **Anime DNA profile**: genre distribution, favourite studio, dominant decade, viewing pace, insignia anime | Planned |
+
+Already in place: domain models, schema bootstrap, the raw import endpoint and a background processor skeleton.
 
 ## Key Design Decisions
 
