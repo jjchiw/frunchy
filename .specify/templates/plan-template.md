@@ -40,11 +40,11 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-Gates from `.specify/memory/constitution.md` (v1.0.0). Mark each ✅ / ❌ (❌ needs a row in
+Gates from `.specify/memory/constitution.md` (v1.1.0). Mark each ✅ / ❌ (❌ needs a row in
 Complexity Tracking):
 
-- [ ] **I. Core asset**: raw imports untouched; every new derived table states how it is
-      rebuilt from raw imports
+- [ ] **I. Core asset**: raw imports untouched (except full user deletion); every new derived
+      table states how it is rebuilt from raw imports
 - [ ] **II. Boring tech**: no new broker/queue framework/ORM/event store/service; Postgres used
       as the job queue; design sized to the ~0.6 events/s reference
 - [ ] **III. Vertical slices**: each endpoint = one `Handlers/` file (view/contract → SQL →
@@ -54,7 +54,7 @@ Complexity Tracking):
       per-item failure status + error
 - [ ] **V. Tests**: integration tests per slice/worker against real Postgres with
       `JsonSamples/` payloads; unit tests for parsing/normalization
-- [ ] **Constraints**: Spanish UI, CDN-only frontend, schema in `Infrastructure/Database.fs`
+- [ ] **Constraints**: localized UI text (no hardcoded strings; en default + es), CDN-only frontend, schema in `Infrastructure/Database.fs`
       + `SCHEMA.md` updated, APIs exist in pinned package versions
 
 ## Project Structure

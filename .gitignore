@@ -482,3 +482,5 @@ $RECYCLE.BIN/
 *.swp
 
 .private
+# Full Crunchyroll history exports are large personal captures; commit trimmed fixtures only
+JsonSamples/*crunchyroll-history-????-??-??.json

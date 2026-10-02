@@ -1,89 +1,140 @@
 module FrunchyBackend.Program
 
+open System
+open System.Globalization
+open System.Threading.Tasks
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Http
+open Microsoft.AspNetCore.Localization
 open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
-open Microsoft.Extensions.Logging   
+open Microsoft.Extensions.Logging
 open Oxpecker
-open Oxpecker.ViewEngine
+open FrunchyBackend.Infrastructure
 open FrunchyBackend.Infrastructure.Database
+open FrunchyBackend.Views
 open FrunchyBackend.Workers.ImportProcessor
-open System.Threading.Tasks
 
-let errorView errorCode (errorText: string) =
-    html() {
-        body(style = "width: 800px; margin: 0 auto") {
-            h1(style = "text-align: center; color: red") { raw $"Error <i>%d{errorCode}</i>" }
-            p() { errorText }
-        }
-    }
-    
+/// Set to false (the integration tests do) to run without the background import worker
+[<Literal>]
+let WorkerEnabledKey = "Frunchy:ImportWorkerEnabled"
+
+// One vertical slice per endpoint, see Handlers/
+let endpoints =
+    [ Handlers.Home.endpoint
+      Handlers.Api.CreateImport.endpoint
+      Handlers.Api.GetImportStatus.endpoint
+      Handlers.Api.WhoAmI.endpoint
+      Handlers.Users.Dashboard.endpoint ]
+
+let private isApi (ctx: HttpContext) =
+    ctx.Request.Path.StartsWithSegments(PathString "/api")
+
 let notFoundHandler (ctx: HttpContext) =
-    let logger = ctx.GetLogger()
-    logger.LogWarning("Unhandled 404 error")
-    ctx.SetStatusCode 404
-    ctx.WriteHtmlView(errorView 404 "Page not found!")
+    ctx.GetLogger().LogInformation("404 {Path}", ctx.Request.Path)
+
+    if isApi ctx then
+        ApiErrors.notFound ctx
+    else
+        let t = Texts.current ()
+        ctx.SetStatusCode StatusCodes.Status404NotFound
+        ctx.WriteHtmlView(Layout.messagePage t t.NotFoundTitle t.NotFoundBody)
 
 let errorHandler (ctx: HttpContext) (next: RequestDelegate) =
     task {
         try
             return! next.Invoke(ctx)
         with
-        | :? ModelBindException
-        | :? RouteParseException as ex ->
-            let logger = ctx.GetLogger()
-            logger.LogWarning(ex, "Unhandled 400 error")
-            ctx.SetStatusCode StatusCodes.Status400BadRequest
-            return! ctx.WriteHtmlView(errorView 400 (string ex))
+        | :? BadHttpRequestException as ex when ex.StatusCode = StatusCodes.Status413PayloadTooLarge ->
+            return!
+                ApiErrors.writeError ctx StatusCodes.Status413PayloadTooLarge ApiErrors.PayloadTooLarge "Request body is too large."
         | ex ->
-            let logger = ctx.GetLogger()
-            logger.LogError(ex, "Unhandled 500 error")
+            ctx.GetLogger().LogError(ex, "Unhandled error on {Path}", ctx.Request.Path)
             ctx.SetStatusCode StatusCodes.Status500InternalServerError
-            return! ctx.WriteHtmlView(errorView 500 (string ex))
+
+            if isApi ctx then
+                return! ApiErrors.writeError ctx StatusCodes.Status500InternalServerError "server_error" "Unexpected server error."
+            else
+                let t = Texts.current ()
+                return! ctx.WriteHtmlView(Layout.messagePage t t.ErrorTitle t.ErrorBody)
     }
     :> Task
 
+/// English is the default; Spanish when the browser prefers it. Only Accept-Language decides
+/// (no query/cookie override until a language switcher exists).
+let localizationOptions () =
+    let cultures = [| CultureInfo "en"; CultureInfo "es" |]
+
+    let options =
+        RequestLocalizationOptions(
+            DefaultRequestCulture = RequestCulture "en",
+            SupportedCultures = cultures,
+            SupportedUICultures = cultures
+        )
+
+    options.RequestCultureProviders <-
+        ResizeArray<IRequestCultureProvider>([ AcceptLanguageHeaderRequestCultureProvider() :> IRequestCultureProvider ])
+    options
+
+let dbConfigFrom (config: IConfiguration) : DbConfig =
+    { connectionString = config.GetConnectionString "Database" }
+
+let configureServices (config: IConfiguration) (services: IServiceCollection) =
+    services.AddSingleton<DbConfig>(dbConfigFrom config) |> ignore
+
+    if config.GetValue<bool>(WorkerEnabledKey, true) then
+        services.AddHostedService<ImportProcessorService>() |> ignore
+
+    services.AddRouting().AddOxpecker() |> ignore
+
+let configureApp (app: WebApplication) =
+    app
+        .UseRequestLocalization(localizationOptions ())
+        .UseRouting()
+        .Use(errorHandler)
+        .UseOxpecker(endpoints)
+        .Run(notFoundHandler)
+
+/// The web app, composable so the integration tests can host it on a TestServer
+let buildApp (args: string array) (customize: WebApplicationBuilder -> unit) : WebApplication =
+    let builder = WebApplication.CreateBuilder(args)
+    customize builder
+    configureServices builder.Configuration builder.Services
+    let app = builder.Build()
+    configureApp app
+    app
+
+// Operator CLI: `dotnet run -- <command> [args]` (contracts/operator-cli.md)
+let private cliCommands: Map<string, DbConfig -> string list -> Task<int>> =
+    Map
+        [ "user-create", Operations.CreateUser.run
+          "user-regenerate-key", Operations.RegenerateKey.run
+          "user-reset-binding", Operations.ResetBinding.run
+          "user-rebuild", Operations.RebuildUser.run
+          "user-delete", Operations.DeleteUser.run
+          "user-list", Operations.ListUsers.run ]
+
+let private runCli (command: string) (rest: string list) : int =
+    // Same configuration sources as the web app (appsettings, environment, user secrets)
+    let db = dbConfigFrom (WebApplication.CreateBuilder(Array.empty).Configuration)
+
+    task {
+        do! initializeSchema db
+        return! cliCommands[command] db rest
+    }
+    |> fun t -> t.GetAwaiter().GetResult()
+
 [<EntryPoint>]
 let main args =
-    task {
-        let builder = WebApplication.CreateBuilder(args)
-        
-        let config = builder.Configuration
-        let dbConnectionString = config.GetConnectionString("Database")
-        let dbConfig: DbConfig = { connectionString = dbConnectionString }
-        
-        builder.Services.AddSingleton<DbConfig>(dbConfig) |> ignore
-        builder.Services.AddHostedService<ImportProcessorService>(fun sp ->
-            new ImportProcessorService(sp.GetRequiredService<DbConfig>())
-        ) |> ignore
-        
-        builder.Services
-            .AddRouting()
-            .AddOxpecker()
-        |> ignore
-        
-        let app = builder.Build()
-        
-        let! _ = initializeSchema dbConfig
-        printfn "✓ Database initialized"
-        
-        // One vertical slice per endpoint, see Handlers/
-        let endpoints = [
-            Handlers.Home.endpoint
-            Handlers.Dashboard.endpoint
-            Handlers.Profile.endpoint
-            Handlers.Imports.CreateImport.endpoint
-            Handlers.Imports.GetImportStatus.endpoint
-        ]
+    match List.ofArray args with
+    | command :: rest when cliCommands.ContainsKey command -> runCli command rest
+    | _ ->
+        let app = buildApp args ignore
 
-        app
-            .UseStaticFiles()
-            .UseRouting()
-            .Use(errorHandler)
-            .UseOxpecker(endpoints)
-            .Run(notFoundHandler)
-        
-        do! app.RunAsync()
-        return 0
-    } |> Async.AwaitTask |> Async.RunSynchronously
+        task {
+            do! initializeSchema (app.Services.GetRequiredService<DbConfig>())
+            do! app.RunAsync()
+        }
+        |> fun t -> t.GetAwaiter().GetResult()
+
+        0

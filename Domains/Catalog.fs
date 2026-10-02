@@ -1,36 +1,28 @@
 module FrunchyBackend.Domains.Catalog
 
-open System
+/// Crunchyroll series, keyed by the entries' parent_id (franchise movies belong to it)
+type CrSeries =
+    { Id: string
+      Title: string option
+      Slug: string option }
 
-/// Anime catalog entry
-/// Stores metadata as JSONB for flexibility
-type Anime =
-    { id: Guid
-      mal_id: int64 // MyAnimeList ID for external linking
-      title: string
-      metadata: string // JSON blob with full anime data from Jikan
-      created_at: DateTime
-      updated_at: DateTime }
+/// Crunchyroll season; dub variants are separate seasons of the same series
+type CrSeason =
+    { Id: string
+      SeriesId: string
+      SeasonNumber: int option
+      DisplayNumber: string option
+      Title: string option
+      AudioLocale: string option }
 
-/// Genre information
-type Genre =
-    { id: Guid
-      name: string
-      mal_id: int option
-      created_at: DateTime }
-
-/// Studio information
-type Studio =
-    { id: Guid
-      name: string
-      mal_id: int option
-      created_at: DateTime }
-
-/// Season information
-type Season =
-    { id: Guid
-      anime_id: Guid
-      season_number: int
-      episode_count: int
-      created_at: DateTime }
-
+/// Crunchyroll episode. DurationMs = None means unresolved (no details received yet).
+type CrEpisode =
+    { Id: string
+      SeriesId: string
+      SeasonId: string option
+      SeriesTitle: string option
+      Title: string option
+      EpisodeNumber: int option
+      EpisodeLabel: string option
+      DurationMs: int option
+      ThumbnailUrl: string option }

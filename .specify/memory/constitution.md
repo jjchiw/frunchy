@@ -1,37 +1,34 @@
 <!--
 Sync Impact Report
 ==================
-Version change: (unratified template) → 1.0.0
-Bump rationale: first ratification; all placeholders replaced with concrete principles.
+Version change: 1.0.0 → 1.1.0
+Bump rationale: MINOR. Two rules materially changed, no principle removed: an explicit exception
+to Principle I for user deletion, and UI language moved from "Spanish only" to localizable
+text (English default, Spanish supported). Source: clarify session 2026-10-02 of
+specs/001-crunchyroll-history-import.
 
-Principles (template slot → adopted title):
-  [PRINCIPLE_1_NAME] → I. Watch History Is the Core Asset
-  [PRINCIPLE_2_NAME] → II. Boring Technology Until Usage Demands Otherwise
-  [PRINCIPLE_3_NAME] → III. Vertical Slices
-  [PRINCIPLE_4_NAME] → IV. Idempotent, Asynchronous Ingestion
-  [PRINCIPLE_5_NAME] → V. Integration-Tested Slices
+Modified principles:
+  I. Watch History Is the Core Asset: added the user-deletion exception (raw imports may be
+     deleted only when their owning user is deleted)
 
-Added sections:
-  - Additional Constraints (was [SECTION_2_NAME])
-  - Development Workflow (was [SECTION_3_NAME])
-  - Governance (filled)
+Modified sections:
+  Additional Constraints → UI: "MUST be in Spanish" replaced by localizable text with
+  English default + Spanish; language from the viewer's browser preference
 
-Removed sections: none
+Added / removed sections: none
 
 Templates:
-  ✅ .specify/templates/plan-template.md: Constitution Check gates (I–V + constraints)
-     and Frunchy source layout added
-  ✅ .specify/templates/tasks-template.md: tests are now REQUIRED (Principle V);
-     Frunchy path conventions added
-  ✅ .specify/templates/spec-template.md: reviewed, no change needed (mandatory sections
-     unaffected; out-of-scope rule is enforced via the Development Workflow section)
-  ✅ .specify/templates/checklist-template.md: reviewed, no change needed
-  ⚠ .claude/skills/speckit-tasks/SKILL.md line ~145 still says "Tests are OPTIONAL ...
-     unless explicitly requested". The skill is managed by spec-kit and left untouched;
-     Principle V counts as that explicit request, and the tasks template says so.
-  ✅ CLAUDE.md, README.md: already consistent (vertical slices, boring stack, raw imports)
+  ✅ .specify/templates/plan-template.md: Constraints gate updated (localized UI) and Principle I
+     gate mentions the deletion exception
+  ✅ .specify/templates/tasks-template.md: no change needed
+  ✅ .specify/templates/spec-template.md: no change needed
+  ✅ CLAUDE.md, FRONTEND.md: Spanish-only statements replaced
+  ⚠ .claude/skills/speckit-tasks/SKILL.md line ~145 still says "Tests are OPTIONAL" (managed by
+     spec-kit, unchanged since 1.0.0; Principle V overrides it)
 
 Deferred TODOs: none
+
+Previous report (1.0.0, 2026-10-02): first ratification from the template.
 -->
 
 # Frunchy Constitution
@@ -45,7 +42,9 @@ rules for building it.
 ### I. Watch History Is the Core Asset
 
 - Raw imports (`cr_imports`) MUST be stored exactly as received and MUST NEVER be updated
-  or deleted by application code.
+  or deleted by application code. **Sole exception**: when a user is deleted (e.g. an
+  erasure request), all of that user's data, raw imports included, MUST be removed, and no
+  other user's data may be affected.
 - Every derived table (normalized watch events, catalog entries, external-catalog matches,
   analytics projections) MUST be rebuildable by reprocessing the raw imports. A feature
   that introduces derived data MUST state how that data is rebuilt.
@@ -113,8 +112,12 @@ exactly those failures.
 ## Additional Constraints
 
 - **UI**: server-rendered with Oxpecker.ViewEngine, htmx 4, Alpine.js and
-  Tailwind/DaisyUI loaded from CDNs. There is no frontend build step. User-facing text
-  MUST be in Spanish.
+  Tailwind/DaisyUI loaded from CDNs. There is no frontend build step.
+- **Localization**: all user-facing text MUST come from per-language text sources and MUST
+  NOT be hardcoded in views. English is the default language and Spanish is supported. The
+  language is resolved per request (the viewer's browser preference, falling back to English),
+  so full pages and htmx fragments are localized the same way. Adding a language MUST NOT
+  require changing views.
 - **Schema**: changes go in the idempotent bootstrap script (`initializeSchema` in
   `Infrastructure/Database.fs`); there is no migration framework yet. `SCHEMA.md` MUST be
   updated in the same change.
@@ -147,4 +150,4 @@ exactly those failures.
   justified in Complexity Tracking. Reviews verify that tests (Principle V) and
   rebuildability (Principle I) are addressed.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-02 | **Last Amended**: 2026-10-02
+**Version**: 1.1.0 | **Ratified**: 2026-10-02 | **Last Amended**: 2026-10-02

@@ -1,0 +1,126 @@
+module FrunchyBackend.Tests.Infrastructure.PostgresFixture
+
+open System
+open System.Collections.Generic
+open System.Net.Http
+open System.Threading.Tasks
+open Microsoft.AspNetCore.Builder
+open Microsoft.AspNetCore.Hosting
+open Microsoft.AspNetCore.TestHost
+open Microsoft.Extensions.Configuration
+open Npgsql
+open Testcontainers.PostgreSql
+open FrunchyBackend
+open FrunchyBackend.Infrastructure.Database
+
+/// One PostgreSQL container for the whole test run (Testcontainers' reaper removes it afterwards)
+let private container =
+    lazy
+        (task {
+            let c = PostgreSqlBuilder("postgres:16-alpine").Build()
+            do! c.StartAsync()
+            return c
+        })
+
+/// A fresh, empty database with the schema bootstrapped; tests never share data
+let newDatabase () : Task<DbConfig> =
+    task {
+        let! c = container.Force()
+        let name = "t_" + Guid.NewGuid().ToString("N")
+        use admin = new NpgsqlConnection(c.GetConnectionString())
+        do! admin.OpenAsync()
+        use create = new NpgsqlCommand($"CREATE DATABASE {name}", admin)
+        let! _ = create.ExecuteNonQueryAsync()
+        let csb = NpgsqlConnectionStringBuilder(c.GetConnectionString(), Database = name)
+        let db = { connectionString = csb.ConnectionString }
+        do! initializeSchema db
+        return db
+    }
+
+/// A fresh database without the schema (for bootstrap tests)
+let newEmptyDatabase () : Task<DbConfig> =
+    task {
+        let! c = container.Force()
+        let name = "t_" + Guid.NewGuid().ToString("N")
+        use admin = new NpgsqlConnection(c.GetConnectionString())
+        do! admin.OpenAsync()
+        use create = new NpgsqlCommand($"CREATE DATABASE {name}", admin)
+        let! _ = create.ExecuteNonQueryAsync()
+        let csb = NpgsqlConnectionStringBuilder(c.GetConnectionString(), Database = name)
+        return { connectionString = csb.ConnectionString }
+    }
+
+/// The real app (Program.buildApp) on an in-process TestServer, background worker disabled
+type TestApp(app: WebApplication, client: HttpClient, db: DbConfig) =
+    member _.Client = client
+    member _.Db = db
+
+    interface IAsyncDisposable with
+        member _.DisposeAsync() =
+            client.Dispose()
+            app.DisposeAsync()
+
+let createApp (db: DbConfig) : Task<TestApp> =
+    task {
+        let app =
+            Program.buildApp Array.empty (fun builder ->
+                builder.WebHost.UseTestServer() |> ignore
+
+                builder.Configuration.AddInMemoryCollection(
+                    dict
+                        [ "ConnectionStrings:Database", db.connectionString
+                          Program.WorkerEnabledKey, "false" ]
+                )
+                |> ignore)
+
+        do! app.StartAsync()
+        return new TestApp(app, app.GetTestClient(), db)
+    }
+
+/// Fresh database + app in one call
+let newApp () : Task<TestApp> =
+    task {
+        let! db = newDatabase ()
+        return! createApp db
+    }
+
+module Db =
+    let scalar<'T> (db: DbConfig) (sql: string) (parameters: (string * obj) list) : Task<'T> =
+        task {
+            use connection = getConnection db
+            do! connection.OpenAsync()
+            use cmd = new NpgsqlCommand(sql, connection)
+
+            for (name, value) in parameters do
+                cmd.Parameters.AddWithValue(name, value) |> ignore
+
+            let! result = cmd.ExecuteScalarAsync()
+            return unbox<'T> result
+        }
+
+    let execute (db: DbConfig) (sql: string) : Task<unit> =
+        task {
+            use connection = getConnection db
+            do! connection.OpenAsync()
+            use cmd = new NpgsqlCommand(sql, connection)
+            let! _ = cmd.ExecuteNonQueryAsync()
+            ()
+        }
+
+    /// Row count of a table
+    let count (db: DbConfig) (table: string) : Task<int64> = scalar<int64> db $"SELECT count(*) FROM {table}" []
+
+    /// Rows of a query rendered as text lines, for whole-table equality checks
+    let dump (db: DbConfig) (sql: string) : Task<string list> =
+        task {
+            use connection = getConnection db
+            do! connection.OpenAsync()
+            use cmd = new NpgsqlCommand(sql, connection)
+            use! reader = cmd.ExecuteReaderAsync()
+            let rows = List<string>()
+
+            while reader.Read() do
+                rows.Add(String.Join("|", [ for i in 0 .. reader.FieldCount - 1 -> string (reader.GetValue i) ]))
+
+            return List.ofSeq rows
+        }

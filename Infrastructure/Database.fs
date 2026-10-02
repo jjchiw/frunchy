@@ -1,150 +1,151 @@
 module FrunchyBackend.Infrastructure.Database
 
-open System
+open System.Threading.Tasks
 open Npgsql
-open NpgsqlTypes
 
 type DbConfig =
     { connectionString: string }
 
-/// Initialize database schema
-let initializeSchema (config: DbConfig) : Async<unit> = async {
-    use connection = new NpgsqlConnection(config.connectionString)
-    do! connection.OpenAsync() |> Async.AwaitTask
-
-    let createTablesCommand = """
-        -- Identity Domain
-        CREATE TABLE IF NOT EXISTS users (
-            id UUID PRIMARY KEY,
-            username VARCHAR(255) NOT NULL UNIQUE,
-            email VARCHAR(255) NOT NULL UNIQUE,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE TABLE IF NOT EXISTS user_profiles (
-            user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-            display_name VARCHAR(255),
-            bio TEXT,
-            avatar_url TEXT,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE TABLE IF NOT EXISTS user_config (
-            user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-            auto_sync_enabled BOOLEAN DEFAULT FALSE,
-            sync_interval_minutes INT DEFAULT 60,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-
-        -- Catalog Domain
-        CREATE TABLE IF NOT EXISTS anime (
-            id UUID PRIMARY KEY,
-            mal_id BIGINT NOT NULL,
-            title VARCHAR(500) NOT NULL,
-            metadata JSONB NOT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_anime_mal_id ON anime(mal_id);
-
-        CREATE TABLE IF NOT EXISTS genres (
-            id UUID PRIMARY KEY,
-            name VARCHAR(255) NOT NULL UNIQUE,
-            mal_id INT,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE TABLE IF NOT EXISTS studios (
-            id UUID PRIMARY KEY,
-            name VARCHAR(255) NOT NULL UNIQUE,
-            mal_id INT,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE TABLE IF NOT EXISTS seasons (
-            id UUID PRIMARY KEY,
-            anime_id UUID NOT NULL REFERENCES anime(id) ON DELETE CASCADE,
-            season_number INT NOT NULL,
-            episode_count INT NOT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-
-        -- Tracking Domain (Core)
-        CREATE TABLE IF NOT EXISTS cr_imports (
-            id UUID PRIMARY KEY,
-            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            payload JSONB NOT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_cr_imports_user_id ON cr_imports(user_id);
-        CREATE INDEX IF NOT EXISTS idx_cr_imports_created_at ON cr_imports(created_at);
-
-        CREATE TABLE IF NOT EXISTS watch_events (
-            id UUID PRIMARY KEY,
-            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            anime_id UUID NOT NULL REFERENCES anime(id) ON DELETE CASCADE,
-            episode INT NOT NULL,
-            watched_at TIMESTAMP NOT NULL,
-            source VARCHAR(50) NOT NULL,
-            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_watch_events_user_id ON watch_events(user_id);
-        CREATE INDEX IF NOT EXISTS idx_watch_events_anime_id ON watch_events(anime_id);
-        CREATE INDEX IF NOT EXISTS idx_watch_events_watched_at ON watch_events(watched_at);
-        CREATE INDEX IF NOT EXISTS idx_watch_events_created_at ON watch_events(created_at);
-
-        CREATE TABLE IF NOT EXISTS import_records (
-            cr_import_id UUID PRIMARY KEY REFERENCES cr_imports(id) ON DELETE CASCADE,
-            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            status VARCHAR(50) NOT NULL DEFAULT 'Pending',
-            processed_watch_events INT DEFAULT 0,
-            error_message TEXT,
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_import_records_user_id ON import_records(user_id);
-        CREATE INDEX IF NOT EXISTS idx_import_records_status ON import_records(status);
-
-        -- Analytics Domain (Projections)
-        CREATE TABLE IF NOT EXISTS user_genre_stats (
-            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            genre_id UUID NOT NULL REFERENCES genres(id) ON DELETE CASCADE,
-            watch_count INT NOT NULL DEFAULT 0,
-            total_hours FLOAT NOT NULL DEFAULT 0,
-            last_watched TIMESTAMP,
-            PRIMARY KEY (user_id, genre_id)
-        );
-
-        CREATE TABLE IF NOT EXISTS anime_stats (
-            user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-            anime_id UUID NOT NULL REFERENCES anime(id) ON DELETE CASCADE,
-            episodes_watched INT NOT NULL DEFAULT 0,
-            hours_watched FLOAT NOT NULL DEFAULT 0,
-            last_episode_watched INT,
-            last_watched_at TIMESTAMP,
-            completion_percentage FLOAT DEFAULT 0,
-            PRIMARY KEY (user_id, anime_id)
-        );
-
-        CREATE TABLE IF NOT EXISTS user_dna (
-            user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-            total_anime_watched INT DEFAULT 0,
-            total_episodes INT DEFAULT 0,
-            total_hours FLOAT DEFAULT 0,
-            top_genre VARCHAR(255),
-            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-        );
-    """
-
-    use cmd = new NpgsqlCommand(createTablesCommand, connection)
-    do! cmd.ExecuteNonQueryAsync() |> Async.AwaitTask |> Async.Ignore
-    do! connection.CloseAsync() |> Async.AwaitTask
-}
+/// Raised when the database still has the pre-001 placeholder layout, which never held real data
+exception LegacySchemaException of string
 
 /// Get a database connection from the connection string
 let getConnection (config: DbConfig) : NpgsqlConnection =
     new NpgsqlConnection(config.connectionString)
 
+let private legacyLayoutQuery =
+    """
+    SELECT EXISTS (SELECT 1 FROM information_schema.tables
+                   WHERE table_schema = current_schema() AND table_name = 'import_records')
+        OR EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_schema = current_schema() AND table_name = 'users' AND column_name = 'email')
+        OR EXISTS (SELECT 1 FROM information_schema.columns
+                   WHERE table_schema = current_schema() AND table_name = 'cr_imports' AND column_name = 'payload')
+    """
+
+// See specs/001-crunchyroll-history-import/data-model.md and SCHEMA.md
+let private schema =
+    """
+    -- Identity
+    CREATE TABLE IF NOT EXISTS users (
+        id                  uuid PRIMARY KEY,
+        username            text NOT NULL UNIQUE,
+        display_name        text NOT NULL,
+        sync_key_hash       text NOT NULL UNIQUE,
+        sync_key_created_at timestamptz NOT NULL,
+        cr_account_id       text NULL,
+        cr_profile_id       text NULL,
+        created_at          timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT ck_users_profile_needs_account CHECK (cr_profile_id IS NULL OR cr_account_id IS NOT NULL)
+    );
+
+    -- One Crunchyroll history owner belongs to at most one user
+    CREATE UNIQUE INDEX IF NOT EXISTS ux_users_history_owner
+        ON users (cr_account_id, coalesce(cr_profile_id, ''))
+        WHERE cr_account_id IS NOT NULL;
+
+    -- Tracking: submissions (raw pages are never modified; deleted only with their user)
+    CREATE TABLE IF NOT EXISTS cr_imports (
+        id                    uuid PRIMARY KEY,
+        user_id               uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        received_at           timestamptz NOT NULL DEFAULT now(),
+        exported_at           timestamptz NULL,
+        status                text NOT NULL CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+        processing_started_at timestamptz NULL,
+        completed_at          timestamptz NULL,
+        page_count            int NOT NULL,
+        entries_received      int NOT NULL,
+        processed             int NOT NULL DEFAULT 0,
+        unresolved            int NOT NULL DEFAULT 0,
+        unsupported           int NOT NULL DEFAULT 0,
+        failed                int NOT NULL DEFAULT 0,
+        error                 text NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS ix_cr_imports_status_received ON cr_imports (status, received_at);
+    CREATE INDEX IF NOT EXISTS ix_cr_imports_user_received ON cr_imports (user_id, received_at DESC);
+
+    CREATE TABLE IF NOT EXISTS cr_import_pages (
+        import_id   uuid NOT NULL REFERENCES cr_imports(id) ON DELETE CASCADE,
+        page_index  int NOT NULL,
+        url         text NOT NULL,
+        captured_at timestamptz NULL,
+        body        json NOT NULL, -- json (not jsonb): the exact text received
+        PRIMARY KEY (import_id, page_index)
+    );
+
+    CREATE TABLE IF NOT EXISTS cr_import_entry_issues (
+        import_id     uuid NOT NULL REFERENCES cr_imports(id) ON DELETE CASCADE,
+        page_index    int NOT NULL,
+        entry_index   int NOT NULL,
+        cr_episode_id text NULL,
+        outcome       text NOT NULL CHECK (outcome IN ('unresolved', 'unsupported', 'failed')),
+        reason        text NOT NULL,
+        PRIMARY KEY (import_id, page_index, entry_index)
+    );
+
+    -- Catalog: shared Crunchyroll metadata, no personal data
+    CREATE TABLE IF NOT EXISTS cr_series (
+        id        text PRIMARY KEY,
+        title     text NULL,
+        slug      text NULL,
+        source_at timestamptz NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS cr_seasons (
+        id             text PRIMARY KEY,
+        series_id      text NOT NULL,
+        season_number  int NULL,
+        display_number text NULL,
+        title          text NULL,
+        audio_locale   text NULL,
+        source_at      timestamptz NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS cr_episodes (
+        id             text PRIMARY KEY,
+        series_id      text NOT NULL,
+        season_id      text NULL,
+        series_title   text NULL,
+        title          text NULL,
+        episode_number int NULL,
+        episode_label  text NULL,
+        duration_ms    int NULL, -- NULL = unresolved (no details received yet)
+        thumbnail_url  text NULL,
+        source_at      timestamptz NULL
+    );
+
+    -- Derived ledger: one row per user and episode, newest watch state wins
+    CREATE TABLE IF NOT EXISTS watch_events (
+        user_id       uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        cr_episode_id text NOT NULL REFERENCES cr_episodes(id),
+        watched_at    timestamptz NOT NULL,
+        playhead_s    int NOT NULL,
+        fully_watched boolean NOT NULL,
+        import_id     uuid NOT NULL,
+        updated_at    timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (user_id, cr_episode_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS ix_watch_events_user_watched ON watch_events (user_id, watched_at DESC);
+    """
+
+/// Create the schema if missing (idempotent). Fails fast on the legacy placeholder layout.
+let initializeSchema (config: DbConfig) : Task<unit> =
+    task {
+        use connection = getConnection config
+        do! connection.OpenAsync()
+
+        use legacyCmd = new NpgsqlCommand(legacyLayoutQuery, connection)
+        let! legacy = legacyCmd.ExecuteScalarAsync()
+
+        if unbox<bool> legacy then
+            raise (
+                LegacySchemaException
+                    "The database has the legacy pre-001 schema (placeholder tables, never real data). Reset the dev database and start again: dropdb frunchydb && createdb frunchydb (locally: docker exec postgres-postgres-1 dropdb -U postgres frunchydb, then createdb), see README Getting Started"
+            )
+
+        use cmd = new NpgsqlCommand(schema, connection)
+        let! _ = cmd.ExecuteNonQueryAsync()
+        ()
+    }

@@ -1,39 +1,59 @@
 module FrunchyBackend.Domains.Tracking
 
 open System
-open FrunchyBackend.Domains.Catalog
 
-/// Raw import from Crunchyroll extension
-/// Never delete this - it's the audit trail
-type CrunchyrollImport =
-    { id: Guid
-      user_id: Guid
-      payload: string // JSON blob stored as string
-      created_at: DateTime }
-
-/// Normalized watch event
-/// This is the core domain asset
-type WatchEvent =
-    { id: Guid
-      user_id: Guid
-      anime_id: Guid
-      episode: int
-      watched_at: DateTime
-      source: string // "crunchyroll", "import", etc.
-      created_at: DateTime }
-
-/// Import status for background processing
+/// Lifecycle of a history submission (cr_imports.status)
+[<RequireQualifiedAccess>]
 type ImportStatus =
     | Pending
     | Processing
     | Completed
-    | Failed of string
+    | Failed
 
-type ImportRecord =
-    { cr_import_id: Guid
-      user_id: Guid
-      status: ImportStatus
-      processed_watch_events: int
-      error_message: string option
-      updated_at: DateTime }
+module ImportStatus =
+    let toDb =
+        function
+        | ImportStatus.Pending -> "pending"
+        | ImportStatus.Processing -> "processing"
+        | ImportStatus.Completed -> "completed"
+        | ImportStatus.Failed -> "failed"
 
+    let fromDb =
+        function
+        | "pending" -> ImportStatus.Pending
+        | "processing" -> ImportStatus.Processing
+        | "completed" -> ImportStatus.Completed
+        | "failed" -> ImportStatus.Failed
+        | other -> failwith $"Unknown import status '{other}'"
+
+/// What happened to one entry of a submission
+[<RequireQualifiedAccess>]
+type EntryOutcome =
+    | Processed
+    | Unresolved
+    | Unsupported
+    | Failed
+
+module EntryOutcome =
+    let toDb =
+        function
+        | EntryOutcome.Processed -> "processed"
+        | EntryOutcome.Unresolved -> "unresolved"
+        | EntryOutcome.Unsupported -> "unsupported"
+        | EntryOutcome.Failed -> "failed"
+
+type ImportCounts =
+    { Received: int
+      Processed: int
+      Unresolved: int
+      Unsupported: int
+      Failed: int }
+
+/// One per user and Crunchyroll episode; the newest watch state wins
+type WatchEvent =
+    { UserId: Guid
+      CrEpisodeId: string
+      WatchedAt: DateTimeOffset
+      PlayheadS: int
+      FullyWatched: bool
+      ImportId: Guid }
