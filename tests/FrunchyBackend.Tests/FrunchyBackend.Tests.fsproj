@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Infrastructure/PostgresFixture.fs" />
+    <Compile Include="Fixtures.fs" />
+    <Compile Include="IdentityTests.fs" />
+    <Compile Include="DatabaseTests.fs" />
+    <Compile Include="HomeTests.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../JsonSamples/PostHistory.json;../../JsonSamples/crunchyroll-history-2026-sample.json" LinkBase="JsonSamples" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageReference Include="xunit.v3" Version="4.0.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.15.0" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../FrunchyBackend.fsproj" />
+  </ItemGroup>
+</Project>

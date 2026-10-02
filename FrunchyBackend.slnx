@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="FrunchyBackend.fsproj" />
+  <Folder Name="/tests/">
+    <Project Path="tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj" />
+  </Folder>
+</Solution>

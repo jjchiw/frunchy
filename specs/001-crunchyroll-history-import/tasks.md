@@ -36,15 +36,17 @@ SendMessage, and checks off Phase 6 tasks when that session reports them done.
 
 **Purpose**: packages, solution, test project, dev URL.
 
-- [ ] T001 Update `FrunchyBackend.fsproj`:
+- [X] T001 Update `FrunchyBackend.fsproj`:
   - Npgsql `8.0.1` → latest `10.0.x` (advisory GHSA-x9vc-6hfv-hg8c, research R15);
   - remove the `FSharp.Data` and `Newtonsoft.Json` package references;
   - pin `Oxpecker.Htmx` to `4.0.*`;
   - add `<DefaultItemExcludes>$(DefaultItemExcludes);tests/**</DefaultItemExcludes>` to the
     PropertyGroup (research R17).
 
-  Run `dotnet build`; the NU1903 warning must be gone.
-- [ ] T002 [P] Create `tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj` (`net10.0`,
+  Run `dotnet build`; the NU1903 warning must be gone. *(Done: Npgsql 10.0.3, 0 warnings. `Types.fs` was
+  deleted with FSharp.Data. `Newtonsoft.Json` is removed in T031, where the old worker that uses
+  it is rewritten.)*
+- [X] T002 [P] Create `tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj` (`net10.0`,
   `IsPackable=false`):
   - packages: `xunit.v3`, `xunit.runner.visualstudio`, `Microsoft.NET.Test.Sdk`,
     `Testcontainers.PostgreSql`, `Microsoft.AspNetCore.TestHost` (latest stable at
@@ -52,10 +54,13 @@ SendMessage, and checks off Phase 6 tasks when that session reports them done.
   - `<ProjectReference Include="../../FrunchyBackend.fsproj" />`;
   - `<None Include="../../JsonSamples/PostHistory.json;../../JsonSamples/crunchyroll-history-2026-sample.json" CopyToOutputDirectory="PreserveNewest" LinkBase="JsonSamples" />`;
   - an initial empty `Smoke.fs` with one passing test so the project builds.
-- [ ] T003 Create `FrunchyBackend.slnx` at the repo root, listing `FrunchyBackend.fsproj` and
+
+  *(Done: xUnit v3 4.x runs on Microsoft.Testing.Platform, so a root `global.json` with
+  `"test": { "runner": "Microsoft.Testing.Platform" }` is required on the .NET 10 SDK.)*
+- [X] T003 Create `FrunchyBackend.slnx` at the repo root, listing `FrunchyBackend.fsproj` and
   `tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj`. Verify `dotnet build` and
   `dotnet test` work from the root (depends on T001, T002).
-- [ ] T004 [P] Add an `http` profile to `Properties/launchSettings.json` with `applicationUrl`
+- [X] T004 [P] Add an `http` profile to `Properties/launchSettings.json` with `applicationUrl`
   `http://localhost:5099` and `ASPNETCORE_ENVIRONMENT=Development`; keep the existing https
   profile (research R17).
 
@@ -68,22 +73,22 @@ creation. Every story needs these.
 
 **⚠️ CRITICAL**: no user story work starts until this phase is complete.
 
-- [ ] T005 [P] Rewrite `Domains/Identity.fs`:
+- [X] T005 [P] Rewrite `Domains/Identity.fs`:
   - `Username` (validated `^[a-z0-9][a-z0-9_-]{2,29}$`, lowercased; `tryCreate`);
   - `SyncKey` (`generate()` = `"frk_" + base64url(RandomNumberGenerator 32 bytes)`, `hash key` =
     lowercase hex SHA-256);
   - `HistoryOwner = { AccountId: string; ProfileId: string option }`;
   - a `User` record matching the `users` table in data-model.md.
-- [ ] T006 [P] Rewrite `Domains/Tracking.fs`:
+- [X] T006 [P] Rewrite `Domains/Tracking.fs`:
   - `ImportStatus` DU (`Pending | Processing | Completed | Failed`) with `toDb`/`fromDb`
     (lowercase text);
   - `EntryOutcome` DU (`Processed | Unresolved | Unsupported | Failed`) with `toDb`;
   - `ImportCounts` record;
   - `WatchEvent` record per data-model.md.
-- [ ] T007 [P] Rewrite `Domains/Catalog.fs` with `CrSeries`, `CrSeason`, `CrEpisode` records per
+- [X] T007 [P] Rewrite `Domains/Catalog.fs` with `CrSeries`, `CrSeason`, `CrEpisode` records per
   data-model.md (`DurationMs: int option`, so `None` = unresolved). Delete `Domains/Analytics.fs`
   and `Types.fs`, and remove them from `FrunchyBackend.fsproj`.
-- [ ] T008 Rewrite `initializeSchema` in `Infrastructure/Database.fs` to create exactly the
+- [X] T008 Rewrite `initializeSchema` in `Infrastructure/Database.fs` to create exactly the
   tables, constraints and indexes in data-model.md:
   - tables `users`, `cr_imports`, `cr_import_pages` with `body json`, `cr_import_entry_issues`,
     `cr_series`, `cr_seasons`, `cr_episodes`, `watch_events`;
@@ -94,10 +99,10 @@ creation. Every story needs these.
   Before creating anything, detect the legacy layout (`import_records` table exists or
   `users.email` column exists) and throw an exception whose message says to run
   `dropdb frunchydb && createdb frunchydb` (research R14). Keep `getConnection`.
-- [ ] T009 [P] Rewrite `SCHEMA.md` to document the new schema from data-model.md: tables, which
+- [X] T009 [P] Rewrite `SCHEMA.md` to document the new schema from data-model.md: tables, which
   data is personal and which is shared catalog, rebuild/delete semantics, and the legacy-reset
   note.
-- [ ] T010 [P] Create `Views/Texts.fs` (before `Views/Layout.fs` in the fsproj):
+- [X] T010 [P] Create `Views/Texts.fs` (before `Views/Layout.fs` in the fsproj):
   - an F# record `Texts` for every interface string used by the layout, home and generic error
     pages (site name, footer, home title/body explaining extension sync, generic 404/500 texts);
   - values `en` and `es`;
@@ -105,7 +110,7 @@ creation. Every story needs these.
     otherwise `en` (research R11).
 
   Dashboard strings are added in T034.
-- [ ] T011 Rewrite `Views/Layout.fs` as `page (t: Texts) (lang: string) (title: string) (content: HtmlElement)`:
+- [X] T011 Rewrite `Views/Layout.fs` as `page (t: Texts) (lang: string) (title: string) (content: HtmlElement)`:
   - `<html lang=…>`, localized navbar (brand → `/` only; remove the `/dashboard` and `/profile`
     links) and footer;
   - keep the CDN scripts (Tailwind, DaisyUI, htmx 4.0.0, Alpine);
@@ -115,18 +120,18 @@ creation. Every story needs these.
     attribute (contracts/dashboard-ui.md, "Time elements"; research R12).
 
   Depends on T010.
-- [ ] T012 [P] Create `Infrastructure/ApiErrors.fs`:
+- [X] T012 [P] Create `Infrastructure/ApiErrors.fs`:
   - `writeError (ctx) (status: int) (code: string) (message: string)`, writing
     `{ "error": code, "message": message }` with camelCase JSON;
   - constants for the codes in contracts/import-api.md "Errors".
-- [ ] T013 Create `Infrastructure/Auth.fs`:
+- [X] T013 Create `Infrastructure/Auth.fs`:
   - `tryAuthenticate (ctx: HttpContext) : Task<User option>` reads `Authorization: Bearer <key>`,
     hashes it with `SyncKey.hash`, and looks up `users` by `sync_key_hash` (Npgsql, hand-written
     SQL);
   - `requireUser`, which returns the user or writes 401 `unauthorized` via `ApiErrors`.
 
   Depends on T005, T008, T012.
-- [ ] T014 Refactor `Program.fs` into a composition root (research R1):
+- [X] T014 Refactor `Program.fs` into a composition root (research R1):
   - `configureServices (services) (config)`: DbConfig from `ConnectionStrings:Database`,
     `AddRouting`, `AddOxpecker`, `AddHostedService<ImportProcessorService>`, plus a flag to skip
     the hosted service in tests;
@@ -144,11 +149,11 @@ creation. Every story needs these.
   Delete `Handlers/Dashboard.fs`, `Handlers/Profile.fs`, `Handlers/Imports/CreateImport.fs` and
   `Handlers/Imports/GetImportStatus.fs` (research R16), and update the fsproj compile list.
   Depends on T008, T011.
-- [ ] T015 Localize `Handlers/Home.fs`: the view takes `Texts` and explains Frunchy and how to
+- [X] T015 Localize `Handlers/Home.fs`: the view takes `Texts` and explains Frunchy and how to
   sync from the extension, with no dashboard link and no user list. The handler resolves
   `Texts.forCulture CultureInfo.CurrentUICulture` and the lang. The endpoint is
   `GET [ route "/" handler ]`. Depends on T011, T014.
-- [ ] T016 Create `tests/FrunchyBackend.Tests/Infrastructure/PostgresFixture.fs`:
+- [X] T016 Create `tests/FrunchyBackend.Tests/Infrastructure/PostgresFixture.fs`:
   - an xUnit v3 assembly/collection fixture starting one `postgres:16-alpine` Testcontainer;
   - `newDatabase()` creates a uniquely named database and runs `initializeSchema` on it;
   - `TestApp.create (connStr)` builds the app via `Program.buildApp` with
@@ -157,20 +162,20 @@ creation. Every story needs these.
   - `Db.scalar`/`Db.count table` helpers for assertions.
 
   Depends on T002, T014.
-- [ ] T017 [P] Create `tests/FrunchyBackend.Tests/Fixtures.fs`:
+- [X] T017 [P] Create `tests/FrunchyBackend.Tests/Fixtures.fs`:
   - `load2026Sample()` returns the file text (already in envelope form);
   - `load2022Envelope()` wraps the `PostHistory.json` body as `{ "pages": [ { "url": "https://www.crunchyroll.com/content/v2/3b6dd336-f005-5b47-9b98-b26a174a2010/watch-history?locale=en-US&page=1&page_size=100", "body": <file JSON verbatim> } ] }`;
   - `syntheticPages (accountId) (pageCount) (entriesPerPage)` generates valid pages with unique
     episode ids, for the scale tests;
   - `envelopeOf (pages)`.
-- [ ] T018 Create `Operations/CreateUser.fs` (`user-create <username> <displayName>`, per
+- [X] T018 Create `Operations/CreateUser.fs` (`user-create <username> <displayName>`, per
   contracts/operator-cli.md): validate the username (exit code 3 if invalid or taken), generate
   the key, insert `users` with `sync_key_hash`, print the key once plus the `/u/{username}` path.
   Also expose `createUser (db) (username) (displayName) : Task<Result<string,string>>` for the
   tests. Depends on T005, T008.
-- [ ] T019 Wire `user-create` into the CLI dispatch in `Program.fs`: the command bootstraps the
+- [X] T019 Wire `user-create` into the CLI dispatch in `Program.fs`: the command bootstraps the
   schema first. Depends on T014, T018.
-- [ ] T020 [P] Foundational tests:
+- [X] T020 [P] Foundational tests:
   - `tests/FrunchyBackend.Tests/IdentityTests.fs` (unit): username rule accept/reject cases,
     lowercasing, key format `frk_` + 43 chars, hash deterministic and different from key;
   - `tests/FrunchyBackend.Tests/DatabaseTests.fs` (integration): `initializeSchema` twice is a
@@ -182,7 +187,10 @@ creation. Every story needs these.
   Depends on T015, T016, T018.
 
 **Checkpoint**: `dotnet test` green. The app starts on `http://localhost:5099` with a localized
-home page and `dotnet run -- user-create` prints a key.
+home page and `dotnet run -- user-create` prints a key. *(Verified 2026-10-02: 24/24 tests; the
+CLI was checked on a scratch DB; the app refuses the legacy `frunchydb` with the reset message.
+`UseStaticFiles` was dropped since there's no wwwroot. The tests decode HTML entities because
+ViewEngine writes non-ASCII as `&#NNN;`.)*
 
 ---
 
