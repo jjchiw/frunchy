@@ -443,7 +443,7 @@ again, and another user is untouched.
   run `dotnet run --launch-profile http`, and **claim `jjchiw` in `frunchydb` for real** (quickstart
   section 2). Expected: `/u/jjchiw` still shows 327 / 5,921 / 2,367.6 h. Record the result in the
   quickstart validation log.
-- [ ] T050 Send the extension session (find it with ListAgents by cwd `../browser-extension`) a
+- [X] T050 Send the extension session (find it with ListAgents by cwd `../browser-extension`) a
   "002 shipped" message. Sync keys are self-service at `{baseUrl}/account`; its 401 text *may* link
   there. Optional for it; no contract change.
 
