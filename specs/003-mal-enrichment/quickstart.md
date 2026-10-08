@@ -122,4 +122,7 @@ action (SC-003).
     Dubs follow their original by method `dub`. The three seasons with no series row matched too
     (Orokamonogatari and Nademonogatari on 57864; Dragon Ball Super: Super Hero on 48903).
   - **Dashboard**: `/u/jjchiw` still shows 327 / 5,921 / 2,367.6 h / 98.6 days, plus "Top genres".
-- **T036 (accuracy check)**: pending, the owner's by-hand check.
+- **2026-10-08 (T036)**: the owner checked 30 random automatic matches (search and link) against
+  MyAnimeList by hand: **30/30 correct** (SC-001: at most 1 wrong). They include JUJUTSU KAISEN 0,
+  One Piece's Enies Lobby arc on the single One Piece entry, Dr. STONE S2 (Stone Wars), Moriarty's
+  OVA and Spy x Family's movie.

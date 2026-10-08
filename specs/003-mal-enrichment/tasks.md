@@ -44,7 +44,8 @@ its own.
     `RefreshAiringAfterDays` 7.
 
   No secrets: Jikan needs none.
-- [ ] T003 [P] Record the Jikan fixtures, a one-time network task, in
+- [X] T003 [P] **Superseded by T043** (Jikan stayed down; only `full-52991` was recorded, and
+  MyAnimeList's official API became the default). Record the Jikan fixtures, a one-time network task, in
   `tests/FrunchyBackend.Tests/JsonSamples/jikan/`.
   - **`record.py`** (Python, implemented instead of a shell script): paced at 1 request per 1.2 s,
     retries 429/5xx, crawls each 2026-sample series (search, then `/full` of the top results and
@@ -429,7 +430,7 @@ and tags are updated. A 404 → `missing_since`, and the details are kept.
   - any 429s;
   - the JUJUTSU KAISEN, Frieren and dub cases;
   - that `/u/jjchiw`'s four figures are unchanged.
-- [ ] T036 **(owner, by hand)** Check 30 random automatic matches against MyAnimeList (SC-001: at most
+- [X] T036 **(owner, by hand)** Check 30 random automatic matches against MyAnimeList (SC-001: at most
   1 wrong). Fix the ambiguous ones with `mal-set` and `mal-none` as wanted (quickstart §4). Note the
   result in the validation log. If the automatic rate is under 85%, list the failing title patterns
   for a follow-up tier rule (research R2, "Validation").

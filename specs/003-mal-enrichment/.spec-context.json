@@ -3,7 +3,7 @@
   "specName": "MyAnimeList Enrichment",
   "branch": "003-mal-enrichment",
   "currentStep": "implement",
-  "status": "implementing",
+  "status": "completed",
   "history": [
     {
       "step": "specify",
@@ -289,6 +289,13 @@
       "kind": "complete",
       "by": "extension",
       "at": "2026-10-02T18:47:07.973Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-08T20:47:14.827Z"
     }
   ],
   "telemetryInstanceId": "0f8187ce-1e65-4f87-bedb-0f68ca84d6ae",
