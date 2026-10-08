@@ -79,7 +79,7 @@ order doesn't matter. Index `(user_id, watched_at DESC)`.
 
 | Table | Key | Notes |
 |---|---|---|
-| `cr_series` | `id` = entry `parent_id` | title only from entries where `series_id = parent_id` (franchise movies don't rename the series) |
+| `cr_series` | `id` = entry `parent_id` | title only from entries where `series_id = parent_id` (franchise movies don't rename the series), so a season's series can have **no row** when only its movies or specials were watched; code joining it must `LEFT JOIN` |
 | `cr_seasons` | `id` = `season_id` | dub variants are separate seasons |
 | `cr_episodes` | `id` = entry `id` | `duration_ms IS NULL` means **unresolved**: a stub created from an entry without panel, filled in when details arrive |
 

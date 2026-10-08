@@ -349,7 +349,9 @@ let releaseClaim (db: DbConfig) (seasonId: string) : Task<unit> =
         ()
     }
 
-/// The series of a season, with every season the catalog has for it
+/// The series of a season, with every season the catalog has for it. A franchise movie or special
+/// can have no cr_series row (its parent series was never described by an entry): its episodes'
+/// series title stands in.
 let seriesOfSeason (db: DbConfig) (seasonId: string) : Task<SeriesInfo option> =
     task {
         use conn = getConnection db
@@ -358,12 +360,16 @@ let seriesOfSeason (db: DbConfig) (seasonId: string) : Task<SeriesInfo option> =
         use cmd =
             new NpgsqlCommand(
                 """
-                SELECT sr.id, coalesce(sr.title, sr.id), se.id, se.title, se.season_number, se.audio_locale,
+                SELECT me.series_id,
+                       coalesce(sr.title,
+                                (SELECT min(e.series_title) FROM cr_episodes e WHERE e.series_id = me.series_id),
+                                me.series_id),
+                       se.id, se.title, se.season_number, se.audio_locale,
                        (SELECT count(*) FROM cr_episodes e WHERE e.season_id = se.id)::int,
                        (SELECT max(e.duration_ms) FROM cr_episodes e WHERE e.season_id = se.id)
                 FROM cr_seasons me
-                JOIN cr_series sr ON sr.id = me.series_id
-                JOIN cr_seasons se ON se.series_id = sr.id
+                LEFT JOIN cr_series sr ON sr.id = me.series_id
+                JOIN cr_seasons se ON se.series_id = me.series_id
                 WHERE me.id = @id
                 ORDER BY se.season_number NULLS LAST, se.id
                 """,

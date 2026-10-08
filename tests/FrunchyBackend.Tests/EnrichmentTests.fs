@@ -145,6 +145,24 @@ let ``parallel claims never take the same season; stale claims are taken again``
     }
 
 [<Fact>]
+let ``a season whose series row is missing is still looked up, by its episodes' series title`` () =
+    task {
+        // A franchise movie or special whose parent series no entry described has no cr_series row
+        // (found on real data: Nademonogatari, Dragon Ball Super: Super Hero). It used to be released
+        // and claimed again forever, starving the queue.
+        use! app = withSample ()
+        routeSampleCatalog app.Mal
+        let! _ = Db.scalar<int> app.Db "DELETE FROM cr_series WHERE id = (SELECT series_id FROM cr_seasons WHERE id = 'GYE5CQMQ5') RETURNING 1" []
+        let! results = enrichAll app
+
+        Assert.True(results.Length < 500, "the queue drains")
+        let! frieren = matchOf app.Db "GYE5CQMQ5"
+        Assert.Equal("GYE5CQMQ5 matched 52991 search -", frieren)
+        let! open' = Db.scalar<int64> app.Db "SELECT count(*) FROM cr_season_matches WHERE status IN ('pending', 'failed')" []
+        Assert.Equal(0L, open')
+    }
+
+[<Fact>]
 let ``no match is final; a title change queues it again`` () =
     task {
         use! app = withSample ()

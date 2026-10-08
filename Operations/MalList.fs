@@ -39,11 +39,14 @@ let list (db: DbConfig) (status: string option) (limit: int) : Task<Row list> =
         use cmd =
             new NpgsqlCommand(
                 """
-                SELECT m.season_id, coalesce(sr.title, sr.id), coalesce(se.title, ''), m.status, m.reason, m.attempts,
-                       m.next_attempt_at, m.candidates::text
+                SELECT m.season_id,
+                       coalesce(sr.title,
+                                (SELECT min(e.series_title) FROM cr_episodes e WHERE e.series_id = se.series_id),
+                                se.series_id),
+                       coalesce(se.title, ''), m.status, m.reason, m.attempts, m.next_attempt_at, m.candidates::text
                 FROM cr_season_matches m
                 JOIN cr_seasons se ON se.id = m.season_id
-                JOIN cr_series sr ON sr.id = se.series_id
+                LEFT JOIN cr_series sr ON sr.id = se.series_id
                 WHERE (@status::text IS NULL AND m.status <> 'matched') OR m.status = @status::text
                 ORDER BY (m.requested_at IS NULL), m.requested_at,
                          (SELECT max(w.watched_at) FROM cr_episodes e JOIN watch_events w ON w.cr_episode_id = e.id

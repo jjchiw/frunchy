@@ -40,8 +40,12 @@ let retry (db: DbConfig) (id: string) : Task<(int * int) option> =
                     SELECT unnest(@ids), 'pending' ON CONFLICT (season_id) DO NOTHING;
 
                     DELETE FROM mal_searches q
-                    USING cr_seasons se JOIN cr_series sr ON sr.id = se.series_id
-                    WHERE se.id = ANY(@ids) AND (q.query = sr.title OR q.query LIKE sr.title || ' %');
+                    USING cr_seasons se
+                          CROSS JOIN LATERAL (
+                              SELECT coalesce((SELECT sr.title FROM cr_series sr WHERE sr.id = se.series_id),
+                                              (SELECT min(e.series_title) FROM cr_episodes e
+                                               WHERE e.series_id = se.series_id)) AS title) t
+                    WHERE se.id = ANY(@ids) AND (q.query = t.title OR q.query LIKE t.title || ' %');
 
                     WITH auto AS (
                         UPDATE cr_season_matches SET status = 'pending', mal_id = NULL, method = NULL, shared_from = NULL,
