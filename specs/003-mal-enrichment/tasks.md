@@ -422,7 +422,7 @@ and tags are updated. A 404 → `missing_since`, and the details are kept.
   - the commands list.
 - [X] T034 Run the full `dotnet test` with 0 build warnings. Record the counts in the quickstart's
   validation log.
-- [ ] T035 With the owner's go-ahead, run the first real enrichment on `frunchydb` (quickstart §3).
+- [X] T035 With the owner's go-ahead, run the first real enrichment on `frunchydb` (quickstart §3).
   The schema change only adds tables and an index. Record in the validation log:
   - the duration;
   - the counts per status and method (SC-001, SC-002);
@@ -484,6 +484,16 @@ app, and the client id lives in Bella as `Frunchy__Mal__ClientId`.
     - several first-season hits narrow to TV/ONA;
     - OVA seasons also look at the series search's OVAs;
     - every match fetches and stores its anime.
+- [X] T044 Fix found by the first real run (T035): a season whose series has no `cr_series` row
+  stalled the whole queue.
+  - **Cause**: 001 only writes `cr_series` when an entry's metadata describes the parent series
+    itself, so a franchise movie or special can have none (Nademonogatari, Orokamonogatari, Dragon
+    Ball Super: Super Hero). `seriesOfSeason` inner-joined `cr_series`, so the worker released the
+    claim and took the same season again, forever.
+  - **Fix**: `seriesOfSeason` left-joins `cr_series` and falls back to the episodes' series title.
+    `mal-list` (which hid those seasons) and `mal-retry`'s search-cache cleanup use the same
+    fallback.
+  - **Test**: `EnrichmentTests` "a season whose series row is missing…" (it fails without the fix).
 
 ## Dependencies & Execution Order
 

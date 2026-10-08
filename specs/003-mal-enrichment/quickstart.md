@@ -103,4 +103,23 @@ action (SC-003).
     Era. That one is to be set by hand: `bella sdk run -- dotnet run -- mal-set GS00377934JAJP
     63082`.
   - **Suite**: `dotnet test` gives 226 passed and 1 skipped (the opt-in recording test).
-- **T035 (real run on `frunchydb`) and T036 (accuracy check)**: pending, on the owner's go-ahead.
+- **2026-10-08 (T035)**: the first real run on `frunchydb` (501 seasons, 336 series), against
+  MyAnimeList's official API.
+  - **A stall first**: a partial run on 2026-10-02 had decided 174 seasons. Today's first start
+    decided nothing, because three seasons with no `cr_series` row were claimed and released in a
+    loop (T044). After the fix, the remaining 327 seasons took **10.5 minutes** (20:21–20:31 UTC),
+    with 617 requests, **0 responses with status 429**, and no pause.
+  - **Result**: **468 matched (93.4%, SC-001 ≥ 85%)**: 318 by search, 112 by link and 38 by dub.
+    13 are ambiguous and 20 have no match. 568 anime and 355 searches are stored.
+  - **Ambiguous (13)**: OVA seasons with several MyAnimeList OVAs (Slime ×3, Black Clover, Golden
+    Kamuy, Dragon Maid, Mob Psycho 100), split-cour seasons (Re:ZERO S2, Tower of God S2, Ace of the
+    Diamond act II ×2, The Devil is a Part-Timer! S2), and Dragon Maid S's short series.
+  - **No match (20)**: mostly extras, specials and movies under a different MyAnimeList name. Some
+    look like misses worth a `mal-set`: ODDTAXI, GREAT PRETENDER razbliuto, Isekai Quartet 2 and 3,
+    and Dara-san of the Reiwa Era (63082).
+  - **Known cases**: JUJUTSU KAISEN S1, S2 and S3 and the 0 movie are each on their own entry
+    (40748, 51009, 57658 and 48561, the movie as type Movie). Frieren S1 and S2 are 52991 and 59978.
+    Dubs follow their original by method `dub`. The three seasons with no series row matched too
+    (Orokamonogatari and Nademonogatari on 57864; Dragon Ball Super: Super Hero on 48903).
+  - **Dashboard**: `/u/jjchiw` still shows 327 / 5,921 / 2,367.6 h / 98.6 days, plus "Top genres".
+- **T036 (accuracy check)**: pending, the owner's by-hand check.
