@@ -167,6 +167,102 @@ let private schema =
     );
 
     CREATE INDEX IF NOT EXISTS ix_security_events_user ON security_events (user_id, occurred_at DESC);
+
+    -- MyAnimeList enrichment (feature 003): shared catalog data, nothing references users.
+    -- raw columns hold the provider's responses verbatim (source says which provider); everything
+    -- else is re-derivable (mal-rebuild).
+    CREATE INDEX IF NOT EXISTS ix_cr_episodes_season ON cr_episodes (season_id);
+
+    CREATE TABLE IF NOT EXISTS mal_anime (
+        mal_id               int PRIMARY KEY,
+        url                  text NOT NULL,
+        title                text NOT NULL,
+        title_english        text NULL,
+        title_japanese       text NULL,
+        synonyms             text[] NOT NULL DEFAULT '{}',
+        type                 text NULL,
+        episodes             int NULL,
+        status               text NULL,
+        airing               boolean NOT NULL DEFAULT false,
+        aired_from           date NULL,
+        year                 int NULL,
+        season               text NULL,
+        score                numeric(4,2) NULL, -- NULL = no score (a missing or 0 score)
+        image_url            text NULL,
+        raw                  json NOT NULL,
+        source               text NOT NULL DEFAULT 'jikan', -- provider of raw: mal-api | jikan
+        data_hash            text NOT NULL,
+        etag                 text NULL,
+        fetched_at           timestamptz NOT NULL,
+        checked_at           timestamptz NOT NULL,
+        missing_since        timestamptz NULL,
+        refresh_attempts     int NOT NULL DEFAULT 0,
+        refresh_next_at      timestamptz NULL,
+        refresh_claimed_at   timestamptz NULL,
+        refresh_requested_at timestamptz NULL,
+        refresh_error        text NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS ix_mal_anime_checked ON mal_anime (checked_at);
+
+    CREATE TABLE IF NOT EXISTS mal_tags (
+        kind   text NOT NULL CHECK (kind IN ('genre', 'explicit_genre', 'theme', 'demographic', 'studio')),
+        tag_id int NOT NULL,
+        name   text NOT NULL,
+        PRIMARY KEY (kind, tag_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS mal_anime_tags (
+        mal_id   int NOT NULL REFERENCES mal_anime(mal_id) ON DELETE CASCADE,
+        kind     text NOT NULL,
+        tag_id   int NOT NULL,
+        position int NOT NULL,
+        PRIMARY KEY (mal_id, kind, tag_id),
+        FOREIGN KEY (kind, tag_id) REFERENCES mal_tags(kind, tag_id)
+    );
+
+    -- related_id has no FK: the related anime may not be held yet
+    CREATE TABLE IF NOT EXISTS mal_relations (
+        mal_id       int NOT NULL REFERENCES mal_anime(mal_id) ON DELETE CASCADE,
+        relation     text NOT NULL,
+        related_id   int NOT NULL,
+        related_name text NOT NULL,
+        PRIMARY KEY (mal_id, relation, related_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS mal_searches (
+        query       text PRIMARY KEY,
+        raw         json NOT NULL,
+        source      text NOT NULL DEFAULT 'jikan', -- provider of raw: mal-api | jikan
+        searched_at timestamptz NOT NULL
+    );
+
+    -- Databases created before the provider switch (feature 003 amendment)
+    ALTER TABLE mal_anime ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'jikan';
+    ALTER TABLE mal_searches ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'jikan';
+
+    -- One row per Crunchyroll season: its MyAnimeList match and its place in the enrichment queue
+    CREATE TABLE IF NOT EXISTS cr_season_matches (
+        season_id       text PRIMARY KEY REFERENCES cr_seasons(id) ON DELETE CASCADE,
+        status          text NOT NULL CHECK (status IN ('pending', 'matched', 'ambiguous', 'no_match', 'failed')),
+        mal_id          int NULL REFERENCES mal_anime(mal_id),
+        method          text NULL CHECK (method IN ('search', 'link', 'dub', 'manual')),
+        shared_from     text NULL REFERENCES cr_seasons(id),
+        candidates      jsonb NULL,
+        reason          text NULL,
+        title_seen      text NULL,
+        decided_at      timestamptz NULL,
+        attempts        int NOT NULL DEFAULT 0,
+        next_attempt_at timestamptz NULL,
+        claimed_at      timestamptz NULL,
+        requested_at    timestamptz NULL,
+        last_error      text NULL,
+        created_at      timestamptz NOT NULL DEFAULT now(),
+        CHECK ((status = 'matched') = (mal_id IS NOT NULL)),
+        CHECK (method IS DISTINCT FROM 'dub' OR shared_from IS NOT NULL)
+    );
+
+    CREATE INDEX IF NOT EXISTS ix_cr_season_matches_queue ON cr_season_matches (status, next_attempt_at);
     """
 
 /// Create the schema if missing (idempotent). Fails fast on the legacy placeholder layout.

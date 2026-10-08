@@ -49,6 +49,7 @@ let private notice (t: Texts) (msg: string) =
     | "link-duplicate" -> Some(true, t.LinkDuplicate)
     | "unlink-last" -> Some(true, t.UnlinkLast)
     | "reconfirm-failed" -> Some(true, t.ReconfirmFailed)
+    | "link-failed" -> Some(true, t.SignInFailed)
     | _ -> None
 
 let private row (label': string) (hook: string) (content: HtmlElement) =

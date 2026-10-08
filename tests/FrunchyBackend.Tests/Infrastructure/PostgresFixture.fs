@@ -57,10 +57,13 @@ let newEmptyDatabase () : Task<DbConfig> =
 
 /// The real app (Program.buildApp) on an in-process TestServer, background worker disabled,
 /// with the fake `test` sign-in provider registered (feature 002)
-type TestApp(app: WebApplication, client: HttpClient, db: DbConfig) =
+type TestApp(app: WebApplication, client: HttpClient, db: DbConfig, mal: FakeMal.FakeMalHandler) =
     member _.Client = client
     member _.Db = db
     member _.Services = app.Services
+
+    /// The stand-in for MyAnimeList's API this app talks to (feature 003); nothing is routed until a test says so
+    member _.Mal = mal
 
     /// A fresh browser (own cookie jar) speaking the given language
     member _.NewBrowser(?language: string) =
@@ -74,6 +77,8 @@ type TestApp(app: WebApplication, client: HttpClient, db: DbConfig) =
 /// The app with extra configuration and an extra builder customization (e.g. a test clock)
 let createAppWith (db: DbConfig) (extraConfig: (string * string) list) (customize: WebApplicationBuilder -> unit) : Task<TestApp> =
     task {
+        let mal = new FakeMal.FakeMalHandler()
+
         let app =
             Program.buildApp Array.empty (fun builder ->
                 builder.WebHost.UseTestServer() |> ignore
@@ -81,17 +86,20 @@ let createAppWith (db: DbConfig) (extraConfig: (string * string) list) (customiz
                 builder.Configuration.AddInMemoryCollection(
                     dict (
                         [ "ConnectionStrings:Database", db.connectionString
-                          Program.WorkerEnabledKey, "false" ]
+                          Program.WorkerEnabledKey, "false"
+                          Program.EnrichmentWorkerEnabledKey, "false" ]
+                        @ FakeMal.fastSettings
                         @ extraConfig
                     )
                 )
                 |> ignore
 
+                FakeMal.useHandler mal builder.Services
                 FakeProvider.register builder
                 customize builder)
 
         do! app.StartAsync()
-        return new TestApp(app, app.GetTestClient(), db)
+        return new TestApp(app, app.GetTestClient(), db, mal)
     }
 
 let createApp (db: DbConfig) : Task<TestApp> = createAppWith db [] ignore

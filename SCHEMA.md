@@ -17,6 +17,7 @@ EXISTS`, no migration framework). Keep this document in sync with it. The design
 | **Personal, derived** | `watch_events`, `cr_import_entry_issues`, import counts | rebuildable from the raw pages (`user-rebuild`) |
 | **Identity** | `users` | the sync key is stored only as a SHA-256 hash |
 | **Shared catalog** | `cr_series`, `cr_seasons`, `cr_episodes` | public Crunchyroll metadata, shared by all users; never deleted |
+| **Shared catalog, external** (feature 003) | `mal_anime`, `mal_searches` (raw), `mal_tags`, `mal_anime_tags`, `mal_relations`, `cr_season_matches` | MyAnimeList data (official API or Jikan); nothing references `users`, so user deletion never touches it |
 
 Everything personal hangs off `users` with `ON DELETE CASCADE`, so `user-delete` removes all of it.
 
@@ -78,12 +79,32 @@ order doesn't matter. Index `(user_id, watched_at DESC)`.
 
 | Table | Key | Notes |
 |---|---|---|
-| `cr_series` | `id` = entry `parent_id` | title only from entries where `series_id = parent_id` (franchise movies don't rename the series) |
+| `cr_series` | `id` = entry `parent_id` | title only from entries where `series_id = parent_id` (franchise movies don't rename the series), so a season's series can have **no row** when only its movies or specials were watched; code joining it must `LEFT JOIN` |
 | `cr_seasons` | `id` = `season_id` | dub variants are separate seasons |
 | `cr_episodes` | `id` = entry `id` | `duration_ms IS NULL` means **unresolved**: a stub created from an entry without panel, filled in when details arrive |
 
 Catalog rows keep `source_at` (page `capturedAt`, else the import's `received_at`) and are only
 overwritten by data at least as recent.
+
+## MyAnimeList enrichment (feature 003)
+
+The design is in `specs/003-mal-enrichment/data-model.md`. All of it is shared catalog data.
+
+| Table | Key | Notes |
+|---|---|---|
+| `mal_anime` | `mal_id` | one MyAnimeList anime. `raw` holds the provider's details response verbatim (`json`), and `source` says which provider (`mal-api` or `jikan`); the columns are derived from it. A score of 0 is stored as NULL. `data_hash` detects changes on refresh (Jikan sends no ETag in practice); `missing_since` is set when a refresh gets 404, and the last details are kept. The `refresh_*` columns are its refresh queue |
+| `mal_tags` | (`kind`, `tag_id`) | genre, explicit genre, theme, demographic or studio, with MyAnimeList's English name (never translated) |
+| `mal_anime_tags` | (`mal_id`, `kind`, `tag_id`) | `position` keeps MyAnimeList's order |
+| `mal_relations` | (`mal_id`, `relation`, `related_id`) | anime-to-anime links (Sequel, Prequel, Side Story…). `related_id` has no FK |
+| `mal_searches` | `query` | the latest search response per query, verbatim (`json`), with its `source` provider |
+| `cr_season_matches` | `season_id` | one row per Crunchyroll season: `status` (pending, matched, ambiguous, no_match, failed), `mal_id`, `method` (search, link, dub, manual), the candidates, and the queue columns (`attempts`, `next_attempt_at`, `claimed_at`, `requested_at`, `last_error`). Rows with `method = 'manual'` are never changed by automatic matching |
+
+Index `ix_cr_episodes_season` on `cr_episodes (season_id)` serves the dashboard joins and the
+queue's "latest watch per season" ordering.
+
+**Rebuild**: `mal-rebuild` re-derives the `mal_anime` columns, tags and relations from `raw`, and
+re-decides every automatic match from the stored responses, with no requests. Missing responses
+are fetched again by the worker. Manual rows are operator input and are kept.
 
 ## Dashboard figures
 

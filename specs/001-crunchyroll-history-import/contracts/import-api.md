@@ -116,6 +116,16 @@ Returns the status only to the owning user's key. Any other key, or an unknown i
   name and "Open dashboard" link. `dashboardUrl` is absolute, built from the request's scheme and
   host.
 
+## Web pages the extension may link to
+
+Fixed paths under the configured backend URL. They're stable, like the API routes. A signed-out
+visitor goes through `/signin` and comes back to the same page.
+
+| Path | Use it for |
+|---|---|
+| `/account` | the owner's account page; it holds "Reset Crunchyroll binding" (for `history_owner_mismatch` / `history_owner_taken`) |
+| `/account/key` | "Connect extension": confirm, then create a new sync key (it revokes the old one) |
+
 ---
 
 ## Errors
@@ -155,6 +165,8 @@ The history owner is **`(accountId, profileId)`**: `accountId` comes from the pa
 
 ## Change log
 
+- v1.3 (2026-10-08): documented the web pages the extension may link to (`/account`,
+  `/account/key`). Additive; no API change.
 - v1.2 (2026-10-02): **`profileId` is required** (breaking for clients that omit it): the history URL
   doesn't identify the profile. See History owner.
 - v1.1 (2026-10-02): added the `server_error` (500) code; `counts.received` is set when the submission is accepted; the other counts

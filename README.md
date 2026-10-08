@@ -139,7 +139,7 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 - **Views:** Oxpecker.ViewEngine (server-rendered HTML), HTMX 4 + Alpine.js, Tailwind + DaisyUI via CDN (see `FRONTEND.md`)
 - **Database:** PostgreSQL with Npgsql
 - **Background Jobs:** .NET BackgroundService
-- **External API:** Jikan (MyAnimeList data)
+- **External API:** MyAnimeList API v2 (official, client id in Bella), or Jikan as an alternative
 
 ## Getting Started
 
@@ -212,9 +212,37 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 - **Users**: `user-create <username> <displayName>`, `user-regenerate-key <username>`,
   `user-reset-binding <username>`, `user-rebuild <username>`, `user-delete <username> --yes`, `user-list`.
 - **Invites** (feature 002): `invite-create [--days N]`, `invite-list`, `invite-revoke <id>`.
+- **MyAnimeList enrichment** (feature 003): `mal-status`, `mal-list [--status S] [--limit N]`,
+  `mal-show <crSeriesId>`, `mal-set <crSeasonId> <malId>`, `mal-none <crSeasonId>`,
+  `mal-retry <crSeasonId | crSeriesId>`, `mal-rebuild` (no requests).
 
-Details are in [`001 contracts/operator-cli.md`](specs/001-crunchyroll-history-import/contracts/operator-cli.md)
-and [`002 contracts/operator-cli.md`](specs/002-social-login-accounts/contracts/operator-cli.md).
+Details are in [`001 contracts/operator-cli.md`](specs/001-crunchyroll-history-import/contracts/operator-cli.md),
+[`002 contracts/operator-cli.md`](specs/002-social-login-accounts/contracts/operator-cli.md)
+and [`003 contracts/operator-cli.md`](specs/003-mal-enrichment/contracts/operator-cli.md).
+
+### MyAnimeList enrichment (feature 003)
+
+A background worker matches every Crunchyroll season to MyAnimeList through
+MyAnimeList's official API v2 and stores the details (genres, studios, format, year, score) in
+shared catalog tables. Imports never wait for it, and page views never call MyAnimeList. The public
+dashboard then shows score and genres on the recent cards, plus a "Top genres" section.
+
+- **Client id**: register an app at https://myanimelist.net/apiconfig (type `web`, redirect
+  `http://localhost:5099/`; only the Client ID is used). Store it in Bella as
+  `Frunchy__Mal__ClientId`, or with `dotnet user-secrets set "Frunchy:Mal:ClientId" "…"`, never in
+  appsettings. Without it the site runs and enrichment stays off, with a warning in the log.
+  `Frunchy:Mal:Provider=jikan` switches to Jikan, which needs no credentials.
+
+- **Pace and retries**: at most 1 request per second, retries included. Temporary errors (429
+  honouring `Retry-After`, 5xx, timeouts) are retried 3 times. After that the season waits
+  1 min, 2, 4… up to 6 h. After 5 failed lookups in a row the worker pauses 5 minutes, then sends one
+  probe. Nothing is lost on restart: the queue is Postgres.
+- **Uncertain matches** are recorded as `ambiguous` (with candidates) or `no_match`, never guessed.
+  Fix them with `mal-list` and `mal-set` / `mal-none`; manual decisions are never overwritten.
+- **Settings** (`appsettings.json`, no secrets): `Frunchy:EnrichmentWorkerEnabled`,
+  `Frunchy:Mal:{Provider, BaseUrl, RequestsPerSecond, RetryBaseDelay, AttemptTimeout}` (plus the
+  `ClientId` secret),
+  `Frunchy:Enrichment:{PauseAfterFailures, PauseFor, RefreshAfterDays, RefreshAiringAfterDays}`.
 
 ## What's NOT Included (MVP)
 
@@ -236,7 +264,7 @@ Features are built through spec-kit (`specs/###-name/`), in this order:
 |---|---|---|
 | 001 | **Crunchyroll history import + real dashboard**: raw import, normalization to watch events, import status, public per-user dashboard (`/u/{username}`), sync-key identity bound to the user's Crunchyroll account, English/Spanish UI | Implemented ([spec](specs/001-crunchyroll-history-import/spec.md)) |
 | 002 | **Accounts**: sign in through an external provider (Discord / Google / AniList, decided in its spec), self-service sign-up, sync key and account deletion. **Required before inviting a second user.** | Implemented ([spec](specs/002-social-login-accounts/spec.md)) |
-| 003 | **MAL enrichment**: match Crunchyroll seasons to MyAnimeList via Jikan (rate-limited, per distinct anime): genres, studios, cover art, scores | Planned |
+| 003 | **MAL enrichment**: match Crunchyroll seasons to MyAnimeList through its official API (paced, retried, per distinct anime): genres, studios, format, scores; score, genres and "Top genres" on the dashboard; operator review commands | Implemented ([spec](specs/003-mal-enrichment/spec.md)) |
 | 004 | **Anime DNA profile**: genre distribution, favourite studio, dominant decade, viewing pace, insignia anime | Planned |
 
 

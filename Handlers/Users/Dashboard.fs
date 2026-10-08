@@ -21,19 +21,34 @@ type Figures =
       Hours: decimal
       Days: decimal }
 
+/// MyAnimeList details of a matched season (feature 003, contracts/dashboard.md)
+type MalDetails =
+    { Url: string
+      Score: decimal option
+      /// Up to 3 genre names in MyAnimeList's order, already joined with " / "
+      Genres: string option }
+
 type RecentEpisode =
     { SeriesTitle: string
       EpisodeNumber: int option
       DurationMs: int
       ThumbnailUrl: string option
       WatchedAt: DateTime
-      FullyWatched: bool }
+      FullyWatched: bool
+      Mal: MalDetails option }
+
+/// "Top genres": fully watched episodes in matched seasons, per MyAnimeList genre (FR-018a)
+type TopGenres =
+    { Genres: (string * int64) list
+      MatchedEpisodes: int64
+      AllEpisodes: int64 }
 
 type DashboardModel =
     { DisplayName: string
       LastSyncAt: DateTime option
       SyncInProgress: bool
       Figures: Figures option // None when nothing resolved has been watched yet
+      TopGenres: TopGenres option // None when no fully watched episode is in a matched season
       Recent: RecentEpisode list }
 
 let private timeElement = Layout.timeElement
@@ -71,10 +86,61 @@ let private recentItem (t: Texts) (e: RecentEpisode) =
                 + t.Minutes(int (Math.Round(float e.DurationMs / 60000.0)))
             }
 
+            match e.Mal with
+            | Some mal ->
+                p(class' = "text-sm") {
+                    match mal.Score with
+                    | Some score ->
+                        span(class' = "text-warning mr-2").data("mal-score", score.ToString("0.00", CultureInfo.InvariantCulture)).attr("aria-label", t.ScoreLabel) {
+                            "★ " + score.ToString("N2", t.Culture)
+                        }
+                    | None -> Fragment()
+
+                    match mal.Genres with
+                    | Some genres -> span(class' = "text-gray-400 mr-2").data("mal-genres", "") { genres }
+                    | None -> Fragment()
+
+                    a(href = mal.Url, target = "_blank", class' = "link link-hover text-xs text-gray-500")
+                        .attr("rel", "noopener")
+                        .data("mal-link", "") { t.MyAnimeListLink }
+                }
+            | None -> Fragment()
+
             if not e.FullyWatched then
                 span(class' = "badge badge-secondary") { t.InProgress }
 
             p(class' = "text-xs text-gray-500") { timeElement t "relative" e.WatchedAt }
+        }
+    }
+
+let private percent (part: int64) (whole: int64) =
+    if whole = 0L then 0 else int (Math.Round(100m * decimal part / decimal whole, MidpointRounding.AwayFromZero))
+
+let private topGenres (t: Texts) (g: TopGenres) =
+    div(class' = "card bg-base-300 shadow-md").data("top-genres", "") {
+        div(class' = "card-body space-y-3") {
+            h2(class' = "card-title") { t.TopGenresTitle }
+
+            for name, count in g.Genres do
+                let share = percent count g.MatchedEpisodes
+
+                div(class' = "space-y-1").data("genre", name) {
+                    div(class' = "flex justify-between text-sm") {
+                        span() { name }
+
+                        span(class' = "text-gray-400") {
+                            span().data("genre-share", string share) { $"{share}%%" }
+                            " · "
+                            span().data("genre-episodes", string count) { t.TopGenresEpisodes count }
+                        }
+                    }
+
+                    progress(class' = "progress progress-primary w-full", value = string share, max = "100")
+                }
+
+            p(class' = "text-xs text-gray-500").data("genres-coverage", string (percent g.MatchedEpisodes g.AllEpisodes)) {
+                t.TopGenresCoverage(percent g.MatchedEpisodes g.AllEpisodes)
+            }
         }
     }
 
@@ -108,6 +174,10 @@ let view (ctx: Microsoft.AspNetCore.Http.HttpContext) (t: Texts) (m: DashboardMo
         match m.Figures with
         | Some figures ->
             stats t figures
+
+            match m.TopGenres with
+            | Some genres -> topGenres t genres
+            | None -> Fragment()
 
             div(class' = "space-y-4") {
                 h2(class' = "text-2xl font-bold") { t.RecentTitle }
@@ -192,10 +262,18 @@ let private tryLoad (db: DbConfig) (username: string) : Task<DashboardModel opti
                 new NpgsqlCommand(
                     """
                     SELECT coalesce(e.series_title, s.title, e.series_id), e.episode_number, e.duration_ms,
-                           e.thumbnail_url, w.watched_at, w.fully_watched
+                           e.thumbnail_url, w.watched_at, w.fully_watched,
+                           a.url, a.score,
+                           (SELECT string_agg(g.name, ' / ' ORDER BY g.position)
+                            FROM (SELECT t.name, at.position FROM mal_anime_tags at
+                                  JOIN mal_tags t ON t.kind = at.kind AND t.tag_id = at.tag_id
+                                  WHERE at.mal_id = a.mal_id AND at.kind = 'genre'
+                                  ORDER BY at.position LIMIT 3) g)
                     FROM watch_events w
                     JOIN cr_episodes e ON e.id = w.cr_episode_id
                     LEFT JOIN cr_series s ON s.id = e.series_id
+                    LEFT JOIN cr_season_matches m ON m.season_id = e.season_id AND m.status = 'matched'
+                    LEFT JOIN mal_anime a ON a.mal_id = m.mal_id
                     WHERE w.user_id = @user_id AND e.duration_ms IS NOT NULL
                     ORDER BY w.watched_at DESC, e.id
                     LIMIT 6
@@ -217,9 +295,66 @@ let private tryLoad (db: DbConfig) (username: string) : Task<DashboardModel opti
                               DurationMs = r.GetInt32 2
                               ThumbnailUrl = if r.IsDBNull 3 then None else Some(r.GetString 3)
                               WatchedAt = r.GetDateTime 4
-                              FullyWatched = r.GetBoolean 5 }
+                              FullyWatched = r.GetBoolean 5
+                              Mal =
+                                if r.IsDBNull 6 then
+                                    None
+                                else
+                                    Some
+                                        { Url = r.GetString 6
+                                          Score = if r.IsDBNull 7 then None else Some(r.GetDecimal 7)
+                                          Genres = if r.IsDBNull 8 then None else Some(r.GetString 8) } }
 
                     return List.ofSeq items
+                }
+
+            // "Top genres": the "Episodes watched" rule (fully watched, known duration), matched seasons only
+            use genresCmd =
+                new NpgsqlCommand(
+                    """
+                    WITH fw AS (
+                        SELECT e.season_id FROM watch_events w
+                        JOIN cr_episodes e ON e.id = w.cr_episode_id
+                        WHERE w.user_id = @user_id AND w.fully_watched AND e.duration_ms IS NOT NULL
+                    ),
+                    matched AS (
+                        SELECT m.mal_id FROM fw JOIN cr_season_matches m ON m.season_id = fw.season_id AND m.status = 'matched'
+                    )
+                    SELECT NULL::text, (SELECT count(*) FROM fw), (SELECT count(*) FROM matched)
+                    UNION ALL
+                    (SELECT t.name, count(*), NULL FROM matched x
+                     JOIN mal_anime_tags at ON at.mal_id = x.mal_id AND at.kind = 'genre'
+                     JOIN mal_tags t ON t.kind = at.kind AND t.tag_id = at.tag_id
+                     GROUP BY t.tag_id, t.name
+                     ORDER BY count(*) DESC, t.name
+                     LIMIT 5)
+                    """,
+                    connection
+                )
+
+            genresCmd.Parameters.AddWithValue("user_id", userId) |> ignore
+
+            let! topGenres =
+                task {
+                    use! r = genresCmd.ExecuteReaderAsync()
+                    let mutable all, matched = 0L, 0L
+                    let genres = ResizeArray()
+
+                    while r.Read() do
+                        if r.IsDBNull 0 then
+                            all <- r.GetInt64 1
+                            matched <- r.GetInt64 2
+                        else
+                            genres.Add(r.GetString 0, r.GetInt64 1)
+
+                    return
+                        if matched = 0L then
+                            None
+                        else
+                            Some
+                                { Genres = List.ofSeq genres
+                                  MatchedEpisodes = matched
+                                  AllEpisodes = all }
                 }
 
             use syncCmd =
@@ -243,6 +378,7 @@ let private tryLoad (db: DbConfig) (username: string) : Task<DashboardModel opti
                       LastSyncAt = lastSync
                       SyncInProgress = inProgress
                       Figures = figures
+                      TopGenres = topGenres
                       Recent = recent }
     }
 
