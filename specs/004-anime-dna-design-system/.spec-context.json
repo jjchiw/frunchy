@@ -2,8 +2,8 @@
   "workflow": "speckit",
   "specName": "Anime DNA Profile and Shared Design System",
   "branch": "004-anime-dna-design-system",
-  "currentStep": "plan",
-  "status": "planned",
+  "currentStep": "tasks",
+  "status": "ready-to-implement",
   "history": [
     {
       "step": "specify",
@@ -18,6 +18,13 @@
       "kind": "complete",
       "by": "extension",
       "at": "2026-10-08T20:58:08.951Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "complete",
+      "by": "extension",
+      "at": "2026-10-08T21:11:32.183Z"
     }
   ]
 }
