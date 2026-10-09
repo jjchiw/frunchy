@@ -38,7 +38,7 @@ Files: Handlers/Users/Year.fs, Program.fs, tests/FrunchyBackend.Tests/YearTests.
 
 ### Tests
 
-- [ ] **T006** [US1] Write `YearTests` to fail first, on the 2026 sample with the feature 003 fixtures and a fixed clock (contract `year-page.md`):
+- [x] **T006** [US1] Write `YearTests` to fail first, on the 2026 sample with the feature 003 fixtures and a fixed clock (contract `year-page.md`):
   - every figure for a sample year against an independent F# count over raw rows: totals, top series, months and the busiest one, top genres plus Others (summing to 100), top 3 studios, formats, new versus continued, streak with its dates;
   - SC-002: every year's hours add up to the dashboard's, within 0.1 per year;
   - coverage drops when a season is unmatched, and with none matched each MyAnimeList section has `data-not-enough`;
@@ -53,8 +53,8 @@ Files: Handlers/Users/Year.fs, Program.fs, tests/FrunchyBackend.Tests/YearTests.
 
 ### Implementation
 
-- [ ] **T007** [US1] Data section: the user lookup, the years-with-history query, and one statement per research R2–R6. That's totals (undeduplicated), deduplicated MyAnimeList figures, top series with its poster, 12 months, the streak (UTC days, `d - row_number()`) and new versus continued (the earliest held watch per series). Year bounds and `@now` come from `TimeProvider`, and values go only as parameters · Handlers/Users/Year.fs
-- [ ] **T008** [US1] View, handler and endpoints:
+- [x] **T007** [US1] Data section: the user lookup, the years-with-history query, and one statement per research R2–R6. That's totals (undeduplicated), deduplicated MyAnimeList figures, top series with its poster, 12 months, the streak (UTC days, `d - row_number()`) and new versus continued (the earliest held watch per series). Year bounds and `@now` come from `TimeProvider`, and values go only as parameters · Handlers/Users/Year.fs
+- [x] **T008** [US1] View, handler and endpoints:
   - **Header**: the heading, the rewatch note, links to the dashboard and the DNA page, and the copy link.
   - **Picker**.
   - **Totals tiles**.
@@ -71,7 +71,7 @@ Files: Handlers/Users/Year.fs, Program.fs, tests/FrunchyBackend.Tests/YearTests.
 
 **⟶ Wait for T008, then:**
 
-- [ ] **T009** [US1] Run `YearTests` and the suite, then check `/u/jjchiw/year/2025` on the real database: totals equal the 2025 slice of the dashboard rule (398.8 h, 1,010 episodes, 91 series), ready in under 1 s, at 1440 and 360px, in en and es · Handlers/Users/Year.fs
+- [x] **T009** [US1] Run `YearTests` and the suite, then check `/u/jjchiw/year/2025` on the real database: totals equal the 2025 slice of the dashboard rule (398.8 h, 1,010 episodes, 91 series), ready in under 1 s, at 1440 and 360px, in en and es · Handlers/Users/Year.fs
 
 **Checkpoint**: the year page works on its own.
 
@@ -81,7 +81,7 @@ Files: Handlers/Users/Dashboard.fs, tests/FrunchyBackend.Tests/YearNavigationTes
 
 ### Tests
 
-- [ ] **T010** [US2] Write `YearNavigationTests`:
+- [x] **T010** [US2] Write `YearNavigationTests`:
   - the dashboard and the DNA page link to `/u/{username}/year`;
   - `/u/{username}/year` redirects to the newest year with history, and to the current year for a user without history;
   - a year with no history redirects to `/u/{username}/year`;
@@ -91,7 +91,7 @@ Files: Handlers/Users/Dashboard.fs, tests/FrunchyBackend.Tests/YearNavigationTes
 
 ### Implementation
 
-- [ ] **T011** [US2] Add the year link (`data-year-link`) to the dashboard header next to the DNA link; view only · Handlers/Users/Dashboard.fs
+- [x] **T011** [US2] Add the year link (`data-year-link`) to the dashboard header next to the DNA link; view only · Handlers/Users/Dashboard.fs
 
 **Checkpoint**: a viewer reaches any year from the dashboard in 2 clicks (SC-004).
 

@@ -248,6 +248,11 @@ let private header (ctx: HttpContext) (t: Texts) (m: DashboardModel) =
                 t.DnaLink
             }
 
+            a(href = $"/u/{m.Username}/year", class' = btn Secondary).data("year-link", "") {
+                icon Theme.CalendarMonth
+                t.YearLink
+            }
+
             copyLink t address
         }
     }

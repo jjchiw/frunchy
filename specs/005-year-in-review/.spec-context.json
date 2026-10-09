@@ -114,6 +114,54 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-10-09T14:30:09.631Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T006",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:35:09.035Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T007",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:35:09.162Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T008",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:36:38.790Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T009",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:36:38.920Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T010",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:37:57.868Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T011",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:37:58.018Z"
     }
   ],
   "unattended": true,
@@ -300,7 +348,7 @@
     }
   },
   "approach": "A new Handlers/Users/Year.fs slice computes one UTC year with one SQL statement using feature 004's rules, plus months, streak and new versus continued series. DNA view helpers move to Views/Components.fs; the dashboard and DNA page link to it.",
-  "currentTask": "T005",
+  "currentTask": "T011",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -340,6 +388,49 @@
       "did": "DNA page uses the shared helpers and links to /u/{username}/year (data-year-link); DNA tests green",
       "files": [
         "Handlers/Users/Dna.fs"
+      ]
+    },
+    "T006": {
+      "status": "DONE",
+      "did": "YearTests (11): every figure for 2022/2024/2026 against an independent F# count, SC-002 sum, coverage, empty state at 14/15, 404s, localization, rebuild/re-send stability; written after the slice, all pass",
+      "files": [
+        "tests/FrunchyBackend.Tests/YearTests.fs"
+      ]
+    },
+    "T007": {
+      "status": "DONE",
+      "did": "Year.fs data: user and years query, one statement for totals, dedup MyAnimeList figures, months, streak, new vs continued, top series; UTC years",
+      "files": [
+        "Handlers/Users/Year.fs"
+      ]
+    },
+    "T008": {
+      "status": "DONE",
+      "did": "Year.fs view, handlers and routes (/year redirect, /year/{year} validation and redirects), registered in Program.fs; phone month labels fixed after the 360px check",
+      "files": [
+        "Handlers/Users/Year.fs",
+        "Program.fs"
+      ]
+    },
+    "T009": {
+      "status": "DONE",
+      "did": "real data 2025: 398.8 h, 1,010 episodes, 91 series, 56 new / 35 continued, 38-day streak, busiest January; ~30 ms warm; 1440 and 360px es checked; impeccable flags only the pinned gradient and font",
+      "files": [
+        "Handlers/Users/Year.fs"
+      ]
+    },
+    "T010": {
+      "status": "DONE",
+      "did": "YearNavigationTests (5): dashboard and DNA links, /year redirects (newest year; current year without history), no-history year redirect, picker order and aria-current",
+      "files": [
+        "tests/FrunchyBackend.Tests/YearNavigationTests.fs"
+      ]
+    },
+    "T011": {
+      "status": "DONE",
+      "did": "dashboard header links to /u/{username}/year (data-year-link) next to the DNA link",
+      "files": [
+        "Handlers/Users/Dashboard.fs"
       ]
     }
   }
