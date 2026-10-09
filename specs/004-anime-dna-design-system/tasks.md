@@ -270,7 +270,7 @@ its own.
 Each task below changes **view functions only** in the named file. Handlers, SQL, routes and form
 fields stay as they are, and each task follows the "Conventions for every UI task".
 
-- [ ] T016 [US2] Restyle the dashboard view in `Handlers/Users/Dashboard.fs` (mockup
+- [X] T016 [US2] Restyle the dashboard view in `Handlers/Users/Dashboard.fs` (mockup
   `design/frunchy_public_dashboard_u_username`, keep/drop per `design/REVIEW.md`):
   - header: display name, the DNA link (T013) and a copy-profile-link control (the same Alpine
     control as the DNA page; move it to `Components.copyLink` when both use it);
@@ -283,15 +283,15 @@ fields stay as they are, and each task follows the "Conventions for every UI tas
   - empty, processing and not-found states;
   - keep `data-stat`, `data-value`, `data-recent-item`, `data-mal-*`, `data-top-genres`,
     `data-genre*`, `data-genres-coverage`, `data-sync` and `data-fr-time`.
-- [ ] T017 [P] [US2] Restyle `Handlers/Home.fs` (brief 4.1): hero with wordmark and headline, the
+- [X] T017 [P] [US2] Restyle `Handlers/Home.fs` (brief 4.1): hero with wordmark and headline, the
   three steps, the sign-in call to action, and the `data-account-deleted` alert.
-- [ ] T018 [P] [US2] Restyle the sign-in pages (brief 4.2–4.4, 4.7):
+- [X] T018 [P] [US2] Restyle the sign-in pages (brief 4.2–4.4, 4.7):
   - `Handlers/Auth/SignIn.fs`: `providerButton` per provider; `data-signin-error` and
     `data-signin-unavailable` alerts.
   - `Handlers/Auth/SignUp.fs`: `field` with the live URL preview via Alpine; `data-signup-error`.
   - `Handlers/Auth/Claim.fs`: `data-claim-error`, `data-claim-link`.
   - `Handlers/Auth/Reconfirm.fs`.
-- [ ] T019 [P] [US2] Restyle the account pages (brief 4.5, 4.6, 4.8):
+- [X] T019 [P] [US2] Restyle the account pages (brief 4.5, 4.6, 4.8):
   - `Handlers/Account/AccountPage.fs`: the card stack; `data-account*`, `data-key-active`,
     `data-identity`, `data-link-provider`, `data-provider`, `data-security-event`;
   - `Handlers/Account/SyncKey.fs`: the key in a monospace box with a copy button;
