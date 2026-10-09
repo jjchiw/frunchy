@@ -484,3 +484,6 @@ $RECYCLE.BIN/
 .private
 # Full Crunchyroll history exports are large personal captures; commit trimmed fixtures only
 JsonSamples/*crunchyroll-history-????-??-??.json
+
+# Designer exports, unpacked into design/<screen>/ (design/REVIEW.md)
+design/*.zip

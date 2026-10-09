@@ -53,6 +53,7 @@ type Texts =
       NavSignIn: string
       NavAccount: string
       NavSignOut: string
+      SkipToContent: string
       TooManyRequestsTitle: string
       TooManyRequestsBody: string
       FormExpiredTitle: string
@@ -189,6 +190,7 @@ let en =
       NavSignIn = "Sign in"
       NavAccount = "Account"
       NavSignOut = "Sign out"
+      SkipToContent = "Skip to content"
       TooManyRequestsTitle = "Too many attempts"
       TooManyRequestsBody = "Please wait a few minutes and try again."
       FormExpiredTitle = "This form expired"
@@ -340,6 +342,7 @@ let es =
       NavSignIn = "Iniciar sesión"
       NavAccount = "Cuenta"
       NavSignOut = "Cerrar sesión"
+      SkipToContent = "Saltar al contenido"
       TooManyRequestsTitle = "Demasiados intentos"
       TooManyRequestsBody = "Espera unos minutos y vuelve a intentarlo."
       FormExpiredTitle = "Este formulario caducó"

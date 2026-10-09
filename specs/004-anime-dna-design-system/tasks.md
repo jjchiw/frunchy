@@ -47,11 +47,11 @@ its own.
 
 ## Phase 1: Setup
 
-- [ ] T001 Register the new files in `FrunchyBackend.fsproj`, each created as a minimal module so
+- [X] T001 Register the new files in `FrunchyBackend.fsproj`, each created as a minimal module so
   `dotnet build` passes with 0 warnings:
   - `Views/Theme.fs` and `Views/Components.fs` between `Views/Texts.fs` and `Views/Layout.fs`;
   - `Handlers/Users/Dna.fs` right after `Handlers/Users/Dashboard.fs`.
-- [ ] T002 [P] Register `DesignSystemTests.fs`, `DnaTests.fs` and `DnaPaceTests.fs` in
+- [X] T002 [P] Register `DesignSystemTests.fs`, `DnaTests.fs` and `DnaPaceTests.fs` in
   `tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj`, after `SampleEnrichmentTests.fs`, as
   empty modules.
 
@@ -61,7 +61,7 @@ its own.
 
 **Purpose**: tokens, components and the layout that every page, the DNA page included, is built on.
 
-- [ ] T003 [P] Write `tests/FrunchyBackend.Tests/DesignSystemTests.fs` first (research R13, R14):
+- [X] T003 [P] Write `tests/FrunchyBackend.Tests/DesignSystemTests.fs` first (research R13, R14):
   - **Token parity**: parse `../browser-extension/src/styles/tokens.css`, found from the repo root
     by walking up from `AppContext.BaseDirectory`. Every custom property defined on both sides must
     have the same value, `--font-family` excepted. Skip with a reason when the file is absent.
@@ -79,7 +79,7 @@ its own.
     (`AuthHelpers.signedUp`, `connectExtension`, `Browser`) to reach the account pages.
 
   These tests fail until T004–T006 are done; the parity test may pass already.
-- [ ] T004 Create `Views/Theme.fs` (research R1, R2, R16):
+- [X] T004 Create `Views/Theme.fs` (research R1, R2, R16):
   - `tokensCss`: a `:root` block with every token of `contracts/design-system.md`:
     - the names and values of the extension's `tokens.css`;
     - plus the website-only type styles from `DESIGN.md`'s YAML (`display-hero`,
@@ -99,7 +99,7 @@ its own.
     JetBrains Mono 400/500 (keys, usernames and URLs only: `--font-mono`, `font-mono`), and the
     Material Symbols Outlined subset (`icon_names=` with only the icons used).
   - `markSvg`: the inline SVG of `design/brand/frunchy-mark.svg`, and `faviconHref`, a data-URI of it.
-- [ ] T005 Create `Views/Components.fs` (contract "Components"). Each function returns an
+- [X] T005 Create `Views/Components.fs` (contract "Components"). Each function returns an
   `HtmlElement` and takes the strings it shows (no literals):
   - `card`, `metricTile label name invariantValue display` (keeps `data-stat` and `data-value`),
     `pill`;
@@ -110,7 +110,7 @@ its own.
   - `alert` (`Success | Error | Info`, with `role`), `emptyState icon title body action`,
     `processing text`, `confirmLayout`;
   - `icon name` (Material Symbol, `aria-hidden`).
-- [ ] T006 Rewrite `Views/Layout.fs` with the design system:
+- [X] T006 Rewrite `Views/Layout.fs` with the design system:
   - **Head**: drop DaisyUI; keep the Tailwind CDN script, htmx 4.0.0, Alpine 3 and the time script;
     add `Theme.fontLinks`, `Theme.tokensCss`, `Theme.tailwindConfig` and `Theme.componentCss`.
   - **Body**: `bg-surface text-on-surface font-sans`.
@@ -123,7 +123,7 @@ its own.
   - **`messagePage`**: rebuilt on `Components.emptyState`, keeping its signature so `Program.fs`
     and the handlers don't change.
   - **`timeElement`**: unchanged.
-- [ ] T007 Run `dotnet test`:
+- [X] T007 Run `dotnet test`:
   - every earlier suite passes **with no assertion edited**;
   - `DesignSystemTests` passes for `/`, `/signin` and the layout.
 

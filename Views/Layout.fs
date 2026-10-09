@@ -36,20 +36,21 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 """
 
-/// Navbar right side: "Sign in", or the signed-in user's name, Account and a sign-out form (POST + antiforgery)
+/// Navigation, right side: "Sign in", or the signed-in user's name, Account and a sign-out form (POST + antiforgery)
 let private navEnd (ctx: HttpContext) (t: Texts) =
     match WebAuth.currentNav ctx with
-    | WebAuth.SignedOut -> div(class' = "flex-none") { a(href = "/signin", class' = "btn btn-ghost btn-sm") { t.NavSignIn } }
+    | WebAuth.SignedOut -> a(href = "/signin", class' = Components.btnSm Components.Primary) { t.NavSignIn } :> HtmlElement
     | WebAuth.SignedIn displayName ->
-        div(class' = "flex-none flex items-center gap-2") {
-            span(class' = "text-sm text-gray-400").data("nav", "user") { displayName }
-            a(href = "/account", class' = "btn btn-ghost btn-sm") { t.NavAccount }
+        div(class' = "flex items-center gap-1 sm:gap-2") {
+            span(class' = "hidden max-w-[16ch] truncate text-label-md text-on-surface-variant sm:inline").data("nav", "user") { displayName }
+            a(href = "/account", class' = Components.btnSm Components.Ghost) { t.NavAccount }
 
             form(method = "post", action = "/signout") {
                 ctx.GetAntiforgeryInput()
-                button(type' = "submit", class' = "btn btn-ghost btn-sm") { t.NavSignOut }
+                button(type' = "submit", class' = Components.btnSm Components.Ghost) { t.NavSignOut }
             }
         }
+        :> HtmlElement
 
 /// Exact instant for the viewer's browser to localize (the time script above); UTC fallback text without JS.
 /// Shared by the dashboard and the account page.
@@ -62,44 +63,68 @@ let timeElement (t: Texts) (mode: string) (instant: System.DateTime) =
         utc.ToString("d MMM yyyy, HH:mm", t.Culture) + " UTC"
     }
 
-/// Base HTML layout with DaisyUI + HTMX, in the request's language
+/// Base HTML layout on the design system (Views/Theme.fs), in the request's language
 let page (ctx: HttpContext) (t: Texts) (titleText: string) (content: HtmlElement) =
-    html(lang = t.Lang) {
+    html(lang = t.Lang, class' = "bg-surface") {
         head() {
-            title() { $"{titleText} | {t.SiteName}" }
             meta(charset = "UTF-8")
             meta(name = "viewport", content = "width=device-width, initial-scale=1.0")
+            meta(name = "color-scheme", content = "dark")
+            meta(name = "theme-color", content = "#0f131c")
+            title() { $"{titleText} | {t.SiteName}" }
+            link(rel = "icon", href = Theme.faviconHref).attr("type", "image/svg+xml")
+            link(rel = "preconnect", href = "https://fonts.googleapis.com")
+            link(rel = "preconnect", href = "https://fonts.gstatic.com").attr("crossorigin", "")
+
+            for sheet in Theme.fontStylesheets do
+                link(rel = "stylesheet", href = sheet)
+
+            style() { raw Theme.tokensCss }
             script(src = "https://cdn.tailwindcss.com")
-            link(
-                href = "https://cdn.jsdelivr.net/npm/daisyui@4.11.1/dist/full.min.css",
-                rel = "stylesheet",
-                type' = "text/css"
-            )
+            script() { raw Theme.tailwindConfig }
+            style().attr("type", "text/tailwindcss") { raw Theme.componentCss }
             script(src = "https://cdn.jsdelivr.net/npm/htmx.org@4.0.0", crossorigin = "anonymous")
             script(defer = true, src = "https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js")
-            style() { "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; }" }
             script() { raw timeScript }
         }
-        body(class' = "bg-base-100").attr("data-theme", "dark") {
-            div(class' = "navbar bg-base-200 sticky top-0 z-50 shadow-lg") {
-                div(class' = "flex-1") { a(href = "/", class' = "btn btn-ghost text-xl") { $"🎬 {t.SiteName}" } }
-                navEnd ctx t
+
+        body(class' = "min-h-screen bg-surface text-on-surface flex flex-col") {
+            a(href = "#main", class' = "sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] fr-btn fr-btn-primary") {
+                t.SkipToContent
             }
-            div(class' = "container mx-auto px-4 py-8") { content }
-            footer(class' = "footer footer-center bg-base-200 text-base-content p-4 mt-16") {
-                div() { p() { t.Footer } }
+
+            header(class' = "sticky top-0 z-50 border-b border-outline-variant/40 bg-surface/85 backdrop-blur-md") {
+                nav(class' = "mx-auto flex h-16 max-w-page items-center justify-between gap-4 px-4 md:px-8") {
+                    Components.brand t.SiteName
+                    navEnd ctx t
+                }
+            }
+
+            main(id = "main", class' = "mx-auto w-full max-w-page flex-1 px-4 py-8 md:px-8 md:py-12") { content }
+
+            footer(class' = "border-t border-outline-variant/40") {
+                div(class' = "mx-auto flex max-w-page items-center gap-3 px-4 py-8 text-label-md font-normal text-on-surface-variant md:px-8") {
+                    span(class' = "block h-5 w-5 opacity-80") { raw Theme.markSvg }
+                    p() { t.Footer }
+                }
             }
         }
     }
 
-/// Simple message page (404, 500) in the request's language
+/// Short message page (404, 500, rate limit, expired form) in the request's language
 let messagePage (ctx: HttpContext) (t: Texts) (heading: string) (body: string) =
-    div(class' = "hero bg-base-200 rounded-lg") {
-        div(class' = "hero-content text-center") {
-            div(class' = "max-w-md") {
-                h1(class' = "text-4xl font-bold") { heading }
-                p(class' = "py-6") { body }
-                a(href = "/", class' = "btn btn-primary") { t.BackHome }
+    div(class' = "flex min-h-[50vh] items-center justify-center") {
+        div(class' = "fr-card w-full max-w-md text-center space-y-4") {
+            span(class' = "mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-surface-container-high text-headline-lg text-primary") {
+                Components.icon Theme.ExploreOff
+            }
+
+            h1(class' = "text-headline-lg text-on-surface text-balance") { heading }
+            p(class' = "text-body-lg text-on-surface-variant") { body }
+
+            a(href = "/", class' = Components.btn Components.Primary) {
+                Components.icon Theme.Home
+                t.BackHome
             }
         }
     }
