@@ -2,8 +2,8 @@
   "workflow": "companion",
   "specName": "Year in Review",
   "branch": "005-year-in-review",
-  "currentStep": "plan",
-  "status": "planned",
+  "currentStep": "tasks",
+  "status": "ready-to-implement",
   "history": [
     {
       "step": "specify",
@@ -46,58 +46,153 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-10-09T14:25:09.802Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-09T14:25:28.183Z"
+    },
+    {
+      "step": "tasks",
+      "substep": "generate",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:26:09.640Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:26:19.626Z"
     }
   ],
   "unattended": true,
   "last_action": "living specs evaluated — skipped (not configured)",
   "coverage": {
     "FR-001": {
-      "title": "The site MUST serve a public page per user and calendar year at `/u/{username}/year/{year}`, in the viewer's language, with the same visibility as the dashboard"
+      "title": "The site MUST serve a public page per user and calendar year at `/u/{username}/year/{year}`, in the viewer's language, with the same visibility as the dashboard",
+      "tasks": [
+        "T007",
+        "T008"
+      ]
     },
     "FR-002": {
-      "title": "`/u/{username}/year` MUST redirect to the most recent year with history, or to the current year when the user has none."
+      "title": "`/u/{username}/year` MUST redirect to the most recent year with history, or to the current year when the user has none.",
+      "tasks": [
+        "T008",
+        "T010"
+      ]
     },
     "FR-003": {
-      "title": "A year with no history, other than the current year, MUST redirect to `/u/{username}/year`; a non-numeric year, a year before 2000 or after the current year, or"
+      "title": "A year with no history, other than the current year, MUST redirect to `/u/{username}/year`; a non-numeric year, a year before 2000 or after the current year, or",
+      "tasks": [
+        "T006",
+        "T008",
+        "T010"
+      ]
     },
     "FR-004": {
-      "title": "A year belongs to an episode by the date of its latest watch, as a calendar date in UTC; the page MUST say that rewatches count in the year of their latest watc"
+      "title": "A year belongs to an episode by the date of its latest watch, as a calendar date in UTC; the page MUST say that rewatches count in the year of their latest watc",
+      "tasks": [
+        "T002",
+        "T008"
+      ]
     },
     "FR-005": {
-      "title": "The year's hours, days, fully watched episodes and series MUST follow the dashboard's rules, restricted to watches in that year, so the hours of all years add u"
+      "title": "The year's hours, days, fully watched episodes and series MUST follow the dashboard's rules, restricted to watches in that year, so the hours of all years add u",
+      "tasks": [
+        "T006",
+        "T007"
+      ]
     },
     "FR-006": {
-      "title": "The most-watched series of the year MUST be the Crunchyroll series with the most minutes watched that year, with its title, a poster (its most-watched matched s"
+      "title": "The most-watched series of the year MUST be the Crunchyroll series with the most minutes watched that year, with its title, a poster (its most-watched matched s",
+      "tasks": [
+        "T006",
+        "T007",
+        "T008"
+      ]
     },
     "FR-007": {
-      "title": "The page MUST show watch time for each of the 12 months as a chart and name the busiest month (ties to the earlier month)."
+      "title": "The page MUST show watch time for each of the 12 months as a chart and name the busiest month (ties to the earlier month).",
+      "tasks": [
+        "T006",
+        "T007",
+        "T008"
+      ]
     },
     "FR-008": {
-      "title": "Top genres (top 5 plus \"Others\", shares adding up to 100%), top 3 studios and the format split MUST follow the DNA page's rules (minutes watched, a dub and its"
+      "title": "Top genres (top 5 plus \"Others\", shares adding up to 100%), top 3 studios and the format split MUST follow the DNA page's rules (minutes watched, a dub and its",
+      "tasks": [
+        "T004",
+        "T006",
+        "T007",
+        "T008"
+      ]
     },
     "FR-009": {
-      "title": "A series MUST count as new in a year when the earliest watch Frunchy holds for any of its episodes falls in that year, and as continued otherwise; the page show"
+      "title": "A series MUST count as new in a year when the earliest watch Frunchy holds for any of its episodes falls in that year, and as continued otherwise; the page show",
+      "tasks": [
+        "T006",
+        "T007"
+      ]
     },
     "FR-010": {
-      "title": "The longest streak MUST be the most consecutive calendar days (UTC) in the year with at least one fully watched episode, with its first and last day."
+      "title": "The longest streak MUST be the most consecutive calendar days (UTC) in the year with at least one fully watched episode, with its first and last day.",
+      "tasks": [
+        "T006",
+        "T007",
+        "T008"
+      ]
     },
     "FR-011": {
-      "title": "A year with fewer than 15 fully watched episodes MUST show a \"not enough data\" state with the count instead of the figures."
+      "title": "A year with fewer than 15 fully watched episodes MUST show a \"not enough data\" state with the count instead of the figures.",
+      "tasks": [
+        "T006",
+        "T008"
+      ]
     },
     "FR-012": {
-      "title": "The page MUST list every year with history as a picker, newest first, marking the shown year."
+      "title": "The page MUST list every year with history as a picker, newest first, marking the shown year.",
+      "tasks": [
+        "T004",
+        "T008",
+        "T010"
+      ]
     },
     "FR-013": {
-      "title": "The dashboard and the DNA page MUST link to `/u/{username}/year`, and the year page MUST link back to both."
+      "title": "The dashboard and the DNA page MUST link to `/u/{username}/year`, and the year page MUST link back to both.",
+      "tasks": [
+        "T005",
+        "T008",
+        "T010",
+        "T011"
+      ]
     },
     "FR-014": {
-      "title": "Every figure MUST be computed from stored data when the page is viewed, with no call to MyAnimeList and no new stored data, and MUST be identical after `user-re"
+      "title": "Every figure MUST be computed from stored data when the page is viewed, with no call to MyAnimeList and no new stored data, and MUST be identical after `user-re",
+      "tasks": [
+        "T006",
+        "T007"
+      ]
     },
     "FR-015": {
-      "title": "The page MUST NOT show rankings, comparisons with other users, image export or anything without a real data source; every visible text comes from the site's Eng"
+      "title": "The page MUST NOT show rankings, comparisons with other users, image export or anything without a real data source; every visible text comes from the site's Eng",
+      "tasks": [
+        "T002",
+        "T008"
+      ]
     },
     "FR-016": {
-      "title": "The page MUST use the shared design system and components, work from 360px wide in both languages, and meet WCAG 2.1 AA contrast."
+      "title": "The page MUST use the shared design system and components, work from 360px wide in both languages, and meet WCAG 2.1 AA contrast.",
+      "tasks": [
+        "T008",
+        "T012",
+        "T015"
+      ]
     }
   },
   "size": "normal",
@@ -152,6 +247,9 @@
     "plan": {
       "summary": "Plan, research, data model and the year-page contract for a one-slice year review",
       "key_finding": "new-versus-continued can only use the latest held watch per episode, so it is an approximation the page must state"
+    },
+    "tasks": {
+      "summary": "15 tasks: setup, 4 foundational (texts, icons, shared helpers, DNA), US1 page (4), US2 navigation (2), polish (4)"
     }
   },
   "approach": "A new Handlers/Users/Year.fs slice computes one UTC year with one SQL statement using feature 004's rules, plus months, streak and new versus continued series. DNA view helpers move to Views/Components.fs; the dashboard and DNA page link to it."
