@@ -125,6 +125,7 @@ visitor goes through `/signin` and comes back to the same page.
 |---|---|
 | `/account` | the owner's account page; it holds "Reset Crunchyroll binding" (for `history_owner_mismatch` / `history_owner_taken`) |
 | `/account/key` | "Connect extension": confirm, then create a new sync key (it revokes the old one) |
+| `/u/{username}/dna` | the user's public Anime DNA (feature 004); `username` comes from `GET /api/me`. Below 15 fully watched episodes it shows a "not enough data yet" state, never an error |
 
 ---
 
@@ -165,6 +166,8 @@ The history owner is **`(accountId, profileId)`**: `accountId` comes from the pa
 
 ## Change log
 
+- v1.4 (2026-10-09): added `/u/{username}/dna` to the web pages the extension may link to
+  (feature 004). Additive; no API change.
 - v1.3 (2026-10-08): documented the web pages the extension may link to (`/account`,
   `/account/key`). Additive; no API change.
 - v1.2 (2026-10-02): **`profileId` is required** (breaking for clients that omit it): the history URL
