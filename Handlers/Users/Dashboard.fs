@@ -44,7 +44,8 @@ type TopGenres =
       AllEpisodes: int64 }
 
 type DashboardModel =
-    { DisplayName: string
+    { Username: string
+      DisplayName: string
       LastSyncAt: DateTime option
       SyncInProgress: bool
       Figures: Figures option // None when nothing resolved has been watched yet
@@ -147,6 +148,11 @@ let private topGenres (t: Texts) (g: TopGenres) =
 let private header (t: Texts) (m: DashboardModel) =
     div(class' = "space-y-2") {
         h1(class' = "text-4xl font-bold") { m.DisplayName }
+
+        a(href = $"/u/{m.Username}/dna", class' = Components.btn Components.Secondary).data("dna-link", "") {
+            Components.icon Theme.Fingerprint
+            t.DnaLink
+        }
         p(class' = "text-sm text-gray-400") { t.PublicProfileNote }
 
         p(class' = "text-sm") {
@@ -374,7 +380,8 @@ let private tryLoad (db: DbConfig) (username: string) : Task<DashboardModel opti
 
             return
                 Some
-                    { DisplayName = displayName
+                    { Username = username
+                      DisplayName = displayName
                       LastSyncAt = lastSync
                       SyncInProgress = inProgress
                       Figures = figures

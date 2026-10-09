@@ -144,7 +144,7 @@ its own.
 
 ### Tests for User Story 1 (REQUIRED, Principle V)
 
-- [ ] T008 [P] [US1] Write `tests/FrunchyBackend.Tests/DnaTests.fs` (contract `dna-page.md`).
+- [X] T008 [P] [US1] Write `tests/FrunchyBackend.Tests/DnaTests.fs` (contract `dna-page.md`).
   Helper: a user `animenerd` with the 2026 sample imported (`submitAccepted`, `processAll`),
   `routeSampleCatalog`, `enrichAll`. Read the page with `readHtml` and parse the `data-*` hooks.
   - **Figures**: each one equals an expected value computed in the test by its own simple SQL over
@@ -179,7 +179,7 @@ its own.
     after re-sending the same submissions.
   - **No external calls**: with the fake service cleared, viewing the page makes no request
     (`app.Mal.Requests` is empty).
-- [ ] T009 [P] [US1] Write `tests/FrunchyBackend.Tests/DnaPaceTests.fs`. Use an app with a fixed
+- [X] T009 [P] [US1] Write `tests/FrunchyBackend.Tests/DnaPaceTests.fs`. Use an app with a fixed
   `TimeProvider` (`createAppWith`) and synthetic watches at chosen dates:
   - 30 fully watched episodes spread over 9 of the 13 weeks → `data-label="steady"`;
   - the same over 8 weeks → `bursts`;
@@ -189,7 +189,7 @@ its own.
 
 ### Implementation for User Story 1
 
-- [ ] T010 [P] [US1] Add the DNA texts to `Views/Texts.fs`, in the record type and in `en` and
+- [X] T010 [P] [US1] Add the DNA texts to `Views/Texts.fs`, in the record type and in `en` and
   `es`:
   - page title and intro, and the section titles (studio, decade, pace, insignia, genres, formats,
     totals);
@@ -202,7 +202,7 @@ its own.
   - the empty state: "{n} of 15 fully watched episodes", how to get there, and the link label to the
     home page's how-to-sync;
   - the 90-day chart's accessible label, and the insignia's "{n} of {total} episodes".
-- [ ] T011 [US1] Implement `Handlers/Users/Dna.fs`, data section (research R4–R10, data-model):
+- [X] T011 [US1] Implement `Handlers/Users/Dna.fs`, data section (research R4–R10, data-model):
   - **One round trip**: a private `load` reading everything with one `NpgsqlBatch`:
     - user lookup (case-insensitive, as `Dashboard.fs`);
     - totals: a copy of the dashboard's totals query, commented as pinned equal by `DnaTests`;
@@ -218,7 +218,7 @@ its own.
   - **SQL rules**: every value is passed as a parameter (`SqlGuardrailTests`), and the SQL text
     stays literal.
   - **Result**: a `DnaModel` record with an option per figure (`None` = not enough).
-- [ ] T012 [US1] Implement `Handlers/Users/Dna.fs`, view, handler and endpoint:
+- [X] T012 [US1] Implement `Handlers/Users/Dna.fs`, view, handler and endpoint:
   - **Layout**: follow the DNA mockup (`design/anime_dna_perfil_frunchy/code.html`, real-data
     sections only, brief 5.2), on `Components`.
     - Copy: the site's plain texts only; drop every mockup element listed in `design/REVIEW.md`.
@@ -233,9 +233,9 @@ its own.
   - **Endpoint**: `let endpoint = GET [ routef "/u/{%s}/dna" handler ]`, added to `Program.fs`
     `endpoints` right after `Handlers.Users.Dashboard.endpoint`.
   - **impeccable**: shape → build → audit for this page.
-- [ ] T013 [US1] Add the DNA link to the dashboard in `Handlers/Users/Dashboard.fs`: a link to
+- [X] T013 [US1] Add the DNA link to the dashboard in `Handlers/Users/Dashboard.fs`: a link to
   `/u/{username}/dna` with `data-dna-link`, visible near the header. Only the view changes.
-- [ ] T014 [US1] Run `DnaTests`, `DnaPaceTests` and the whole suite. Then check the page on the
+- [X] T014 [US1] Run `DnaTests`, `DnaPaceTests` and the whole suite. Then check the page on the
   real `frunchydb` against the quickstart §2 table:
   - the totals equal `/u/jjchiw`;
   - it's ready in under 1 s (`curl -w '%{time_total}'`).

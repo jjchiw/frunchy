@@ -49,6 +49,46 @@ type Texts =
       UserNotFoundTitle: string
       UserNotFoundBody: string
 
+      // Anime DNA (/u/{username}/dna, feature 004)
+      DnaTitle: string
+      DnaHeading: string -> string
+      DnaIntro: string
+      DnaLink: string
+      DashboardLink: string
+      CopyLink: string
+      LinkCopied: string
+      CopyLinkFallback: string
+      DnaWatchTime: string
+      DnaDaysOfLife: decimal -> string
+      DnaCoverageTile: string
+      DnaCoverageCaption: string
+      DnaCoverage: decimal -> string
+      DnaSectionNotEnough: string
+      DnaStudioTitle: string
+      DnaRunnerUp: string
+      DnaDecadeTitle: string
+      DnaDecade: int -> string
+      DnaDecadeCoverage: decimal -> string
+      DnaPaceTitle: string
+      DnaPaceUnit: string
+      DnaSteady: string
+      DnaBursts: string
+      DnaPaceDetail: int64 -> int -> string
+      DnaPaceChart: int64 -> string
+      DnaPaceNotEnough: string
+      DnaInsigniaTitle: string
+      DnaInsigniaEpisodes: int64 -> int option -> string
+      DnaInsigniaHours: decimal -> string
+      DnaGenresTitle: string
+      DnaGenresNote: string
+      DnaOthers: string
+      DnaTopAnime: string -> string
+      DnaFormatsTitle: string
+      DnaEmptyTitle: string
+      DnaEmptyCount: int64 -> string
+      DnaEmptyBody: string
+      DnaEmptyAction: string
+
       // Navigation and generic web errors (feature 002)
       NavSignIn: string
       NavAccount: string
@@ -186,6 +226,50 @@ let en =
         "Install the Frunchy extension, paste your sync key in its options and open your Crunchyroll history: your numbers appear here a moment later."
       UserNotFoundTitle = "User not found"
       UserNotFoundBody = "There's no Frunchy profile with this name."
+
+      DnaTitle = "Anime DNA"
+      DnaHeading = fun name -> $"{name}'s Anime DNA"
+      DnaIntro = "What this profile watches, from its Crunchyroll history and MyAnimeList."
+      DnaLink = "Anime DNA"
+      DashboardLink = "Dashboard"
+      CopyLink = "Copy link"
+      LinkCopied = "Link copied"
+      CopyLinkFallback = "Copy this address"
+      DnaWatchTime = "Watch time"
+      DnaDaysOfLife = fun d -> $"""{d.ToString("N1", CultureInfo.GetCultureInfo "en")} days of life"""
+      DnaCoverageTile = "MyAnimeList coverage"
+      DnaCoverageCaption = "of the watch time has MyAnimeList details"
+      DnaCoverage = fun p -> $"""Based on {p.ToString("0.#", CultureInfo.GetCultureInfo "en")}%% of the watch time."""
+      DnaSectionNotEnough = "Not enough MyAnimeList data yet."
+      DnaStudioTitle = "Favourite studio"
+      DnaRunnerUp = "Runner-up"
+      DnaDecadeTitle = "Dominant decade"
+      DnaDecade = fun y -> $"{y}s"
+      DnaDecadeCoverage = fun p -> $"""Based on {p.ToString("0.#", CultureInfo.GetCultureInfo "en")}%% of the watch time, the part with a known release year."""
+      DnaPaceTitle = "Viewing pace, last 90 days"
+      DnaPaceUnit = "episodes a day"
+      DnaSteady = "Steady"
+      DnaBursts = "In bursts"
+      DnaPaceDetail = fun episodes weeks -> $"""{episodes.ToString("N0", CultureInfo.GetCultureInfo "en")} episodes, active in {weeks} of 13 weeks"""
+      DnaPaceChart = fun episodes -> $"""Episodes per day over the last 90 days, {episodes.ToString("N0", CultureInfo.GetCultureInfo "en")} in total"""
+      DnaPaceNotEnough = "Not enough recent data: fewer than 10 episodes in the last 90 days."
+      DnaInsigniaTitle = "Insignia anime"
+      DnaInsigniaEpisodes =
+        fun n total ->
+            match total with
+            | Some t -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} of {t} episodes watched"""
+            | None -> if n = 1L then "1 episode watched" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} episodes watched"""
+      DnaInsigniaHours = fun h -> $"""{h.ToString("N1", CultureInfo.GetCultureInfo "en")} hours"""
+      DnaGenresTitle = "Genres"
+      DnaGenresNote = "By watch time. An anime counts in each of its genres."
+      DnaOthers = "Others"
+      DnaTopAnime = fun title -> $"Top: {title}"
+      DnaFormatsTitle = "Formats"
+      DnaEmptyTitle = "Not enough data yet"
+      DnaEmptyCount = fun n -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} of 15 fully watched episodes"""
+      DnaEmptyBody =
+        "The Anime DNA appears after 15 fully watched episodes. Sync more history with the Frunchy extension; MyAnimeList details follow shortly after."
+      DnaEmptyAction = "How to sync"
 
       NavSignIn = "Sign in"
       NavAccount = "Account"
@@ -338,6 +422,50 @@ let es =
         "Instala la extensión de Frunchy, pega tu clave de sincronización en sus opciones y abre tu historial de Crunchyroll: tus números aparecerán aquí en unos instantes."
       UserNotFoundTitle = "Usuario no encontrado"
       UserNotFoundBody = "No hay ningún perfil de Frunchy con este nombre."
+
+      DnaTitle = "ADN anime"
+      DnaHeading = fun name -> $"El ADN anime de {name}"
+      DnaIntro = "Lo que ve este perfil, según su historial de Crunchyroll y MyAnimeList."
+      DnaLink = "ADN anime"
+      DashboardLink = "Panel"
+      CopyLink = "Copiar enlace"
+      LinkCopied = "Enlace copiado"
+      CopyLinkFallback = "Copia esta dirección"
+      DnaWatchTime = "Tiempo visto"
+      DnaDaysOfLife = fun d -> $"""{d.ToString("N1", CultureInfo.GetCultureInfo "es")} días de vida"""
+      DnaCoverageTile = "Cobertura de MyAnimeList"
+      DnaCoverageCaption = "del tiempo visto tiene datos de MyAnimeList"
+      DnaCoverage = fun p -> $"""Basado en el {p.ToString("0.#", CultureInfo.GetCultureInfo "es")}%% del tiempo visto."""
+      DnaSectionNotEnough = "Aún no hay suficientes datos de MyAnimeList."
+      DnaStudioTitle = "Estudio favorito"
+      DnaRunnerUp = "Segundo"
+      DnaDecadeTitle = "Década dominante"
+      DnaDecade = fun y -> $"Años {y}"
+      DnaDecadeCoverage = fun p -> $"""Basado en el {p.ToString("0.#", CultureInfo.GetCultureInfo "es")}%% del tiempo visto, la parte con año de estreno conocido."""
+      DnaPaceTitle = "Ritmo, últimos 90 días"
+      DnaPaceUnit = "episodios al día"
+      DnaSteady = "Constante"
+      DnaBursts = "A rachas"
+      DnaPaceDetail = fun episodes weeks -> $"""{episodes.ToString("N0", CultureInfo.GetCultureInfo "es")} episodios, activo en {weeks} de 13 semanas"""
+      DnaPaceChart = fun episodes -> $"""Episodios por día en los últimos 90 días, {episodes.ToString("N0", CultureInfo.GetCultureInfo "es")} en total"""
+      DnaPaceNotEnough = "No hay suficientes datos recientes: menos de 10 episodios en los últimos 90 días."
+      DnaInsigniaTitle = "Anime insignia"
+      DnaInsigniaEpisodes =
+        fun n total ->
+            match total with
+            | Some t -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} de {t} episodios vistos"""
+            | None -> if n = 1L then "1 episodio visto" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} episodios vistos"""
+      DnaInsigniaHours = fun h -> $"""{h.ToString("N1", CultureInfo.GetCultureInfo "es")} horas"""
+      DnaGenresTitle = "Géneros"
+      DnaGenresNote = "Por tiempo visto. Un anime cuenta en cada uno de sus géneros."
+      DnaOthers = "Otros"
+      DnaTopAnime = fun title -> $"Destacado: {title}"
+      DnaFormatsTitle = "Formatos"
+      DnaEmptyTitle = "Aún no hay suficientes datos"
+      DnaEmptyCount = fun n -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} de 15 episodios vistos completos"""
+      DnaEmptyBody =
+        "El ADN anime aparece tras 15 episodios vistos completos. Sincroniza más historial con la extensión de Frunchy; los datos de MyAnimeList llegan poco después."
+      DnaEmptyAction = "Cómo sincronizar"
 
       NavSignIn = "Iniciar sesión"
       NavAccount = "Cuenta"

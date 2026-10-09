@@ -19,7 +19,7 @@ Tests read only `data-*` attributes and decoded text (`readHtml`), never classes
 
 | Section | Root hook | Inner hooks |
 |---|---|---|
-| Header | `data-dna` | `data-dna-user` (display name), a link to `/u/{username}` (`data-dashboard-link`) |
+| Header | `data-dna` | `data-dna-user` (on the h1; value = display name), a link to `/u/{username}` (`data-dashboard-link`) |
 | Copy link | `data-copy-link` | `data-copy-done` (confirmation, `aria-live="polite"`) |
 | Totals | `data-dna-totals` | `data-stat="hours"` / `"days"` with `data-value`: equal to the dashboard's |
 | Favourite studio | `data-dna-studio` | `data-rank="1"` / `"2"` with `data-name`, `data-share` |
