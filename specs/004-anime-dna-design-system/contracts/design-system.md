@@ -54,6 +54,10 @@ equivalent element:
 `data-signin-error`, `data-signin-unavailable`, `data-signup-error`, `data-stat`, `data-sync`,
 `data-top-genres`, `data-value`.
 
+Added by feature 004 (keep them too): `data-dna-link`, `data-copy-link`, `data-copy-done`,
+`data-mal-studio`, `data-mal-format`, `data-mal-year`, `data-home-cta`, `data-home-step`, and every
+DNA hook in `contracts/dna-page.md`.
+
 ## Pages and their mockups
 
 | Page | Route | Mockup |

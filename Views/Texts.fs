@@ -185,7 +185,12 @@ type Texts =
       AccountUsernameLocked: string
       CopyKey: string
       KeyCopied: string
-      DeleteItems: string list }
+      DeleteItems: string list
+      // T016
+      /// A recent card whose season has no MyAnimeList match
+      NotOnMyAnimeList: string
+      /// How far a partly watched episode got, in percent
+      WatchedPercent: int -> string }
 
 let en =
     { Lang = "en"
@@ -394,7 +399,10 @@ let en =
         [ "Your synced watch history, including the original submissions"
           "Your public dashboard and Anime DNA"
           "Your sign-in methods and sync key"
-          "Your security activity" ] }
+          "Your security activity" ]
+      // T016
+      NotOnMyAnimeList = "Not on MyAnimeList yet"
+      WatchedPercent = fun p -> $"{p}%% watched" }
 
 let es =
     { Lang = "es"
@@ -603,7 +611,10 @@ let es =
         [ "Tu historial sincronizado, incluidos los envíos originales"
           "Tu dashboard público y tu ADN anime"
           "Tus métodos de inicio de sesión y tu clave de sincronización"
-          "Tu actividad de seguridad" ] }
+          "Tu actividad de seguridad" ]
+      // T016
+      NotOnMyAnimeList = "Aún no está en MyAnimeList"
+      WatchedPercent = fun p -> $"{p}%% visto" }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =

@@ -80,30 +80,6 @@ let private pctText (t: Texts) (d: decimal) =
 // View (contracts/dna-page.md; design/frunchy_anime_dna_profile_u_username_dna, per design/REVIEW.md)
 // ---------------------------------------------------------------------------
 
-/// Copy the page's address; falls back to a selectable field when the Clipboard API is unavailable
-let private copyLink (t: Texts) (address: string) =
-    div(class' = "flex flex-col items-start gap-2")
-        .data("copy-link", "")
-        .attr("x-data", "{ copied: false, failed: false }") {
-        button(type' = "button", class' = btn Secondary)
-            .attr(
-                "x-on:click",
-                "navigator.clipboard ? navigator.clipboard.writeText($el.dataset.address).then(() => { copied = true; setTimeout(() => copied = false, 2000) }, () => failed = true) : failed = true"
-            )
-            .data("address", address) {
-            icon Theme.ContentCopy
-            span().attr("x-show", "!copied") { t.CopyLink }
-            span().attr("x-show", "copied").attr("x-cloak", "") { t.LinkCopied }
-        }
-
-        span(class' = "sr-only").attr("aria-live", "polite").data("copy-done", "") { span().attr("x-show", "copied") { t.LinkCopied } }
-
-        label(class' = "w-full").attr("x-show", "failed").attr("x-cloak", "") {
-            span(class' = "fr-label") { t.CopyLinkFallback }
-            input(type' = "text", value = address, class' = "fr-input fr-mono").attr("readonly", "").attr("x-on:focus", "$el.select()")
-        }
-    }
-
 let private header (ctx: HttpContext) (t: Texts) (m: DnaModel) =
     let address = $"{ctx.Request.Scheme}://{ctx.Request.Host}/u/{m.Username}/dna"
 
