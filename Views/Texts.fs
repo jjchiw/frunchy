@@ -179,7 +179,13 @@ type Texts =
       AccountDeletedNotice: string
 
       // T017
-      HomeNoPassword: string }
+      HomeNoPassword: string
+      // T019
+      AccountProfileTitle: string
+      AccountUsernameLocked: string
+      CopyKey: string
+      KeyCopied: string
+      DeleteItems: string list }
 
 let en =
     { Lang = "en"
@@ -371,14 +377,24 @@ let en =
 
       DeleteAccountLink = "Delete my account"
       DeleteTitle = "Delete your account"
-      DeleteWarning = "This deletes your account and everything Frunchy holds about you: your synced history (including the original submissions), your dashboard, sign-in methods and security activity. It can't be undone."
+      DeleteWarning = "This deletes your account and everything Frunchy holds about you. It can't be undone."
       DeleteTypeUsername = fun username -> $"Type your username ({username}) to confirm"
       DeleteButton = "Delete my account forever"
       DeleteMismatch = "That username doesn't match your account."
       AccountDeletedNotice = "Your account and all your data have been deleted."
 
       // T017
-      HomeNoPassword = "Frunchy never asks for your Crunchyroll password: it only reads the history pages the extension sends." }
+      HomeNoPassword = "Frunchy never asks for your Crunchyroll password: it only reads the history pages the extension sends."
+      // T019
+      AccountProfileTitle = "Profile"
+      AccountUsernameLocked = "Usernames can't be changed."
+      CopyKey = "Copy key"
+      KeyCopied = "Key copied"
+      DeleteItems =
+        [ "Your synced watch history, including the original submissions"
+          "Your public dashboard and Anime DNA"
+          "Your sign-in methods and sync key"
+          "Your security activity" ] }
 
 let es =
     { Lang = "es"
@@ -433,7 +449,7 @@ let es =
       DnaHeading = fun name -> $"El ADN anime de {name}"
       DnaIntro = "Lo que ve este perfil, según su historial de Crunchyroll y MyAnimeList."
       DnaLink = "ADN anime"
-      DashboardLink = "Panel"
+      DashboardLink = "Dashboard"
       CopyLink = "Copiar enlace"
       LinkCopied = "Enlace copiado"
       CopyLinkFallback = "Copia esta dirección"
@@ -570,14 +586,24 @@ let es =
 
       DeleteAccountLink = "Eliminar mi cuenta"
       DeleteTitle = "Elimina tu cuenta"
-      DeleteWarning = "Esto elimina tu cuenta y todo lo que Frunchy guarda sobre ti: tu historial sincronizado (incluidos los envíos originales), tu dashboard, tus métodos de inicio de sesión y tu actividad de seguridad. No se puede deshacer."
+      DeleteWarning = "Esto elimina tu cuenta y todo lo que Frunchy guarda sobre ti. No se puede deshacer."
       DeleteTypeUsername = fun username -> $"Escribe tu nombre de usuario ({username}) para confirmar"
       DeleteButton = "Eliminar mi cuenta para siempre"
       DeleteMismatch = "Ese nombre de usuario no coincide con tu cuenta."
       AccountDeletedNotice = "Tu cuenta y todos tus datos se han eliminado."
 
       // T017
-      HomeNoPassword = "Frunchy nunca te pide la contraseña de Crunchyroll: solo lee las páginas del historial que envía la extensión." }
+      HomeNoPassword = "Frunchy nunca te pide la contraseña de Crunchyroll: solo lee las páginas del historial que envía la extensión."
+      // T019
+      AccountProfileTitle = "Perfil"
+      AccountUsernameLocked = "El nombre de usuario no se puede cambiar."
+      CopyKey = "Copiar clave"
+      KeyCopied = "Clave copiada"
+      DeleteItems =
+        [ "Tu historial sincronizado, incluidos los envíos originales"
+          "Tu dashboard público y tu ADN anime"
+          "Tus métodos de inicio de sesión y tu clave de sincronización"
+          "Tu actividad de seguridad" ] }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =

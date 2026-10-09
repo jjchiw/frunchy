@@ -10,6 +10,7 @@ open Oxpecker.ViewEngine
 open FrunchyBackend.Infrastructure
 open FrunchyBackend.Infrastructure.Database
 open FrunchyBackend.Views
+open FrunchyBackend.Views.Components
 open FrunchyBackend.Views.Texts
 
 // ---------------------------------------------------------------------------
@@ -17,25 +18,58 @@ open FrunchyBackend.Views.Texts
 // ---------------------------------------------------------------------------
 
 let view (ctx: HttpContext) (t: Texts) (username: string) (mismatch: bool) =
-    div(class' = "max-w-md mx-auto space-y-6") {
-        h1(class' = "text-3xl font-bold") { t.DeleteTitle }
-        div(class' = "alert alert-warning") { span() { t.DeleteWarning } }
+    let confirmInput =
+        input(
+            type' = "text",
+            id = "confirmUsername",
+            name = "confirmUsername",
+            class' = "fr-input fr-mono",
+            required = true,
+            autocomplete = "off"
+        )
+            .attr("autocapitalize", "none")
+            .attr("spellcheck", "false")
 
-        if mismatch then
-            div(class' = "alert alert-error").data("delete-error", "") { span() { t.DeleteMismatch } }
+    if mismatch then
+        confirmInput.attr("aria-invalid", "true").attr("aria-describedby", "confirmUsername-error") |> ignore
 
-        form(method = "post", action = "/account/delete", class' = "space-y-4") {
-            ctx.GetAntiforgeryInput()
+    narrow () {
+        div(class' = "fr-card space-y-6 border-error/30").data("delete-account", "") {
+            span(class' = "flex h-12 w-12 items-center justify-center rounded-full bg-error/10 text-headline-md text-error") { icon Theme.Warning }
+            pageHeading t.DeleteTitle (Some t.DeleteWarning)
 
-            label(class' = "form-control w-full") {
-                div(class' = "label") { span(class' = "label-text") { t.DeleteTypeUsername username } }
-                input(type' = "text", name = "confirmUsername", class' = "input input-bordered w-full", required = true, autocomplete = "off")
+            ul(class' = "space-y-3") {
+                for item in t.DeleteItems do
+                    li(class' = "flex items-start gap-3 text-body-md text-on-surface") {
+                        span(class' = "text-error") { icon Theme.DeleteForever }
+                        span() { item }
+                    }
             }
 
-            button(type' = "submit", class' = "btn btn-error w-full") { t.DeleteButton }
-        }
+            form(method = "post", action = "/account/delete", class' = "space-y-4 border-t border-outline-variant/40 pt-6") {
+                ctx.GetAntiforgeryInput()
 
-        a(href = "/account", class' = "link") { t.BackToAccount }
+                div() {
+                    label(for' = "confirmUsername", class' = "mb-1.5 block text-label-md text-on-surface") { t.DeleteTypeUsername username }
+                    confirmInput
+
+                    if mismatch then
+                        p(id = "confirmUsername-error", class' = "fr-field-error").data("delete-error", "") {
+                            icon Theme.ErrorMark
+                            span() { t.DeleteMismatch }
+                        }
+                }
+
+                div(class' = "flex flex-col gap-2") {
+                    button(type' = "submit", class' = btn Destructive + " w-full") {
+                        icon Theme.DeleteForever
+                        t.DeleteButton
+                    }
+
+                    a(href = "/account", class' = btn Ghost + " w-full") { t.BackToAccount }
+                }
+            }
+        }
     }
     |> Layout.page ctx t t.DeleteTitle
 
