@@ -18,7 +18,7 @@ define. `DesignSystemTests` checks this when the sibling repository is present.
 - **Website-only tokens**: the website may define more, such as the `display-hero`,
   `headline-xl`, `headline-lg` and `stat-counter` type styles, and `--color-secondary-container`.
   These names follow `DESIGN.md`'s YAML. If the extension later needs one, it takes the same name.
-- **`--font-mono`** (JetBrains Mono, for keys, usernames and URLs) is website-only for now.
+- **`--font-mono`** (JetBrains Mono, for keys, usernames and URLs) is shared with the extension (same value; the extension bundles the font, the website loads it from Google Fonts).
 - **`--font-family`** is excluded from value parity. The extension bundles
   "Plus Jakarta Sans Variable"; the website loads "Plus Jakarta Sans" from Google Fonts.
 - **Changing a shared token** means changing it on both sides and telling the other session.
