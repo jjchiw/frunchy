@@ -2,6 +2,7 @@ module FrunchyBackend.Views.Components
 
 open Oxpecker.ViewEngine
 open FrunchyBackend.Views.Theme
+open FrunchyBackend.Views.Texts
 
 // ---------------------------------------------------------------------------
 // Shared components of the design system (contracts/design-system.md). Styles live in
@@ -166,4 +167,32 @@ let pageHeading (title: string) (lead: string option) =
         match lead with
         | Some l -> p(class' = "max-w-prose text-body-lg text-on-surface-variant") { l }
         | None -> Fragment()
+    }
+
+/// Copy a page's address (the dashboard and the DNA page). Falls back to a selectable field when the
+/// Clipboard API is unavailable. What starts hidden carries an inline display:none, which Alpine's
+/// x-show removes when it appears, so nothing flashes before Alpine loads.
+let copyLink (t: Texts) (address: string) =
+    div(class' = "flex flex-col items-start gap-2")
+        .data("copy-link", "")
+        .attr("x-data", "{ copied: false, failed: false }") {
+        button(type' = "button", class' = btn Secondary)
+            .attr(
+                "x-on:click",
+                "navigator.clipboard ? navigator.clipboard.writeText($el.dataset.address).then(() => { copied = true; setTimeout(() => copied = false, 2000) }, () => failed = true) : failed = true"
+            )
+            .data("address", address) {
+            icon ContentCopy
+            span().attr("x-show", "!copied") { t.CopyLink }
+            span().attr("x-show", "copied").attr("style", "display: none") { t.LinkCopied }
+        }
+
+        span(class' = "sr-only").attr("aria-live", "polite").data("copy-done", "") {
+            span().attr("x-show", "copied").attr("style", "display: none") { t.LinkCopied }
+        }
+
+        label(class' = "w-full").attr("x-show", "failed").attr("style", "display: none") {
+            span(class' = "fr-label") { t.CopyLinkFallback }
+            input(type' = "text", value = address, class' = "fr-input fr-mono").attr("readonly", "").attr("x-on:focus", "$el.select()")
+        }
     }

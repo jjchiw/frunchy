@@ -176,7 +176,13 @@ type Texts =
       DeleteTypeUsername: string -> string
       DeleteButton: string
       DeleteMismatch: string
-      AccountDeletedNotice: string }
+      AccountDeletedNotice: string
+
+      // T016
+      /// A recent card whose season has no MyAnimeList match
+      NotOnMyAnimeList: string
+      /// How far a partly watched episode got, in percent
+      WatchedPercent: int -> string }
 
 let en =
     { Lang = "en"
@@ -372,7 +378,11 @@ let en =
       DeleteTypeUsername = fun username -> $"Type your username ({username}) to confirm"
       DeleteButton = "Delete my account forever"
       DeleteMismatch = "That username doesn't match your account."
-      AccountDeletedNotice = "Your account and all your data have been deleted." }
+      AccountDeletedNotice = "Your account and all your data have been deleted."
+
+      // T016
+      NotOnMyAnimeList = "Not on MyAnimeList yet"
+      WatchedPercent = fun p -> $"{p}%% watched" }
 
 let es =
     { Lang = "es"
@@ -568,7 +578,11 @@ let es =
       DeleteTypeUsername = fun username -> $"Escribe tu nombre de usuario ({username}) para confirmar"
       DeleteButton = "Eliminar mi cuenta para siempre"
       DeleteMismatch = "Ese nombre de usuario no coincide con tu cuenta."
-      AccountDeletedNotice = "Tu cuenta y todos tus datos se han eliminado." }
+      AccountDeletedNotice = "Tu cuenta y todos tus datos se han eliminado."
+
+      // T016
+      NotOnMyAnimeList = "Aún no está en MyAnimeList"
+      WatchedPercent = fun p -> $"{p}%% visto" }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =
