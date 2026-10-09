@@ -11,6 +11,7 @@ open FrunchyBackend.Domains.Identity
 open FrunchyBackend.Infrastructure
 open FrunchyBackend.Infrastructure.Database
 open FrunchyBackend.Views
+open FrunchyBackend.Views.Components
 open FrunchyBackend.Views.Texts
 
 // ---------------------------------------------------------------------------
@@ -22,35 +23,80 @@ type FormValues =
       Username: string
       DisplayName: string }
 
-let private field (labelText: string) (name: string) (value: string) (hint: string option) =
-    label(class' = "form-control w-full") {
-        div(class' = "label") { span(class' = "label-text") { labelText } }
-        input(type' = "text", name = name, value = value, class' = "input input-bordered w-full", required = true)
+/// The field a refusal is about (None: the page-level IdentityAlreadyUsed), so its input is marked invalid
+let private refusedField (t: Texts) (error: string option) =
+    match error with
+    | Some e when e = t.InviteInvalid -> Some "invite"
+    | Some e when e = t.UsernameInvalid || e = t.UsernameTaken -> Some "username"
+    | Some e when e = t.DisplayNameInvalid -> Some "displayName"
+    | _ -> None
 
-        match hint with
-        | Some h -> div(class' = "label") { span(class' = "label-text-alt text-gray-400") { h } }
-        | None -> Fragment()
+/// One of the three fields: required; the refused one is marked invalid and described by the error alert
+let private formField (refused: string option) (name: string) (describedBy: string list) (extra: input -> unit) =
+    let invalid = refused = Some name
+
+    let setup (i: input) =
+        i.attr("required", "").attr("spellcheck", "false") |> ignore
+
+        if invalid then
+            i.attr("aria-invalid", "true") |> ignore
+
+        extra i
+
+    fieldWith "text" (describedBy @ (if invalid then [ "signup-error" ] else [])) setup
+
+/// Username field with a live preview of the public address under it (Alpine; the server renders the same text)
+let private usernameField (ctx: HttpContext) (t: Texts) (value: string) (refused: string option) =
+    let prefix = $"{ctx.Request.Scheme}://{ctx.Request.Host}/u/"
+    let current = value.Trim().ToLowerInvariant()
+
+    let extra (i: input) =
+        i.attr("autocomplete", "off").attr("autocapitalize", "none").attr("maxlength", "30").attr("x-on:input", "username = $el.value")
+        |> ignore
+
+    div()
+        .attr("x-data", "{ username: '' }")
+        .attr("x-init", "username = $el.querySelector('#username').value") {
+        formField refused "username" [ "username-preview"; "username-hint" ] extra t.UsernameLabel "username" value None None true
+
+        p(id = "username-preview", class' = "mt-1.5 min-w-0 break-all font-mono text-body-md text-primary") {
+            span(class' = "text-on-surface-variant") { prefix }
+
+            span()
+                .attr("x-text", "username.trim().toLowerCase() || $el.dataset.placeholder")
+                .data("placeholder", t.UsernamePreviewPlaceholder) {
+                if current = "" then t.UsernamePreviewPlaceholder else current
+            }
+        }
+
+        p(id = "username-hint", class' = "fr-hint") { t.UsernameHint }
     }
 
 let view (ctx: HttpContext) (t: Texts) (values: FormValues) (error: string option) =
-    div(class' = "max-w-md mx-auto space-y-6") {
-        h1(class' = "text-3xl font-bold") { t.SignUpTitle }
-        p(class' = "text-gray-400") { t.SignUpIntro }
+    let refused = refusedField t error
+
+    Fragment() {
+        pageHeading t.SignUpTitle (Some t.SignUpIntro)
 
         match error with
-        | Some message -> div(class' = "alert alert-error").data("signup-error", "") { span() { message } }
+        | Some message -> (alert Failure message).attr("id", "signup-error").data("signup-error", "") :> HtmlElement
         | None -> Fragment()
 
-        form(method = "post", action = "/signup", class' = "space-y-4") {
+        form(method = "post", action = "/signup", class' = "space-y-5") {
             ctx.GetAntiforgeryInput()
-            field t.InviteCodeLabel "invite" values.Invite None
-            field t.UsernameLabel "username" values.Username (Some t.UsernameHint)
-            field t.DisplayNameLabel "displayName" values.DisplayName None
-            button(type' = "submit", class' = "btn btn-primary w-full") { t.CreateAccountButton }
+
+            formField refused "invite" [] (fun i -> i.attr("autocomplete", "off").attr("autocapitalize", "none") |> ignore) t.InviteCodeLabel "invite" values.Invite None None true
+            usernameField ctx t values.Username refused
+
+            formField refused "displayName" [] (fun i -> i.attr("autocomplete", "nickname").attr("maxlength", "60") |> ignore) t.DisplayNameLabel "displayName" values.DisplayName (Some t.DisplayNameHint) None false
+            button(type' = "submit", class' = btn Primary + " w-full") { t.CreateAccountButton }
         }
 
-        a(href = "/claim", class' = "link").data("claim-link", "") { t.HaveAccountLink }
+        div(class' = "border-t border-outline-variant/40 pt-5 text-center") {
+            a(href = "/claim", class' = "fr-link text-body-md").data("claim-link", "") { t.HaveAccountLink }
+        }
     }
+    |> centredCard
     |> Layout.page ctx t t.SignUpTitle
 
 // ---------------------------------------------------------------------------

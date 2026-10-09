@@ -47,6 +47,9 @@
     <Compile Include="RefreshTests.fs" />
     <Compile Include="SqlGuardrailTests.fs" />
     <Compile Include="SampleEnrichmentTests.fs" />
+    <Compile Include="DesignSystemTests.fs" />
+    <Compile Include="DnaTests.fs" />
+    <Compile Include="DnaPaceTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

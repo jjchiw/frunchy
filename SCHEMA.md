@@ -106,6 +106,12 @@ queue's "latest watch per season" ordering.
 re-decides every automatic match from the stored responses, with no requests. Missing responses
 are fetched again by the worker. Manual rows are operator input and are kept.
 
+## Anime DNA (feature 004)
+
+No table. `GET /u/{username}/dna` reads `watch_events`, `cr_episodes`, `cr_series` (LEFT JOIN),
+`cr_season_matches`, `mal_anime`, `mal_anime_tags` and `mal_tags` at request time, so it is always
+consistent with `user-rebuild` and `mal-rebuild`.
+
 ## Dashboard figures
 
 Computed per request, no projection tables. Only resolved episodes (`duration_ms IS NOT NULL`)

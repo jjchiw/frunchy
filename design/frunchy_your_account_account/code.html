@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"primary":"#4cd7f6","on-secondary-fixed":"#07006c","surface-tint":"#4cd7f6","tertiary-container":"#ff79b4","secondary":"#c0c1ff","surface-bright":"#353942","on-primary":"#003640","tertiary":"#ffb0cd","on-tertiary":"#640039","outline":"#869397","on-tertiary-fixed":"#3e0022","on-secondary-container":"#b0b2ff","tertiary-fixed":"#ffd9e4","surface":"#0f131c","surface-container-high":"#262a33","surface-dim":"#0f131c","surface-container-highest":"#31353e","primary-container":"#06b6d4","on-tertiary-container":"#780047","on-surface-variant":"#bcc9cd","on-primary-fixed-variant":"#004e5c","surface-container":"#1c2028","error-container":"#93000a","on-secondary":"#1000a9","on-tertiary-fixed-variant":"#8c0053","background":"#0f131c","tertiary-fixed-dim":"#ffb0cd","on-surface":"#dfe2ee","on-primary-container":"#00424f","inverse-on-surface":"#2c3039","secondary-fixed":"#e1e0ff","outline-variant":"#3d494c","primary-fixed-dim":"#4cd7f6","on-error":"#690005","error":"#ffb4ab","inverse-surface":"#dfe2ee","inverse-primary":"#00687a","surface-container-low":"#181c24","on-primary-fixed":"#001f26","surface-container-lowest":"#0a0e16","surface-variant":"#31353e","on-background":"#dfe2ee","secondary-fixed-dim":"#c0c1ff","primary-fixed":"#acedff","secondary-container":"#3131c0","on-secondary-fixed-variant":"#2f2ebe","on-error-container":"#ffdad6"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"space-sm":"0.5rem","margin-sm":"1rem","space-xl":"2rem","margin":"2rem","gutter":"1.5rem","space-md":"1rem","space-2xl":"3rem","gutter-sm":"1rem","space-lg":"1.5rem","space-xs":"0.25rem"},fontFamily:{"display-hero":["Plus Jakarta Sans"],"label-sm":["Plus Jakarta Sans"],"label-md":["Plus Jakarta Sans"],"body-lg":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"headline-xl":["Plus Jakarta Sans"],"display-hero-mobile":["Plus Jakarta Sans"],"body-md":["Plus Jakarta Sans"],"stat-counter":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"headline-xl-mobile":["Plus Jakarta Sans"]},fontSize:{"display-hero":["48px",{"lineHeight":"56px","letterSpacing":"-0.03em","fontWeight":"800"}],"label-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.06em","fontWeight":"700"}],"label-md":["13px",{"lineHeight":"18px","letterSpacing":"0.01em","fontWeight":"600"}],"body-lg":["16px",{"lineHeight":"24px","fontWeight":"400"}],"headline-md":["20px",{"lineHeight":"28px","letterSpacing":"-0.01em","fontWeight":"600"}],"headline-xl":["36px",{"lineHeight":"44px","letterSpacing":"-0.02em","fontWeight":"700"}],"display-hero-mobile":["32px",{"lineHeight":"40px","letterSpacing":"-0.02em","fontWeight":"800"}],"body-md":["14px",{"lineHeight":"20px","fontWeight":"400"}],"stat-counter":["32px",{"lineHeight":"36px","letterSpacing":"-0.02em","fontWeight":"800"}],"headline-lg":["24px",{"lineHeight":"32px","letterSpacing":"-0.015em","fontWeight":"700"}],"headline-xl-mobile":["26px",{"lineHeight":"34px","letterSpacing":"-0.01em","fontWeight":"700"}]}}}};</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased selection:bg-primary selection:text-on-primary min-h-screen flex flex-col justify-between"><header class="fixed top-0 inset-x-0 z-50 bg-surface-container-low/85 backdrop-blur-xl shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)]"><div class="h-16 w-full max-w-[1360px] mx-auto px-margin flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-lg"><a class="flex items-center gap-space-sm group" data-path="explore-feed" href="#"><img alt="Frunchy brand logo and wordmark for an anime telemetry tracking platform ('Last.fm for anime'). Sleek minimalist vector icon fusing a film clapperboard frame with digital audio/data scrobble vertical telemetry bars in neon cyan #4cd7f6 and violet #c0c1ff on dark background. Sharp, clean, modern tech aesthetic.. Design context: - Primary color: #06b6d4
+- Font: plusJakartaSans
+- Mode: dark
+- Roundness: rounded-md
+. The logo should be visually consistent with these brand tokens." class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1X1_6jAZ9aYENgE8Y7jXE7sSc9lKs7_h9WPoeQE3Lq_wS0I_I_c-qT46Br7Wno2U_Tep7xFK66ZQy8HxPeZ5ixjYPaxcLnVu_Ro4hpHx2QnPrrOhO7R8PuLLETMCWO_10RPDhVptzseWflnPdv38QKURL9hEMlYrk20bYlc2sGTwaOpHf-8AWgjRPIM-Zkp8NvrAW5MoacoiTqj4RnZTm2h-wIYahencbM7ZxziymmXoSSf0kqp6sR6mX6Z"/><span class="font-headline-lg text-headline-lg text-on-surface tracking-tight group-hover:text-primary transition-colors">Frunchy</span></a><nav class="hidden md:flex items-center gap-space-xs" data-active-classes="bg-primary-container text-on-primary-container font-headline-md rounded-lg"><a class="px-space-md py-space-sm rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all" data-path="live-scrobbles" href="#">Live Scrobbles</a><a class="px-space-md py-space-sm rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all" data-path="top-charts" href="#">Charts</a><a class="px-space-md py-space-sm rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all" data-path="anime-dna" href="#">Anime DNA</a><a class="px-space-md py-space-sm rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all" data-path="community-telemetry" href="#">Community</a></nav></div><div class="flex items-center gap-space-md"><div class="hidden sm:flex items-center gap-space-sm bg-surface-container px-space-md py-space-xs rounded-full shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span><span class="font-label-sm text-label-sm text-primary uppercase tracking-wider">Scrobbling Active</span></div><a class="flex items-center gap-space-sm p-space-xs rounded-full hover:bg-surface-container transition-all" data-path="user-profile" href="#" title="Account &amp; Telemetry Profile"><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></a></div></div></header><main class="w-full pt-16 bg-surface flex-1"><div class="flex flex-col w-full">
+<div class="w-full max-w-4xl mx-auto px-margin-sm sm:px-margin py-space-xl">
+<!-- Toast / Notification Banners System -->
+<div class="flex flex-col gap-space-sm mb-space-xl">
+<div class="flex items-center justify-between gap-space-md p-space-md rounded-lg bg-surface-container-high/90 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)] backdrop-blur-xl" id="toast-display-name">
+<div class="flex items-center gap-space-sm">
+<div class="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">check_circle</span>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center sm:gap-space-sm">
+<span class="font-headline-md text-headline-md text-on-surface text-[14px]">Display name saved.</span>
+<span class="font-body-md text-body-md text-on-surface-variant text-[13px]">Your profile changes are synced across your public telemetry.</span>
+</div>
+</div>
+<button aria-label="Dismiss" class="p-space-xs text-on-surface-variant hover:text-on-surface transition-colors" onclick="document.getElementById('toast-display-name').classList.add('hidden')">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<div class="flex items-center justify-between gap-space-md p-space-md rounded-lg bg-surface-container-high/90 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)] backdrop-blur-xl" id="toast-signin-linked">
+<div class="flex items-center gap-space-sm">
+<div class="w-7 h-7 rounded-full bg-secondary/15 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined text-[18px]">vpn_key</span>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center sm:gap-space-sm">
+<span class="font-headline-md text-headline-md text-on-surface text-[14px]">Sign-in method linked.</span>
+<span class="font-body-md text-body-md text-on-surface-variant text-[13px]">Google credentials authorized for single sign-on access.</span>
+</div>
+</div>
+<button aria-label="Dismiss" class="p-space-xs text-on-surface-variant hover:text-on-surface transition-colors" onclick="document.getElementById('toast-signin-linked').classList.add('hidden')">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+</div>
+<!-- Header Section -->
+<header class="mb-space-xl">
+<div class="inline-flex items-center gap-space-xs px-space-sm py-0.5 rounded-full bg-surface-container-high text-primary font-label-sm text-label-sm uppercase tracking-wider mb-space-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+<span>Account Telemetry Node</span>
+</div>
+<h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight">Account Settings</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-space-xs">
+        Manage your public profile link, sync extension keys, and connected providers.
+      </p>
+</header>
+<!-- Main Stacked Cards Flow -->
+<div class="flex flex-col gap-space-lg">
+<!-- 1. Profile Card -->
+<section class="rounded-[16px] bg-surface-container-low p-6 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.4)]">
+<div class="flex items-center justify-between mb-space-md">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">badge</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Profile Credentials</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">NODE // 01</span>
+</div>
+<div class="flex flex-col gap-space-lg">
+<!-- Read-only Username -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-sm items-start">
+<div class="flex flex-col">
+<label class="font-label-md text-label-md text-on-surface">Username</label>
+<span class="font-body-md text-body-md text-on-surface-variant text-[13px]">Permanent system identifier</span>
+</div>
+<div class="md:col-span-2 flex flex-col gap-space-xs">
+<div class="flex items-center justify-between px-space-md py-space-sm rounded-lg bg-surface-container-high text-on-surface font-label-md text-label-md">
+<span class="font-medium tracking-wide">animenerd</span>
+<div class="flex items-center gap-1.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">lock</span>
+<span class="font-label-sm text-label-sm text-outline">LOCKED</span>
+</div>
+</div>
+<p class="font-label-sm text-label-sm text-outline pl-1">Username cannot be changed</p>
+</div>
+</div>
+<!-- Public Dashboard URL -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-sm items-start">
+<div class="flex flex-col">
+<label class="font-label-md text-label-md text-on-surface">Public Dashboard</label>
+<span class="font-body-md text-body-md text-on-surface-variant text-[13px]">Shareable telemetry address</span>
+</div>
+<div class="md:col-span-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-space-sm">
+<div class="flex-1 flex items-center px-space-md py-space-sm rounded-lg bg-surface-container text-primary font-label-md text-label-md truncate">
+<span class="text-on-surface-variant mr-1">https://</span>frunchy.app/u/animenerd
+              </div>
+<a class="inline-flex items-center justify-center gap-space-xs px-space-md py-space-sm rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface font-label-md text-label-md transition-all shadow-sm" href="#">
+<span>View Dashboard</span>
+<span class="material-symbols-outlined text-[16px]">open_in_new</span>
+</a>
+</div>
+</div>
+<!-- Editable Display Name -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-sm items-start pt-space-xs">
+<div class="flex flex-col">
+<label class="font-label-md text-label-md text-on-surface" for="display-name-input">Display Name</label>
+<span class="font-body-md text-body-md text-on-surface-variant text-[13px]">Shown on public charts</span>
+</div>
+<div class="md:col-span-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-space-sm">
+<input class="flex-1 px-space-md py-space-sm rounded-lg bg-surface-container text-on-surface font-body-md text-body-md focus:outline-none focus:bg-surface-container-high placeholder:text-outline transition-all" id="display-name-input" type="text" value="Anime Nerd"/>
+<button class="px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-headline-md text-headline-md text-[14px] hover:shadow-[0_0_20px_rgba(76,215,246,0.35)] transition-all" type="button">
+                Save
+              </button>
+</div>
+</div>
+</div>
+</section>
+<!-- 2. Extension Card -->
+<section class="rounded-[16px] bg-surface-container-low p-6 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.4)]">
+<div class="flex items-center justify-between mb-space-md">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">extension</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Sync Extension</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">NODE // 02</span>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-lg p-space-lg rounded-xl bg-surface-container">
+<div class="flex items-start gap-space-md">
+<div class="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[24px]">key</span>
+</div>
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="font-headline-md text-headline-md text-[16px] text-on-surface">A sync key is active.</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                Your browser extension sends real-time episodic scrobbles via secure end-to-end telemetry token.
+              </p>
+</div>
+</div>
+<a class="inline-flex items-center justify-center gap-space-xs px-space-lg py-space-sm rounded-lg bg-primary text-on-primary font-headline-md text-headline-md text-[14px] hover:shadow-[0_0_20px_rgba(76,215,246,0.35)] shrink-0 transition-all" data-path="account-key" href="#">
+<span>Connect extension</span>
+<span class="material-symbols-outlined text-[16px]">sensors</span>
+</a>
+</div>
+</section>
+<!-- 3. Crunchyroll History Card -->
+<section class="rounded-[16px] bg-surface-container-low p-6 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.4)]">
+<div class="flex items-center justify-between mb-space-md">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-secondary text-[20px]">link</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Crunchyroll History Binding</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">NODE // 03</span>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-lg p-space-lg rounded-xl bg-surface-container">
+<div class="flex items-start gap-space-md">
+<div class="w-10 h-10 rounded-lg bg-secondary/15 flex items-center justify-center text-secondary shrink-0 mt-0.5">
+<span class="material-symbols-outlined text-[24px]">stream</span>
+</div>
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-xs">
+<span class="material-symbols-outlined text-secondary text-[16px]">verified</span>
+<span class="font-headline-md text-headline-md text-[16px] text-on-surface">Bound to a Crunchyroll profile.</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                Scrobbles are anchored to this specific session identifier. Resetting unlocks synchronization to another profile.
+              </p>
+</div>
+</div>
+<button class="inline-flex items-center justify-center gap-space-xs px-space-md py-space-sm rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface font-label-md text-label-md shrink-0 transition-all" type="button">
+<span class="material-symbols-outlined text-[16px]">link_off</span>
+<span>Reset Crunchyroll binding</span>
+</button>
+</div>
+</section>
+<!-- 4. Sign-in Methods Card -->
+<section class="rounded-[16px] bg-surface-container-low p-6 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.4)]">
+<div class="flex items-center justify-between mb-space-md">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">fingerprint</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Sign-In Methods</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">NODE // 04</span>
+</div>
+<div class="flex flex-col gap-space-sm">
+<!-- Discord Entry -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm p-space-md rounded-xl bg-surface-container">
+<div class="flex items-center gap-space-md">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-secondary shrink-0">
+<svg class="w-5 h-5 fill-current" viewbox="0 0 24 24">
+<path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"></path>
+</svg>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md text-[14px] text-on-surface">Discord (animenerd#1337)</span>
+<span class="font-body-md text-body-md text-[12px] text-on-surface-variant">OAuth2 Primary Token</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm pl-12 sm:pl-0">
+<span class="px-space-sm py-0.5 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm">Connected</span>
+<button class="px-space-md py-1 rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface-variant hover:text-on-surface font-label-md text-label-md transition-all" type="button">
+                Remove
+              </button>
+</div>
+</div>
+<!-- Google Entry (Protected / Disabled removal) -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-sm p-space-md rounded-xl bg-surface-container">
+<div class="flex items-center gap-space-md">
+<div class="w-9 h-9 rounded-lg bg-surface-container-high flex items-center justify-center text-primary shrink-0">
+<svg class="w-5 h-5 fill-current" viewbox="0 0 24 24">
+<path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"></path>
+</svg>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-md text-headline-md text-[14px] text-on-surface">Google (anime.nerd@gmail.com)</span>
+<span class="font-body-md text-body-md text-[12px] text-on-surface-variant">SSO Authenticator</span>
+</div>
+</div>
+<div class="flex items-center gap-space-sm pl-12 sm:pl-0">
+<span class="px-space-sm py-0.5 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm">Connected</span>
+<div class="relative group">
+<button class="px-space-md py-1 rounded-lg bg-surface-container-high text-outline cursor-not-allowed font-label-md text-label-md opacity-60" disabled="" type="button">
+                  Remove
+                </button>
+<div class="absolute bottom-full right-0 mb-2 hidden group-hover:flex w-56 p-2 rounded-lg bg-surface-container-highest shadow-xl font-body-md text-[11px] text-on-surface pointer-events-none z-10">
+                  Cannot remove the last sign-in method
+                </div>
+</div>
+</div>
+</div>
+<!-- Add Provider Trigger -->
+<div class="pt-space-xs">
+<button class="w-full flex items-center justify-center gap-space-xs py-space-sm rounded-lg bg-surface-container hover:bg-surface-container-high text-primary font-label-md text-label-md transition-all" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>Link another provider</span>
+</button>
+</div>
+</div>
+</section>
+<!-- 5. Recent Syncs Card -->
+<section class="rounded-[16px] bg-surface-container-low p-6 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.4)]">
+<div class="flex items-center justify-between mb-space-md">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">sync_alt</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Telemetry Ingestion</span>
+</div>
+<button class="text-on-surface-variant hover:text-primary font-label-sm text-label-sm uppercase tracking-wider transition-colors" id="toggle-sync-empty" onclick="const s = document.getElementById('sync-list'); const e = document.getElementById('sync-empty'); s.classList.toggle('hidden'); e.classList.toggle('hidden');" type="button">
+            Toggle Empty View
+          </button>
+</div>
+<!-- Sync Entries Container -->
+<div class="flex flex-col gap-space-sm" id="sync-list">
+<!-- Sync 1 -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm p-space-md rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors">
+<div class="flex items-center gap-space-md">
+<div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[18px]">cloud_done</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-sm">
+<span class="font-headline-md text-headline-md text-[14px] text-on-surface">12 minutes ago</span>
+<span class="px-space-sm py-0.5 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm">Completed</span>
+</div>
+<span class="font-body-md text-body-md text-[13px] text-on-surface-variant">
+                  120 processed · 2 unresolved · 0 unsupported · 0 failed
+                </span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs pl-11 md:pl-0 font-label-sm text-label-sm text-outline">
+<span class="material-symbols-outlined text-[14px] text-primary">speed</span>
+<span>1.2s batch</span>
+</div>
+</div>
+<!-- Sync 2 -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm p-space-md rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors">
+<div class="flex items-center gap-space-md">
+<div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[18px]">cloud_done</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-sm">
+<span class="font-headline-md text-headline-md text-[14px] text-on-surface">2 hours ago</span>
+<span class="px-space-sm py-0.5 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm">Completed</span>
+</div>
+<span class="font-body-md text-body-md text-[13px] text-on-surface-variant">
+                  45 processed · 0 unresolved · 0 unsupported · 0 failed
+                </span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs pl-11 md:pl-0 font-label-sm text-label-sm text-outline">
+<span class="material-symbols-outlined text-[14px] text-primary">speed</span>
+<span>0.4s batch</span>
+</div>
+</div>
+<!-- Sync 3 -->
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-sm p-space-md rounded-xl bg-surface-container hover:bg-surface-container-high transition-colors">
+<div class="flex items-center gap-space-md">
+<div class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined text-[18px]">cloud_done</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-space-sm">
+<span class="font-headline-md text-headline-md text-[14px] text-on-surface">Yesterday</span>
+<span class="px-space-sm py-0.5 rounded-full bg-primary/10 text-primary font-label-sm text-label-sm">Completed</span>
+</div>
+<span class="font-body-md text-body-md text-[13px] text-on-surface-variant">
+                  88 processed · 1 unresolved · 0 unsupported · 0 failed
+                </span>
+</div>
+</div>
+<div class="flex items-center gap-space-xs pl-11 md:pl-0 font-label-sm text-label-sm text-outline">
+<span class="material-symbols-outlined text-[14px] text-primary">speed</span>
+<span>0.9s batch</span>
+</div>
+</div>
+</div>
+<!-- Empty State (Hidden initially) -->
+<div class="hidden flex flex-col items-center justify-center py-space-xl px-space-md rounded-xl bg-surface-container text-center" id="sync-empty">
+<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center text-on-surface-variant mb-space-sm">
+<span class="material-symbols-outlined text-[24px]">history_toggle_off</span>
+</div>
+<p class="font-headline-md text-headline-md text-[16px] text-on-surface mb-space-xs">No syncs yet</p>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-sm">
+            Connect the extension and open your Crunchyroll history to initiate episodic scrobbling.
+          </p>
+</div>
+</section>
+<!-- 6. Security Activity Card -->
+<section class="rounded-[16px] bg-surface-container-low p-6 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.4)]">
+<div class="flex items-center justify-between mb-space-md">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">shield</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Security Audit Log</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant">NODE // 06</span>
+</div>
+<div class="flex flex-col divide-y divide-surface-container-high/40 rounded-xl bg-surface-container overflow-hidden">
+<div class="flex items-center justify-between p-space-md hover:bg-surface-container-high transition-colors">
+<div class="flex items-center gap-space-sm">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="font-body-md text-body-md text-on-surface">Sign-in method linked (Google)</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">2 days ago</span>
+</div>
+<div class="flex items-center justify-between p-space-md hover:bg-surface-container-high transition-colors">
+<div class="flex items-center gap-space-sm">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="font-body-md text-body-md text-on-surface">Sync key created</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">5 days ago</span>
+</div>
+<div class="flex items-center justify-between p-space-md hover:bg-surface-container-high transition-colors">
+<div class="flex items-center gap-space-sm">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="font-body-md text-body-md text-on-surface">Binding reset (by the operator)</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">12 days ago</span>
+</div>
+<div class="flex items-center justify-between p-space-md hover:bg-surface-container-high transition-colors">
+<div class="flex items-center gap-space-sm">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="font-body-md text-body-md text-on-surface">Account created</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline">Jan 14, 2025</span>
+</div>
+</div>
+</section>
+<!-- 7. Danger Zone Card -->
+<section class="rounded-[16px] bg-surface-container-low p-6 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.4)] relative overflow-hidden">
+<div class="absolute inset-0 bg-error/5 pointer-events-none"></div>
+<div class="relative z-10 flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-error">DANGER ZONE</span>
+<span class="font-label-sm text-label-sm text-error/60">IRREVERSIBLE</span>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-space-lg">
+<div class="flex flex-col gap-space-xs max-w-xl">
+<h2 class="font-headline-md text-headline-md text-on-surface text-[18px]">Delete account</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                Permanently remove your account, synced watch history, public dashboard, and security telemetry.
+              </p>
+</div>
+<a class="inline-flex items-center justify-center gap-space-xs px-space-lg py-space-sm rounded-lg bg-error-container text-error hover:bg-error hover:text-on-error font-headline-md text-headline-md text-[14px] shrink-0 transition-all" data-path="account-delete" href="#">
+<span class="material-symbols-outlined text-[18px]">delete_forever</span>
+<span>Delete my account</span>
+</a>
+</div>
+</div>
+</section>
+</div>
+</div>
+</div></main><footer class="w-full bg-surface-container-low shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="w-full max-w-[1360px] mx-auto px-margin py-space-xl"><div class="flex flex-col md:flex-row items-center justify-between gap-space-lg"><div class="flex flex-col items-center md:items-start gap-space-xs"><div class="flex items-center gap-space-sm"><span class="font-headline-md text-headline-md text-on-surface">Frunchy</span><span class="px-space-sm py-0.5 rounded-full bg-surface-container font-label-sm text-label-sm text-primary">v2.4 Telemetry</span></div><p class="font-body-md text-body-md text-on-surface-variant text-center md:text-left">Frunchy, a Last.fm for anime. Algorithmic telemetry, episodic tracking, and visual identity.</p></div><div class="flex flex-wrap items-center justify-center gap-space-lg"><a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" data-path="live-scrobbles" href="#">Scrobbles</a><a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" data-path="top-charts" href="#">Leaderboards</a><a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" data-path="api-docs" href="#">Telemetry API</a><a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" data-path="terms-and-privacy" href="#">Privacy &amp; Terms</a></div></div><div class="mt-space-lg pt-space-md flex flex-col sm:flex-row items-center justify-between gap-space-sm text-center sm:text-left"><p class="font-label-sm text-label-sm text-on-surface-variant">© 2025 Frunchy Telemetry Systems. Curated for anime connoisseurs.</p><div class="flex items-center gap-space-sm text-on-surface-variant font-label-sm text-label-sm"><span class="material-symbols-outlined text-[16px] text-primary">sensors</span><span>Realtime Sync Connected</span></div></div></div></footer></body></html>

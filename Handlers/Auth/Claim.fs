@@ -11,33 +11,41 @@ open FrunchyBackend.Domains.Identity
 open FrunchyBackend.Infrastructure
 open FrunchyBackend.Infrastructure.Database
 open FrunchyBackend.Views
+open FrunchyBackend.Views.Components
 open FrunchyBackend.Views.Texts
 
 // ---------------------------------------------------------------------------
-// View
+// View (design/frunchy_attach_existing_account_claim, per design/REVIEW.md)
 // ---------------------------------------------------------------------------
 
-let view (ctx: HttpContext) (t: Texts) (refused: bool) =
-    div(class' = "max-w-md mx-auto space-y-6") {
-        h1(class' = "text-3xl font-bold") { t.ClaimTitle }
-        p(class' = "text-gray-400") { t.ClaimIntro }
+/// The sync key, as a password so it isn't left readable on screen; mono, since keys are data
+let private syncKeyField (t: Texts) (refused: bool) =
+    let setup (i: input) =
+        i.attr("required", "").attr("autocomplete", "off").attr("spellcheck", "false").attr("autocapitalize", "none") |> ignore
 
         if refused then
-            div(class' = "alert alert-error").data("claim-error", "") { span() { t.ClaimRefused } }
+            i.attr("aria-invalid", "true") |> ignore
 
-        form(method = "post", action = "/claim", class' = "space-y-4") {
+    fieldWith "password" (if refused then [ "claim-error" ] else []) setup t.SyncKeyLabel "syncKey" "" None None true
+
+let view (ctx: HttpContext) (t: Texts) (refused: bool) =
+    Fragment() {
+        pageHeading t.ClaimTitle (Some t.ClaimIntro)
+
+        if refused then
+            (alert Failure t.ClaimRefused).attr("id", "claim-error").data("claim-error", "")
+
+        form(method = "post", action = "/claim", class' = "space-y-5") {
             ctx.GetAntiforgeryInput()
-
-            label(class' = "form-control w-full") {
-                div(class' = "label") { span(class' = "label-text") { t.SyncKeyLabel } }
-                input(type' = "password", name = "syncKey", class' = "input input-bordered w-full", required = true, autocomplete = "off")
-            }
-
-            button(type' = "submit", class' = "btn btn-primary w-full") { t.ClaimButton }
+            syncKeyField t refused
+            button(type' = "submit", class' = btn Primary + " w-full") { t.ClaimButton }
         }
 
-        a(href = "/signup", class' = "link") { t.BackToSignUp }
+        div(class' = "border-t border-outline-variant/40 pt-5 text-center") {
+            a(href = "/signup", class' = "fr-link text-body-md") { t.BackToSignUp }
+        }
     }
+    |> centredCard
     |> Layout.page ctx t t.ClaimTitle
 
 // ---------------------------------------------------------------------------

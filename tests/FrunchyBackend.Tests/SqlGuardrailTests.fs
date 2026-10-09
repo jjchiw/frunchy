@@ -79,7 +79,9 @@ let private productionSources () =
     |> Seq.filter (fun f ->
         let rel = Path.GetRelativePath(root, f)
         not (rel.StartsWith("tests" + sep)) && not (rel.Contains(sep + "bin" + sep)) && not (rel.Contains(sep + "obj" + sep))
-        && not (rel.StartsWith("bin" + sep)) && not (rel.StartsWith("obj" + sep)))
+        && not (rel.StartsWith("bin" + sep)) && not (rel.StartsWith("obj" + sep))
+        // hidden folders hold copies, not production code (e.g. agent worktrees in .claude/worktrees)
+        && not (rel.Split(sep) |> Array.exists (fun part -> part.StartsWith ".")))
     |> Seq.map (fun f -> Path.GetRelativePath(root, f).Replace('\\', '/'), File.ReadAllText f)
     |> List.ofSeq
 

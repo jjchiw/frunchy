@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" role="img" aria-label="Frunchy">
+  <!-- Frunchy mark: a clapperboard (anime) whose body is a bar chart (statistics).
+       Chosen 2026-10-08 from the designer's clapperboard wordmark, redrawn in the shared tokens:
+       primary #4cd7f6, primary-container #06b6d4, secondary #c0c1ff. -->
+  <!-- clapper arm, tilted open -->
+  <g transform="rotate(-14 6 15)">
+    <rect x="6" y="9" width="35" height="7" rx="2" fill="#4cd7f6"/>
+    <path d="M14 9 L11 16 M23 9 L20 16 M32 9 L29 16" stroke="#0f131c" stroke-width="2.6" stroke-linecap="square"/>
+  </g>
+  <!-- board: an open frame on the left and bottom edges -->
+  <path d="M6 18 H40 M6 18 V42 H11" stroke="#4cd7f6" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- bars -->
+  <rect x="14" y="31" width="4" height="11" rx="1" fill="#4cd7f6"/>
+  <rect x="21" y="26" width="4" height="16" rx="1" fill="#06b6d4"/>
+  <rect x="28" y="21" width="4" height="21" rx="1" fill="#06b6d4"/>
+  <rect x="35" y="23" width="4" height="19" rx="1" fill="#c0c1ff"/>
+</svg>

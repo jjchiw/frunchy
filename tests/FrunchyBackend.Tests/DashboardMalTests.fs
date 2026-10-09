@@ -89,6 +89,38 @@ let ``matched cards show score, up to 3 genres and the MyAnimeList link; others 
     }
 
 [<Fact>]
+let ``a matched card shows its first studio, format and year; an unmatched card says it isn't on MyAnimeList yet`` () =
+    task {
+        use! app = withSample ()
+        let! seasons = recentSeasons app.Db
+        let first = seasons |> List.find ((<>) "-")
+        let firstIndex = seasons |> List.findIndex ((=) first)
+        let otherIndex = seasons |> List.findIndex (fun s -> s <> first)
+
+        do!
+            matchSeason
+                app.Db
+                first
+                { spec 48561 "Jujutsu Kaisen 0 Movie" (Some "Jujutsu Kaisen 0") "Movie" "2021-12-24" with
+                    Studios = [ "MAPPA"; "Second Studio" ] }
+
+        let! html = page app "en-US"
+        let card = (cards html)[firstIndex]
+        Assert.Matches("data-mal-studio=\"\">MAPPA<", card)
+        Assert.DoesNotContain("Second Studio", card)
+        Assert.Matches("data-mal-format=\"\">Movie<", card)
+        Assert.Matches("data-mal-year=\"\">2021<", card)
+        Assert.DoesNotContain("Not on MyAnimeList yet", card)
+
+        let other = (cards html)[otherIndex]
+        Assert.DoesNotContain("data-mal-studio", other)
+        Assert.Contains("Not on MyAnimeList yet", other)
+
+        let! es = page app "es-ES"
+        Assert.Contains("Aún no está en MyAnimeList", (cards es)[otherIndex])
+    }
+
+[<Fact>]
 let ``no score means no score element`` () =
     task {
         use! app = withSample ()

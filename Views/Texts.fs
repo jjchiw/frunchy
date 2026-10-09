@@ -49,10 +49,53 @@ type Texts =
       UserNotFoundTitle: string
       UserNotFoundBody: string
 
+      // Anime DNA (/u/{username}/dna, feature 004)
+      DnaTitle: string
+      DnaHeading: string -> string
+      DnaIntro: string
+      DnaLink: string
+      DashboardLink: string
+      CopyLink: string
+      LinkCopied: string
+      CopyLinkFallback: string
+      DnaWatchTime: string
+      DnaDaysOfLife: decimal -> string
+      DnaCoverageTile: string
+      DnaCoverageCaption: string
+      DnaCoverage: decimal -> string
+      DnaSectionNotEnough: string
+      DnaStudioTitle: string
+      DnaRunnerUp: string
+      DnaDecadeTitle: string
+      DnaDecade: int -> string
+      DnaDecadeCoverage: decimal -> string
+      DnaPaceTitle: string
+      DnaPaceUnit: string
+      DnaSteady: string
+      DnaBursts: string
+      DnaPaceDetail: int64 -> int -> string
+      DnaPaceChart: int64 -> string
+      DnaPaceNotEnough: string
+      DnaInsigniaTitle: string
+      DnaInsigniaEpisodes: int64 -> int option -> string
+      DnaInsigniaHours: decimal -> string
+      /// MyAnimeList season (winter, spring, summer, fall) and year
+      DnaSeason: string -> int -> string
+      DnaGenresTitle: string
+      DnaGenresNote: string
+      DnaOthers: string
+      DnaTopAnime: string -> string
+      DnaFormatsTitle: string
+      DnaEmptyTitle: string
+      DnaEmptyCount: int64 -> string
+      DnaEmptyBody: string
+      DnaEmptyAction: string
+
       // Navigation and generic web errors (feature 002)
       NavSignIn: string
       NavAccount: string
       NavSignOut: string
+      SkipToContent: string
       TooManyRequestsTitle: string
       TooManyRequestsBody: string
       FormExpiredTitle: string
@@ -135,7 +178,25 @@ type Texts =
       DeleteTypeUsername: string -> string
       DeleteButton: string
       DeleteMismatch: string
-      AccountDeletedNotice: string }
+      AccountDeletedNotice: string
+
+      // T017
+      HomeNoPassword: string
+      // T019
+      AccountProfileTitle: string
+      AccountUsernameLocked: string
+      CopyKey: string
+      KeyCopied: string
+      DeleteItems: string list
+      // T016
+      /// A recent card whose season has no MyAnimeList match
+      NotOnMyAnimeList: string
+      /// How far a partly watched episode got, in percent
+      WatchedPercent: int -> string
+      // T018
+      /// Stands in for the username in the sign-up page's address preview while the field is empty
+      UsernamePreviewPlaceholder: string
+      DisplayNameHint: string }
 
 let en =
     { Lang = "en"
@@ -186,9 +247,62 @@ let en =
       UserNotFoundTitle = "User not found"
       UserNotFoundBody = "There's no Frunchy profile with this name."
 
+      DnaTitle = "Anime DNA"
+      DnaHeading = fun name -> $"{name}'s Anime DNA"
+      DnaIntro = "What this profile watches, from its Crunchyroll history and MyAnimeList."
+      DnaLink = "Anime DNA"
+      DashboardLink = "Dashboard"
+      CopyLink = "Copy link"
+      LinkCopied = "Link copied"
+      CopyLinkFallback = "Copy this address"
+      DnaWatchTime = "Watch time"
+      DnaDaysOfLife = fun d -> $"""{d.ToString("N1", CultureInfo.GetCultureInfo "en")} days of life"""
+      DnaCoverageTile = "MyAnimeList coverage"
+      DnaCoverageCaption = "of the watch time has MyAnimeList details"
+      DnaCoverage = fun p -> $"""Based on {p.ToString("0.#", CultureInfo.GetCultureInfo "en")}%% of the watch time."""
+      DnaSectionNotEnough = "Not enough MyAnimeList data yet."
+      DnaStudioTitle = "Favourite studio"
+      DnaRunnerUp = "Runner-up"
+      DnaDecadeTitle = "Dominant decade"
+      DnaDecade = fun y -> $"{y}s"
+      DnaDecadeCoverage = fun p -> $"""Based on {p.ToString("0.#", CultureInfo.GetCultureInfo "en")}%% of the watch time, the part with a known release year."""
+      DnaPaceTitle = "Viewing pace, last 90 days"
+      DnaPaceUnit = "episodes a day"
+      DnaSteady = "Steady"
+      DnaBursts = "In bursts"
+      DnaPaceDetail = fun episodes weeks -> $"""{episodes.ToString("N0", CultureInfo.GetCultureInfo "en")} episodes, active in {weeks} of 13 weeks"""
+      DnaPaceChart = fun episodes -> $"""Episodes per day over the last 90 days, {episodes.ToString("N0", CultureInfo.GetCultureInfo "en")} in total"""
+      DnaPaceNotEnough = "Not enough recent data: fewer than 10 episodes in the last 90 days."
+      DnaInsigniaTitle = "Insignia anime"
+      DnaInsigniaEpisodes =
+        fun n total ->
+            match total with
+            | Some t -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} of {t} episodes watched"""
+            | None -> if n = 1L then "1 episode watched" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} episodes watched"""
+      DnaInsigniaHours = fun h -> $"""{h.ToString("N1", CultureInfo.GetCultureInfo "en")} hours"""
+      DnaSeason =
+        fun season year ->
+            match season with
+            | "winter" -> $"Winter {year}"
+            | "spring" -> $"Spring {year}"
+            | "summer" -> $"Summer {year}"
+            | "fall" -> $"Fall {year}"
+            | _ -> string year
+      DnaGenresTitle = "Genres"
+      DnaGenresNote = "By watch time. An anime counts in each of its genres."
+      DnaOthers = "Others"
+      DnaTopAnime = fun title -> $"Top: {title}"
+      DnaFormatsTitle = "Formats"
+      DnaEmptyTitle = "Not enough data yet"
+      DnaEmptyCount = fun n -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} of 15 fully watched episodes"""
+      DnaEmptyBody =
+        "The Anime DNA appears after 15 fully watched episodes. Sync more history with the Frunchy extension; MyAnimeList details follow shortly after."
+      DnaEmptyAction = "How to sync"
+
       NavSignIn = "Sign in"
       NavAccount = "Account"
       NavSignOut = "Sign out"
+      SkipToContent = "Skip to content"
       TooManyRequestsTitle = "Too many attempts"
       TooManyRequestsBody = "Please wait a few minutes and try again."
       FormExpiredTitle = "This form expired"
@@ -282,11 +396,30 @@ let en =
 
       DeleteAccountLink = "Delete my account"
       DeleteTitle = "Delete your account"
-      DeleteWarning = "This deletes your account and everything Frunchy holds about you: your synced history (including the original submissions), your dashboard, sign-in methods and security activity. It can't be undone."
+      DeleteWarning = "This deletes your account and everything Frunchy holds about you. It can't be undone."
       DeleteTypeUsername = fun username -> $"Type your username ({username}) to confirm"
       DeleteButton = "Delete my account forever"
       DeleteMismatch = "That username doesn't match your account."
-      AccountDeletedNotice = "Your account and all your data have been deleted." }
+      AccountDeletedNotice = "Your account and all your data have been deleted."
+
+      // T017
+      HomeNoPassword = "Frunchy never asks for your Crunchyroll password: it only reads the history pages the extension sends."
+      // T019
+      AccountProfileTitle = "Profile"
+      AccountUsernameLocked = "Usernames can't be changed."
+      CopyKey = "Copy key"
+      KeyCopied = "Key copied"
+      DeleteItems =
+        [ "Your synced watch history, including the original submissions"
+          "Your public dashboard and Anime DNA"
+          "Your sign-in methods and sync key"
+          "Your security activity" ]
+      // T016
+      NotOnMyAnimeList = "Not on MyAnimeList yet"
+      WatchedPercent = fun p -> $"{p}%% watched"
+      // T018
+      UsernamePreviewPlaceholder = "your-username"
+      DisplayNameHint = "How your name appears on your dashboard. You can change it later in your account." }
 
 let es =
     { Lang = "es"
@@ -337,9 +470,62 @@ let es =
       UserNotFoundTitle = "Usuario no encontrado"
       UserNotFoundBody = "No hay ningún perfil de Frunchy con este nombre."
 
+      DnaTitle = "ADN anime"
+      DnaHeading = fun name -> $"El ADN anime de {name}"
+      DnaIntro = "Lo que ve este perfil, según su historial de Crunchyroll y MyAnimeList."
+      DnaLink = "ADN anime"
+      DashboardLink = "Dashboard"
+      CopyLink = "Copiar enlace"
+      LinkCopied = "Enlace copiado"
+      CopyLinkFallback = "Copia esta dirección"
+      DnaWatchTime = "Tiempo visto"
+      DnaDaysOfLife = fun d -> $"""{d.ToString("N1", CultureInfo.GetCultureInfo "es")} días de vida"""
+      DnaCoverageTile = "Cobertura de MyAnimeList"
+      DnaCoverageCaption = "del tiempo visto tiene datos de MyAnimeList"
+      DnaCoverage = fun p -> $"""Basado en el {p.ToString("0.#", CultureInfo.GetCultureInfo "es")}%% del tiempo visto."""
+      DnaSectionNotEnough = "Aún no hay suficientes datos de MyAnimeList."
+      DnaStudioTitle = "Estudio favorito"
+      DnaRunnerUp = "Segundo"
+      DnaDecadeTitle = "Década dominante"
+      DnaDecade = fun y -> $"Años {y}"
+      DnaDecadeCoverage = fun p -> $"""Basado en el {p.ToString("0.#", CultureInfo.GetCultureInfo "es")}%% del tiempo visto, la parte con año de estreno conocido."""
+      DnaPaceTitle = "Ritmo, últimos 90 días"
+      DnaPaceUnit = "episodios al día"
+      DnaSteady = "Constante"
+      DnaBursts = "A rachas"
+      DnaPaceDetail = fun episodes weeks -> $"""{episodes.ToString("N0", CultureInfo.GetCultureInfo "es")} episodios, activo en {weeks} de 13 semanas"""
+      DnaPaceChart = fun episodes -> $"""Episodios por día en los últimos 90 días, {episodes.ToString("N0", CultureInfo.GetCultureInfo "es")} en total"""
+      DnaPaceNotEnough = "No hay suficientes datos recientes: menos de 10 episodios en los últimos 90 días."
+      DnaInsigniaTitle = "Anime insignia"
+      DnaInsigniaEpisodes =
+        fun n total ->
+            match total with
+            | Some t -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} de {t} episodios vistos"""
+            | None -> if n = 1L then "1 episodio visto" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} episodios vistos"""
+      DnaInsigniaHours = fun h -> $"""{h.ToString("N1", CultureInfo.GetCultureInfo "es")} horas"""
+      DnaSeason =
+        fun season year ->
+            match season with
+            | "winter" -> $"Invierno {year}"
+            | "spring" -> $"Primavera {year}"
+            | "summer" -> $"Verano {year}"
+            | "fall" -> $"Otoño {year}"
+            | _ -> string year
+      DnaGenresTitle = "Géneros"
+      DnaGenresNote = "Por tiempo visto. Un anime cuenta en cada uno de sus géneros."
+      DnaOthers = "Otros"
+      DnaTopAnime = fun title -> $"Destacado: {title}"
+      DnaFormatsTitle = "Formatos"
+      DnaEmptyTitle = "Aún no hay suficientes datos"
+      DnaEmptyCount = fun n -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} de 15 episodios vistos completos"""
+      DnaEmptyBody =
+        "El ADN anime aparece tras 15 episodios vistos completos. Sincroniza más historial con la extensión de Frunchy; los datos de MyAnimeList llegan poco después."
+      DnaEmptyAction = "Cómo sincronizar"
+
       NavSignIn = "Iniciar sesión"
       NavAccount = "Cuenta"
       NavSignOut = "Cerrar sesión"
+      SkipToContent = "Saltar al contenido"
       TooManyRequestsTitle = "Demasiados intentos"
       TooManyRequestsBody = "Espera unos minutos y vuelve a intentarlo."
       FormExpiredTitle = "Este formulario caducó"
@@ -433,11 +619,30 @@ let es =
 
       DeleteAccountLink = "Eliminar mi cuenta"
       DeleteTitle = "Elimina tu cuenta"
-      DeleteWarning = "Esto elimina tu cuenta y todo lo que Frunchy guarda sobre ti: tu historial sincronizado (incluidos los envíos originales), tu dashboard, tus métodos de inicio de sesión y tu actividad de seguridad. No se puede deshacer."
+      DeleteWarning = "Esto elimina tu cuenta y todo lo que Frunchy guarda sobre ti. No se puede deshacer."
       DeleteTypeUsername = fun username -> $"Escribe tu nombre de usuario ({username}) para confirmar"
       DeleteButton = "Eliminar mi cuenta para siempre"
       DeleteMismatch = "Ese nombre de usuario no coincide con tu cuenta."
-      AccountDeletedNotice = "Tu cuenta y todos tus datos se han eliminado." }
+      AccountDeletedNotice = "Tu cuenta y todos tus datos se han eliminado."
+
+      // T017
+      HomeNoPassword = "Frunchy nunca te pide la contraseña de Crunchyroll: solo lee las páginas del historial que envía la extensión."
+      // T019
+      AccountProfileTitle = "Perfil"
+      AccountUsernameLocked = "El nombre de usuario no se puede cambiar."
+      CopyKey = "Copiar clave"
+      KeyCopied = "Clave copiada"
+      DeleteItems =
+        [ "Tu historial sincronizado, incluidos los envíos originales"
+          "Tu dashboard público y tu ADN anime"
+          "Tus métodos de inicio de sesión y tu clave de sincronización"
+          "Tu actividad de seguridad" ]
+      // T016
+      NotOnMyAnimeList = "Aún no está en MyAnimeList"
+      WatchedPercent = fun p -> $"{p}%% visto"
+      // T018
+      UsernamePreviewPlaceholder = "tu-usuario"
+      DisplayNameHint = "Cómo aparece tu nombre en tu dashboard. Puedes cambiarlo después en tu cuenta." }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =

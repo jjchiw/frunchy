@@ -42,6 +42,7 @@ let endpoints =
       Handlers.Api.GetImportStatus.endpoint
       Handlers.Api.WhoAmI.endpoint
       Handlers.Users.Dashboard.endpoint
+      Handlers.Users.Dna.endpoint
       // Feature 002: sign-in and the private account pages
       Handlers.Auth.SignIn.endpoint
       Handlers.Auth.Complete.endpoint

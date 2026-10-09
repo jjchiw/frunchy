@@ -1,6 +1,23 @@
 <!--
 Sync Impact Report
 ==================
+Version change: 1.1.0 → 1.1.1
+Bump rationale: PATCH. Wording only: the UI constraint named DaisyUI, which feature 004 removed in
+favour of the shared design system (tokens in Views/Theme.fs). The no-build-step rule is unchanged.
+Source: specs/004-anime-dna-design-system research R15.
+
+Modified sections:
+  Additional Constraints → UI: "Tailwind/DaisyUI loaded from CDNs" → "Tailwind, fonts and icons
+  loaded from CDNs"
+
+Templates:
+  ✅ .specify/templates/plan-template.md: its constraints line says "CDN-only frontend"; no change
+  ✅ .specify/templates/spec-template.md, tasks-template.md: no change needed
+  ✅ CLAUDE.md, FRONTEND.md: DaisyUI statements replaced
+
+Deferred TODOs: none
+
+Previous report (1.1.0, 2026-10-02):
 Version change: 1.0.0 → 1.1.0
 Bump rationale: MINOR. Two rules materially changed, no principle removed: an explicit exception
 to Principle I for user deletion, and UI language moved from "Spanish only" to localizable
@@ -112,7 +129,7 @@ exactly those failures.
 ## Additional Constraints
 
 - **UI**: server-rendered with Oxpecker.ViewEngine, htmx 4, Alpine.js and
-  Tailwind/DaisyUI loaded from CDNs. There is no frontend build step.
+  Tailwind, fonts and icons loaded from CDNs. There is no frontend build step.
 - **Localization**: all user-facing text MUST come from per-language text sources and MUST
   NOT be hardcoded in views. English is the default language and Spanish is supported. The
   language is resolved per request (the viewer's browser preference, falling back to English),
@@ -150,4 +167,4 @@ exactly those failures.
   justified in Complexity Tracking. Reviews verify that tests (Principle V) and
   rebuildability (Principle I) are addressed.
 
-**Version**: 1.1.0 | **Ratified**: 2026-10-02 | **Last Amended**: 2026-10-02
+**Version**: 1.1.1 | **Ratified**: 2026-10-02 | **Last Amended**: 2026-10-09

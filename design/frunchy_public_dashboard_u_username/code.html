@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><title>Frunchy · Anime Telemetry</title><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"surface-container":"#1c2028","surface-variant":"#31353e","on-primary-container":"#00424f","primary-container":"#06b6d4","inverse-primary":"#00687a","on-tertiary-fixed":"#3e0022","surface-container-lowest":"#0a0e16","tertiary":"#ffb0cd","on-surface-variant":"#bcc9cd","on-secondary-fixed-variant":"#2f2ebe","on-secondary":"#1000a9","secondary-fixed":"#e1e0ff","on-secondary-fixed":"#07006c","outline-variant":"#3d494c","surface-tint":"#4cd7f6","background":"#0f131c","inverse-surface":"#dfe2ee","on-surface":"#dfe2ee","primary-fixed":"#acedff","on-tertiary-container":"#780047","surface-container-highest":"#31353e","on-background":"#dfe2ee","tertiary-container":"#ff79b4","outline":"#869397","tertiary-fixed":"#ffd9e4","surface":"#0f131c","on-primary-fixed-variant":"#004e5c","surface-bright":"#353942","surface-dim":"#0f131c","on-tertiary-fixed-variant":"#8c0053","secondary-fixed-dim":"#c0c1ff","on-primary":"#003640","error-container":"#93000a","secondary-container":"#3131c0","on-error-container":"#ffdad6","on-tertiary":"#640039","on-error":"#690005","primary":"#4cd7f6","tertiary-fixed-dim":"#ffb0cd","primary-fixed-dim":"#4cd7f6","inverse-on-surface":"#2c3039","surface-container-low":"#181c24","on-secondary-container":"#b0b2ff","error":"#ffb4ab","surface-container-high":"#262a33","on-primary-fixed":"#001f26","secondary":"#c0c1ff"},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},spacing:{"margin":"2rem","space-xl":"2rem","space-sm":"0.5rem","space-2xl":"3rem","gutter-sm":"1rem","space-xs":"0.25rem","space-lg":"1.5rem","space-md":"1rem","margin-sm":"1rem","gutter":"1.5rem"},fontFamily:{"headline-md":["Plus Jakarta Sans"],"headline-xl-mobile":["Plus Jakarta Sans"],"display-hero":["Plus Jakarta Sans"],"body-md":["Plus Jakarta Sans"],"body-lg":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"display-hero-mobile":["Plus Jakarta Sans"],"headline-xl":["Plus Jakarta Sans"],"label-sm":["Plus Jakarta Sans"],"label-md":["Plus Jakarta Sans"],"stat-counter":["Plus Jakarta Sans"]},fontSize:{"headline-md":["20px",{lineHeight:"28px",letterSpacing:"-0.01em",fontWeight:"600"}],"headline-xl-mobile":["26px",{lineHeight:"34px",letterSpacing:"-0.01em",fontWeight:"700"}],"display-hero":["48px",{lineHeight:"56px",letterSpacing:"-0.03em",fontWeight:"800"}],"body-md":["14px",{lineHeight:"20px",fontWeight:"400"}],"body-lg":["16px",{lineHeight:"24px",fontWeight:"400"}],"headline-lg":["24px",{lineHeight:"32px",letterSpacing:"-0.015em",fontWeight:"700"}],"display-hero-mobile":["32px",{lineHeight:"40px",letterSpacing:"-0.02em",fontWeight:"800"}],"headline-xl":["36px",{lineHeight:"44px",letterSpacing:"-0.02em",fontWeight:"700"}],"label-sm":["11px",{lineHeight:"14px",letterSpacing:"0.06em",fontWeight:"700"}],"label-md":["13px",{lineHeight:"18px",letterSpacing:"0.01em",fontWeight:"600"}],"stat-counter":["32px",{lineHeight:"36px",letterSpacing:"-0.02em",fontWeight:"800"}]}}}};</script></head><body class="bg-background font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary-container min-h-screen flex flex-col justify-between"><header class="fixed top-0 w-full z-50 bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.4)]"><div class="h-16 w-full max-w-[1360px] mx-auto px-margin-sm lg:px-margin flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-lg"><a class="flex items-center gap-space-sm group" data-path="dashboard" href="#"><img alt="Frunchy brand logo and wordmark for an anime telemetry tracking platform ('Last.fm for anime'). Sleek minimalist vector icon fusing a film clapperboard frame with digital audio/data scrobble vertical telemetry bars in neon cyan #4cd7f6 and violet #c0c1ff on dark background. Sharp, clean, modern tech aesthetic.. Design context: - Primary color: #06b6d4
+- Font: plusJakartaSans
+- Mode: dark
+- Roundness: rounded-md
+. The logo should be visually consistent with these brand tokens." class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1X1_6jAZ9aYENgE8Y7jXE7sSc9lKs7_h9WPoeQE3Lq_wS0I_I_c-qT46Br7Wno2U_Tep7xFK66ZQy8HxPeZ5ixjYPaxcLnVu_Ro4hpHx2QnPrrOhO7R8PuLLETMCWO_10RPDhVptzseWflnPdv38QKURL9hEMlYrk20bYlc2sGTwaOpHf-8AWgjRPIM-Zkp8NvrAW5MoacoiTqj4RnZTm2h-wIYahencbM7ZxziymmXoSSf0kqp6sR6mX6Z"/><span class="font-headline-md text-headline-md text-on-surface tracking-tight group-hover:text-primary transition-colors">Frunchy</span></a><div class="hidden xl:flex items-center gap-space-xs px-space-sm py-1 rounded-full bg-surface-container-low"><span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-primary"></span></span><span class="font-label-sm text-label-sm text-primary uppercase">Telemetry Ingestion Active</span></div><nav class="hidden md:flex items-center gap-space-xs" data-active-classes="bg-surface-container-high text-on-surface font-label-md"><a aria-current="page" class="px-space-md py-space-sm rounded-lg transition-colors bg-surface-container-high text-on-surface font-label-md" data-path="dashboard" href="#">Dashboard</a><a class="px-space-md py-space-sm rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" data-path="anime-dna" href="#">Anime DNA</a><a class="px-space-md py-space-sm rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" data-path="how-it-works" href="#">How it works</a><a class="px-space-md py-space-sm rounded-lg font-label-md text-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors" data-path="docs" href="#">Docs</a></nav></div><div class="flex items-center gap-space-md"><div class="relative hidden sm:block w-48 md:w-64"><span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px] pointer-events-none">search</span><input class="w-full h-9 pl-9 pr-space-md rounded-lg bg-surface-container text-on-surface placeholder:text-outline font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary transition-all" placeholder="Scrobble / anime search..." type="text"/></div><a class="font-label-md text-label-md text-on-surface-variant hover:text-on-surface px-space-sm py-space-xs transition-colors" data-path="account-settings" href="#">Account</a><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="w-full pt-16 flex-1 bg-background"><div class="flex flex-col w-full">
+<!-- Interactive View Switcher Bar -->
+<div class="w-full bg-surface-container-lowest shadow-md">
+<div class="max-w-[1360px] mx-auto px-margin-sm lg:px-margin py-space-sm flex flex-col sm:flex-row items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-xs text-on-surface-variant font-label-sm text-label-sm uppercase tracking-wider">
+<span class="material-symbols-outlined text-[16px] text-primary">tune</span>
+<span>Reviewer State Simulator:</span>
+</div>
+<div class="flex flex-wrap items-center gap-1.5 p-1 bg-surface-container-low rounded-lg">
+<button class="state-btn px-3 py-1.5 rounded text-label-md font-label-md bg-primary text-on-primary font-semibold transition-all shadow-sm" id="btn-state-1" onclick="switchState('state-1')">
+          1. Ingestion Active
+        </button>
+<button class="state-btn px-3 py-1.5 rounded text-label-md font-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all" id="btn-state-3" onclick="switchState('state-3')">
+          2. Mixed MAL Coverage
+        </button>
+<button class="state-btn px-3 py-1.5 rounded text-label-md font-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all" id="btn-state-2" onclick="switchState('state-2')">
+          3. Brand-new User (Empty)
+        </button>
+<button class="state-btn px-3 py-1.5 rounded text-label-md font-label-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-all" id="btn-state-4" onclick="switchState('state-4')">
+          4. User Not Found (404)
+        </button>
+</div>
+</div>
+</div>
+<!-- Dynamic Content Canvas -->
+<div class="w-full max-w-[1360px] mx-auto px-margin-sm lg:px-margin py-space-xl flex flex-col gap-space-lg">
+<!-- Profile Header & Navigation Meta (Visible on populated profiles) -->
+<section class="flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md" id="profile-meta-header">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-space-sm">
+<span class="font-label-sm text-label-sm uppercase tracking-widest text-primary">Public Telemetry Record</span>
+<span class="text-outline text-xs">/</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider text-on-surface-variant">Crunchyroll Scrobble Stream</span>
+</div>
+<div class="flex items-baseline gap-space-md">
+<h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight font-bold">animenerd</h1>
+<a class="group inline-flex items-center gap-1 font-label-md text-label-md text-secondary hover:text-primary transition-colors" data-path="anime-dna" href="#">
+<span>View Anime DNA</span>
+<span class="material-symbols-outlined text-[16px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
+</a>
+</div>
+</div>
+<div class="flex items-center gap-space-sm">
+<button class="inline-flex items-center gap-2 h-9 px-space-md rounded-lg bg-surface-container-high hover:bg-surface-variant text-on-surface font-label-md text-label-md transition-all shadow-sm active:scale-95" id="copy-link-btn" onclick="copyProfileLink()">
+<span class="material-symbols-outlined text-[16px] text-primary">share</span>
+<span id="copy-btn-label">Copy Profile Link</span>
+</button>
+</div>
+</section>
+<!-- STATE 1 & 3: Active Ingestion & Rich Watch Telemetry -->
+<div class="flex flex-col gap-space-lg" id="state-populated-wrapper">
+<!-- Ingestion Alert Banner (Shown in State 1, Hidden in pure State 3) -->
+<div class="w-full rounded-2xl bg-surface-container-high/90 backdrop-blur-md p-space-md flex items-center justify-between shadow-lg" id="ingestion-banner">
+<div class="flex items-center gap-space-md">
+<div class="relative flex h-3 w-3 shrink-0 ml-1">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-80"></span>
+<span class="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+<span class="font-label-md text-label-md text-primary font-semibold">Active Sync in Progress:</span>
+<span class="font-body-md text-body-md text-on-surface-variant">A sync is being processed; the numbers update when it finishes.</span>
+</div>
+</div>
+<div class="hidden sm:flex items-center gap-1.5 px-space-sm py-1 rounded bg-surface-container text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-[14px] text-primary animate-spin">sync</span>
+<span>CR Stream V2</span>
+</div>
+</div>
+<!-- 4-Column Primary Telemetry Grid -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-md">
+<!-- Metric 1: Series -->
+<div class="bg-surface-container rounded-2xl p-space-lg flex flex-col justify-between gap-space-md shadow-md">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-bold">Series Tracked</span>
+<span class="material-symbols-outlined text-outline text-[20px]">video_library</span>
+</div>
+<div class="flex flex-col">
+<span class="font-stat-counter text-stat-counter text-on-surface tabular-nums">42</span>
+<span class="font-label-sm text-label-sm text-outline mt-1">Confirmed Unique Franchises</span>
+</div>
+</div>
+<!-- Metric 2: Episodes -->
+<div class="bg-surface-container rounded-2xl p-space-lg flex flex-col justify-between gap-space-md shadow-md">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-bold">Episodes Watched</span>
+<span class="material-symbols-outlined text-primary text-[20px]">playlist_play</span>
+</div>
+<div class="flex flex-col">
+<span class="font-stat-counter text-stat-counter text-primary tabular-nums">1,337</span>
+<span class="font-label-sm text-label-sm text-outline mt-1">Total Scrobble Checkpoints</span>
+</div>
+</div>
+<!-- Metric 3: Hours Watched -->
+<div class="bg-surface-container rounded-2xl p-space-lg flex flex-col justify-between gap-space-md shadow-md">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-bold">Hours Watched</span>
+<span class="material-symbols-outlined text-secondary text-[20px]">schedule</span>
+</div>
+<div class="flex flex-col">
+<span class="font-stat-counter text-stat-counter text-secondary tabular-nums">456.5<span class="text-headline-md font-bold">h</span></span>
+<span class="font-label-sm text-label-sm text-outline mt-1">Direct Stream Duration</span>
+</div>
+</div>
+<!-- Metric 4: Days of Life -->
+<div class="bg-surface-container rounded-2xl p-space-lg flex flex-col justify-between gap-space-md shadow-md">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-bold">Days of Life</span>
+<span class="material-symbols-outlined text-tertiary text-[20px]">timelapse</span>
+</div>
+<div class="flex flex-col">
+<span class="font-stat-counter text-stat-counter text-tertiary tabular-nums">19.0<span class="text-headline-md font-bold">d</span></span>
+<span class="font-label-sm text-label-sm text-outline mt-1">Aggregated Cumulative Playback</span>
+</div>
+</div>
+</section>
+<!-- 12-Column Split Telemetry Content: 8-col Watch History + 4-col Top Genres & Metadata Stats -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-lg items-start">
+<!-- Left Column (8 cols): Scrobble Telemetry Feed -->
+<div class="lg:col-span-8 flex flex-col gap-space-md">
+<div class="flex items-center justify-between px-1">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">history_toggle_off</span>
+<h2 class="font-headline-md text-headline-md text-on-surface tracking-tight">Recently Watched</h2>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Scrobbled via Extension</span>
+</div>
+<!-- Watch Feed List -->
+<div class="flex flex-col gap-space-sm">
+<!-- Card A: Frieren (With MyAnimeList Metadata) -->
+<div class="bg-surface-container rounded-2xl p-space-md shadow-md flex flex-col sm:flex-row gap-space-md transition-all hover:bg-surface-container-high group">
+<!-- Poster Asset -->
+<div class="relative w-full sm:w-[100px] h-[130px] shrink-0 rounded-lg overflow-hidden bg-surface-container-low shadow-sm">
+<img class="w-full h-full object-cover" data-alt="Anime artwork depicting white-haired elf mage Frieren holding a grimoire staff amidst ancient cobblestone ruins and glowing azure butterflies at twilight. Luminous cyan lighting accents and deep starry cosmic sky aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBh2aNyphsfKo3DLoNcyTvV9hpkMVcY1KcjCjEpvwHLjkdtt08axP8WvYlnOIpzSvtkPCbtZkiVw2sMmxU_5Qs5LsxaER29dBgt1o2eOACrfU52doFBmwGkAtO3uashwzQPAyLkKOc4kYmOXKEHYepR2_-flv6qa8lyk0F4DYjduaEKCEUdOHOSNQ0mBTtjMdV5fxcI1c4Bm15MPP3A2DL02YZ_96ukivn4wbjwBrQk"/>
+<span class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded font-label-sm text-label-sm bg-surface-container-lowest/90 text-primary">24m</span>
+</div>
+<!-- Content details -->
+<div class="flex flex-col justify-between flex-1 min-w-0">
+<div class="flex flex-col gap-1">
+<div class="flex items-center justify-between gap-space-sm">
+<span class="font-label-sm text-label-sm text-primary uppercase font-bold tracking-wider">Fully Watched · 100%</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-outline">schedule</span>
+                      2 hours ago
+                    </span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors truncate">Frieren: Beyond Journey's End</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">S1 Ep. 28 - 'The Height of Magic'</p>
+</div>
+<!-- MyAnimeList Metadata Cluster -->
+<div class="mt-3 pt-3 flex flex-wrap items-center gap-1.5 bg-surface-container-low/50 -mx-space-md -mb-space-md p-space-md rounded-b-2xl">
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-variant text-on-surface">Madhouse</span>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-variant text-on-surface">TV</span>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-variant text-on-surface">2023</span>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-secondary-container text-secondary-fixed flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">star</span>
+                    MAL 9.38
+                  </span>
+<div class="flex items-center gap-1 ml-auto text-outline font-label-sm text-label-sm">
+<span class="text-on-surface-variant">Adventure, Drama, Fantasy</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Card B: Choujin X (WITHOUT MyAnimeList Match ~7% Fallback) -->
+<div class="bg-surface-container rounded-2xl p-space-md shadow-md flex flex-col sm:flex-row gap-space-md transition-all hover:bg-surface-container-high group">
+<!-- Poster Placeholder / Stream Fallback Banner -->
+<div class="relative w-full sm:w-[100px] h-[130px] shrink-0 rounded-lg overflow-hidden bg-surface-container-low flex flex-col items-center justify-center text-center p-2 shadow-sm">
+<span class="material-symbols-outlined text-outline text-[32px]">sync_problem</span>
+<span class="font-label-sm text-label-sm text-outline mt-1 uppercase tracking-tighter">Raw Stream</span>
+<span class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded font-label-sm text-label-sm bg-surface-container-lowest/90 text-on-surface-variant">12m</span>
+</div>
+<!-- Content Details -->
+<div class="flex flex-col justify-between flex-1 min-w-0">
+<div class="flex flex-col gap-1">
+<div class="flex items-center justify-between gap-space-sm">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase font-bold tracking-wider">Fully Watched · 100%</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-outline">schedule</span>
+                      5 hours ago
+                    </span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface truncate">Choujin X - Special Preview</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Ep. 01</p>
+</div>
+<!-- Unmatched State Indicator explicitly showing raw Crunchyroll coverage gap -->
+<div class="mt-3 pt-3 flex items-center justify-between bg-surface-container-low/80 -mx-space-md -mb-space-md p-space-md rounded-b-2xl">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-outline text-[16px]">link_off</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-semibold">Unmatched in MyAnimeList · Raw Crunchyroll Stream</span>
+</div>
+<span class="font-label-sm text-label-sm text-outline hidden sm:inline">Telemetry Pending Database Match</span>
+</div>
+</div>
+</div>
+<!-- Card C: Dungeon Meshi (With MyAnimeList Metadata) -->
+<div class="bg-surface-container rounded-2xl p-space-md shadow-md flex flex-col sm:flex-row gap-space-md transition-all hover:bg-surface-container-high group">
+<!-- Poster Asset -->
+<div class="relative w-full sm:w-[100px] h-[130px] shrink-0 rounded-lg overflow-hidden bg-surface-container-low shadow-sm">
+<img class="w-full h-full object-cover" data-alt="Intricate culinary fantasy anime scene of warriors cooking a dragon steak in a dimly lit mystical labyrinth cavern. Warm fire embers illuminate dark granite stones with neon turquoise bioluminescent mushrooms." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsGfmbS07nBUMG-ZFRizRrgS4Gg0n_zXEkh9HKvQ1xsRNU2-9qqANK76Ptvw8Mwm4h2lmVyPmsqB3u7qFf2Zkibec-kObOTbeG4OKJEXAL6Dpho_JUju7_pIOtg4TsgmYG3wlKmkvnmoXQn8fQ4V6Sk0zJyQqymonqMStGhfTQoopxBfOpvVfyt9CQ1Opg3yW8LKNpXepgGGDXwZw9jAF4tMw617jJcyCsp7rTgayo"/>
+<span class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded font-label-sm text-label-sm bg-surface-container-lowest/90 text-primary">24m</span>
+</div>
+<!-- Content details -->
+<div class="flex flex-col justify-between flex-1 min-w-0">
+<div class="flex flex-col gap-1">
+<div class="flex items-center justify-between gap-space-sm">
+<span class="font-label-sm text-label-sm text-secondary uppercase font-bold tracking-wider">Playback Progress · 98%</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-outline">schedule</span>
+                      Yesterday
+                    </span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors truncate">Dungeon Meshi</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Ep. 14</p>
+</div>
+<!-- MyAnimeList Metadata Cluster -->
+<div class="mt-3 pt-3 flex flex-wrap items-center gap-1.5 bg-surface-container-low/50 -mx-space-md -mb-space-md p-space-md rounded-b-2xl">
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-variant text-on-surface">Trigger</span>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-variant text-on-surface">TV</span>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-variant text-on-surface">2024</span>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-secondary-container text-secondary-fixed flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">star</span>
+                    MAL 8.62
+                  </span>
+<div class="flex items-center gap-1 ml-auto text-outline font-label-sm text-label-sm">
+<span class="text-on-surface-variant">Comedy, Fantasy</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Card D: Solo Leveling (With MyAnimeList Metadata) -->
+<div class="bg-surface-container rounded-2xl p-space-md shadow-md flex flex-col sm:flex-row gap-space-md transition-all hover:bg-surface-container-high group">
+<!-- Poster Asset -->
+<div class="relative w-full sm:w-[100px] h-[130px] shrink-0 rounded-lg overflow-hidden bg-surface-container-low shadow-sm">
+<img class="w-full h-full object-cover" data-alt="Monochromatic dark urban fantasy illustration featuring a hunter warrior wielding twin daggers with radiant cyan lightning swirling along dark shadow daggers. Sleek modern high contrast anime aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBurnQAalhcUWoCgQA_BmEcmYH3bPiTe6ChaZe8JuOsr9UxAx-rI6CMcV3_4sxvQu-OsfK_cBn2AMq8p8ntYMuuIGq9lbiO19uLhVMopDZLOWekPIoiMOx_JwzOJg_Yx0EzGe1bqI-styzzfS3YsdAiIiSgLgPoopf9uQfHlXojznQFp7zzL9D8IccviVuw1HHjYxiz6beaHeWdivyHlNjAxkVJs2YeFPxzgp_THykv"/>
+<span class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded font-label-sm text-label-sm bg-surface-container-lowest/90 text-primary">24m</span>
+</div>
+<!-- Content details -->
+<div class="flex flex-col justify-between flex-1 min-w-0">
+<div class="flex flex-col gap-1">
+<div class="flex items-center justify-between gap-space-sm">
+<span class="font-label-sm text-label-sm text-primary uppercase font-bold tracking-wider">Fully Watched · 100%</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[13px] text-outline">schedule</span>
+                      2 days ago
+                    </span>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface group-hover:text-primary transition-colors truncate">Solo Leveling</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Ep. 12</p>
+</div>
+<!-- MyAnimeList Metadata Cluster -->
+<div class="mt-3 pt-3 flex flex-wrap items-center gap-1.5 bg-surface-container-low/50 -mx-space-md -mb-space-md p-space-md rounded-b-2xl">
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-variant text-on-surface">A-1 Pictures</span>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-variant text-on-surface">TV</span>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-surface-variant text-on-surface">2024</span>
+<span class="px-2 py-0.5 rounded font-label-sm text-label-sm bg-secondary-container text-secondary-fixed flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">star</span>
+                    MAL 8.29
+                  </span>
+<div class="flex items-center gap-1 ml-auto text-outline font-label-sm text-label-sm">
+<span class="text-on-surface-variant">Action, Fantasy</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column (4 cols): Top Genres Telemetry Card -->
+<div class="lg:col-span-4 flex flex-col gap-space-md">
+<div class="bg-surface-container rounded-2xl p-space-lg shadow-md flex flex-col gap-space-lg">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-secondary text-[20px]">donut_large</span>
+<h3 class="font-headline-md text-headline-md text-on-surface">Top Genres</h3>
+</div>
+<span class="font-label-sm text-label-sm text-outline uppercase">Distribution</span>
+</div>
+<!-- Genre Bars Group -->
+<div class="flex flex-col gap-space-md">
+<!-- Genre 1: Action -->
+<div class="flex flex-col gap-1.5">
+<div class="flex justify-between items-center text-sm">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Action</span>
+<span class="font-label-md text-label-md text-primary font-bold tabular-nums">28.5%</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container-low overflow-hidden">
+<div class="h-full bg-primary rounded-full transition-all duration-500" style="width: 28.5%;"></div>
+</div>
+</div>
+<!-- Genre 2: Drama -->
+<div class="flex flex-col gap-1.5">
+<div class="flex justify-between items-center text-sm">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Drama</span>
+<span class="font-label-md text-label-md text-secondary font-bold tabular-nums">22.3%</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container-low overflow-hidden">
+<div class="h-full bg-secondary rounded-full transition-all duration-500" style="width: 22.3%;"></div>
+</div>
+</div>
+<!-- Genre 3: Fantasy -->
+<div class="flex flex-col gap-1.5">
+<div class="flex justify-between items-center text-sm">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Fantasy</span>
+<span class="font-label-md text-label-md text-tertiary font-bold tabular-nums">18.7%</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container-low overflow-hidden">
+<div class="h-full bg-tertiary rounded-full transition-all duration-500" style="width: 18.7%;"></div>
+</div>
+</div>
+<!-- Genre 4: Comedy -->
+<div class="flex flex-col gap-1.5">
+<div class="flex justify-between items-center text-sm">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Comedy</span>
+<span class="font-label-md text-label-md text-on-surface-variant font-bold tabular-nums">15.2%</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container-low overflow-hidden">
+<div class="h-full bg-on-surface-variant rounded-full transition-all duration-500" style="width: 15.2%;"></div>
+</div>
+</div>
+<!-- Genre 5: Psychological -->
+<div class="flex flex-col gap-1.5">
+<div class="flex justify-between items-center text-sm">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Psychological</span>
+<span class="font-label-md text-label-md text-outline font-bold tabular-nums">9.8%</span>
+</div>
+<div class="w-full h-2 rounded-full bg-surface-container-low overflow-hidden">
+<div class="h-full bg-outline rounded-full transition-all duration-500" style="width: 9.8%;"></div>
+</div>
+</div>
+</div>
+<!-- Mandatory Coverage Line Specification -->
+<div class="pt-space-md bg-surface-container-low -mx-space-lg -mb-space-lg p-space-lg rounded-b-2xl flex flex-col gap-1">
+<div class="flex items-center gap-1.5 text-on-surface-variant font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-primary text-[15px]">info</span>
+<span class="uppercase tracking-wider font-bold">Coverage Protocol</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+                Based on 92% of fully watched episodes. An episode counts in each of its genres.
+              </p>
+</div>
+</div>
+<!-- Secondary Telemetry Micro-Widget -->
+<div class="bg-surface-container rounded-2xl p-space-md shadow-md flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-[20px]">database</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Metadata Enrichment</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">MyAnimeList Core API v2</span>
+</div>
+</div>
+<span class="font-label-sm text-label-sm text-primary bg-surface-container-high px-2 py-1 rounded">Active</span>
+</div>
+</div>
+</div>
+</div>
+<!-- STATE 2: Brand-new User (Empty State) -->
+<div class="hidden flex-col items-center justify-center py-16" id="state-empty-wrapper">
+<div class="max-w-md w-full bg-surface-container rounded-2xl p-space-xl text-center shadow-xl flex flex-col items-center gap-space-md">
+<div class="w-14 h-14 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[28px]">timeline</span>
+</div>
+<div class="flex flex-col gap-1">
+<h2 class="font-headline-lg text-headline-lg text-on-surface font-bold">No history yet</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2 leading-relaxed">
+            Connect the Frunchy browser extension and open your Crunchyroll watch history to populate your dashboard.
+          </p>
+</div>
+<button class="mt-2 w-full h-11 px-space-lg rounded-lg bg-primary hover:bg-primary/90 text-on-primary font-label-md text-label-md font-bold transition-all shadow-md flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">extension</span>
+<span>How to connect extension</span>
+</button>
+</div>
+</div>
+<!-- STATE 4: User Not Found (404 Profile) -->
+<div class="hidden flex-col items-center justify-center py-20" id="state-404-wrapper">
+<div class="max-w-md w-full bg-surface-container rounded-2xl p-space-xl text-center shadow-xl flex flex-col items-center gap-space-md">
+<div class="w-14 h-14 rounded-full bg-surface-container-high flex items-center justify-center text-error">
+<span class="material-symbols-outlined text-[30px]">person_off</span>
+</div>
+<div class="flex flex-col gap-1">
+<span class="font-label-sm text-label-sm text-error uppercase tracking-widest font-bold">Telemetry Error · 404</span>
+<h2 class="font-headline-lg text-headline-lg text-on-surface font-bold">User not found</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2 leading-relaxed">
+            There's no Frunchy profile with this name.
+          </p>
+</div>
+<button class="mt-2 w-full h-11 px-space-lg rounded-lg bg-surface-container-high hover:bg-surface-variant text-on-surface font-label-md text-label-md font-bold transition-all shadow-md flex items-center justify-center gap-2" onclick="switchState('state-1')">
+<span class="material-symbols-outlined text-[18px]">home</span>
+<span>Back to home</span>
+</button>
+</div>
+</div>
+</div>
+<!-- State Switcher & Interactive Feedback Logic -->
+<script>
+    function switchState(stateKey) {
+      // Containers
+      const profileHeader = document.getElementById('profile-meta-header');
+      const populatedWrap = document.getElementById('state-populated-wrapper');
+      const emptyWrap = document.getElementById('state-empty-wrapper');
+      const notFoundWrap = document.getElementById('state-404-wrapper');
+      const ingestionBanner = document.getElementById('ingestion-banner');
+
+      // Buttons styling reset
+      const allButtons = document.querySelectorAll('.state-btn');
+      allButtons.forEach(btn => {
+        btn.classList.remove('bg-primary', 'text-on-primary', 'font-semibold');
+        btn.classList.add('text-on-surface-variant');
+      });
+
+      // Target button highlight
+      const activeBtnMap = {
+        'state-1': 'btn-state-1',
+        'state-3': 'btn-state-3',
+        'state-2': 'btn-state-2',
+        'state-4': 'btn-state-4'
+      };
+      const activeBtn = document.getElementById(activeBtnMap[stateKey]);
+      if (activeBtn) {
+        activeBtn.classList.add('bg-primary', 'text-on-primary', 'font-semibold');
+        activeBtn.classList.remove('text-on-surface-variant');
+      }
+
+      // Hide all states first
+      profileHeader.classList.remove('hidden');
+      populatedWrap.classList.add('hidden');
+      emptyWrap.classList.add('hidden');
+      notFoundWrap.classList.add('hidden');
+      ingestionBanner.classList.add('hidden');
+
+      if (stateKey === 'state-1') {
+        // Standard with active ingestion banner
+        populatedWrap.classList.remove('hidden');
+        ingestionBanner.classList.remove('hidden');
+      } else if (stateKey === 'state-3') {
+        // Mixed MAL Coverage (No active sync banner, cards showcase enriched vs raw)
+        populatedWrap.classList.remove('hidden');
+        ingestionBanner.classList.add('hidden');
+      } else if (stateKey === 'state-2') {
+        // Brand-new empty state
+        emptyWrap.classList.remove('hidden');
+      } else if (stateKey === 'state-4') {
+        // 404 user profile
+        profileHeader.classList.add('hidden');
+        notFoundWrap.classList.remove('hidden');
+      }
+    }
+
+    function copyProfileLink() {
+      const label = document.getElementById('copy-btn-label');
+      navigator.clipboard?.writeText(window.location.href).catch(() => {});
+      label.innerText = 'Copied to clipboard!';
+      setTimeout(() => {
+        label.innerText = 'Copy Profile Link';
+      }, 2000);
+    }
+  </script>
+</div></main><footer class="w-full bg-surface-container-lowest py-space-lg shadow-[0_-1px_8px_rgba(0,0,0,0.3)]"><div class="max-w-[1360px] mx-auto px-margin-sm lg:px-margin flex flex-col md:flex-row items-center justify-between gap-space-md"><div class="flex items-center gap-space-sm"><span class="font-label-md text-label-md text-on-surface">Frunchy</span><span class="text-outline font-label-sm text-label-sm">·</span><span class="font-body-md text-body-md text-on-surface-variant">a Last.fm for anime</span></div><div class="flex items-center gap-space-md"><span class="font-label-sm text-label-sm text-outline uppercase tracking-wider">v2.4 Telemetry Protocol: Synchronized</span><span class="text-outline font-label-sm text-label-sm">·</span><span class="font-body-md text-body-md text-on-surface-variant">© 2024 Frunchy Data Lab.</span></div></div></footer></body></html>

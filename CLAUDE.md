@@ -38,6 +38,7 @@ dotnet run -- user-create <username> "<Name>"      # operator CLI; prints the sy
 
 **Routes**:
 - `GET /` (home) and `GET /u/{username}`: the public dashboard. Figures are computed by SQL at request time from `watch_events`.
+- `GET /u/{username}/dna` (feature 004, `Handlers/Users/Dna.fs`): the Anime DNA, one SQL statement at request time over deduplicated minutes (a dub and its original count once), shown from 15 fully watched episodes; its totals repeat the dashboard's query on purpose and a test pins them equal.
 - Browser sign-in (feature 002, `Handlers/Auth/`): `/signin`, `/signin/{provider}`, `/signin/complete`, `/signup`, `/claim`, `/signin/reconfirm`, `POST /signout`. Private owner pages (`Handlers/Account/`): `/account`, `/account/key`, `/account/display-name`, `/account/binding/reset`, `/account/link|unlink/{provider}`, `/account/delete`.
 - `POST /api/imports`, `GET /api/imports/{id}`, `GET /api/me`: JSON for the extension. They're authenticated by `Authorization: Bearer <syncKey>` (`Infrastructure/Auth.fs`; only a SHA-256 of the key is stored) and return errors as `{ error, message }` (`Infrastructure/ApiErrors.fs`).
 
@@ -90,4 +91,6 @@ More rules:
 - **Helpers**: `AuthHelpers.signedUp` / `connectExtension` give a signed-in user with a key.
 - **Time**: the 10-minute rule is tested with a `TimeProvider` registered via `createAppWith`. The real app runs on a TestServer with the hosted worker disabled, and tests call `ImportProcessor.processNext` directly (`TestHelpers.processAll`). Fixture builders live in `Fixtures.fs` (`syntheticPages`, `envelopeOf`, …).
 
-**Design references**: `design/` holds HTML/PNG mockups (dashboard, anime DNA profile, extension popup) and `design/neo_scrobble_profile/DESIGN.md` (tokens). Mockup elements without a real data source (ratings, ranks, trends) are out of scope until a feature adds the data.
+**Design system (feature 004)**: no DaisyUI. Tokens live in `Views/Theme.fs` as CSS custom properties with the **same names and values as the extension's `browser-extension/src/styles/tokens.css`** (`DesignSystemTests` checks parity and WCAG AA contrast), mapped into the Tailwind CDN config; shared components in `Views/Components.fs`; icons are Material Symbols subset to `Theme.Icon` (add a case to use a new one). **Tests read only `data-*` hooks, never classes**; restyles must keep every hook (`specs/004-anime-dna-design-system/contracts/design-system.md`). UI work goes through the `impeccable` skill (shape → build → audit) and its craft floor (no eyebrow labels, no emoji icons, plain copy).
+
+**Design references**: `design/` holds the designer's screens (one folder per screen, `code.html` + `screen.png`), `design/neo_scrobble_profile/DESIGN.md` (tokens), `design/brand/frunchy-mark.svg` (the mark) and `design/REVIEW.md`, which says what to take and what to drop from each mockup. Mockup elements without a real data source (ratings, ranks, trends) are out of scope until a feature adds the data.

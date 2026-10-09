@@ -27,12 +27,15 @@
     <Compile Include="Infrastructure/MalCatalog.fs" />
     <Compile Include="Infrastructure/MalClient.fs" />
     <Compile Include="Views/Texts.fs" />
+    <Compile Include="Views/Theme.fs" />
+    <Compile Include="Views/Components.fs" />
     <Compile Include="Views/Layout.fs" />
     <Compile Include="Handlers/Home.fs" />
     <Compile Include="Handlers/Api/CreateImport.fs" />
     <Compile Include="Handlers/Api/GetImportStatus.fs" />
     <Compile Include="Handlers/Api/WhoAmI.fs" />
     <Compile Include="Handlers/Users/Dashboard.fs" />
+    <Compile Include="Handlers/Users/Dna.fs" />
     <Compile Include="Handlers/Auth/SignIn.fs" />
     <Compile Include="Handlers/Auth/Complete.fs" />
     <Compile Include="Handlers/Auth/SignUp.fs" />
