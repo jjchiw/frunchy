@@ -190,7 +190,11 @@ type Texts =
       /// A recent card whose season has no MyAnimeList match
       NotOnMyAnimeList: string
       /// How far a partly watched episode got, in percent
-      WatchedPercent: int -> string }
+      WatchedPercent: int -> string
+      // T018
+      /// Stands in for the username in the sign-up page's address preview while the field is empty
+      UsernamePreviewPlaceholder: string
+      DisplayNameHint: string }
 
 let en =
     { Lang = "en"
@@ -402,7 +406,10 @@ let en =
           "Your security activity" ]
       // T016
       NotOnMyAnimeList = "Not on MyAnimeList yet"
-      WatchedPercent = fun p -> $"{p}%% watched" }
+      WatchedPercent = fun p -> $"{p}%% watched"
+      // T018
+      UsernamePreviewPlaceholder = "your-username"
+      DisplayNameHint = "How your name appears on your dashboard. You can change it later in your account." }
 
 let es =
     { Lang = "es"
@@ -614,7 +621,10 @@ let es =
           "Tu actividad de seguridad" ]
       // T016
       NotOnMyAnimeList = "Aún no está en MyAnimeList"
-      WatchedPercent = fun p -> $"{p}%% visto" }
+      WatchedPercent = fun p -> $"{p}%% visto"
+      // T018
+      UsernamePreviewPlaceholder = "tu-usuario"
+      DisplayNameHint = "Cómo aparece tu nombre en tu dashboard. Puedes cambiarlo después en tu cuenta." }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =

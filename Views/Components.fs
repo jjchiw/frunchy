@@ -120,24 +120,39 @@ let emptyState (i: Icon) (title: string) (body: string) (action: HtmlElement opt
         | None -> Fragment()
     }
 
-/// A labelled text input with an optional hint and error (aria-invalid / aria-describedby wired)
-let field (label': string) (name: string) (value: string) (hint: string option) (error: string option) (mono: bool) =
+/// `field` with an input type ("text", "password"…), ids of other elements describing the input (put first
+/// in aria-describedby) and the input's own extra attributes (required, autocomplete, Alpine…). `.attr`
+/// appends, so `configure` must not set type, id, name, value, class, aria-describedby or aria-invalid again.
+let fieldWith
+    (inputType: string)
+    (describedBy: string list)
+    (configure: input -> unit)
+    (label': string)
+    (name: string)
+    (value: string)
+    (hint: string option)
+    (error: string option)
+    (mono: bool)
+    =
     let hintId = $"{name}-hint"
     let errorId = $"{name}-error"
 
     let describedBy =
-        [ if hint.IsSome then hintId
+        [ yield! describedBy
+          if hint.IsSome then hintId
           if error.IsSome then errorId ]
         |> String.concat " "
 
     let input' =
-        input(type' = "text", id = name, name = name, value = value, class' = (if mono then "fr-input fr-mono" else "fr-input"))
+        input(type' = inputType, id = name, name = name, value = value, class' = (if mono then "fr-input fr-mono" else "fr-input"))
 
     if describedBy <> "" then
         input'.attr("aria-describedby", describedBy) |> ignore
 
     if error.IsSome then
         input'.attr("aria-invalid", "true") |> ignore
+
+    configure input'
 
     div() {
         label(for' = name, class' = "fr-label") { label' }
@@ -156,8 +171,17 @@ let field (label': string) (name: string) (value: string) (hint: string option) 
         | None -> Fragment()
     }
 
+/// A labelled text input with an optional hint and error (aria-invalid / aria-describedby wired)
+let field label' name value hint error mono = fieldWith "text" [] ignore label' name value hint error mono
+
 /// A narrow centred page column (sign-in, forms, confirmations)
 let narrow () = div(class' = "mx-auto w-full max-w-lg space-y-6")
+
+/// A single card centred on the page (sign-in, sign-up, claim): top-aligned on phones, centred above
+let centredCard (content: HtmlElement) =
+    div(class' = "flex justify-center md:min-h-[60vh] md:items-center") {
+        div(class' = "fr-card w-full max-w-lg space-y-6 shadow-level-2") { content }
+    }
 
 /// Page heading with an optional lead paragraph
 let pageHeading (title: string) (lead: string option) =
