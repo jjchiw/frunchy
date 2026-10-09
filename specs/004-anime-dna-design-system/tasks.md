@@ -300,7 +300,7 @@ fields stay as they are, and each task follows the "Conventions for every UI tas
     `data-delete-error`.
 - [X] T020 [US2] Check the message pages (404, 500, 429, expired form) built by
   `Layout.messagePage` (T006) against brief 4.9, and adjust `Views/Layout.fs` if needed.
-- [ ] T021 [US2] Run the whole suite: no assertion edited, and every `DesignSystemTests` page check
+- [X] T021 [US2] Run the whole suite: no assertion edited, and every `DesignSystemTests` page check
   passes. Then run an impeccable audit pass over every page at 1440 and 360px, in en and es, fix
   the blocking findings, and record the result and the revisit list in `quickstart.md`.
 
@@ -332,7 +332,7 @@ fields stay as they are, and each task follows the "Conventions for every UI tas
   - use impeccable for UI work.
 - [X] T026 [P] Add a note to `SCHEMA.md`: the DNA page reads `watch_events`, `cr_episodes`,
   `cr_season_matches`, `mal_anime` and `mal_anime_tags` at request time; there's no new table.
-- [ ] T027 Run the full `dotnet test` with 0 build warnings, and record the counts in the
+- [X] T027 Run the full `dotnet test` with 0 build warnings, and record the counts in the
   quickstart's validation log.
 - [ ] T028 Tell the browser-extension session (`ListAgents`, by its cwd `../browser-extension`) that
   the website's tokens are live in `Views/Theme.fs`, that parity is tested, and which website-only

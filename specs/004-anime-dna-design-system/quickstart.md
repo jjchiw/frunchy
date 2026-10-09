@@ -62,7 +62,11 @@ at 1440px and at 360px:
 
 ## Revisit list (pages built before their mockup arrived)
 
-_Filled in during implementation._
+None: the designer delivered every screen before the restyle (`design/REVIEW.md`). Two mockup
+elements were left out on purpose:
+- **"Confirm it's you" page**: `/signin/reconfirm` has no page of its own (it redirects to the
+  provider), so its error state is the account page's notice.
+- **Sign-in's "Attach account" link**: `/claim` needs a pending provider sign-in.
 
 ## Validation log
 
@@ -86,3 +90,21 @@ _Filled in during implementation._
 - **Screens**: checked at 1440px and in a 360px frame. Nothing is clipped, and nothing scrolls
   sideways. Headless Chrome can't go below a 500px window, so phone widths are checked inside an
   iframe.
+- **2026-10-09, US2 (T015–T021)**:
+  - **Parallel restyles**: four teammates, one worktree each, restyled the dashboard (T016), home
+    (T017), the sign-in pages (T018) and the account pages (T019). Each page went through an
+    impeccable audit with no blocking finding.
+  - **Merges**: only `Texts.fs` conflicted, since every teammate added fields at its end; both
+    sides were kept each time.
+  - **Checks**: `DesignSystemTests` finds no DaisyUI class and every hook on every page, and the
+    existing assertions are untouched.
+  - **Final review**: home, dashboard, DNA and sign-in at 1440px, and at 360px in Spanish.
+    Nothing is clipped and nothing scrolls sideways. Fixed in this pass:
+    - the insignia season label is now localized ("Fall 1999" / "Otoño 1999");
+    - share bars animate a transform, not their width.
+  - **Shared-theme findings kept on purpose**:
+    - Plus Jakarta Sans ("overused font"): the design system pins it;
+    - the primary button's hover glow: it is `DESIGN.md`'s `--glow-primary`, an offset soft
+      shadow, not a zero-offset halo.
+- **2026-10-09 (T027)**: `dotnet test` gives **250 passed, 1 skipped** (the opt-in recording test),
+  with 0 build warnings.

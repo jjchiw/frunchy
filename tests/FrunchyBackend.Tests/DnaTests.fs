@@ -373,6 +373,14 @@ let ``the page is localized; MyAnimeList names are not`` () =
 
         let genres html = elements "genre" html |> List.map (attr "genre")
         Assert.Equal<string list>(genres en, genres es)
+
+        // The insignia's season is our label, so it is translated; the year is not
+        let season html = Regex.Match(html, "(Winter|Spring|Summer|Fall|Invierno|Primavera|Verano|Otoño) (\\d{4})").Value
+        let seasonEn, seasonEs = season en, season es
+
+        if seasonEn <> "" then
+            Assert.NotEqual<string>(seasonEn, seasonEs)
+            Assert.Equal(seasonEn.Split(' ')[1], seasonEs.Split(' ')[1])
     }
 
 // ---------------------------------------------------------------------------

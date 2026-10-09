@@ -173,7 +173,7 @@ let private insignia (t: Texts) (i: Insignia) =
                     | None -> Fragment()
 
                     match i.Season, i.Year with
-                    | Some s, Some y -> pill Muted $"{CultureInfo.InvariantCulture.TextInfo.ToTitleCase s} {y}"
+                    | Some s, Some y -> pill Muted (t.DnaSeason s y)
                     | None, Some y -> pill Muted (string y)
                     | _ -> Fragment()
                 }

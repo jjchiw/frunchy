@@ -79,6 +79,8 @@ type Texts =
       DnaInsigniaTitle: string
       DnaInsigniaEpisodes: int64 -> int option -> string
       DnaInsigniaHours: decimal -> string
+      /// MyAnimeList season (winter, spring, summer, fall) and year
+      DnaSeason: string -> int -> string
       DnaGenresTitle: string
       DnaGenresNote: string
       DnaOthers: string
@@ -278,6 +280,14 @@ let en =
             | Some t -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} of {t} episodes watched"""
             | None -> if n = 1L then "1 episode watched" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} episodes watched"""
       DnaInsigniaHours = fun h -> $"""{h.ToString("N1", CultureInfo.GetCultureInfo "en")} hours"""
+      DnaSeason =
+        fun season year ->
+            match season with
+            | "winter" -> $"Winter {year}"
+            | "spring" -> $"Spring {year}"
+            | "summer" -> $"Summer {year}"
+            | "fall" -> $"Fall {year}"
+            | _ -> string year
       DnaGenresTitle = "Genres"
       DnaGenresNote = "By watch time. An anime counts in each of its genres."
       DnaOthers = "Others"
@@ -493,6 +503,14 @@ let es =
             | Some t -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} de {t} episodios vistos"""
             | None -> if n = 1L then "1 episodio visto" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} episodios vistos"""
       DnaInsigniaHours = fun h -> $"""{h.ToString("N1", CultureInfo.GetCultureInfo "es")} horas"""
+      DnaSeason =
+        fun season year ->
+            match season with
+            | "winter" -> $"Invierno {year}"
+            | "spring" -> $"Primavera {year}"
+            | "summer" -> $"Verano {year}"
+            | "fall" -> $"Otoño {year}"
+            | _ -> string year
       DnaGenresTitle = "Géneros"
       DnaGenresNote = "Por tiempo visto. Un anime cuenta en cada uno de sus géneros."
       DnaOthers = "Otros"
