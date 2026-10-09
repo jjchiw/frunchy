@@ -298,7 +298,7 @@ fields stay as they are, and each task follows the "Conventions for every UI tas
     `data-new-sync-key`;
   - `Handlers/Account/DeleteAccount.fs`: `confirmLayout`; `data-delete-account`,
     `data-delete-error`.
-- [ ] T020 [US2] Check the message pages (404, 500, 429, expired form) built by
+- [X] T020 [US2] Check the message pages (404, 500, 429, expired form) built by
   `Layout.messagePage` (T006) against brief 4.9, and adjust `Views/Layout.fs` if needed.
 - [ ] T021 [US2] Run the whole suite: no assertion edited, and every `DesignSystemTests` page check
   passes. Then run an impeccable audit pass over every page at 1440 and 360px, in en and es, fix
