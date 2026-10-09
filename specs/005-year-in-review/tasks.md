@@ -13,22 +13,22 @@ shape → build → audit, texts only from `Views/Texts.fs` (en + es), test hook
 
 ## Phase 1: Setup
 
-- [ ] **T001** Register `Handlers/Users/Year.fs` after `Dna.fs` in the app project, and `YearTests.fs` and `YearNavigationTests.fs` after `DnaPaceTests.fs` in the test project, as minimal modules; `dotnet build` stays at 0 warnings · FrunchyBackend.fsproj, tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj, Handlers/Users/Year.fs, tests/FrunchyBackend.Tests/YearTests.fs, tests/FrunchyBackend.Tests/YearNavigationTests.fs
+- [x] **T001** Register `Handlers/Users/Year.fs` after `Dna.fs` in the app project, and `YearTests.fs` and `YearNavigationTests.fs` after `DnaPaceTests.fs` in the test project, as minimal modules; `dotnet build` stays at 0 warnings · FrunchyBackend.fsproj, tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj, Handlers/Users/Year.fs, tests/FrunchyBackend.Tests/YearTests.fs, tests/FrunchyBackend.Tests/YearNavigationTests.fs
 
 ## Phase 2: Foundational (blocks both stories)
 
 **Wave 1, independent (different files):**
 
-- [ ] **T002** [P] Add the year texts in `en` and `es` (research R9): title, heading with the display name, rewatch note, section titles (top series, months, new versus continued, streak), "busiest month" phrasing, "new" / "continued" counts, streak length and its date range, the 12-month chart's accessible label, the empty state with its count out of 15, the picker label, and the link labels to and from the page · Views/Texts.fs
-- [ ] **T003** [P] Add `CalendarMonth` and `LocalFireDepartment` to `Theme.Icon` with their ligature names · Views/Theme.fs
+- [x] **T002** [P] Add the year texts in `en` and `es` (research R9): title, heading with the display name, rewatch note, section titles (top series, months, new versus continued, streak), "busiest month" phrasing, "new" / "continued" counts, streak length and its date range, the 12-month chart's accessible label, the empty state with its count out of 15, the picker label, and the link labels to and from the page · Views/Texts.fs
+- [x] **T003** [P] Add `CalendarMonth` and `LocalFireDepartment` to `Theme.Icon` with their ligature names · Views/Theme.fs
 
 **⟶ Wait for Wave 1 to finish, then:**
 
-- [ ] **T004** Move `section`, `sectionHeading`, `coverageNote`, `notEnough`, `shareLine`, `inv` and `pctText` from `Dna.fs` into `Components.fs` unchanged, and add `yearPicker` (year links as pills, `aria-current="page"` on the shown year, `data-year-picker` / `data-year-option`) · Views/Components.fs
+- [x] **T004** Move `section`, `sectionHeading`, `coverageNote`, `notEnough`, `shareLine`, `inv` and `pctText` from `Dna.fs` into `Components.fs` unchanged, and add `yearPicker` (year links as pills, `aria-current="page"` on the shown year, `data-year-picker` / `data-year-option`) · Views/Components.fs
 
 **⟶ Wait for T004, then:**
 
-- [ ] **T005** Use the moved helpers in `Dna.fs` (behaviour unchanged, `DnaTests` green), and add the header link to `/u/{username}/year` with `data-year-link` · Handlers/Users/Dna.fs
+- [x] **T005** Use the moved helpers in `Dna.fs` (behaviour unchanged, `DnaTests` green), and add the header link to `/u/{username}/year` with `data-year-link` · Handlers/Users/Dna.fs
 
 **Checkpoint**: build at 0 warnings, the existing suite green, the DNA page unchanged except for the new link.
 

@@ -196,7 +196,35 @@ type Texts =
       // T018
       /// Stands in for the username in the sign-up page's address preview while the field is empty
       UsernamePreviewPlaceholder: string
-      DisplayNameHint: string }
+      DisplayNameHint: string
+
+      // Year in review (/u/{username}/year, feature 005)
+      YearTitle: int -> string
+      YearHeading: string -> int -> string
+      YearIntro: string
+      YearLink: string
+      YearRewatchNote: string
+      YearPickerLabel: string
+      YearHoursCaption: decimal -> string
+      YearStatSeries: string
+      YearTopSeriesTitle: string
+      YearTopSeriesEpisodes: int64 -> string
+      YearMonthsTitle: string
+      YearBusiestMonth: string -> decimal -> string
+      YearMonthsChart: int -> string
+      YearSplitTitle: string
+      YearNewSeries: int64 -> string
+      YearContinuedSeries: int64 -> string
+      YearStreakTitle: string
+      YearStreakDays: int -> string
+      YearStreakRange: string -> string -> string
+      YearStreakNone: string
+      YearGenresTitle: string
+      YearStudiosTitle: string
+      YearFormatsTitle: string
+      YearEmptyTitle: int -> string
+      YearEmptyCount: int64 -> string
+      YearEmptyBody: string }
 
 let en =
     { Lang = "en"
@@ -419,7 +447,35 @@ let en =
       WatchedPercent = fun p -> $"{p}%% watched"
       // T018
       UsernamePreviewPlaceholder = "your-username"
-      DisplayNameHint = "How your name appears on your dashboard. You can change it later in your account." }
+      DisplayNameHint = "How your name appears on your dashboard. You can change it later in your account."
+
+      // Year in review (feature 005)
+      YearTitle = fun y -> $"{y} in review"
+      YearHeading = fun name y -> $"{name}'s {y} in anime"
+      YearIntro = "One calendar year of this profile's Crunchyroll history, with MyAnimeList details."
+      YearLink = "Year in review"
+      YearRewatchNote = "Frunchy keeps the latest watch of each episode, so a rewatch counts in the year it was last watched. Years are in UTC."
+      YearPickerLabel = "Years"
+      YearHoursCaption = fun d -> $"""{d.ToString("N1", CultureInfo.GetCultureInfo "en")} days"""
+      YearStatSeries = "Series"
+      YearTopSeriesTitle = "Most watched series"
+      YearTopSeriesEpisodes = fun n -> if n = 1L then "1 episode watched this year" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} episodes watched this year"""
+      YearMonthsTitle = "Month by month"
+      YearBusiestMonth = fun month h -> $"""Busiest month: {month}, {h.ToString("N1", CultureInfo.GetCultureInfo "en")} hours"""
+      YearMonthsChart = fun y -> $"Hours watched each month of {y}"
+      YearSplitTitle = "New and continued"
+      YearNewSeries = fun n -> if n = 1L then "1 new series" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} new series"""
+      YearContinuedSeries = fun n -> if n = 1L then "1 series continued from earlier years" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} series continued from earlier years"""
+      YearStreakTitle = "Longest streak"
+      YearStreakDays = fun n -> if n = 1 then "1 day in a row" else $"{n} days in a row"
+      YearStreakRange = fun from to' -> $"{from} to {to'}"
+      YearStreakNone = "No fully watched episode this year."
+      YearGenresTitle = "Genres"
+      YearStudiosTitle = "Studios"
+      YearFormatsTitle = "Formats"
+      YearEmptyTitle = fun y -> $"Not enough data for {y} yet"
+      YearEmptyCount = fun n -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} of 15 fully watched episodes"""
+      YearEmptyBody = "A year's review appears after 15 fully watched episodes in it. Pick another year, or sync more history with the Frunchy extension." }
 
 let es =
     { Lang = "es"
@@ -642,7 +698,35 @@ let es =
       WatchedPercent = fun p -> $"{p}%% visto"
       // T018
       UsernamePreviewPlaceholder = "tu-usuario"
-      DisplayNameHint = "Cómo aparece tu nombre en tu dashboard. Puedes cambiarlo después en tu cuenta." }
+      DisplayNameHint = "Cómo aparece tu nombre en tu dashboard. Puedes cambiarlo después en tu cuenta."
+
+      // Year in review (feature 005)
+      YearTitle = fun y -> $"Resumen de {y}"
+      YearHeading = fun name y -> $"El {y} anime de {name}"
+      YearIntro = "Un año natural del historial de Crunchyroll de este perfil, con datos de MyAnimeList."
+      YearLink = "Resumen del año"
+      YearRewatchNote = "Frunchy guarda el último visionado de cada episodio, así que una revisión cuenta en el año en que se vio por última vez. Los años están en UTC."
+      YearPickerLabel = "Años"
+      YearHoursCaption = fun d -> $"""{d.ToString("N1", CultureInfo.GetCultureInfo "es")} días"""
+      YearStatSeries = "Series"
+      YearTopSeriesTitle = "Serie más vista"
+      YearTopSeriesEpisodes = fun n -> if n = 1L then "1 episodio visto este año" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} episodios vistos este año"""
+      YearMonthsTitle = "Mes a mes"
+      YearBusiestMonth = fun month h -> $"""Mes con más horas: {month}, {h.ToString("N1", CultureInfo.GetCultureInfo "es")} horas"""
+      YearMonthsChart = fun y -> $"Horas vistas cada mes de {y}"
+      YearSplitTitle = "Nuevas y continuadas"
+      YearNewSeries = fun n -> if n = 1L then "1 serie nueva" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} series nuevas"""
+      YearContinuedSeries = fun n -> if n = 1L then "1 serie continuada de años anteriores" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} series continuadas de años anteriores"""
+      YearStreakTitle = "Racha más larga"
+      YearStreakDays = fun n -> if n = 1 then "1 día seguido" else $"{n} días seguidos"
+      YearStreakRange = fun from to' -> $"del {from} al {to'}"
+      YearStreakNone = "Ningún episodio visto completo este año."
+      YearGenresTitle = "Géneros"
+      YearStudiosTitle = "Estudios"
+      YearFormatsTitle = "Formatos"
+      YearEmptyTitle = fun y -> $"Aún no hay suficientes datos de {y}"
+      YearEmptyCount = fun n -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} de 15 episodios vistos completos"""
+      YearEmptyBody = "El resumen de un año aparece tras 15 episodios vistos completos en él. Elige otro año o sincroniza más historial con la extensión de Frunchy." }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =

@@ -71,11 +71,6 @@ type DnaModel =
       /// None below minimumEpisodes (the page-level "not enough data yet")
       Figures: Figures option }
 
-let private inv (d: decimal) = d.ToString("0.0", CultureInfo.InvariantCulture)
-/// A share as shown: 1 decimal, and "<0.1%" for a real but tiny share (rows exist only with minutes)
-let private pctText (t: Texts) (d: decimal) =
-    if d = 0m then "<" + (0.1m).ToString("0.0", t.Culture) + "%" else d.ToString("0.0", t.Culture) + "%"
-
 // ---------------------------------------------------------------------------
 // View (contracts/dna-page.md; design/frunchy_anime_dna_profile_u_username_dna, per design/REVIEW.md)
 // ---------------------------------------------------------------------------
@@ -98,31 +93,14 @@ let private header (ctx: HttpContext) (t: Texts) (m: DnaModel) =
                 t.DashboardLink
             }
 
+            a(href = $"/u/{m.Username}/year", class' = btn Ghost).data("year-link", "") {
+                icon Theme.CalendarMonth
+                t.YearLink
+            }
+
             copyLink t address
         }
     }
-
-let private coverageNote (text: string) =
-    p(class' = "flex items-start gap-1.5 text-label-md font-normal text-on-surface-variant") {
-        icon Theme.Info
-        span() { text }
-    }
-
-let private notEnough (t: Texts) =
-    p(class' = "text-body-md text-on-surface-variant").data("not-enough", "") { t.DnaSectionNotEnough }
-
-/// A titled card for one figure; MyAnimeList-based ones carry data-coverage
-let private section (hook: string) (title: string) (coverage: decimal option) (extra: string) =
-    let el =
-        section(class' = $"fr-card flex flex-col gap-5 {extra}").data(hook, "")
-
-    match coverage with
-    | Some c -> el.data("coverage", inv c)
-    | None -> el
-    |> fun el -> el.attr("aria-label", title)
-
-let private sectionHeading (title: string) =
-    h2(class' = "text-headline-md text-on-surface") { title }
 
 let private totals (t: Texts) (f: Figures) =
     div(class' = "grid grid-cols-1 gap-4 sm:grid-cols-3").data("dna-totals", "") {
@@ -147,7 +125,7 @@ let private totals (t: Texts) (f: Figures) =
     }
 
 let private insignia (t: Texts) (i: Insignia) =
-    (section "dna-insignia" t.DnaInsigniaTitle None "lg:col-span-7")
+    (figureSection "dna-insignia" t.DnaInsigniaTitle None "lg:col-span-7")
         .data("series", i.SeriesId)
         .data("episodes", string i.FullyWatched) {
         sectionHeading t.DnaInsigniaTitle
@@ -200,7 +178,7 @@ let private paceChart (t: Texts) (pc: Pace) =
     }
 
 let private pace (t: Texts) (pc: Pace) =
-    let el = section "dna-pace" t.DnaPaceTitle None "lg:col-span-5"
+    let el = figureSection "dna-pace" t.DnaPaceTitle None "lg:col-span-5"
 
     if pc.Episodes < 10L then
         el.data("not-enough", "") {
@@ -227,25 +205,8 @@ let private pace (t: Texts) (pc: Pace) =
             p(class' = "text-label-md font-normal text-on-surface-variant") { t.DnaPaceDetail pc.Episodes pc.ActiveWeeks }
         }
 
-let private shareLine (name: string) (detail: string option) (share: decimal) (t: Texts) =
-    div(class' = "space-y-2") {
-        div(class' = "flex items-baseline justify-between gap-4") {
-            div(class' = "min-w-0") {
-                span(class' = "text-body-md font-semibold text-on-surface") { name }
-
-                match detail with
-                | Some d -> span(class' = "ml-2 text-label-md font-normal text-on-surface-variant") { d }
-                | None -> Fragment()
-            }
-
-            span(class' = "shrink-0 text-label-md text-on-surface tabular-nums") { pctText t share }
-        }
-
-        shareBar share
-    }
-
 let private studios (t: Texts) (f: Figures) =
-    let el = section "dna-studio" t.DnaStudioTitle (Some f.Coverage) "lg:col-span-6"
+    let el = figureSection "dna-studio" t.DnaStudioTitle (Some f.Coverage) "lg:col-span-6"
 
     match f.Studios with
     | [] ->
@@ -279,7 +240,7 @@ let private studios (t: Texts) (f: Figures) =
         }
 
 let private decades (t: Texts) (f: Figures) =
-    let el = section "dna-decade" t.DnaDecadeTitle (Some f.YearCoverage) "lg:col-span-6"
+    let el = figureSection "dna-decade" t.DnaDecadeTitle (Some f.YearCoverage) "lg:col-span-6"
 
     match f.Decades with
     | [] ->
@@ -307,7 +268,7 @@ let private decades (t: Texts) (f: Figures) =
         }
 
 let private genres (t: Texts) (f: Figures) =
-    let el = section "dna-genres" t.DnaGenresTitle (Some f.Coverage) "lg:col-span-7"
+    let el = figureSection "dna-genres" t.DnaGenresTitle (Some f.Coverage) "lg:col-span-7"
 
     if f.Genres.IsEmpty then
         el {
@@ -335,7 +296,7 @@ let private genres (t: Texts) (f: Figures) =
         }
 
 let private formats (t: Texts) (f: Figures) =
-    let el = section "dna-formats" t.DnaFormatsTitle (Some f.Coverage) "lg:col-span-5"
+    let el = figureSection "dna-formats" t.DnaFormatsTitle (Some f.Coverage) "lg:col-span-5"
 
     if f.Formats.IsEmpty then
         el {

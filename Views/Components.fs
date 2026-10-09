@@ -1,5 +1,6 @@
 module FrunchyBackend.Views.Components
 
+open System.Globalization
 open Oxpecker.ViewEngine
 open FrunchyBackend.Views.Theme
 open FrunchyBackend.Views.Texts
@@ -219,4 +220,64 @@ let copyLink (t: Texts) (address: string) =
             span(class' = "fr-label") { t.CopyLinkFallback }
             input(type' = "text", value = address, class' = "fr-input fr-mono").attr("readonly", "").attr("x-on:focus", "$el.select()")
         }
+    }
+
+// ---------------------------------------------------------------------------
+// Figure pages (the Anime DNA and the year in review): sections, shares, coverage
+// ---------------------------------------------------------------------------
+
+let inv (d: decimal) = d.ToString("0.0", CultureInfo.InvariantCulture)
+/// A share as shown: 1 decimal, and "<0.1%" for a real but tiny share (rows exist only with minutes)
+let pctText (t: Texts) (d: decimal) =
+    if d = 0m then "<" + (0.1m).ToString("0.0", t.Culture) + "%" else d.ToString("0.0", t.Culture) + "%"
+
+let coverageNote (text: string) =
+    p(class' = "flex items-start gap-1.5 text-label-md font-normal text-on-surface-variant") {
+        icon Theme.Info
+        span() { text }
+    }
+
+let notEnough (t: Texts) =
+    p(class' = "text-body-md text-on-surface-variant").data("not-enough", "") { t.DnaSectionNotEnough }
+
+/// A titled card for one figure; MyAnimeList-based ones carry data-coverage
+let figureSection (hook: string) (title: string) (coverage: decimal option) (extra: string) =
+    let el =
+        section(class' = $"fr-card flex flex-col gap-5 {extra}").data(hook, "")
+
+    match coverage with
+    | Some c -> el.data("coverage", inv c)
+    | None -> el
+    |> fun el -> el.attr("aria-label", title)
+
+let sectionHeading (title: string) =
+    h2(class' = "text-headline-md text-on-surface") { title }
+
+let shareLine (name: string) (detail: string option) (share: decimal) (t: Texts) =
+    div(class' = "space-y-2") {
+        div(class' = "flex items-baseline justify-between gap-4") {
+            div(class' = "min-w-0") {
+                span(class' = "text-body-md font-semibold text-on-surface") { name }
+
+                match detail with
+                | Some d -> span(class' = "ml-2 text-label-md font-normal text-on-surface-variant") { d }
+                | None -> Fragment()
+            }
+
+            span(class' = "shrink-0 text-label-md text-on-surface tabular-nums") { pctText t share }
+        }
+
+        shareBar share
+    }
+
+/// Years with history as links, newest first; the shown year is marked for assistive tech
+let yearPicker (label: string) (username: string) (years: int list) (current: int) =
+    nav(class' = "flex flex-wrap items-center gap-2").attr("aria-label", label).data("year-picker", "") {
+        for y in years do
+            let link =
+                a(href = $"/u/{username}/year/{y}",
+                  class' = (if y = current then "fr-pill fr-pill-primary" else "fr-pill fr-pill-muted hover:text-on-surface"))
+                    .data("year-option", string y)
+
+            if y = current then link.attr("aria-current", "page") { string y } else link { string y }
     }

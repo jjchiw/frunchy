@@ -177,6 +177,7 @@ let componentCss =
 type Icon =
     | ArrowBack
     | ArrowForward
+    | CalendarMonth
     | CheckCircle
     | ContentCopy
     | DeleteForever
@@ -190,6 +191,7 @@ type Icon =
     | Key
     | Link
     | LinkOff
+    | LocalFireDepartment
     | Lock
     | OpenInNew
     | ProgressActivity
@@ -204,6 +206,7 @@ type Icon =
         match this with
         | ArrowBack -> "arrow_back"
         | ArrowForward -> "arrow_forward"
+        | CalendarMonth -> "calendar_month"
         | CheckCircle -> "check_circle"
         | ContentCopy -> "content_copy"
         | DeleteForever -> "delete_forever"
@@ -217,6 +220,7 @@ type Icon =
         | Key -> "key"
         | Link -> "link"
         | LinkOff -> "link_off"
+        | LocalFireDepartment -> "local_fire_department"
         | Lock -> "lock"
         | OpenInNew -> "open_in_new"
         | ProgressActivity -> "progress_activity"

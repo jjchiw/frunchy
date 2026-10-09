@@ -2,8 +2,8 @@
   "workflow": "companion",
   "specName": "Year in Review",
   "branch": "005-year-in-review",
-  "currentStep": "tasks",
-  "status": "ready-to-implement",
+  "currentStep": "implement",
+  "status": "implementing",
   "history": [
     {
       "step": "specify",
@@ -67,6 +67,53 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-10-09T14:26:19.626Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-09T14:26:35.697Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T001",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:26:52.147Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T002",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:27:45.890Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T003",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:27:59.297Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T004",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:29:31.020Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T005",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:30:09.631Z"
     }
   ],
   "unattended": true,
@@ -252,5 +299,48 @@
       "summary": "15 tasks: setup, 4 foundational (texts, icons, shared helpers, DNA), US1 page (4), US2 navigation (2), polish (4)"
     }
   },
-  "approach": "A new Handlers/Users/Year.fs slice computes one UTC year with one SQL statement using feature 004's rules, plus months, streak and new versus continued series. DNA view helpers move to Views/Components.fs; the dashboard and DNA page link to it."
+  "approach": "A new Handlers/Users/Year.fs slice computes one UTC year with one SQL statement using feature 004's rules, plus months, streak and new versus continued series. DNA view helpers move to Views/Components.fs; the dashboard and DNA page link to it.",
+  "currentTask": "T005",
+  "task_summaries": {
+    "T001": {
+      "status": "DONE",
+      "did": "registered Year.fs and the two year test files as minimal modules; build clean",
+      "files": [
+        "FrunchyBackend.fsproj",
+        "tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj",
+        "Handlers/Users/Year.fs",
+        "tests/FrunchyBackend.Tests/YearTests.fs",
+        "tests/FrunchyBackend.Tests/YearNavigationTests.fs"
+      ]
+    },
+    "T002": {
+      "status": "DONE",
+      "did": "year texts in en and es: titles, rewatch note, sections, streak, empty state, links",
+      "files": [
+        "Views/Texts.fs"
+      ]
+    },
+    "T003": {
+      "status": "DONE",
+      "did": "CalendarMonth and LocalFireDepartment icons added to the subset",
+      "files": [
+        "Views/Theme.fs"
+      ]
+    },
+    "T004": {
+      "status": "DONE",
+      "did": "DNA view helpers moved to Components (section renamed figureSection to stop shadowing the html element); yearPicker added; DNA tests green",
+      "files": [
+        "Views/Components.fs",
+        "Handlers/Users/Dna.fs"
+      ]
+    },
+    "T005": {
+      "status": "DONE",
+      "did": "DNA page uses the shared helpers and links to /u/{username}/year (data-year-link); DNA tests green",
+      "files": [
+        "Handlers/Users/Dna.fs"
+      ]
+    }
+  }
 }
