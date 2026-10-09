@@ -176,7 +176,11 @@ type Texts =
       DeleteTypeUsername: string -> string
       DeleteButton: string
       DeleteMismatch: string
-      AccountDeletedNotice: string }
+      AccountDeletedNotice: string
+      // T018
+      /// Stands in for the username in the sign-up page's address preview while the field is empty
+      UsernamePreviewPlaceholder: string
+      DisplayNameHint: string }
 
 let en =
     { Lang = "en"
@@ -372,7 +376,10 @@ let en =
       DeleteTypeUsername = fun username -> $"Type your username ({username}) to confirm"
       DeleteButton = "Delete my account forever"
       DeleteMismatch = "That username doesn't match your account."
-      AccountDeletedNotice = "Your account and all your data have been deleted." }
+      AccountDeletedNotice = "Your account and all your data have been deleted."
+      // T018
+      UsernamePreviewPlaceholder = "your-username"
+      DisplayNameHint = "How your name appears on your dashboard. You can change it later in your account." }
 
 let es =
     { Lang = "es"
@@ -568,7 +575,10 @@ let es =
       DeleteTypeUsername = fun username -> $"Escribe tu nombre de usuario ({username}) para confirmar"
       DeleteButton = "Eliminar mi cuenta para siempre"
       DeleteMismatch = "Ese nombre de usuario no coincide con tu cuenta."
-      AccountDeletedNotice = "Tu cuenta y todos tus datos se han eliminado." }
+      AccountDeletedNotice = "Tu cuenta y todos tus datos se han eliminado."
+      // T018
+      UsernamePreviewPlaceholder = "tu-usuario"
+      DisplayNameHint = "Cómo aparece tu nombre en tu dashboard. Puedes cambiarlo después en tu cuenta." }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =
