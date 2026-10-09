@@ -334,7 +334,7 @@ fields stay as they are, and each task follows the "Conventions for every UI tas
   `cr_season_matches`, `mal_anime` and `mal_anime_tags` at request time; there's no new table.
 - [X] T027 Run the full `dotnet test` with 0 build warnings, and record the counts in the
   quickstart's validation log.
-- [ ] T028 Tell the browser-extension session (`ListAgents`, by its cwd `../browser-extension`) that
+- [X] T028 Tell the browser-extension session (`ListAgents`, by its cwd `../browser-extension`) that
   the website's tokens are live in `Views/Theme.fs`, that parity is tested, and which website-only
   tokens exist.
 
