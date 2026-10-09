@@ -77,8 +77,8 @@ let pill (tone: PillTone) (text: string) =
 
 /// A share bar (genres, formats, decades): 6px track, secondary → primary fill
 let shareBar (percent: decimal) =
-    let width = (max 0m (min 100m percent)).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)
-    div(class' = "fr-track").attr("aria-hidden", "true") { div(class' = "fr-fill").attr("style", $"width: {width}%%") }
+    let scale = (max 0m (min 100m percent) / 100m).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+    div(class' = "fr-track").attr("aria-hidden", "true") { div(class' = "fr-fill").attr("style", $"transform: scaleX({scale})") }
 
 type AlertKind =
     | Success

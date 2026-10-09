@@ -153,7 +153,7 @@ let componentCss =
   .fr-pill-muted { @apply bg-surface-container-high text-on-surface-variant border-outline-variant; }
   .fr-overline { @apply text-label-sm uppercase text-on-surface-variant; }
   .fr-track { @apply h-1.5 w-full overflow-hidden rounded-full bg-surface-container-highest; }
-  .fr-fill { @apply h-full rounded-full; background: linear-gradient(90deg, var(--color-secondary), var(--color-primary)); }
+  .fr-fill { @apply h-full w-full rounded-full origin-left; background: linear-gradient(90deg, var(--color-secondary), var(--color-primary)); }
   .fr-link { @apply text-primary underline decoration-primary/40 hover:decoration-primary; }
   .fr-mono { @apply font-mono; }
   .material-symbols-outlined { font-size: 1.25em; line-height: 1; vertical-align: -0.2em; user-select: none; }
@@ -161,7 +161,7 @@ let componentCss =
 @media (prefers-reduced-motion: no-preference) {
   .fr-btn, .fr-input, .fr-link, .fr-nav-link { transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), border-color 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms; }
   .fr-btn-primary:hover { box-shadow: var(--glow-primary); }
-  .fr-fill { transition: width 600ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .fr-fill { transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1); }
 }
 .fr-btn-primary:hover { @apply bg-primary-fixed; }
 .fr-btn-secondary:hover { @apply bg-surface-container-highest; }
