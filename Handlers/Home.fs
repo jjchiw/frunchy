@@ -1,37 +1,104 @@
 module FrunchyBackend.Handlers.Home
 
+open Microsoft.AspNetCore.Http
 open Oxpecker
 open Oxpecker.ViewEngine
+open FrunchyBackend.Infrastructure
 open FrunchyBackend.Views
+open FrunchyBackend.Views.Components
 open FrunchyBackend.Views.Texts
 
 // ---------------------------------------------------------------------------
-// View
+// View (design/frunchy_home, per design/REVIEW.md: no sample figures, no demo or docs links)
 // ---------------------------------------------------------------------------
 
-let view (ctx: Microsoft.AspNetCore.Http.HttpContext) (t: Texts) (deleted: bool) =
-    div(class' = "space-y-8") {
-        if deleted then
-            div(class' = "alert alert-success").data("account-deleted", "") { span() { t.AccountDeletedNotice } }
+/// The headline, its part after the comma in the primary colour ("…identity, / in numbers")
+let private headline (text: string) =
+    match text.LastIndexOf ',' with
+    | i when i > 0 && i < text.Length - 1 ->
+        Fragment() {
+            text.Substring(0, i + 1)
+            br()
+            span(class' = "text-primary") { text.Substring(i + 1).TrimStart() }
+        }
+    | _ -> Fragment() { text }
 
-        div(class' = "hero bg-base-200 rounded-lg") {
-            div(class' = "hero-content text-center") {
-                div(class' = "max-w-xl") {
-                    h1(class' = "text-5xl font-bold") { $"🎬 {t.SiteName}" }
-                    p(class' = "py-4 text-xl") { t.HomeHeadline }
-                    p(class' = "text-gray-400") { t.HomeIntro }
-                }
+/// Signed out: Sign in. Signed in: the account page, where the extension is connected.
+let private callToAction (ctx: HttpContext) (t: Texts) =
+    match WebAuth.currentNav ctx with
+    | WebAuth.SignedOut ->
+        a(href = "/signin", class' = btn Primary).data("home-cta", "signin") {
+            t.NavSignIn
+            icon Theme.ArrowForward
+        }
+    | WebAuth.SignedIn _ ->
+        a(href = "/account", class' = btn Primary).data("home-cta", "account") {
+            t.NavAccount
+            icon Theme.ArrowForward
+        }
+
+let private hero (ctx: HttpContext) (t: Texts) =
+    section(class' = "grid grid-cols-1 items-center gap-10 lg:grid-cols-12").attr("aria-labelledby", "home-title") {
+        div(class' = "space-y-6 lg:col-span-7") {
+            h1(id = "home-title", class' = "text-display-hero-mobile md:text-display-hero text-on-surface text-balance") {
+                headline t.HomeHeadline
+            }
+
+            p(class' = "max-w-prose text-body-lg text-on-surface-variant md:text-headline-md md:font-normal") { t.HomeIntro }
+
+            div(class' = "flex flex-wrap gap-3") {
+                callToAction ctx t
+                a(href = "#how-to-sync", class' = btn Secondary) { t.HomeHowToSyncTitle }
+            }
+
+            p(class' = "flex max-w-prose items-start gap-2 text-body-md text-on-surface-variant") {
+                span(class' = "text-primary") { icon Theme.Info }
+                span() { t.HomeProfilesNote }
             }
         }
-        div(class' = "card bg-base-300 shadow-md max-w-xl mx-auto") {
-            div(class' = "card-body") {
-                h2(class' = "card-title") { t.HomeHowToSyncTitle }
-                ol(class' = "list-decimal list-inside space-y-2") {
-                    for step in t.HomeSteps do
-                        li() { step }
+
+        // The mark, large: decoration only (no sample figures, REVIEW.md)
+        div(class' = "hidden justify-center lg:col-span-5 lg:flex").attr("aria-hidden", "true") {
+            span(class' = "block w-60 xl:w-72") { raw Theme.markSvg }
+        }
+    }
+
+let private stepIcons = [ Theme.Extension; Theme.History; Theme.Sync ]
+let private stepTones = [ "bg-primary/10 text-primary"; "bg-secondary/10 text-secondary"; "bg-primary/10 text-primary" ]
+
+let private howToSync (t: Texts) =
+    section(id = "how-to-sync", class' = "scroll-mt-24 space-y-6").attr("aria-labelledby", "how-to-sync-title") {
+        h2(id = "how-to-sync-title", class' = "text-headline-xl-mobile md:text-headline-xl text-on-surface") { t.HomeHowToSyncTitle }
+
+        ol(class' = "grid grid-cols-1 gap-4 md:grid-cols-3") {
+            for i, step in List.indexed t.HomeSteps do
+                li(class' = "fr-card flex flex-col gap-5").data("home-step", string (i + 1)) {
+                    div(class' = "flex items-center justify-between").attr("aria-hidden", "true") {
+                        span(class' = $"flex h-10 w-10 items-center justify-center rounded-full text-headline-md {stepTones[i % 3]}") {
+                            string (i + 1)
+                        }
+
+                        span(class' = "text-headline-md text-on-surface-variant") { icon stepIcons[i % 3] }
+                    }
+
+                    p(class' = "text-body-lg text-on-surface") { step }
                 }
-                p(class' = "text-sm text-gray-400 pt-2") { t.HomeProfilesNote }
-            }
+        }
+
+        p(class' = "flex max-w-prose items-start gap-2 text-body-md text-on-surface-variant") {
+            span(class' = "text-primary") { icon Theme.Lock }
+            span() { t.HomeNoPassword }
+        }
+    }
+
+let view (ctx: HttpContext) (t: Texts) (deleted: bool) =
+    div(class' = "space-y-10") {
+        if deleted then
+            (alert Success t.AccountDeletedNotice).data("account-deleted", "")
+
+        div(class' = "space-y-16 md:space-y-24") {
+            hero ctx t
+            howToSync t
         }
     }
     |> Layout.page ctx t t.HomeTitle

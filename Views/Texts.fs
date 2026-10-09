@@ -176,7 +176,10 @@ type Texts =
       DeleteTypeUsername: string -> string
       DeleteButton: string
       DeleteMismatch: string
-      AccountDeletedNotice: string }
+      AccountDeletedNotice: string
+
+      // T017
+      HomeNoPassword: string }
 
 let en =
     { Lang = "en"
@@ -372,7 +375,10 @@ let en =
       DeleteTypeUsername = fun username -> $"Type your username ({username}) to confirm"
       DeleteButton = "Delete my account forever"
       DeleteMismatch = "That username doesn't match your account."
-      AccountDeletedNotice = "Your account and all your data have been deleted." }
+      AccountDeletedNotice = "Your account and all your data have been deleted."
+
+      // T017
+      HomeNoPassword = "Frunchy never asks for your Crunchyroll password: it only reads the history pages the extension sends." }
 
 let es =
     { Lang = "es"
@@ -568,7 +574,10 @@ let es =
       DeleteTypeUsername = fun username -> $"Escribe tu nombre de usuario ({username}) para confirmar"
       DeleteButton = "Eliminar mi cuenta para siempre"
       DeleteMismatch = "Ese nombre de usuario no coincide con tu cuenta."
-      AccountDeletedNotice = "Tu cuenta y todos tus datos se han eliminado." }
+      AccountDeletedNotice = "Tu cuenta y todos tus datos se han eliminado."
+
+      // T017
+      HomeNoPassword = "Frunchy nunca te pide la contraseña de Crunchyroll: solo lee las páginas del historial que envía la extensión." }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =
