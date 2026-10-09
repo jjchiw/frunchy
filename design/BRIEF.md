@@ -158,7 +158,7 @@ The copy below is the site's real copy; keep it or propose better wording.
 The extension's own Claude session owns these screens and confirmed this list. The popup and the
 options page are **already built** from the popup mockup with the section 2 token values (YAML
 primary `#4cd7f6`, secondary `#c0c1ff`, `lg` = 1rem), so the designer reviews and refines them
-rather than starting over. Screenshots of every state: `../browser-extension/.impeccable/review/`.
+rather than starting over. Screenshots of every state are available on request from the extension session: they show the owner's real watch history, so they are kept out of both public repositories.
 What the extension needs most from the designer is section 2's brand item: the extension icon at
 16, 32, 48 and 128 px (it still ships the template's placeholder icons) and a mark for the
 popup header (today a styled "F").
