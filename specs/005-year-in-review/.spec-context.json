@@ -1,0 +1,96 @@
+{
+  "workflow": "companion",
+  "specName": "Year in Review",
+  "branch": "005-year-in-review",
+  "currentStep": "specify",
+  "status": "specified",
+  "history": [
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-09T14:19:31.260Z"
+    },
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "complete",
+      "by": "extension",
+      "at": "2026-10-09T14:20:43.328Z"
+    }
+  ],
+  "unattended": true,
+  "last_action": "living specs evaluated — skipped (not configured)",
+  "coverage": {
+    "FR-001": {
+      "title": "The site MUST serve a public page per user and calendar year at `/u/{username}/year/{year}`, in the viewer's language, with the same visibility as the dashboard"
+    },
+    "FR-002": {
+      "title": "`/u/{username}/year` MUST redirect to the most recent year with history, or to the current year when the user has none."
+    },
+    "FR-003": {
+      "title": "A year with no history, other than the current year, MUST redirect to `/u/{username}/year`; a non-numeric year, a year before 2000 or after the current year, or"
+    },
+    "FR-004": {
+      "title": "A year belongs to an episode by the date of its latest watch, as a calendar date in UTC; the page MUST say that rewatches count in the year of their latest watc"
+    },
+    "FR-005": {
+      "title": "The year's hours, days, fully watched episodes and series MUST follow the dashboard's rules, restricted to watches in that year, so the hours of all years add u"
+    },
+    "FR-006": {
+      "title": "The most-watched series of the year MUST be the Crunchyroll series with the most minutes watched that year, with its title, a poster (its most-watched matched s"
+    },
+    "FR-007": {
+      "title": "The page MUST show watch time for each of the 12 months as a chart and name the busiest month (ties to the earlier month)."
+    },
+    "FR-008": {
+      "title": "Top genres (top 5 plus \"Others\", shares adding up to 100%), top 3 studios and the format split MUST follow the DNA page's rules (minutes watched, a dub and its"
+    },
+    "FR-009": {
+      "title": "A series MUST count as new in a year when the earliest watch Frunchy holds for any of its episodes falls in that year, and as continued otherwise; the page show"
+    },
+    "FR-010": {
+      "title": "The longest streak MUST be the most consecutive calendar days (UTC) in the year with at least one fully watched episode, with its first and last day."
+    },
+    "FR-011": {
+      "title": "A year with fewer than 15 fully watched episodes MUST show a \"not enough data\" state with the count instead of the figures."
+    },
+    "FR-012": {
+      "title": "The page MUST list every year with history as a picker, newest first, marking the shown year."
+    },
+    "FR-013": {
+      "title": "The dashboard and the DNA page MUST link to `/u/{username}/year`, and the year page MUST link back to both."
+    },
+    "FR-014": {
+      "title": "Every figure MUST be computed from stored data when the page is viewed, with no call to MyAnimeList and no new stored data, and MUST be identical after `user-re"
+    },
+    "FR-015": {
+      "title": "The page MUST NOT show rankings, comparisons with other users, image export or anything without a real data source; every visible text comes from the site's Eng"
+    },
+    "FR-016": {
+      "title": "The page MUST use the shared design system and components, work from 360px wide in both languages, and meet WCAG 2.1 AA contrast."
+    }
+  },
+  "size": "normal",
+  "classification": {
+    "projectedFiles": 9,
+    "projectedTasks": 16,
+    "scopeSignal": "none",
+    "verdict": "normal"
+  },
+  "expectations": [
+    "no rankings or comparisons with other users",
+    "no image export or share cards",
+    "no extension API change",
+    "no new tables or rewatch ledger"
+  ],
+  "context": [
+    "area: Handlers/Users (Dashboard.fs, Dna.fs)",
+    "area: Views (Texts.fs, Components.fs, Theme.fs)",
+    "constraint: constitution 1.1.1 (no new tables, localized UI, CDN-only)",
+    "constraint: feature 004 counting rules and design system",
+    "data: owner history spans 2021-2026"
+  ],
+  "intent": "A public per-year review page of a user anime watching, from stored data"
+}
