@@ -107,3 +107,81 @@ let ``pages load the design system, not DaisyUI`` (path: string) =
         Assert.Contains("<main id=\"main\"", html)
         Assert.Contains("href=\"#main\"", html)
     }
+
+// ---------------------------------------------------------------------------
+// Every page: on the design system, with its test hooks (T015, contracts/design-system.md)
+// ---------------------------------------------------------------------------
+
+/// DaisyUI component classes and the old palette classes; none may survive the redesign
+let private daisyClasses =
+    set
+        [ "btn"; "btn-primary"; "btn-ghost"; "btn-sm"; "btn-error"; "btn-outline"; "card"; "card-body"; "card-title"
+          "card-side"; "stat"; "stats"; "stat-value"; "stat-title"; "alert"; "alert-error"; "alert-success"; "alert-info"
+          "alert-warning"; "badge"; "badge-secondary"; "navbar"; "hero"; "hero-content"; "footer-center"
+          "input-bordered"; "form-control"; "label-text"; "link"; "link-hover"; "progress"; "progress-primary"
+          "text-gray-400"; "text-gray-500"; "bg-base-100"; "bg-base-200"; "bg-base-300"; "text-warning" ]
+
+let private leftovers (html: string) =
+    [ for m in Regex.Matches(html, "class=\"([^\"]*)\"") do
+          for c in m.Groups[1].Value.Split(' ', StringSplitOptions.RemoveEmptyEntries) do
+              if daisyClasses.Contains c then yield c ]
+    |> List.distinct
+
+/// Problems of one page: DaisyUI leftovers, a missing design system, missing hooks
+let private pageProblems (name: string) (html: string) (hooks: string list) =
+    [ match leftovers html with
+      | [] -> ()
+      | found -> yield $"""{name}: DaisyUI classes left: {String.Join(", ", found)}"""
+      if not (html.Contains "--color-primary: #4cd7f6;") then
+          yield $"{name}: not on the design system layout"
+      for hook in hooks do
+          if not (html.Contains hook) then
+              yield $"{name}: missing {hook}" ]
+
+[<Fact>]
+let ``every page is on the design system and keeps its test hooks`` () =
+    task {
+        use! app = newApp ()
+        let problems = ResizeArray<string>()
+        let assertPage name html hooks = problems.AddRange(pageProblems name html hooks)
+
+        // Public pages
+        let anonymous = app.NewBrowser()
+        let! home = anonymous.Get "/"
+        assertPage "home" home.Html [ "href=\"/signin\"" ]
+        let! signin = anonymous.Get "/signin?error=failed"
+        assertPage "sign-in (error)" signin.Html [ "data-signin-error"; "data-provider=\"test\"" ]
+        let! missing = anonymous.Get "/nowhere"
+        assertPage "404" missing.Html [ "href=\"/\"" ]
+
+        // Sign-up and claim, with a pending identity
+        let pending = app.NewBrowser()
+        let! signup = AuthHelpers.signInWith pending "sub-new"
+        assertPage "sign-up" signup.Html [ "name=\"invite\""; "name=\"username\""; "name=\"displayName\""; "data-claim-link" ]
+        let! claim = pending.Get "/claim"
+        assertPage "claim" claim.Html [ "name=\"syncKey\"" ]
+
+        // A signed-in owner with a history
+        use! owner = AuthHelpers.signedUp app "sub-owner" "animenerd"
+        let! key = AuthHelpers.connectExtension owner
+        let! _ = TestHelpers.submitAccepted app key (load2026Sample ())
+        let! _ = TestHelpers.processAll app.Db
+        let! account = owner.Get "/account"
+        assertPage "account" account.Html [ "data-account"; "data-key-active"; "data-identity=\"test\""; "data-link-provider=\"test2\""; "data-security-event"; "data-sync" ]
+        let! keyConfirm = owner.Get "/account/key"
+        assertPage "connect extension" keyConfirm.Html [ "action=\"/account/key\"" ]
+        let! keyShown = owner.PostForm("/account/key", "/account/key", [])
+        let! keyHtml = keyShown.Content.ReadAsStringAsync()
+        assertPage "sync key shown" (Net.WebUtility.HtmlDecode keyHtml) [ "data-new-sync-key" ]
+        let! delete = owner.Get "/account/delete"
+        assertPage "delete account" delete.Html [ "name=\"confirmUsername\"" ]
+
+        let! dashboard = anonymous.Get "/u/animenerd"
+        assertPage "dashboard" dashboard.Html [ "data-stat=\"series\""; "data-recent-item"; "data-dna-link"; "data-fr-time" ]
+        let! dna = anonymous.Get "/u/animenerd/dna"
+        assertPage "anime DNA" dna.Html [ "data-dna-totals"; "data-dashboard-link" ]
+        let! empty = anonymous.Get "/u/nobody"
+        assertPage "user not found" empty.Html []
+
+        Assert.True(problems.Count = 0, String.Join(Environment.NewLine, problems))
+    }

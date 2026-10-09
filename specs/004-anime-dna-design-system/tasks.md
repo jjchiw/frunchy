@@ -257,7 +257,7 @@ its own.
 
 ### Tests for User Story 2 (REQUIRED, Principle V)
 
-- [ ] T015 [US2] Extend `DesignSystemTests.fs` so its "hooks survive" and "no DaisyUI" checks cover
+- [X] T015 [US2] Extend `DesignSystemTests.fs` so its "hooks survive" and "no DaisyUI" checks cover
   every page in the contract's table:
   - `/`, `/signin` (and its error state), `/signup`, `/claim`, `/signin/reconfirm`;
   - `/account`, `/account/key` (confirm and shown), `/account/delete`;
