@@ -62,7 +62,7 @@ From the dashboard and the DNA page a viewer reaches the year page, and on it sw
 - **FR-006**: The most-watched series of the year MUST be the Crunchyroll series with the most minutes watched that year, with its title, a poster (its most-watched matched season's MyAnimeList image, else a Crunchyroll thumbnail) and its fully watched episodes that year.
 - **FR-007**: The page MUST show watch time for each of the 12 months as a chart and name the busiest month (ties to the earlier month).
 - **FR-008**: Top genres (top 5 plus "Others", shares adding up to 100%), top 3 studios and the format split MUST follow the DNA page's rules (minutes watched, a dub and its original counted once, matched seasons only, explicit genres excluded), restricted to the year, each with its coverage of the year's watch time.
-- **FR-009**: A series MUST count as new in a year when the earliest watch Frunchy holds for any of its episodes falls in that year, and as continued otherwise; the page shows both counts.
+- **FR-009**: A series MUST count as new in a year when the earliest watch Frunchy holds for any of its episodes falls in that year, and as continued otherwise; the page shows both counts. Because only the latest watch of each episode is held, a series rewatched entirely in a later year counts as new there; the rewatch note of FR-004 covers this.
 - **FR-010**: The longest streak MUST be the most consecutive calendar days (UTC) in the year with at least one fully watched episode, with its first and last day.
 - **FR-011**: A year with fewer than 15 fully watched episodes MUST show a "not enough data" state with the count instead of the figures.
 - **FR-012**: The page MUST list every year with history as a picker, newest first, marking the shown year.
@@ -81,7 +81,7 @@ From the dashboard and the DNA page a viewer reaches the year page, and on it sw
 ### Measurable Outcomes
 
 - **SC-001**: For the 2026 sample, every figure on a year page equals an independent count over the same data, in English and Spanish.
-- **SC-002**: The hours of all of a user's year pages add up to the dashboard's hours, to the tenth of an hour.
+- **SC-002**: The hours of all of a user's year pages add up to the dashboard's hours, within rounding (0.1 hour per year).
 - **SC-003**: On the owner's history (six years, about 6,000 episodes) a year page is ready in under 1 second.
 - **SC-004**: A viewer reaches any year of a profile from its dashboard in 2 clicks.
 - **SC-005**: The page passes the design-system checks of feature 004 (no default-theme leftovers, every test hook present) and an impeccable audit with no blocking finding.

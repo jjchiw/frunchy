@@ -2,8 +2,8 @@
   "workflow": "companion",
   "specName": "Year in Review",
   "branch": "005-year-in-review",
-  "currentStep": "specify",
-  "status": "specified",
+  "currentStep": "plan",
+  "status": "planned",
   "history": [
     {
       "step": "specify",
@@ -18,6 +18,34 @@
       "kind": "complete",
       "by": "extension",
       "at": "2026-10-09T14:20:43.328Z"
+    },
+    {
+      "step": "plan",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-09T14:21:00.024Z"
+    },
+    {
+      "step": "plan",
+      "substep": "research",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:23:41.180Z"
+    },
+    {
+      "step": "plan",
+      "substep": "design",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:25:02.680Z"
+    },
+    {
+      "step": "plan",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:25:09.802Z"
     }
   ],
   "unattended": true,
@@ -92,5 +120,39 @@
     "constraint: feature 004 counting rules and design system",
     "data: owner history spans 2021-2026"
   ],
-  "intent": "A public per-year review page of a user anime watching, from stored data"
+  "intent": "A public per-year review page of a user anime watching, from stored data",
+  "decisions": [
+    {
+      "decision": "Year = UTC calendar year of the latest watch",
+      "why": "only the latest watch per episode is stored; the server has no viewer zone",
+      "rejected": "viewer time zone"
+    },
+    {
+      "decision": "Totals undeduplicated, MyAnimeList figures deduplicated, as on the DNA page",
+      "why": "years then add up to the dashboard",
+      "rejected": "one rule for both"
+    },
+    {
+      "decision": "Move section, coverageNote, notEnough, shareLine, inv, pctText from Dna.fs into Views/Components.fs",
+      "why": "two slices now use them (constitution III)",
+      "rejected": "copying them into Year.fs"
+    },
+    {
+      "decision": "Year route segment parsed as text in the handler",
+      "why": "one not-found page for bad years and the redirect rules",
+      "rejected": "typed %i route"
+    },
+    {
+      "decision": "Month names from the culture",
+      "why": "no new texts, correct in both languages",
+      "rejected": "twelve new text fields"
+    }
+  ],
+  "step_summaries": {
+    "plan": {
+      "summary": "Plan, research, data model and the year-page contract for a one-slice year review",
+      "key_finding": "new-versus-continued can only use the latest held watch per episode, so it is an approximation the page must state"
+    }
+  },
+  "approach": "A new Handlers/Users/Year.fs slice computes one UTC year with one SQL statement using feature 004's rules, plus months, streak and new versus continued series. DNA view helpers move to Views/Components.fs; the dashboard and DNA page link to it."
 }
