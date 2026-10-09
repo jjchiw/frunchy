@@ -206,3 +206,17 @@ user `jjchiw`, 2026-10-08) before deciding.
   `DEFAULT` 0.5rem and `lg` 1rem. The prose is corrected to match, and the mockups' local Tailwind
   configs are treated as drafts.
 - **Rationale**: the spec (FR-018), the extension and the brief already use the YAML values.
+
+## R17. Mockup review (2026-10-08)
+
+The designer delivered every screen of the brief. Decisions made by the owner:
+- **Radius**: `lg` stays 1rem, as in the YAML and the extension. The mockups' 0.5rem configs are
+  drafts.
+- **Logo**: the clapperboard-and-bars mark, redrawn as `design/brand/frunchy-mark.svg` in the
+  tokens.
+- **Pace**: the 9-of-13-weeks rule stays. The mockup's "% active days" isn't used.
+- **DNA minimum**: 15 fully watched episodes, taken from the mockup's cold-start state.
+- **Tone**: the plain copy of `Views/Texts.fs`. The mockups' "telemetry" wording, and their false
+  claims ("zero-knowledge", "end-to-end", "webhook"), don't ship.
+
+`design/REVIEW.md` maps each page to its mockup, with what to keep and what to drop.

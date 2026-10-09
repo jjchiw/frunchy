@@ -34,7 +34,9 @@ its own.
   literals.
 - **Test hooks**: keep every `data-*` hook listed in `contracts/design-system.md` on the equivalent
   element. Never rename one.
-- **Mockups**: follow the page's mockup in `design/` when it exists. Otherwise build from
+- **Mockups**: follow the page's mockup in `design/` (mapped in `design/REVIEW.md`, with what to keep
+  and what to drop) when it exists. Take layout and components, never copy: texts stay the site's
+  plain texts. Otherwise build from
   `Views/Components.fs` and add the page to the quickstart's revisit list.
 - **Checks**: at 1440px and at 360px, in English and in Spanish:
   - no clipped or overlapping text, and no horizontal scroll;
@@ -93,8 +95,10 @@ its own.
     T005 (`.fr-card`, `.fr-tile`, `.fr-pill`, `.fr-btn-*`, `.fr-input`, `.fr-alert-*`,
     `.fr-genre-track`, `.fr-genre-fill`, focus rings). Hover and transition effects go inside
     `@media (prefers-reduced-motion: no-preference)`.
-  - `fontLinks`: the Google Fonts links for Plus Jakarta Sans (400/600/700/800, `display=swap`) and
-    the Material Symbols Outlined subset (`icon_names=` with only the icons used).
+  - `fontLinks`: the Google Fonts links for Plus Jakarta Sans (400/600/700/800, `display=swap`),
+    JetBrains Mono 400/500 (keys, usernames and URLs only: `--font-mono`, `font-mono`), and the
+    Material Symbols Outlined subset (`icon_names=` with only the icons used).
+  - `markSvg`: the inline SVG of `design/brand/frunchy-mark.svg`, and `faviconHref`, a data-URI of it.
 - [ ] T005 Create `Views/Components.fs` (contract "Components"). Each function returns an
   `HtmlElement` and takes the strings it shows (no literals):
   - `card`, `metricTile label name invariantValue display` (keeps `data-stat` and `data-value`),
@@ -110,8 +114,9 @@ its own.
   - **Head**: drop DaisyUI; keep the Tailwind CDN script, htmx 4.0.0, Alpine 3 and the time script;
     add `Theme.fontLinks`, `Theme.tokensCss`, `Theme.tailwindConfig` and `Theme.componentCss`.
   - **Body**: `bg-surface text-on-surface font-sans`.
-  - **Navigation** (dashboard mockup):
-    - a text wordmark instead of the 🎬 emoji (FR-025);
+  - **Navigation** (dashboard mockup, minus the extras dropped in `design/REVIEW.md`):
+    - the mark `design/brand/frunchy-mark.svg` inline (`aria-hidden`) plus the "Frunchy" wordmark,
+      instead of the 🎬 emoji, and the same SVG as a data-URI favicon (FR-025);
     - `navEnd` keeps `data-nav` and the sign-out POST form with antiforgery.
   - **Footer**: restyled.
   - **Main**: `max-w-[1360px] mx-auto` with gutters.
@@ -163,7 +168,8 @@ its own.
     - with every season unmatched, each MyAnimeList section carries `data-not-enough`, while totals
       and insignia still show.
   - **Ties**: two studios with equal minutes are ordered by name.
-  - **Empty**: a user with no history gets `data-dna-empty` and no figure sections.
+  - **Empty**: a user with no history, and one with 14 fully watched episodes, get `data-dna-empty`
+    (`data-value` = 0 and 14) and no figure sections; at 15 the figures appear.
   - **Not found**: an unknown username gets 404 and the "User not found" text.
   - **Links**: `/u/{username}` has `data-dna-link` → `/u/{username}/dna`, and the DNA page has
     `data-dashboard-link`.
@@ -192,7 +198,10 @@ its own.
   - pace unit and labels (steady / in bursts), the not-enough messages (page-level and
     per-section);
   - copy link, link copied, the fallback label;
-  - the dashboard ↔ DNA link labels, and decade formatting (a function of year).
+  - the dashboard ↔ DNA link labels, and decade formatting (a function of year);
+  - the empty state: "{n} of 15 fully watched episodes", how to get there, and the link label to the
+    home page's how-to-sync;
+  - the 90-day chart's accessible label, and the insignia's "{n} of {total} episodes".
 - [ ] T011 [US1] Implement `Handlers/Users/Dna.fs`, data section (research R4–R10, data-model):
   - **One round trip**: a private `load` reading everything with one `NpgsqlBatch`:
     - user lookup (case-insensitive, as `Dashboard.fs`);
@@ -203,17 +212,22 @@ its own.
       `extract(year from aired_from)`); genres (excluding ids 9, 12, 49) with each genre's top
       series; formats; insignia (LEFT JOIN `cr_series`, title fallback to `cr_episodes.series_title`,
       poster from the most-watched matched season's `mal_anime.image_url`, else the newest
-      thumbnail); pace (`@now` from `TimeProvider`).
+      thumbnail, plus its MyAnimeList type, first studio, season/year and `episodes`); pace
+      (`@now` from `TimeProvider`), with per-day counts for the 90-day chart; and the decade
+      breakdown (every decade with its share).
   - **SQL rules**: every value is passed as a parameter (`SqlGuardrailTests`), and the SQL text
     stays literal.
   - **Result**: a `DnaModel` record with an option per figure (`None` = not enough).
 - [ ] T012 [US1] Implement `Handlers/Users/Dna.fs`, view, handler and endpoint:
   - **Layout**: follow the DNA mockup (`design/anime_dna_perfil_frunchy/code.html`, real-data
     sections only, brief 5.2), on `Components`.
+    - Copy: the site's plain texts only; drop every mockup element listed in `design/REVIEW.md`.
     - Header: display name, the copy-link control (Alpine: `navigator.clipboard.writeText`, an
       `aria-live` confirmation, a read-only input fallback, research R11), the dashboard link.
-    - Sections in the contract's order, with its hooks; `genreBar` for genres and formats; the
-      coverage line per MyAnimeList section; the empty state.
+    - Sections in the contract's order, with its hooks; `genreBar` for genres, formats and the
+      decade breakdown; the coverage line per MyAnimeList section; the empty state.
+    - Pace: a 90-bar chart of episodes per day (plain divs with heights, `role="img"` and an
+      `aria-label` summary, no chart library), per `design/REVIEW.md`.
   - **Handler**: `handler (username: string) : EndpointHandler`. A user that doesn't exist →
     `Layout.messagePage` with UserNotFound and a 404.
   - **Endpoint**: `let endpoint = GET [ routef "/u/{%s}/dna" handler ]`, added to `Program.fs`
@@ -257,9 +271,14 @@ Each task below changes **view functions only** in the named file. Handlers, SQL
 fields stay as they are, and each task follows the "Conventions for every UI task".
 
 - [ ] T016 [US2] Restyle the dashboard view in `Handlers/Users/Dashboard.fs` (mockup
-  `design/dashboard_frunchy`, brief 5.1 states):
+  `design/frunchy_public_dashboard_u_username`, keep/drop per `design/REVIEW.md`):
+  - header: display name, the DNA link (T013) and a copy-profile-link control (the same Alpine
+    control as the DNA page; move it to `Components.copyLink` when both use it);
   - the four stats on `metricTile`;
-  - recent cards with poster, `Ep. N`, score `pill` and genres;
+  - recent cards with thumbnail, progress, `Ep. N`, score `pill`, genres, and the matched anime's
+    first studio, format and year (extend the recent-cards query in this slice), plus the unmatched
+    variant ("Not on MyAnimeList yet"); a test in `DashboardMalTests.fs` covers studio, format and
+    year;
   - "Top genres" on `genreBar`;
   - empty, processing and not-found states;
   - keep `data-stat`, `data-value`, `data-recent-item`, `data-mal-*`, `data-top-genres`,

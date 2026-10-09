@@ -34,8 +34,9 @@ Tests read only `data-*` attributes and decoded text (`readHtml`), never classes
 
 **Not enough data**:
 - A section that has no data carries `data-not-enough` and shows its own message instead of values.
-- The whole page in the empty state carries `data-dna-empty` and shows only the header, the
-  explanation and the dashboard link.
+- The whole page in the empty state (fewer than 15 fully watched episodes, FR-014) carries
+  `data-dna-empty` with `data-value` = the user's count, and shows only the header, the count out of
+  15, the explanation and the dashboard link.
 
 ## Links
 

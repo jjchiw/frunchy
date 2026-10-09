@@ -13,6 +13,8 @@
 ### Session 2026-10-08 (decisions the owner made before specifying)
 
 - Q: Is moving the whole site to the design system part of this feature, or a feature of its own? → A: Part of this feature. The DNA page can't look right on a different base, and the site should look like one product with the redesigned extension popup.
+- Q: Is there a minimum before the DNA page shows anything? → A: Yes: 15 fully watched episodes (with a known duration). Below that, the page shows the "not enough data yet" state with how many are synced so far (design review of the designer's DNA mockup).
+- Q: Which design decisions came out of the mockup review? → A: radius `lg` stays 1rem (as the extension ships); the logo is the clapperboard-and-bars mark, redrawn in the tokens (`design/brand/frunchy-mark.svg`); pace consistency stays "9 of 13 weeks"; the copy stays plain (the site's existing texts), not the mockups' "telemetry" wording.
 - Q: Does the DNA page keep a "viewing pace" figure, given that Frunchy keeps only the latest watch of each episode? → A: Yes, as the design shows: fully watched episodes per day over the last 90 days, labelled "steady" or "in bursts", with a "not enough recent data" state (FR-006).
 
 ## User Scenarios & Testing *(mandatory)*
@@ -32,7 +34,7 @@ A viewer opens `/u/{username}/dna` (linked from the dashboard) and sees, on one 
 3. **Given** a figure based on MyAnimeList data, **When** it's shown, **Then** it counts matched seasons only and shows its coverage ("based on 93% of your watch time").
 4. **Given** a 2-hour movie and a 24-minute episode, **When** studio, decade, genre and format figures are computed, **Then** each counts by the minutes watched, so the movie weighs five times the episode.
 5. **Given** a user who watched both the original and a dub of the same episode, **When** the figures are computed, **Then** that episode counts once.
-6. **Given** a user with no watch history, or with no matched seasons, **When** their DNA page is opened, **Then** it shows a "not enough data yet" state explaining how to get there (sync with the extension; MyAnimeList data arrives shortly after), with no broken or empty figures.
+6. **Given** a user with fewer than 15 fully watched episodes, **When** their DNA page is opened, **Then** it shows a "not enough data yet" state with how many they have out of 15 and how to get there (sync with the extension; MyAnimeList data arrives shortly after), with no broken or empty figures. A user with 15 or more but no matched seasons sees totals, insignia and pace, and each MyAnimeList figure shows its own "not enough data" state.
 7. **Given** an unknown username, **When** `/u/{username}/dna` is opened, **Then** the site's "User not found" page is shown with a not-found status, as for the dashboard.
 8. **Given** a viewer on the DNA page, **When** they press "copy link", **Then** the page's full address is copied and a short confirmation appears; nothing else is shared or generated.
 9. **Given** a viewer on the dashboard, **When** they look for the DNA, **Then** a visible link leads to `/u/{username}/dna`, and the DNA page links back to the dashboard.
@@ -91,7 +93,7 @@ Every page of the website (home, sign-in, sign-up, claim an account, confirm it'
 - **FR-011**: Format split MUST show each format's share of matched minutes (TV, Movie, OVA, ONA, Special, and any other format MyAnimeList reports, by name), largest first.
 - **FR-012**: Totals MUST show hours and days watched, computed exactly as the dashboard computes them.
 - **FR-013**: A "copy link" control MUST copy the DNA page's absolute address and confirm it. No image, file or external share is generated.
-- **FR-014**: A user with no countable history MUST see a "not enough data yet" state; each MyAnimeList-based figure with no matched minutes MUST show its own "not enough data" state.
+- **FR-014**: A user with fewer than 15 fully watched episodes (with a known duration) MUST see a page-level "not enough data yet" state showing their count out of 15; each MyAnimeList-based figure with no matched minutes MUST show its own "not enough data" state.
 - **FR-015**: An unknown or deleted username MUST get the site's "User not found" page with a not-found status.
 - **FR-016**: Every figure MUST be computed from Frunchy's stored data when the page is viewed, with no call to MyAnimeList, and MUST be identical after a full rebuild of the user's history (`user-rebuild`) and after re-sending the same submissions.
 - **FR-017**: The page MUST NOT show elements without a real data source: no radar or "pillar" scores, "algorithmic diagnosis", affinity percentage, personal ratings or Hall of Fame scores, rewatch tags, followers, badges, levels or PRO marks, linked MyAnimeList account, avatars or image export.
@@ -105,7 +107,7 @@ Every page of the website (home, sign-in, sign-up, claim an account, confirm it'
 - **FR-022**: Routes, forms and their fields, validation, forged-submission protection, rate limits, redirects, status codes, security events and every figure MUST behave exactly as before the redesign.
 - **FR-023**: Every page MUST work from a 360px-wide phone to a wide desktop, in English and Spanish, with no clipped or overlapping text and no sideways scrolling.
 - **FR-024**: Every page MUST meet WCAG 2.1 AA contrast, have visible keyboard focus on every control, and respect "reduce motion".
-- **FR-025**: The site's mark MUST replace the emoji logo once the designer delivers it; until then a text wordmark in the design system's type is used.
+- **FR-025**: The site's mark is the clapperboard-and-bars mark (`design/brand/frunchy-mark.svg`), next to the "Frunchy" wordmark, replacing the emoji logo; it's also the favicon.
 
 **Constraints**
 

@@ -50,7 +50,7 @@ One row per user and **deduplicated** episode (research R4, R5):
 | State | When |
 |---|---|
 | `NotFound` | unknown or deleted username → "User not found", 404 |
-| `Empty` | no episode with a duration → the page-level "not enough data yet" |
+| `Empty` | fewer than 15 fully watched episodes with a duration → the page-level "not enough data yet", with the count |
 | Per figure `NotEnough` | a MyAnimeList-based figure with 0 matched minutes; pace with < 10 episodes |
 | `Ready` | otherwise; each figure is either a value or `NotEnough` |
 
