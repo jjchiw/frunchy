@@ -112,6 +112,11 @@ No table. `GET /u/{username}/dna` reads `watch_events`, `cr_episodes`, `cr_serie
 `cr_season_matches`, `mal_anime`, `mal_anime_tags` and `mal_tags` at request time, so it is always
 consistent with `user-rebuild` and `mal-rebuild`.
 
+## Year in review (feature 005)
+
+No table. `GET /u/{username}/year/{year}` reads the same tables as the DNA page at request time,
+filtered to one UTC calendar year of `watch_events.watched_at` (the latest watch of each episode).
+
 ## Dashboard figures
 
 Computed per request, no projection tables. Only resolved episodes (`duration_ms IS NOT NULL`)

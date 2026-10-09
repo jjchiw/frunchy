@@ -99,13 +99,13 @@ Files: Handlers/Users/Dashboard.fs, tests/FrunchyBackend.Tests/YearNavigationTes
 
 **Wave 1, independent (different files):**
 
-- [ ] **T012** [P] Add the year page to the every-page design-system check with its hooks · tests/FrunchyBackend.Tests/DesignSystemTests.fs
-- [ ] **T013** [P] Add a "Year in review" prompt to the designer brief, following section 5.2's format and the shared context block · design/BRIEF.md
-- [ ] **T014** [P] Document the route, the data notes and the roadmap entry (005) · README.md, CLAUDE.md, FRONTEND.md, SCHEMA.md
+- [x] **T012** [P] Add the year page to the every-page design-system check with its hooks · tests/FrunchyBackend.Tests/DesignSystemTests.fs
+- [x] **T013** [P] Add a "Year in review" prompt to the designer brief, following section 5.2's format and the shared context block · design/BRIEF.md
+- [x] **T014** [P] Document the route, the data notes and the roadmap entry (005) · README.md, CLAUDE.md, FRONTEND.md, SCHEMA.md
 
 **⟶ Wait for Wave 1 to finish, then:**
 
-- [ ] **T015** Run the full `dotnet test` with 0 build warnings, and validate against the Success Criteria (SC-001 to SC-005). Record the real-data figures, timing and audit in a new validation log · specs/005-year-in-review/quickstart.md
+- [x] **T015** Run the full `dotnet test` with 0 build warnings, and validate against the Success Criteria (SC-001 to SC-005). Record the real-data figures, timing and audit in a new validation log · specs/005-year-in-review/quickstart.md
 
 ## Dependencies & Execution Order
 

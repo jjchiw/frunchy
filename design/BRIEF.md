@@ -153,6 +153,19 @@ The copy below is the site's real copy; keep it or propose better wording.
 > "algorithmic diagnosis", affinity %, badges, followers, ratings and the PNG export; keep a
 > "copy link" share button. Variants: "not enough data yet" for a new user, and mobile.
 
+### 5.3 Year in review (`/u/{username}/year/{year}`, feature 005)
+> [context] A page for one calendar year of a profile, already built from the components (no mockup
+> yet), to be refined. Header: "jjchiw's 2025 in anime", a one-line intro, links back to the
+> dashboard and the Anime DNA, "Copy link", a row of year pills (every year with history, the shown
+> one highlighted), and a small note: "Frunchy keeps the latest watch of each episode, so a rewatch
+> counts in the year it was last watched." Figures, all real: hours (and days), episodes, series,
+> new versus continued series; a 12-month bar chart of hours with the busiest month named; the most
+> watched series with its poster and episode count; top 5 genres plus "Others" by watch time, each
+> with its top anime; the top 3 studios; formats; the longest streak of consecutive days ("38 days
+> in a row, 16 Feb to 25 Mar"). MyAnimeList sections show a coverage note. Variants: a year with
+> fewer than 15 fully watched episodes ("Not enough data for 2025 yet, 4 of 15"), Spanish, and
+> 360px (the chart must fit 12 months). No rankings, comparisons, share cards or image export.
+
 ## 6. Browser extension
 
 The extension's own Claude session owns these screens and confirmed this list. The popup and the

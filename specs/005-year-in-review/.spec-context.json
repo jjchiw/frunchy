@@ -3,7 +3,7 @@
   "specName": "Year in Review",
   "branch": "005-year-in-review",
   "currentStep": "implement",
-  "status": "implementing",
+  "status": "completed",
   "history": [
     {
       "step": "specify",
@@ -162,16 +162,58 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-10-09T14:37:58.018Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T012",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:38:45.536Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T013",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:39:28.498Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T014",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:39:38.646Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T015",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:41:23.659Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-09T14:41:23.680Z"
     }
   ],
   "unattended": true,
-  "last_action": "living specs evaluated — skipped (not configured)",
+  "last_action": "all 15 tasks done, 266/267 tests pass (1 opt-in skip)",
   "coverage": {
     "FR-001": {
       "title": "The site MUST serve a public page per user and calendar year at `/u/{username}/year/{year}`, in the viewer's language, with the same visibility as the dashboard",
       "tasks": [
         "T007",
         "T008"
+      ],
+      "tests": [
+        "YearTests.fs::every figure of a year equals an independent count over the same data"
       ]
     },
     "FR-002": {
@@ -179,6 +221,9 @@
       "tasks": [
         "T008",
         "T010"
+      ],
+      "tests": [
+        "YearNavigationTests.fs::the address without a year goes to the newest year with history"
       ]
     },
     "FR-003": {
@@ -187,6 +232,10 @@
         "T006",
         "T008",
         "T010"
+      ],
+      "tests": [
+        "YearTests.fs::bad users and years are not found",
+        "YearNavigationTests.fs::a year without history goes back to the address without a year"
       ]
     },
     "FR-004": {
@@ -201,6 +250,9 @@
       "tasks": [
         "T006",
         "T007"
+      ],
+      "tests": [
+        "YearTests.fs::every year hours add up to the dashboard"
       ]
     },
     "FR-006": {
@@ -248,6 +300,9 @@
       "tasks": [
         "T006",
         "T008"
+      ],
+      "tests": [
+        "YearTests.fs::a year with fewer than 15 fully watched episodes shows the empty state with the count"
       ]
     },
     "FR-012": {
@@ -256,6 +311,11 @@
         "T004",
         "T008",
         "T010"
+      ],
+      "tests": [
+        "YearNavigationTests.fs::the picker lists exactly the years with history",
+        "newest first",
+        "marking the shown one"
       ]
     },
     "FR-013": {
@@ -265,6 +325,9 @@
         "T008",
         "T010",
         "T011"
+      ],
+      "tests": [
+        "YearNavigationTests.fs::the dashboard and the DNA page link to the year page"
       ]
     },
     "FR-014": {
@@ -272,6 +335,10 @@
       "tasks": [
         "T006",
         "T007"
+      ],
+      "tests": [
+        "YearTests.fs::the figures are identical after a rebuild and after re-sending",
+        "and viewing never calls MyAnimeList"
       ]
     },
     "FR-015": {
@@ -287,6 +354,9 @@
         "T008",
         "T012",
         "T015"
+      ],
+      "tests": [
+        "DesignSystemTests.fs::every page is on the design system and keeps its test hooks"
       ]
     }
   },
@@ -336,6 +406,16 @@
       "decision": "Month names from the culture",
       "why": "no new texts, correct in both languages",
       "rejected": "twelve new text fields"
+    },
+    {
+      "decision": "Rename the shared section helper to figureSection",
+      "why": "a public section function in Components shadowed the HTML section element on every page",
+      "rejected": "keeping it private per page"
+    },
+    {
+      "decision": "One letter per month on phones",
+      "why": "twelve abbreviations overflow at 360px",
+      "rejected": "a scrolling chart"
     }
   ],
   "step_summaries": {
@@ -345,10 +425,13 @@
     },
     "tasks": {
       "summary": "15 tasks: setup, 4 foundational (texts, icons, shared helpers, DNA), US1 page (4), US2 navigation (2), polish (4)"
+    },
+    "implement": {
+      "summary": "Year in review shipped: /u/{username}/year[/{year}], linked from the dashboard and DNA page"
     }
   },
   "approach": "A new Handlers/Users/Year.fs slice computes one UTC year with one SQL statement using feature 004's rules, plus months, streak and new versus continued series. DNA view helpers move to Views/Components.fs; the dashboard and DNA page link to it.",
-  "currentTask": "T011",
+  "currentTask": "T015",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -432,6 +515,70 @@
       "files": [
         "Handlers/Users/Dashboard.fs"
       ]
+    },
+    "T012": {
+      "status": "DONE",
+      "did": "year page added to the every-page design-system check (no DaisyUI, hooks present)",
+      "files": [
+        "tests/FrunchyBackend.Tests/DesignSystemTests.fs"
+      ]
+    },
+    "T013": {
+      "status": "DONE",
+      "did": "designer brief 5.3 for the year page, real data only",
+      "files": [
+        "design/BRIEF.md"
+      ]
+    },
+    "T014": {
+      "status": "DONE",
+      "did": "route, data notes and roadmap 005 in README, CLAUDE.md, FRONTEND.md, SCHEMA.md",
+      "files": [
+        "README.md",
+        "CLAUDE.md",
+        "FRONTEND.md",
+        "SCHEMA.md"
+      ]
+    },
+    "T015": {
+      "status": "DONE",
+      "did": "full suite 266 passed, 1 skipped, 0 warnings; success criteria validated; validation log written",
+      "files": [
+        "specs/005-year-in-review/quickstart.md"
+      ]
     }
-  }
+  },
+  "verified": [
+    {
+      "what": "build with 0 warnings",
+      "command": "dotnet build",
+      "source": "derived",
+      "exitCode": 0,
+      "durationSeconds": 1.7,
+      "result": "    0 Warning(s) ·     0 Error(s) · Time Elapsed 00:00:01.45"
+    },
+    {
+      "what": "full test suite",
+      "command": "dotnet test",
+      "result": "266 passed, 1 skipped (opt-in recording), 0 failed"
+    },
+    {
+      "what": "real-data check of /u/jjchiw/year/2025 at 1440px and 360px es",
+      "command": "manual (headless Chrome)",
+      "result": "figures match the SQL prototype; month labels fixed for phones",
+      "warnings": [
+        "impeccable: share-bar gradient and Plus Jakarta Sans, both pinned by DESIGN.md"
+      ]
+    }
+  ],
+  "concerns": [
+    {
+      "note": "YearTests and YearNavigationTests were written after the slice, not before; they pass and check figures against independent counts",
+      "step": "implement"
+    },
+    {
+      "note": "New versus continued uses the latest held watch per episode, so a series fully rewatched in a later year counts as new there (stated on the page)",
+      "step": "implement"
+    }
+  ]
 }

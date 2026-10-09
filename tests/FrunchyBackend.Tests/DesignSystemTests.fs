@@ -178,6 +178,8 @@ let ``every page is on the design system and keeps its test hooks`` () =
 
         let! dashboard = anonymous.Get "/u/animenerd"
         assertPage "dashboard" dashboard.Html [ "data-stat=\"series\""; "data-recent-item"; "data-dna-link"; "data-fr-time" ]
+        let! year = anonymous.Get $"/u/animenerd/year/{DateTime.UtcNow.Year}"
+        assertPage "year in review" year.Html [ "data-year=\""; "data-year-picker"; "data-rewatch-note"; "data-dashboard-link"; "data-dna-link" ]
         let! dna = anonymous.Get "/u/animenerd/dna"
         assertPage "anime DNA" dna.Html [ "data-dna-totals"; "data-dashboard-link" ]
         let! empty = anonymous.Get "/u/nobody"
