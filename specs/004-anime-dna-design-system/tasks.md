@@ -310,27 +310,27 @@ fields stay as they are, and each task follows the "Conventions for every UI tas
 
 ## Phase 5: Polish & Cross-Cutting Concerns
 
-- [ ] T022 [P] Correct the prose of `design/neo_scrobble_profile/DESIGN.md` to the YAML values (R16):
+- [X] T022 [P] Correct the prose of `design/neo_scrobble_profile/DESIGN.md` to the YAML values (R16):
   - primary `#4cd7f6`, secondary `#c0c1ff`;
   - the radius scale (`DEFAULT` 0.5rem, `lg` 1rem);
   - the button example colours;
   - and note that the tokens are shared with the extension.
-- [ ] T023 [P] Amend `.specify/memory/constitution.md` to 1.1.1 (R15):
+- [X] T023 [P] Amend `.specify/memory/constitution.md` to 1.1.1 (R15):
   - in "UI", "Tailwind/DaisyUI loaded from CDNs" becomes "Tailwind, fonts and icons loaded from
     CDNs";
   - update the Sync Impact Report;
   - check `.specify/templates/plan-template.md`'s constraints line.
-- [ ] T024 [P] Update `README.md`:
+- [X] T024 [P] Update `README.md`:
   - the DNA page;
   - the design system and its shared tokens;
   - the roadmap (004 Implemented).
-- [ ] T025 [P] Update `CLAUDE.md`:
+- [X] T025 [P] Update `CLAUDE.md`:
   - routes (`GET /u/{username}/dna`);
   - Localization/Views: `Views/Theme.fs` and `Views/Components.fs`, no DaisyUI;
   - test hooks are `data-*` only;
   - token names shared with the extension (`tokens.css`) and kept equal by `DesignSystemTests`;
   - use impeccable for UI work.
-- [ ] T026 [P] Add a note to `SCHEMA.md`: the DNA page reads `watch_events`, `cr_episodes`,
+- [X] T026 [P] Add a note to `SCHEMA.md`: the DNA page reads `watch_events`, `cr_episodes`,
   `cr_season_matches`, `mal_anime` and `mal_anime_tags` at request time; there's no new table.
 - [ ] T027 Run the full `dotnet test` with 0 build warnings, and record the counts in the
   quickstart's validation log.

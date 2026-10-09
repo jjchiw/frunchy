@@ -487,3 +487,6 @@ JsonSamples/*crunchyroll-history-????-??-??.json
 
 # Designer exports, unpacked into design/<screen>/ (design/REVIEW.md)
 design/*.zip
+
+# Agent worktrees (parallel teammates)
+.claude/worktrees/

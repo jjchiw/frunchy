@@ -133,78 +133,63 @@ spacing:
   space-2xl: 3rem
 ---
 
+## Source of truth
+
+The YAML above is the design system. Its tokens are implemented once on each side, with the same
+names and values: the website in `Views/Theme.fs` (`--color-*`, `--text-<style>-*`, `--radius-*`,
+`--space-*`, mapped into the Tailwind config) and the browser extension in
+`browser-extension/src/styles/tokens.css`. `DesignSystemTests` keeps them equal. Where earlier
+prose or a mockup's local Tailwind config disagreed with the YAML (a `#06B6D4` / `#6366F1` palette,
+`lg` = 0.5rem), the YAML wins (feature 004, research R16, R17). `design/REVIEW.md` says what to take
+from each mockup.
+
 ## Brand & Style
 
-This design system defines an immersive, telemetry-driven anime tracking and social profile platform. Combining the algorithmic intimacy of music tracking services with high-fidelity streaming dashboard aesthetics, the visual direction merges deep slate cosmic canvases with luminous cyan and neon accents. 
-
-The mood communicates precision, digital connoisseurship, and cultural fandom. Rather than flat data grids or playful cartoon styling, the aesthetic embraces glass-morphic surfaces, subtle volumetric gradients, micro-borders with spectral cyan luminescence, and rich visual artwork frames. It evokes the feeling of a futuristic media console—tailored for modern anime enthusiasts who view their watch history as a curated personal identity.
+A dark, precise home for a person's anime history: a Last.fm for anime. Deep surfaces let cover art
+and numbers carry the colour; cyan marks what's live or important, violet groups categories, pink is
+for rare highlights. The copy is plain: no "telemetry" voice, no invented data. The mark is a
+clapperboard whose body is a bar chart (`design/brand/frunchy-mark.svg`), shown next to the
+"Frunchy" wordmark; on light backgrounds (browser tabs, toolbars) it sits on a `surface` tile.
 
 ## Colors
 
-The palette is engineered specifically for deep-space dark mode, maximizing the luminescent impact of cover posters and dynamic playback telemetry.
+- **Primary `primary` (#4cd7f6)**: live states, key figures, main actions. Text on it is `on-primary`.
+- **Secondary `secondary` (#c0c1ff)**: categories, sub-metrics, the start of share-bar gradients.
+- **Tertiary `tertiary` (#ffb0cd)**: rare highlights (e.g. "in bursts").
+- **Surfaces**: `surface` (#0f131c) is the page; `surface-container-low` / `surface-container` /
+  `surface-container-high` / `-highest` are cards, inputs and raised elements, in that order.
+- **Text**: `on-surface` for body, `on-surface-variant` for secondary text, `outline` only for
+  placeholders and borders (it fails AA on `surface-container-highest`).
+- **Error**: `error` text and borders; `error-container` / `on-error-container` for filled states.
 
-- **Primary (`#06B6D4`)**: High-luminance neon cyan. Serves as the primary indicator for active scrobbling, live telemetry, critical interactive triggers, and high-impact stat meters.
-- **Secondary (`#6366F1`)**: Electric violet. Utilized for category segmentation, analytical progress fills, sub-metrics, and secondary callouts.
-- **Tertiary (`#EC4899`)**: Hot fuchsia. Reserved for expressive milestones, favorites, heart reactions, and high-energy identity highlights.
-- **Neutral (`#0B0F17`)**: Cosmic deep slate. Forms the foundation of the viewport, paired with `#131B2A` for container cards and `#1E293B` for elevated surface interactions.
-- **Success / Status (`#10B981`)**: Radiant emerald. Indicates real-time sync status, completed series tags, and upward viewership trends.
-
-Surfaces rely on transparent alpha gradations of slate overlaid with crisp 1px borders at 8%–15% opacity to maintain layered depth without visual clutter.
+Every text/surface pair the components use meets WCAG 2.1 AA; `DesignSystemTests` checks them.
 
 ## Typography
 
-Typography relies uniformly on **Plus Jakarta Sans**, utilizing its geometric clarity, tight counters, and contemporary alternate cuts to deliver a tech-forward media dashboard look.
-
-- **Numerics & Analytics**: `stat-counter` and `display-hero` styles apply tabular figure properties (`font-variant-numeric: tabular-nums;`) to prevent layout shifts during live scrobbling updates and timestamp increments.
-- **Labels & Micro-data**: Overline tags, episode formats, and metadata indicators leverage `label-sm` with uppercase casing and expanded tracking to guarantee legibility against dark translucent cards.
-- **Hierarchical Balance**: Primary page headlines use tight negative tracking (`-0.02em` to `-0.03em`) to anchor viewports cleanly above dynamic data streams.
+**Plus Jakarta Sans** throughout; **JetBrains Mono** (`--font-mono`) only for keys, usernames and
+URLs. Numbers use tabular figures. `label-sm` is uppercase with wide tracking and labels figures;
+it is never an eyebrow above a heading.
 
 ## Layout & Spacing
 
-Layout adheres to a 12-column adaptive fluid grid structured for dense information architecture and modular widgets.
-
-- **Desktop (≥1200px)**: 12 columns, 24px gutters, max-width 1360px centered canvas. Supports split telemetry views (e.g., 8 columns for recent feed/scrobbles, 4 columns for "Anime DNA" and live listening/watching card).
-- **Tablet (768px - 1199px)**: 8 columns, 16px gutters, 24px outer margins. Sidebar aggregates into stacked horizontal scroll trays or compact banner modules.
-- **Mobile (<768px)**: 4 columns, 16px gutters, 16px outer margins. Metric tiles wrap into 2x2 grids, and episode lists drop secondary metadata in favor of poster-title-timestamp stacks.
-
-Rhythm is managed through unified 4px base increments, prioritizing visual grouping with `space-sm` for inline badges and icons, `space-md` for standard card padding, and `space-xl` for section separation.
+A 12-column grid, max width 1360px (`max-w-page`), 16px outer margins on phones and 32px from
+`md`. Pages work from 360px wide. Cards stack on phones and share rows from `lg`.
 
 ## Elevation & Depth
 
-Elevation does not use traditional muddy drop shadows; instead, it utilizes translucent dark vitreous layering, diffuse colored glows, and crisp micro-outlines.
-
-- **Level 0 (Canvas)**: Solid base background (`#0B0F17`).
-- **Level 1 (Card Baseline)**: Translucent surface `#131B2A` at 85% opacity with `backdrop-filter: blur(12px)` and a 1px inner stroke `rgba(255, 255, 255, 0.06)`.
-- **Level 2 (Active/Hover Containers)**: Elevated surface `#1E293B` at 90% opacity with a refined cyan edge highlight: 1px top stroke of `rgba(6, 182, 212, 0.35)` and a soft ambient shadow `0 12px 32px -8px rgba(0, 0, 0, 0.6)`.
-- **Level 3 (Floating Overlays & Popovers)**: `#131B2A` at 95% opacity with an intense radial bloom of primary cyan behind the container `0 0 40px -10px rgba(6, 182, 212, 0.25)`.
-- **Accent Glow**: High-priority interactive elements (e.g., live "Scrobbling Now" badges) employ micro outer blurs: `box-shadow: 0 0 16px rgba(6, 182, 212, 0.45)`.
+Depth comes from surface steps and `--border-micro` (1px white at 6%), not from heavy shadows.
+`--shadow-level-2` is for raised overlays; `--glow-primary` is the primary button's hover.
 
 ## Shapes
 
-With a roundedness level of `2`, the shape vocabulary balances crisp digital precision with modern ergonomics:
-
-- **Base Radius (0.5rem / 8px)**: Input fields, episode grid items, stat blocks, and micro badges.
-- **Container Radius (1rem / 16px)**: Primary telemetry cards, anime showcase panels, and modal containers.
-- **Pill Radius (9999px)**: Reserved strictly for status badges ("Scrobbling", "Completed"), category chips, quick-filter pills, and round avatar cutouts.
-- **Artwork Framing**: Anime key visuals and poster thumbnails retain a tighter 8px corner radius with an inset 1px dark border to preserve edge integrity against varied palette imagery.
+`radius-default` 0.5rem for inputs, buttons and posters;
+`radius-lg` 1rem for cards; `radius-full` for status pills and round icon wells.
 
 ## Components
 
-### Buttons
-- **Primary**: Solid `#06B6D4` fill with dark slate typography (`#080C14`), bold 14px weight, 8px border radius, and subtle hover transition to an outer glow `0 0 20px rgba(6, 182, 212, 0.4)`.
-- **Secondary / Ghost**: Translucent background `rgba(255, 255, 255, 0.04)` bordered by `rgba(255, 255, 255, 0.12)`, text `#F8FAFC`. On hover: border tints to `#06B6D4` and background to `rgba(6, 182, 212, 0.08)`.
-- **Icon Actions**: 36x36px square with 8px radius, transparent background, containing 18px icons in muted slate `#94A3B8`, brightening to white on hover.
-
-### Chips & Badges
-- **Status Pills**: Height 24px, pill-shaped (9999px), background `rgba(6, 182, 212, 0.12)`, border 1px solid `rgba(6, 182, 212, 0.3)`, text `#06B6D4` (`label-sm`).
-- **Live Indicator**: Includes an 6px pulsating dot utilizing primary cyan with keyframe opacity fading.
-
-### Data Cards & Media Panels
-- **Metric Tiles**: Single-stat cards containing an overline label in muted zinc, a large numeric display using `stat-counter` highlighted in electric violet or cyan, and an integrated sparkline or micro-icon at top right.
-- **Recent Watch Entry**: Horizontal row or card featuring a 48x64px poster asset (rounded-sm), episode counter (`Ep. 17`), relative time stamp (`2h ago`), title in bold white, and an animated audio/video equalizer bar on active scrobbles.
-
-### Progress & Stat Meters
-- **Genre DNA Bars**: Base tracks rendered in `rgba(255, 255, 255, 0.06)` with 6px height and fully rounded caps. Progress fills utilize dual-stop gradients (e.g., `#6366F1` to `#06B6D4`) accompanied by right-aligned percentage metadata.
-
-### Form Inputs & Search
-- **Search Bar**: 44px height, background `#131B2A`, border `1px solid rgba(255, 255, 255, 0.08)`, placeholder `#64748B`. Focus state transitions border to `#06B6D4` with `0 0 0 3px rgba(6, 182, 212, 0.15)`.
+The shared components live in `Views/Components.fs` (styles in `Theme.componentCss`): card, metric
+tile, pill (primary / secondary / tertiary / muted), share bar (6px track, secondary → primary
+fill), buttons (primary, secondary, ghost, destructive; Discord and Google keep their own colours),
+field (label, input, hint, error, aria-wired), alert (success, error, notice), processing line,
+empty state, and the mark. The components sheet mockup is
+`design/frunchy_base_components_sheet/`.

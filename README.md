@@ -29,6 +29,7 @@ Each endpoint is a self-contained slice in `Handlers/`, laid out top to bottom a
 Handlers/
 ├── Home.fs                      GET  /
 ├── Users/Dashboard.fs           GET  /u/{username}          public dashboard
+│   ├── Users/Dna.fs                 GET  /u/{username}/dna      Anime DNA (feature 004)
 ├── Auth/                        /signin, /signin/{provider}, /signin/complete, /signup, /claim, /signin/reconfirm, /signout
 ├── Account/                     /account, /account/key, /account/display-name, /account/binding/reset,
 │                                /account/link|unlink/{provider}, /account/delete   (signed-in owner only)
@@ -112,6 +113,7 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 ### HTML Pages
 - `GET /`: home, explains how to sync
 - `GET /u/{username}`: public dashboard (series, episodes, hours, days, recent episodes), English or Spanish
+- `GET /u/{username}/dna`: the Anime DNA (favourite studio, dominant decade, genres and formats by watch time, insignia anime, 90-day viewing pace, totals), from 15 fully watched episodes; every MyAnimeList figure states its coverage
   from the browser's `Accept-Language`
 - Accounts (feature 002): `/signin`, `/signup`, `/claim` and the private `/account` pages. See
   [Accounts](#accounts) and [`contracts/web-account.md`](specs/002-social-login-accounts/contracts/web-account.md).
@@ -136,7 +138,7 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 
 - **Language:** F#
 - **Web Framework:** [Oxpecker](https://lanayx.github.io/Oxpecker/src/Oxpecker/) (F# on ASP.NET Core endpoint routing)
-- **Views:** Oxpecker.ViewEngine (server-rendered HTML), HTMX 4 + Alpine.js, Tailwind + DaisyUI via CDN (see `FRONTEND.md`)
+- **Views:** Oxpecker.ViewEngine (server-rendered HTML), HTMX 4 + Alpine.js, Tailwind via CDN on the shared design system: tokens in `Views/Theme.fs` (the same names and values as the browser extension), components in `Views/Components.fs` (see `FRONTEND.md`)
 - **Database:** PostgreSQL with Npgsql
 - **Background Jobs:** .NET BackgroundService
 - **External API:** MyAnimeList API v2 (official, client id in Bella), or Jikan as an alternative
@@ -265,7 +267,7 @@ Features are built through spec-kit (`specs/###-name/`), in this order:
 | 001 | **Crunchyroll history import + real dashboard**: raw import, normalization to watch events, import status, public per-user dashboard (`/u/{username}`), sync-key identity bound to the user's Crunchyroll account, English/Spanish UI | Implemented ([spec](specs/001-crunchyroll-history-import/spec.md)) |
 | 002 | **Accounts**: sign in through an external provider (Discord / Google / AniList, decided in its spec), self-service sign-up, sync key and account deletion. **Required before inviting a second user.** | Implemented ([spec](specs/002-social-login-accounts/spec.md)) |
 | 003 | **MAL enrichment**: match Crunchyroll seasons to MyAnimeList through its official API (paced, retried, per distinct anime): genres, studios, format, scores; score, genres and "Top genres" on the dashboard; operator review commands | Implemented ([spec](specs/003-mal-enrichment/spec.md)) |
-| 004 | **Anime DNA profile**: genre distribution, favourite studio, dominant decade, viewing pace, insignia anime | Planned |
+| 004 | **Anime DNA profile + shared design system**: genre distribution, favourite studio, dominant decade, viewing pace, insignia anime; the whole site on the "Neo-Scrobble Profile" design system shared with the extension | Implemented ([spec](specs/004-anime-dna-design-system/spec.md)) |
 
 
 ## Key Design Decisions

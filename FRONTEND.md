@@ -8,7 +8,9 @@
 - **[HTMX 4](https://four.htmx.org)** via [Oxpecker.Htmx](https://lanayx.github.io/Oxpecker/src/Oxpecker.Htmx/)
   and **[Alpine.js](https://alpinejs.dev)** via [Oxpecker.Alpine](https://lanayx.github.io/Oxpecker/src/Oxpecker.Alpine/):
   loaded and ready, but feature 001 doesn't use them yet.
-- **Tailwind CSS + DaisyUI** for styling.
+- **Tailwind CSS** (CDN) on the shared design system: tokens in `Views/Theme.fs` (the same names and
+  values as the extension's `tokens.css`), components in `Views/Components.fs`, fonts and icons from
+  Google Fonts. DaisyUI is gone (feature 004).
 
 Everything comes from CDNs in `Views/Layout.fs`; there's no frontend build step. Keep the htmx script on
 **4.x**, because the `Oxpecker.Htmx` package emits htmx 4 attributes.
@@ -71,10 +73,24 @@ plus `Intl.DateTimeFormat`, in `<html lang>` and the viewer's own time zone. For
 2 oct 2026, 11:00" in Madrid, or "2 days ago · Sep 30, 2026, 7:46 PM" in Buenos Aires. Between 1 and 7
 days it counts calendar days in the viewer's zone, so "ayer" / "yesterday" means the previous local date.
 
+## Design system
+
+- **Tokens** (`Views/Theme.fs`): CSS custom properties named like the extension's
+  (`--color-*`, `--text-<style>-*`, `--radius-*`, `--space-*`), also mapped into the Tailwind CDN
+  config, so mockup classes such as `bg-surface-container-low`, `text-on-surface-variant` or
+  `rounded-lg` resolve to them. `DesignSystemTests` checks parity with the extension and WCAG AA
+  contrast.
+- **Components** (`Views/Components.fs`): card, metric tile, pill, share bar, buttons, field, alert,
+  processing, empty state, icons (Material Symbols, subset to `Theme.Icon`), the mark. Pages build
+  on these; add a new icon to `Theme.Icon` so the font subset includes it.
+- **Test hooks are `data-*` attributes only**, never classes; `contracts/design-system.md` in
+  feature 004 lists the ones the tests read. Restyling must keep every one.
+- **Design work** goes through the `impeccable` skill (shape → build → audit), and the craft floor
+  applies: no eyebrow labels above headings, no emoji icons, plain copy.
+
 ## Design references
 
-`design/` holds mockups (`dashboard_frunchy/`, `anime_dna_perfil_frunchy/`,
-`extensi_n_frunchy_popup_sincronizador/`: `code.html` + `screen.png`) and `neo_scrobble_profile/DESIGN.md`
-(color and typography tokens). The dashboard uses stock DaisyUI dark styling and the parts of the design
-that real data supports. Ratings, ranks, trends, weekly activity and genres are out of scope until a
-feature adds their data source.
+`design/` holds one folder per screen from the designer (`code.html` + `screen.png`),
+`neo_scrobble_profile/DESIGN.md` (the tokens), `brand/frunchy-mark.svg` (the mark) and
+`REVIEW.md`, which says what to take and what to drop from each mockup. Mockup elements without a
+real data source (ratings, ranks, trends, followers, avatars) stay out until a feature adds the data.
