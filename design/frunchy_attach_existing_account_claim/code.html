@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attach to an existing account - Frunchy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            background: '#0f131c',
+            surface: {
+              DEFAULT: '#181c24',
+              secondary: '#1c2028',
+              tertiary: '#262a33',
+            },
+            text: {
+              DEFAULT: '#dfe2ee',
+              muted: '#bcc9cd',
+              outline: '#3d494c',
+            },
+            primary: {
+              DEFAULT: '#4cd7f6',
+              on: '#003640',
+            },
+            secondary: '#c0c1ff',
+            error: {
+              DEFAULT: '#ffb4ab',
+            },
+          },
+          borderRadius: {
+            'custom-sm': '8px',
+            'custom-card': '16px',
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-background text-text font-sans antialiased min-h-screen flex flex-col justify-between p-4 md:p-8">
+  <!-- Minimal Header -->
+  <header class="w-full max-w-[1360px] mx-auto flex items-center justify-between py-4">
+    <a href="/" class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-custom-sm bg-surface border border-text-outline/40 flex items-center justify-center text-primary">
+        <svg class="w-5 h-5 text-primary" viewBox="0 0 32 32" fill="currentColor">
+          <rect x="4" y="4" width="24" height="24" rx="6" fill="#1c2028" stroke="#4cd7f6" stroke-width="2"/>
+          <path d="M10 10h12v3H10zM10 16h8v3h-8zM10 22h5v3h-5z" fill="#4cd7f6"/>
+          <circle cx="21" cy="20" r="3" fill="#c0c1ff" />
+        </svg>
+      </div>
+      <span class="text-xl font-extrabold tracking-tight text-text">Frunchy</span>
+    </a>
+    <a href="/signin" class="text-xs font-semibold text-text-muted hover:text-text transition">Back to sign in</a>
+  </header>
+
+  <!-- Claim Account Card -->
+  <main class="w-full max-w-lg mx-auto my-auto space-y-6">
+    <div class="bg-surface border border-text-outline/30 rounded-custom-card p-6 md:p-8 shadow-2xl space-y-6">
+      <div>
+        <span class="text-[11px] font-bold uppercase tracking-widest text-primary">Account Binding</span>
+        <h1 class="text-2xl font-extrabold text-text mt-1">I already have an account</h1>
+        <p class="text-xs text-text-muted mt-2 leading-relaxed">
+          If your account was created for you, paste its current sync key (from the extension's options) to attach this sign-in to it.
+        </p>
+      </div>
+
+      <form class="space-y-4" onsubmit="event.preventDefault()">
+        <!-- Sync Key Monospace Field -->
+        <div>
+          <label class="block text-xs font-semibold text-text uppercase tracking-wider mb-1.5">Sync key</label>
+          <textarea rows="3" placeholder="fsk_live_948f20a1e38b7c4d51a629..." class="w-full p-3.5 bg-surface-secondary border border-text-outline/40 rounded-custom-sm text-text font-mono text-xs focus:outline-none focus:border-primary transition leading-relaxed"></textarea>
+          <p class="text-[11px] text-text-muted mt-1">Found in Frunchy Extension &rarr; Options &rarr; Sync Key.</p>
+        </div>
+
+        <!-- Error variant preview -->
+        <div id="claim-error" class="hidden p-3.5 rounded-custom-sm bg-error/10 border border-error/30 flex items-start gap-2.5">
+          <svg class="w-4 h-4 text-error shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+          </svg>
+          <p class="text-xs text-error font-medium">We couldn't verify that key.</p>
+        </div>
+
+        <button type="submit" class="w-full h-11 rounded-custom-sm bg-primary text-primary-on font-bold text-sm hover:brightness-110 active:scale-[0.99] transition shadow-lg shadow-primary/10">
+          Attach to my account
+        </button>
+      </form>
+
+      <div class="pt-4 border-t border-text-outline/20 text-center">
+        <a href="/signup" class="text-xs text-secondary hover:text-text transition">Create a new account instead</a>
+      </div>
+    </div>
+
+    <!-- Toggle Error Variant for Testing -->
+    <div class="text-center">
+      <button onclick="document.getElementById('claim-error').classList.toggle('hidden')" class="text-[11px] text-text-muted underline hover:text-text">
+        Toggle key error state
+      </button>
+    </div>
+  </main>
+
+  <footer class="w-full max-w-[1360px] mx-auto text-center py-4 text-xs text-text-muted/60">
+    Frunchy, a Last.fm for anime
+  </footer>
+</body>
+</html>
