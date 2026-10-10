@@ -141,9 +141,9 @@ let private pageProblems (name: string) (html: string) (hooks: string list) =
 [<Fact>]
 let ``every page is on the design system and keeps its test hooks`` () =
     task {
-        // the owner is also an operator, so the review pages can be checked
+        // the owner is also the root operator, so the review pages can be checked
         let! db = newDatabase ()
-        use! app = createAppWith db [ "Frunchy:Operators:0", "animenerd" ] ignore
+        use! app = createAppWith db [ "Frunchy:RootOperator", "animenerd" ] ignore
         let problems = ResizeArray<string>()
         let assertPage name html hooks = problems.AddRange(pageProblems name html hooks)
 

@@ -19,6 +19,7 @@
     <Compile Include="Infrastructure/AuthConfig.fs" />
     <Compile Include="Infrastructure/SecurityEvents.fs" />
     <Compile Include="Infrastructure/AccountActions.fs" />
+    <Compile Include="Infrastructure/OperatorActions.fs" />
     <Compile Include="Infrastructure/WebAuth.fs" />
     <Compile Include="Infrastructure/MalModel.fs" />
     <Compile Include="Infrastructure/JikanModel.fs" />
@@ -40,6 +41,7 @@
     <Compile Include="Handlers/Users/Year.fs" />
     <Compile Include="Handlers/Users/Anime.fs" />
     <Compile Include="Handlers/Review/MalReview.fs" />
+    <Compile Include="Handlers/Review/Operators.fs" />
     <Compile Include="Handlers/Auth/SignIn.fs" />
     <Compile Include="Handlers/Auth/Complete.fs" />
     <Compile Include="Handlers/Auth/SignUp.fs" />
@@ -70,6 +72,9 @@
     <Compile Include="Operations/MalRetry.fs" />
     <Compile Include="Operations/MalRebuild.fs" />
     <Compile Include="Operations/MalAuto.fs" />
+    <Compile Include="Operations/OperatorAdd.fs" />
+    <Compile Include="Operations/OperatorRemove.fs" />
+    <Compile Include="Operations/OperatorList.fs" />
     <Compile Include="Workers/ImportProcessor.fs" />
     <Compile Include="Program.fs" />
     <Folder Include="design\" />

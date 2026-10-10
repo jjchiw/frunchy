@@ -2,8 +2,8 @@
   "workflow": "companion",
   "specName": "Operators Managed by a Root Operator",
   "branch": "008-root-operator",
-  "currentStep": "tasks",
-  "status": "ready-to-implement",
+  "currentStep": "implement",
+  "status": "implementing",
   "history": [
     {
       "step": "specify",
@@ -67,6 +67,69 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-10-10T21:55:07.877Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-10T21:55:08.018Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T001",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T21:58:53.295Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T002",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:00:06.433Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T003",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:00:06.706Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T004",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:00:07.022Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T005",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:02:17.789Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T006",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:02:18.094Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T007",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:06:25.783Z"
     }
   ],
   "unattended": true,
@@ -223,5 +286,68 @@
       "summary": "15 tasks: setup, 6 foundational, US1 (2), US2 (1), US3 (2), polish (3)"
     }
   },
-  "approach": "Root from Frunchy:RootOperator; operators in a new table read in the per-request user lookup; Infrastructure/OperatorActions shared by a root-only /review/operators page (404 first, fresh sign-in) and operator-* CLI commands."
+  "approach": "Root from Frunchy:RootOperator; operators in a new table read in the per-request user lookup; Infrastructure/OperatorActions shared by a root-only /review/operators page (404 first, fresh sign-in) and operator-* CLI commands.",
+  "currentTask": "T007",
+  "task_summaries": {
+    "T001": {
+      "status": "DONE",
+      "did": "Registered the new modules and test files as stubs; build at 0 warnings",
+      "files": [
+        "FrunchyBackend.fsproj",
+        "tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj",
+        "Infrastructure/OperatorActions.fs",
+        "Handlers/Review/Operators.fs",
+        "Operations/OperatorAdd.fs",
+        "Operations/OperatorRemove.fs",
+        "Operations/OperatorList.fs",
+        "tests/FrunchyBackend.Tests/OperatorActionsTests.fs",
+        "tests/FrunchyBackend.Tests/OperatorsPageTests.fs"
+      ]
+    },
+    "T002": {
+      "status": "DONE",
+      "did": "Added the operators table to the idempotent schema and SCHEMA.md",
+      "files": [
+        "Infrastructure/Database.fs",
+        "SCHEMA.md"
+      ]
+    },
+    "T003": {
+      "status": "DONE",
+      "did": "Added OperatorAdded/OperatorRemoved to the SecurityEventType union, toDb and all",
+      "files": [
+        "Domains/Identity.fs"
+      ]
+    },
+    "T004": {
+      "status": "DONE",
+      "did": "Added operators page texts, notice keys, account lines and event labels in en and es",
+      "files": [
+        "Views/Texts.fs"
+      ]
+    },
+    "T005": {
+      "status": "DONE",
+      "did": "WebAuth: validatePrincipal reads the operators flag, isRoot from Frunchy:RootOperator, isOperator = root or flag; Frunchy:Operators parsing removed",
+      "files": [
+        "Infrastructure/WebAuth.fs"
+      ]
+    },
+    "T006": {
+      "status": "DONE",
+      "did": "OperatorActions add/remove/list, each write with its security events in one transaction",
+      "files": [
+        "Infrastructure/OperatorActions.fs"
+      ]
+    },
+    "T007": {
+      "status": "DONE",
+      "did": "Migrated the 007 access tests to root setting plus table rows; added root, table, retired-setting and removal cases",
+      "files": [
+        "tests/FrunchyBackend.Tests/MalReviewAccessTests.fs",
+        "tests/FrunchyBackend.Tests/MalReviewTests.fs",
+        "tests/FrunchyBackend.Tests/DesignSystemTests.fs"
+      ]
+    }
+  }
 }

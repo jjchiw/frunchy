@@ -57,6 +57,8 @@
     <Compile Include="MalActionsParityTests.fs" />
     <Compile Include="MalReviewAccessTests.fs" />
     <Compile Include="MalReviewTests.fs" />
+    <Compile Include="OperatorActionsTests.fs" />
+    <Compile Include="OperatorsPageTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

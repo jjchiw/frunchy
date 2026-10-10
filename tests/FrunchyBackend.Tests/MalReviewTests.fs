@@ -24,7 +24,7 @@ let private tamerSeason = "GRK5CNJ14"
 let private tamerDub = "GYDQCGK5Q"
 let private statuses = [ "ambiguous"; "no_match"; "failed" ]
 
-let private operatorEnv () = newReviewEnv (operatorsOf [ "boss" ]) true
+let private operatorEnv () = newReviewEnv [ "boss" ] true
 
 let private seasonsIn (html: string) =
     [ for m in Regex.Matches(html, "data-review-season=\"([^\"]+)\"") -> m.Groups[1].Value ]

@@ -10,30 +10,30 @@ first, and runs the tests.
 
 ## Phase 1: Setup
 
-- [ ] **T001** Register the new files as minimal modules: `Infrastructure/OperatorActions.fs` after `AccountActions.fs`, `Handlers/Review/Operators.fs` after `Handlers/Review/MalReview.fs`, and `Operations/OperatorAdd.fs`, `OperatorRemove.fs` and `OperatorList.fs` after `MalAuto.fs`. Add the test files `OperatorActionsTests.fs` and `OperatorsPageTests.fs` after `MalReviewTests.fs`. `dotnet build` stays at 0 warnings · FrunchyBackend.fsproj, tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj, Infrastructure/OperatorActions.fs, Handlers/Review/Operators.fs, Operations/OperatorAdd.fs, Operations/OperatorRemove.fs, Operations/OperatorList.fs, tests/FrunchyBackend.Tests/OperatorActionsTests.fs, tests/FrunchyBackend.Tests/OperatorsPageTests.fs
+- [x] **T001** Register the new files as minimal modules: `Infrastructure/OperatorActions.fs` after `AccountActions.fs`, `Handlers/Review/Operators.fs` after `Handlers/Review/MalReview.fs`, and `Operations/OperatorAdd.fs`, `OperatorRemove.fs` and `OperatorList.fs` after `MalAuto.fs`. Add the test files `OperatorActionsTests.fs` and `OperatorsPageTests.fs` after `MalReviewTests.fs`. `dotnet build` stays at 0 warnings · FrunchyBackend.fsproj, tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj, Infrastructure/OperatorActions.fs, Handlers/Review/Operators.fs, Operations/OperatorAdd.fs, Operations/OperatorRemove.fs, Operations/OperatorList.fs, tests/FrunchyBackend.Tests/OperatorActionsTests.fs, tests/FrunchyBackend.Tests/OperatorsPageTests.fs
 
 ## Phase 2: Foundational (blocks every story)
 
 **Wave 1, independent (different files):**
 
-- [ ] **T002** [P] Add the `operators` table to the schema string (research R2), and to SCHEMA.md · Infrastructure/Database.fs, SCHEMA.md
-- [ ] **T003** [P] Add `OperatorAdded` and `OperatorRemoved` (`operator_added`, `operator_removed`) to the union, `toDb` and `all` · Domains/Identity.fs
-- [ ] **T004** [P] Add the operators texts in en and es: page title and intro, the root row label, column labels, add field label and hint, add and remove buttons, the empty state, `OperatorNotice: string -> string` over the seven keys, the account status line and link, and the two event labels in both `SecurityEventLabel` blocks · Views/Texts.fs
+- [x] **T002** [P] Add the `operators` table to the schema string (research R2), and to SCHEMA.md · Infrastructure/Database.fs, SCHEMA.md
+- [x] **T003** [P] Add `OperatorAdded` and `OperatorRemoved` (`operator_added`, `operator_removed`) to the union, `toDb` and `all` · Domains/Identity.fs
+- [x] **T004** [P] Add the operators texts in en and es: page title and intro, the root row label, column labels, add field label and hint, add and remove buttons, the empty state, `OperatorNotice: string -> string` over the seven keys, the account status line and link, and the two event labels in both `SecurityEventLabel` blocks · Views/Texts.fs
 
 **⟶ Wait for Wave 1 to finish, then:**
 
-- [ ] **T005** `WebAuth.fs` (research R1):
+- [x] **T005** `WebAuth.fs` (research R1):
   - `validatePrincipal` selects the operators flag into `ctx.Items`;
   - `isRoot` reads `Frunchy:RootOperator`;
   - `isOperator` becomes `isRoot || flag`;
   - the `Frunchy:Operators` parsing is removed.
 
   · Infrastructure/WebAuth.fs
-- [ ] **T006** `OperatorActions.fs` (research R3, R4): `add`, `remove` and `list`, each write with its events in one transaction. SQL is literal, with parameters · Infrastructure/OperatorActions.fs
+- [x] **T006** `OperatorActions.fs` (research R3, R4): `add`, `remove` and `list`, each write with its events in one transaction. SQL is literal, with parameters · Infrastructure/OperatorActions.fs
 
 **⟶ Wait for T005 and T006, then:**
 
-- [ ] **T007** Migrate the 007 tests to the root setting plus table rows (research R7). The operators helper adds rows through `OperatorActions.add … Server`. Replace the array and comma cases with root, table, and "removing from the table closes access at once". Every other assertion is unchanged · tests/FrunchyBackend.Tests/MalReviewAccessTests.fs, tests/FrunchyBackend.Tests/DesignSystemTests.fs
+- [x] **T007** Migrate the 007 tests to the root setting plus table rows (research R7). The operators helper adds rows through `OperatorActions.add … Server`. Replace the array and comma cases with root, table, and "removing from the table closes access at once". Every other assertion is unchanged · tests/FrunchyBackend.Tests/MalReviewAccessTests.fs, tests/FrunchyBackend.Tests/DesignSystemTests.fs
 
 **Checkpoint**: the suite is green on the new access model.
 

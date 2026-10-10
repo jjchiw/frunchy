@@ -168,6 +168,13 @@ let private schema =
 
     CREATE INDEX IF NOT EXISTS ix_security_events_user ON security_events (user_id, occurred_at DESC);
 
+    -- Operators added by the root operator (feature 008); the root itself is configuration only
+    CREATE TABLE IF NOT EXISTS operators (
+        user_id  uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        added_by uuid NULL REFERENCES users(id) ON DELETE SET NULL,
+        added_at timestamptz NOT NULL DEFAULT now()
+    );
+
     -- MyAnimeList enrichment (feature 003): shared catalog data, nothing references users.
     -- raw columns hold the provider's responses verbatim (source says which provider); everything
     -- else is re-derivable (mal-rebuild).

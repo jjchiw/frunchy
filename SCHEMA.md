@@ -44,7 +44,8 @@ belongs to at most one user.
 |---|---|---|
 | `user_identities` | `(provider, provider_user_id)` | a sign-in identity (`google`, `discord`) belongs to exactly one user; same shape as ASP.NET Core Identity's user logins. Personal, cascades on user delete |
 | `invites` | `id`, unique `code_hash` | one-time sign-up codes (SHA-256 only), `expires_at` = created + 7 days, `revoked_at`, `used_at`, `used_by_user_id` (`ON DELETE SET NULL`, so an invite stays "used" after its account is deleted). Not personal data |
-| `security_events` | identity `id` | per-user account events (`signed_in`, `claimed`, `claim_refused`, `identity_linked`/`unlinked`, `sync_key_generated`, `binding_reset`, `reconfirmed`, `display_name_changed`, `account_created`) with `actor` user/operator. No IP or device data. Personal, cascades on user delete |
+| `security_events` | identity `id` | per-user account events (`signed_in`, `claimed`, `claim_refused`, `identity_linked`/`unlinked`, `sync_key_generated`, `binding_reset`, `reconfirmed`, `display_name_changed`, `account_created`, `operator_added`/`operator_removed`) with `actor` user/operator. No IP or device data. Personal, cascades on user delete |
+| `operators` | `user_id` | users the root operator (`Frunchy:RootOperator`) made operators (feature 008); the root itself is configuration only and never a row. `added_by` is the granting root (`ON DELETE SET NULL`, NULL when added from the terminal or when that account was deleted), `added_at`. Personal, cascades on user delete |
 
 `users.sync_key_hash` and `users.sync_key_created_at` are **nullable**: a user who signed up on the
 website has no key until "Connect extension". Sessions aren't stored (encrypted cookies), and
