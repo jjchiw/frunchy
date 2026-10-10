@@ -1,0 +1,90 @@
+{
+  "workflow": "companion",
+  "specName": "Review MyAnimeList Matches on the Web",
+  "branch": "007-mal-review",
+  "currentStep": "specify",
+  "status": "specified",
+  "history": [
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-10T18:23:13.673Z"
+    },
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "complete",
+      "by": "extension",
+      "at": "2026-10-10T18:24:10.388Z"
+    }
+  ],
+  "unattended": true,
+  "telemetryInstanceId": "6c1697a8-089a-44fd-86a6-d26d70ef2b49",
+  "coverage": {
+    "FR-001": {
+      "title": "The site MUST serve the review list at `/review/mal`, filterable by status (ambiguous, no match, failed, or all three, the default), in the CLI list's order."
+    },
+    "FR-002": {
+      "title": "Each row MUST show:"
+    },
+    "FR-003": {
+      "title": "Picking a candidate or entering a MyAnimeList id or `myanimelist.net/anime/{id}` link MUST set the season's match exactly as `mal-set` does: fetch the anime onc"
+    },
+    "FR-004": {
+      "title": "Marking a season \"not on MyAnimeList\" MUST behave exactly as `mal-none`."
+    },
+    "FR-005": {
+      "title": "Asking for a retry MUST behave exactly as `mal-retry` for the season's series."
+    },
+    "FR-006": {
+      "title": "The CLI commands and the web actions MUST call the same shared functions, so their behaviour cannot drift."
+    },
+    "FR-007": {
+      "title": "The manual view MUST list the manual decisions, and sending one back MUST make it a pending automatic match again."
+    },
+    "FR-008": {
+      "title": "Only a signed-in user whose username is listed in the `Frunchy:Operators` setting MAY see the pages or take an action. Everyone else MUST get the site's not-fou"
+    },
+    "FR-009": {
+      "title": "Every action MUST be a form post that passes the site's existing forgery protection and a rate limit, and MUST answer with a redirect back to the page with a no"
+    },
+    "FR-010": {
+      "title": "Every action MUST be recorded in the operator's security activity."
+    },
+    "FR-011": {
+      "title": "An action on a season that no longer needs it, a malformed id or link, or an unknown season MUST change nothing and show a notice saying why."
+    },
+    "FR-012": {
+      "title": "The account page MUST show a link to the review page to operators only."
+    },
+    "FR-013": {
+      "title": "The pages MUST use the shared design system and components. Every visible text MUST come from the site's English and Spanish texts. The pages MUST work from 360"
+    },
+    "FR-014": {
+      "title": "No new stored tables; no change to the extension's API; tests MUST NOT call the real MyAnimeList service."
+    }
+  },
+  "size": "normal",
+  "classification": {
+    "projectedFiles": 12,
+    "projectedTasks": 16,
+    "scopeSignal": "none",
+    "verdict": "normal"
+  },
+  "expectations": [
+    "no operator role column or operator management page",
+    "no new tables",
+    "no extension API change",
+    "no paging of the review list"
+  ],
+  "context": [
+    "area: Operations (MalList, MalSet, MalNone, MalRetry)",
+    "area: Infrastructure (MalCatalog, WebAuth, SecurityEvents, AccountActions pattern)",
+    "area: Handlers/Account (AccountPage) and a new Handlers/Review slice",
+    "constraint: antiforgery via WebAuth.readValidatedForm, rate limits, security events in the action transaction",
+    "constraint: tests never call real MyAnimeList (FakeMal)"
+  ],
+  "intent": "Operator-only web pages to review and fix MyAnimeList matches, sharing the CLI command logic"
+}
