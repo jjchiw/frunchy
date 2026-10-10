@@ -20,8 +20,9 @@ Every route below follows the same rules:
 | POST | `/review/mal/retry` | `season` | 302 to `/review/mal?msg=<key>&season=<id>` |
 | POST | `/review/mal/auto` | `season` | 302 to `/review/mal/manual?msg=<key>&season=<id>` |
 
-Every POST carries the antiforgery token and is limited by the `review-write` policy (30 per
-minute per IP; 429 when exceeded).
+Every POST carries the antiforgery token and is limited by the `review-write` policy: 30 per
+minute per IP, with 429 when exceeded, **for operators only**. Everyone else is never counted, so
+they always get the 404 and a 429 can't reveal the routes.
 
 **Notice keys** (`msg`): `set`, `none`, `retry`, `auto` (success), and `unknown-season`,
 `unknown-anime`, `unavailable`, `not-open`, `bad-input` (errors, nothing changed).

@@ -327,7 +327,26 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
         perIp "signup" 10 (TimeSpan.FromMinutes 15.0)
         perIp "claim" 5 (TimeSpan.FromMinutes 15.0)
         perIp "account-write" 30 (TimeSpan.FromMinutes 1.0)
-        perIp "review-write" 30 (TimeSpan.FromMinutes 1.0)
+        // Review actions (feature 007) count operators only: anyone else gets the handler's 404 and is
+        // never rate-limited there, so a 429 can't reveal that the routes exist
+        options.AddPolicy(
+            "review-write",
+            fun (ctx: HttpContext) ->
+                if WebAuth.isOperator ctx then
+                    let ip =
+                        match ctx.Connection.RemoteIpAddress with
+                        | null -> "unknown"
+                        | address -> string address
+
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        "review:" + ip,
+                        fun _ -> FixedWindowRateLimiterOptions(PermitLimit = 30, Window = TimeSpan.FromMinutes 1.0, QueueLimit = 0)
+                    )
+                else
+                    RateLimitPartition.GetNoLimiter "review:outsider"
+        )
+        |> ignore
+
         options.RejectionStatusCode <- StatusCodes.Status429TooManyRequests
 
         options.OnRejected <-

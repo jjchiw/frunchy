@@ -211,6 +211,17 @@ let ``review writes are limited to 30 a minute per address`` () =
     }
 
 [<Fact>]
+let ``outsiders are never rate-limited on review actions, so a 429 can't reveal the routes`` () =
+    task {
+        use! env = newReviewEnv (operatorsOf [ "boss" ]) false
+
+        for who, browser in [ "pleb", env.Pleb; "visitor", env.Visitor ] do
+            for i in 1..35 do
+                let! response = browser.PostFormWithoutToken("/review/mal/none", [ "season", "NOPE0000" ])
+                Assert.True(response.StatusCode = HttpStatusCode.NotFound, $"{who} POST {i} got {int response.StatusCode}")
+    }
+
+[<Fact>]
 let ``the account page links to the review only for operators`` () =
     task {
         use! env = newReviewEnv (operatorsOf [ "boss" ]) false
