@@ -3,7 +3,7 @@
   "specName": "Review MyAnimeList Matches on the Web",
   "branch": "007-mal-review",
   "currentStep": "implement",
-  "status": "implemented",
+  "status": "completed",
   "history": [
     {
       "step": "specify",
@@ -235,6 +235,9 @@
         "T007",
         "T009",
         "T010"
+      ],
+      "tests": [
+        "MalReviewTests.fs"
       ]
     },
     "FR-004": {
@@ -261,6 +264,9 @@
         "T002",
         "T006",
         "T007"
+      ],
+      "tests": [
+        "MalActionsParityTests.fs"
       ]
     },
     "FR-007": {
@@ -269,6 +275,9 @@
         "T002",
         "T012",
         "T013"
+      ],
+      "tests": [
+        "MalReviewTests.fs"
       ]
     },
     "FR-008": {
@@ -277,6 +286,9 @@
         "T003",
         "T008",
         "T010"
+      ],
+      "tests": [
+        "MalReviewAccessTests.fs"
       ]
     },
     "FR-009": {
@@ -284,6 +296,9 @@
       "tasks": [
         "T008",
         "T010"
+      ],
+      "tests": [
+        "MalReviewAccessTests.fs"
       ]
     },
     "FR-010": {
@@ -367,6 +382,16 @@
       "decision": "New mal-auto CLI command for back-to-automatic",
       "why": "parity: every web action has a CLI twin",
       "rejected": "web-only action"
+    },
+    {
+      "decision": "review-write limiter partitions operators only",
+      "why": "a 429 for an outsider revealed the routes; outsiders now always get 404",
+      "rejected": "per-IP limit for everyone"
+    },
+    {
+      "decision": "web retry targets the season, not the series",
+      "why": "a series id would requeue sibling seasons already decided",
+      "rejected": "series id as first planned"
     }
   ],
   "step_summaries": {
@@ -376,6 +401,9 @@
     },
     "tasks": {
       "summary": "16 tasks: setup, 6 foundational (shared actions, auth, events, texts, CLI, parity tests), US1+US3 (4), US2 (2), polish (3)"
+    },
+    "implement": {
+      "summary": "Operator-only MyAnimeList review pages at /review/mal, sharing actions with the CLI (+ mal-auto)"
     }
   },
   "approach": "Move mal-set/none/retry into Infrastructure/MalActions.fs with an expect guard, add back-to-automatic (and mal-auto). A Handlers/Review/MalReview.fs slice serves /review/mal to usernames in Frunchy:Operators only; everyone else gets 404 before any forgery check.",
@@ -507,5 +535,36 @@
         "specs/007-mal-review/quickstart.md"
       ]
     }
-  }
+  },
+  "verified": [
+    {
+      "what": "build with 0 warnings",
+      "command": "dotnet build",
+      "source": "derived",
+      "exitCode": 0,
+      "durationSeconds": 1.3,
+      "result": "    0 Warning(s) ·     0 Error(s) · Time Elapsed 00:00:01.10"
+    },
+    {
+      "what": "full test suite",
+      "command": "dotnet test",
+      "result": "320 passed, 1 skipped (opt-in recording), 0 failed"
+    },
+    {
+      "what": "review of the Sonnet agent commits b8f8f08, 92063c5, ad9e3bd",
+      "command": "manual review (access ordering, guard transaction, input validation, rate limit)",
+      "result": "accepted; one security fix made by the main session (94dc2f8)"
+    }
+  ],
+  "concerns": [
+    {
+      "note": "the real-database check as operator needs a real sign-in and is left to the owner (quickstart section)",
+      "step": "implement"
+    },
+    {
+      "note": "the 2026 sample leaves no season ambiguous, so tests set one up by SQL",
+      "step": "implement"
+    }
+  ],
+  "last_action": "all 16 tasks done, 320/321 tests pass (1 opt-in skip)"
 }
