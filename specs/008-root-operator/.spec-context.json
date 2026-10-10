@@ -1,0 +1,89 @@
+{
+  "workflow": "companion",
+  "specName": "Operators Managed by a Root Operator",
+  "branch": "008-root-operator",
+  "currentStep": "specify",
+  "status": "specified",
+  "history": [
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-10T21:49:12.854Z"
+    },
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "complete",
+      "by": "extension",
+      "at": "2026-10-10T21:50:33.519Z"
+    }
+  ],
+  "unattended": true,
+  "telemetryInstanceId": "5c6b6c75-2e00-4e62-be25-ec4838b515a2",
+  "coverage": {
+    "FR-001": {
+      "title": "The root operator MUST be the single username in the `Frunchy:RootOperator` setting. An empty setting means no root. The old `Frunchy:Operators` setting MUST no"
+    },
+    "FR-002": {
+      "title": "An operator MUST be the root, or a user listed as an operator in the database. The check MUST NOT add a query to a request: it joins the user lookup each signed"
+    },
+    "FR-003": {
+      "title": "Operators MUST keep everything feature 007 gives them: the review pages and actions."
+    },
+    "FR-004": {
+      "title": "The site MUST serve a root-only operators page at `/review/operators`, listing each operator's username, display name, who added them, and when, plus the root s"
+    },
+    "FR-005": {
+      "title": "The root MUST be able to add an operator by username, and remove one."
+    },
+    "FR-006": {
+      "title": "Adding or removing MUST require a sign-in within the last 10 minutes, using the existing re-confirmation flow."
+    },
+    "FR-007": {
+      "title": "The operators page and its actions MUST answer \"page not found\" (404) to everyone but the root, before any form is read. They are never rate-limited for anyone"
+    },
+    "FR-008": {
+      "title": "Adding the root, an unknown username or an existing operator, or removing someone who isn't an operator, MUST change nothing and show a notice saying why (post/"
+    },
+    "FR-009": {
+      "title": "Every addition and removal MUST be recorded in the security activity of both the root (or the server, for the terminal) and the affected user."
+    },
+    "FR-010": {
+      "title": "The account page MUST tell operators \"You're an operator\" with the review link. It MUST show the root a link to the operators page too."
+    },
+    "FR-011": {
+      "title": "`operator-add`, `operator-remove` and `operator-list` MUST run the same code as the page, with the same refusals."
+    },
+    "FR-012": {
+      "title": "Deleting a user MUST remove their operator status."
+    },
+    "FR-013": {
+      "title": "Every visible text MUST come from the site's English and Spanish texts. The page MUST use the shared design system and work from 360px wide."
+    },
+    "FR-014": {
+      "title": "The extension's API contract MUST NOT change. The docs MUST describe `Frunchy:RootOperator`, replacing `Frunchy:Operators`."
+    }
+  },
+  "size": "normal",
+  "classification": {
+    "projectedFiles": 14,
+    "projectedTasks": 15,
+    "scopeSignal": "none",
+    "verdict": "normal"
+  },
+  "expectations": [
+    "only one root, set only in configuration",
+    "operators cannot promote others",
+    "no extension API change"
+  ],
+  "context": [
+    "area: Infrastructure (WebAuth isOperator/validatePrincipal, Database schema, SecurityEvents, AccountActions/MalActions pattern)",
+    "area: Views/Layout.fs requireOperator; Handlers/Review (new operators slice), Handlers/Account/AccountPage.fs",
+    "area: Operations (new operator-* commands), Program.fs (CLI, endpoints, limiter)",
+    "constraint: feature 007 access rules (404 before form read, outsiders never rate-limited)",
+    "constraint: requireFresh 10-minute rule for sensitive actions"
+  ],
+  "intent": "One root operator in configuration who grants and removes operators stored in the database"
+}
