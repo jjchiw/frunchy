@@ -2,8 +2,8 @@
   "workflow": "companion",
   "specName": "Review MyAnimeList Matches on the Web",
   "branch": "007-mal-review",
-  "currentStep": "specify",
-  "status": "specified",
+  "currentStep": "plan",
+  "status": "planned",
   "history": [
     {
       "step": "specify",
@@ -18,6 +18,34 @@
       "kind": "complete",
       "by": "extension",
       "at": "2026-10-10T18:24:10.388Z"
+    },
+    {
+      "step": "plan",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-10T18:24:32.144Z"
+    },
+    {
+      "step": "plan",
+      "substep": "research",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T18:27:15.840Z"
+    },
+    {
+      "step": "plan",
+      "substep": "design",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T18:27:16.978Z"
+    },
+    {
+      "step": "plan",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T18:27:17.330Z"
     }
   ],
   "unattended": true,
@@ -86,5 +114,34 @@
     "constraint: antiforgery via WebAuth.readValidatedForm, rate limits, security events in the action transaction",
     "constraint: tests never call real MyAnimeList (FakeMal)"
   ],
-  "intent": "Operator-only web pages to review and fix MyAnimeList matches, sharing the CLI command logic"
+  "intent": "Operator-only web pages to review and fix MyAnimeList matches, sharing the CLI command logic",
+  "decisions": [
+    {
+      "decision": "Operators = usernames in Frunchy:Operators, read per request; username loaded with the existing per-request user lookup",
+      "why": "no schema change, no extra query, rotates with config",
+      "rejected": "cookie claim (stale) or role column (out of scope)"
+    },
+    {
+      "decision": "requireOperator runs before readValidatedForm on every POST and answers 404",
+      "why": "the forgery check fails inside readValidatedForm, so outsiders get the same 404 and the endpoints stay hidden",
+      "rejected": "requireSignedIn (redirects to /signin) or 403"
+    },
+    {
+      "decision": "Shared actions in Infrastructure/MalActions.fs with an expect guard checked FOR UPDATE in the write transaction",
+      "why": "CLI/web parity (FR-006) and no clobbering on stale forms",
+      "rejected": "web-only guards around unconditional writers"
+    },
+    {
+      "decision": "New mal-auto CLI command for back-to-automatic",
+      "why": "parity: every web action has a CLI twin",
+      "rejected": "web-only action"
+    }
+  ],
+  "step_summaries": {
+    "plan": {
+      "summary": "Plan, research, data model and contract for operator-only review pages with shared CLI/web actions",
+      "key_finding": "writeManual and retry are unconditional and nothing sends a manual row back to automatic"
+    }
+  },
+  "approach": "Move mal-set/none/retry into Infrastructure/MalActions.fs with an expect guard, add back-to-automatic (and mal-auto). A Handlers/Review/MalReview.fs slice serves /review/mal to usernames in Frunchy:Operators only; everyone else gets 404 before any forgery check."
 }
