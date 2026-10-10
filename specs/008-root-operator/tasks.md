@@ -72,8 +72,8 @@ Files: Handlers/Account/AccountPage.fs
 
 Files: Operations/OperatorAdd.fs, Operations/OperatorRemove.fs, Operations/OperatorList.fs, Program.fs (CLI), tests/FrunchyBackend.Tests/OperatorActionsTests.fs
 
-- [ ] **T011** [US3] `CliEnv` gains `RootOperator: string option` from configuration. The three commands use the contract's exit codes and are registered in `cliCommands` and the help text · Operations/OperatorAdd.fs, Operations/OperatorRemove.fs, Operations/OperatorList.fs, Program.fs
-- [ ] **T012** [US3] `OperatorActionsTests`:
+- [x] **T011** [US3] `CliEnv` gains `RootOperator: string option` from configuration. The three commands use the contract's exit codes and are registered in `cliCommands` and the help text · Operations/OperatorAdd.fs, Operations/OperatorRemove.fs, Operations/OperatorList.fs, Program.fs
+- [x] **T012** [US3] `OperatorActionsTests`:
   - **Parity**: the CLI and the web leave identical `operators` rows and events, except the root's own event row.
   - **Exit codes and output**: per the contract, and `operator-list` output.
   - **No root configured**: the CLI still works.

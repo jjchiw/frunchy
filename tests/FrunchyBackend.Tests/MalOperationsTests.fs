@@ -30,7 +30,8 @@ let private cli (app: TestApp) (command: string) (args: string list) : Task<int>
         { Db = app.Db
           Http = httpFactory app
           Mal = FrunchyBackend.Infrastructure.MalClient.readSettings (Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>(app.Services))
-          Clock = TimeProvider.System }
+          Clock = TimeProvider.System
+          RootOperator = None }
 
     Program.cliCommands[command] env args
 
@@ -120,7 +121,8 @@ let ``mal-set without a MyAnimeList client id changes nothing and says why`` () 
             { Db = app.Db
               Http = httpFactory app
               Mal = { FrunchyBackend.Infrastructure.MalClient.readSettings (Microsoft.Extensions.Configuration.ConfigurationBuilder().Build()) with ClientId = None }
-              Clock = TimeProvider.System }
+              Clock = TimeProvider.System
+              RootOperator = None }
 
         let! code = Program.cliCommands["mal-set"] env [ "GYK5CNZ9G"; "15" ]
         Assert.Equal(4, code)

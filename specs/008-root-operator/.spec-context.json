@@ -154,6 +154,22 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-10-10T22:12:22.042Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T011",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:15:48.069Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T012",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:15:48.249Z"
     }
   ],
   "unattended": true,
@@ -311,7 +327,7 @@
     }
   },
   "approach": "Root from Frunchy:RootOperator; operators in a new table read in the per-request user lookup; Infrastructure/OperatorActions shared by a root-only /review/operators page (404 first, fresh sign-in) and operator-* CLI commands.",
-  "currentTask": "T010",
+  "currentTask": "T012",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -395,6 +411,26 @@
       "files": [
         "Handlers/Account/AccountPage.fs",
         "tests/FrunchyBackend.Tests/OperatorsPageTests.fs"
+      ]
+    },
+    "T011": {
+      "status": "DONE",
+      "did": "CliEnv.RootOperator from configuration; operator-add/remove/list with contract exit codes, registered in cliCommands",
+      "files": [
+        "Operations/OperatorAdd.fs",
+        "Operations/OperatorRemove.fs",
+        "Operations/OperatorList.fs",
+        "Program.fs"
+      ]
+    },
+    "T012": {
+      "status": "DONE",
+      "did": "OperatorActionsTests: CLI/web parity, exit codes, operator-list output, no root configured",
+      "files": [
+        "tests/FrunchyBackend.Tests/OperatorActionsTests.fs",
+        "tests/FrunchyBackend.Tests/MalActionsParityTests.fs",
+        "tests/FrunchyBackend.Tests/MalReviewTests.fs",
+        "tests/FrunchyBackend.Tests/MalOperationsTests.fs"
       ]
     }
   }

@@ -42,7 +42,8 @@ let private cli (app: TestApp) (command: string) (args: string list) : Task<int>
         { Db = app.Db
           Http = httpFactory app
           Mal = malSettings app
-          Clock = TimeProvider.System }
+          Clock = TimeProvider.System
+          RootOperator = None }
 
     Program.cliCommands[command] env args
 
