@@ -26,6 +26,7 @@
     <Compile Include="Infrastructure/MalMatching.fs" />
     <Compile Include="Infrastructure/MalCatalog.fs" />
     <Compile Include="Infrastructure/MalClient.fs" />
+    <Compile Include="Infrastructure/MalActions.fs" />
     <Compile Include="Views/Texts.fs" />
     <Compile Include="Views/Theme.fs" />
     <Compile Include="Views/Components.fs" />
@@ -38,6 +39,7 @@
     <Compile Include="Handlers/Users/Dna.fs" />
     <Compile Include="Handlers/Users/Year.fs" />
     <Compile Include="Handlers/Users/Anime.fs" />
+    <Compile Include="Handlers/Review/MalReview.fs" />
     <Compile Include="Handlers/Auth/SignIn.fs" />
     <Compile Include="Handlers/Auth/Complete.fs" />
     <Compile Include="Handlers/Auth/SignUp.fs" />
@@ -67,6 +69,7 @@
     <Compile Include="Operations/MalNone.fs" />
     <Compile Include="Operations/MalRetry.fs" />
     <Compile Include="Operations/MalRebuild.fs" />
+    <Compile Include="Operations/MalAuto.fs" />
     <Compile Include="Workers/ImportProcessor.fs" />
     <Compile Include="Program.fs" />
     <Folder Include="design\" />

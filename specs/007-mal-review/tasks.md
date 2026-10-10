@@ -14,36 +14,36 @@ first, and runs the tests.
 
 ## Phase 1: Setup
 
-- [ ] **T001** Register the new files as minimal modules: `Infrastructure/MalActions.fs` after `MalClient.fs`, `Handlers/Review/MalReview.fs` after `Handlers/Users/Anime.fs`, `Operations/MalAuto.fs` after `MalRebuild.fs`, and the test files `MalActionsParityTests.fs`, `MalReviewAccessTests.fs` and `MalReviewTests.fs` after `AnimeLinkTests.fs`. `dotnet build` stays at 0 warnings · FrunchyBackend.fsproj, tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj, Infrastructure/MalActions.fs, Handlers/Review/MalReview.fs, Operations/MalAuto.fs, tests/FrunchyBackend.Tests/MalActionsParityTests.fs, tests/FrunchyBackend.Tests/MalReviewAccessTests.fs, tests/FrunchyBackend.Tests/MalReviewTests.fs
+- [x] **T001** Register the new files as minimal modules: `Infrastructure/MalActions.fs` after `MalClient.fs`, `Handlers/Review/MalReview.fs` after `Handlers/Users/Anime.fs`, `Operations/MalAuto.fs` after `MalRebuild.fs`, and the test files `MalActionsParityTests.fs`, `MalReviewAccessTests.fs` and `MalReviewTests.fs` after `AnimeLinkTests.fs`. `dotnet build` stays at 0 warnings · FrunchyBackend.fsproj, tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj, Infrastructure/MalActions.fs, Handlers/Review/MalReview.fs, Operations/MalAuto.fs, tests/FrunchyBackend.Tests/MalActionsParityTests.fs, tests/FrunchyBackend.Tests/MalReviewAccessTests.fs, tests/FrunchyBackend.Tests/MalReviewTests.fs
 
 ## Phase 2: Foundational (blocks every story)
 
 **Wave 1, independent (different files):**
 
-- [ ] **T002** [P] `MalActions.fs` (research R3):
+- [x] **T002** [P] `MalActions.fs` (research R3):
   - **Expect guard**: `Expect = Open | Manual | Any`, checked with `SELECT … FOR UPDATE` in the same transaction as the write.
   - **`setMatch`**: today's `MalSet.setMatch` moved here, plus `NotOpen`.
   - **`setNone`**, **`retry`** (moved from `MalRetry`) and **`backToAutomatic`** (new: the season and its dub rows to pending, the series' searches dropped).
   - **SQL**: literal, with values as parameters.
 
   · Infrastructure/MalActions.fs
-- [ ] **T003** [P] `WebAuth.fs` (research R1, R2):
+- [x] **T003** [P] `WebAuth.fs` (research R1, R2):
   - `validatePrincipal` also selects `username` into `ctx.Items`;
   - `currentUsername`;
   - `isOperator`, which reads `Frunchy:Operators` per request (array or comma list, case-insensitive, empty = nobody);
   - `requireOperator`, which answers 404 with the not-found message page for anyone else, and never redirects.
 
   · Infrastructure/WebAuth.fs
-- [ ] **T004** [P] Add the `SecurityEventType` cases `mal_set`, `mal_none`, `mal_retry` and `mal_auto` (union, `toDb`, `all`) · Domains/Identity.fs
-- [ ] **T005** [P] Add the review texts and the four event labels in en and es: page titles, the filter labels, column labels, the action buttons, the MAL id field label and hint, the manual view, the empty state, "N more", the account link, and the nine notices. Labels go in both `SecurityEventLabel` blocks · Views/Texts.fs
+- [x] **T004** [P] Add the `SecurityEventType` cases `mal_set`, `mal_none`, `mal_retry` and `mal_auto` (union, `toDb`, `all`) · Domains/Identity.fs
+- [x] **T005** [P] Add the review texts and the four event labels in en and es: page titles, the filter labels, column labels, the action buttons, the MAL id field label and hint, the manual view, the empty state, "N more", the account link, and the nine notices. Labels go in both `SecurityEventLabel` blocks · Views/Texts.fs
 
 **⟶ Wait for Wave 1 to finish, then:**
 
-- [ ] **T006** Point `mal-set`, `mal-none` and `mal-retry` at `MalActions` with `Any`, keeping their output and exit codes. Add `mal-auto <crSeasonId>` (exit 0, 2 for an unknown season, 3 when not manual) and register it in Program.fs's CLI dispatch and the help text. `MalOperationsTests` stays green with no assertion edited · Operations/MalSet.fs, Operations/MalNone.fs, Operations/MalRetry.fs, Operations/MalAuto.fs, Program.fs
+- [x] **T006** Point `mal-set`, `mal-none` and `mal-retry` at `MalActions` with `Any`, keeping their output and exit codes. Add `mal-auto <crSeasonId>` (exit 0, 2 for an unknown season, 3 when not manual) and register it in Program.fs's CLI dispatch and the help text. `MalOperationsTests` stays green with no assertion edited · Operations/MalSet.fs, Operations/MalNone.fs, Operations/MalRetry.fs, Operations/MalAuto.fs, Program.fs
 
 **⟶ Wait for T006, then:**
 
-- [ ] **T007** Write `MalActionsParityTests`:
+- [x] **T007** Write `MalActionsParityTests`:
   - for set, none, retry and auto, the CLI command and a direct `MalActions` call with `Any` leave identical `cr_season_matches` rows, dubs included (SC-001);
   - `Open` and `Manual` refuse wrong states with `NotOpen` and write nothing;
   - `setMatch` without a client id is `Unavailable`, and it makes no request.

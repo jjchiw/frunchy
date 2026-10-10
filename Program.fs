@@ -414,7 +414,8 @@ let cliCommands: Map<string, CliEnv -> string list -> Task<int>> =
           "mal-set", (fun env args -> Operations.MalSet.run env.Db env.Http env.Clock env.Mal args)
           "mal-none", dbOnly Operations.MalNone.run
           "mal-retry", dbOnly Operations.MalRetry.run
-          "mal-rebuild", dbOnly Operations.MalRebuild.run ]
+          "mal-rebuild", dbOnly Operations.MalRebuild.run
+          "mal-auto", dbOnly Operations.MalAuto.run ]
 
 let private runCli (command: string) (rest: string list) : int =
     // Same configuration sources as the web app (appsettings, environment, user secrets, Bella)

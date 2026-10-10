@@ -244,7 +244,41 @@ type Texts =
       AnimeStatus: string -> string
       AnimeEpisodeWatched: string
       /// A Crunchyroll audio locale ("ja-JP") as a language name; unknown codes are shown as stored
-      AudioLanguage: string -> string }
+      AudioLanguage: string -> string
+      // MyAnimeList review (/review/mal, feature 007)
+      ReviewTitle: string
+      ReviewIntro: string
+      ReviewManualTitle: string
+      ReviewManualIntro: string
+      ReviewTabOpen: string
+      ReviewTabManual: string
+      ReviewFilterAll: string
+      ReviewFilterAmbiguous: string
+      ReviewFilterNoMatch: string
+      ReviewFilterFailed: string
+      ReviewColSeason: string
+      ReviewColStatus: string
+      ReviewColUsers: string
+      ReviewColFullyWatched: string
+      ReviewColCandidates: string
+      ReviewColDecision: string
+      ReviewColDecidedAt: string
+      ReviewUseThis: string
+      ReviewSetButton: string
+      ReviewNoneButton: string
+      ReviewRetryButton: string
+      ReviewAutoButton: string
+      ReviewMalIdLabel: string
+      ReviewMalIdHint: string
+      ReviewNoCandidates: string
+      ReviewManualNone: string
+      ReviewWatcherLink: string
+      ReviewEmpty: string
+      ReviewManualEmpty: string
+      ReviewMore: int -> string
+      ReviewAccountLink: string
+      /// The notice for a `msg` key (set, none, retry, auto, unknown-season, unknown-anime, unavailable, not-open, bad-input)
+      ReviewNotice: string -> string }
 
 let en =
     { Lang = "en"
@@ -439,6 +473,10 @@ let en =
             | "binding_reset" -> "Crunchyroll binding reset"
             | "reconfirmed" -> "Identity confirmed"
             | "display_name_changed" -> "Display name changed"
+            | "mal_set" -> "MyAnimeList match set by hand"
+            | "mal_none" -> "Season marked as not on MyAnimeList"
+            | "mal_retry" -> "MyAnimeList match retried"
+            | "mal_auto" -> "MyAnimeList match sent back to automatic"
             | other -> other
       ByOperator = "by the operator"
 
@@ -535,6 +573,51 @@ let en =
             | "ar-SA" -> "Arabic"
             | "hi-IN" -> "Hindi"
             | "ko-KR" -> "Korean"
+            | other -> other
+      // MyAnimeList review (/review/mal, feature 007)
+      ReviewTitle = "Review MyAnimeList matches"
+      ReviewIntro = "Seasons the matcher couldn't decide. Pick the right MyAnimeList entry, mark the season as not listed, or ask for another automatic try."
+      ReviewManualTitle = "Manual MyAnimeList decisions"
+      ReviewManualIntro = "Seasons decided by hand are never matched automatically. Send one back to automatic to let the matcher decide again."
+      ReviewTabOpen = "To review"
+      ReviewTabManual = "Manual decisions"
+      ReviewFilterAll = "All"
+      ReviewFilterAmbiguous = "Ambiguous"
+      ReviewFilterNoMatch = "No match"
+      ReviewFilterFailed = "Failed"
+      ReviewColSeason = "Season"
+      ReviewColStatus = "Status"
+      ReviewColUsers = "Users"
+      ReviewColFullyWatched = "Fully watched"
+      ReviewColCandidates = "Candidates"
+      ReviewColDecision = "Decision"
+      ReviewColDecidedAt = "Decided"
+      ReviewUseThis = "Use this"
+      ReviewSetButton = "Set match"
+      ReviewNoneButton = "Not on MyAnimeList"
+      ReviewRetryButton = "Try again"
+      ReviewAutoButton = "Back to automatic"
+      ReviewMalIdLabel = "MyAnimeList id or link"
+      ReviewMalIdHint = "A number such as 1535, or a myanimelist.net/anime link."
+      ReviewNoCandidates = "No candidates stored."
+      ReviewManualNone = "Not on MyAnimeList"
+      ReviewWatcherLink = "See what they watched"
+      ReviewEmpty = "Nothing to review. Every season is matched or waiting for the matcher."
+      ReviewManualEmpty = "No manual decisions."
+      ReviewMore = fun n -> $"{n} more not shown."
+      ReviewAccountLink = "Review MyAnimeList matches"
+      ReviewNotice =
+        fun key ->
+            match key with
+            | "set" -> "Match saved."
+            | "none" -> "Marked as not on MyAnimeList."
+            | "retry" -> "Queued for another automatic try."
+            | "auto" -> "Sent back to automatic matching."
+            | "unknown-season" -> "That season doesn't exist. Nothing changed."
+            | "unknown-anime" -> "MyAnimeList has no anime with that id. Nothing changed."
+            | "unavailable" -> "MyAnimeList isn't available right now. Nothing changed, try again later."
+            | "not-open" -> "That season was decided in the meantime. Nothing changed."
+            | "bad-input" -> "Enter a MyAnimeList id or an anime link. Nothing changed."
             | other -> other }
 
 let es =
@@ -730,6 +813,10 @@ let es =
             | "binding_reset" -> "Vínculo con Crunchyroll restablecido"
             | "reconfirmed" -> "Identidad confirmada"
             | "display_name_changed" -> "Nombre visible cambiado"
+            | "mal_set" -> "Coincidencia de MyAnimeList fijada a mano"
+            | "mal_none" -> "Temporada marcada como no disponible en MyAnimeList"
+            | "mal_retry" -> "Coincidencia de MyAnimeList reintentada"
+            | "mal_auto" -> "Coincidencia de MyAnimeList devuelta a automático"
             | other -> other
       ByOperator = "por el operador"
 
@@ -826,6 +913,51 @@ let es =
             | "ar-SA" -> "Árabe"
             | "hi-IN" -> "Hindi"
             | "ko-KR" -> "Coreano"
+            | other -> other
+      // MyAnimeList review (/review/mal, feature 007)
+      ReviewTitle = "Revisar coincidencias de MyAnimeList"
+      ReviewIntro = "Temporadas que el emparejador no pudo decidir. Elige la entrada correcta de MyAnimeList, marca la temporada como no listada o pide otro intento automático."
+      ReviewManualTitle = "Decisiones manuales de MyAnimeList"
+      ReviewManualIntro = "Las temporadas decididas a mano nunca se emparejan automáticamente. Devuelve una a automático para que el emparejador decida de nuevo."
+      ReviewTabOpen = "Por revisar"
+      ReviewTabManual = "Decisiones manuales"
+      ReviewFilterAll = "Todas"
+      ReviewFilterAmbiguous = "Ambiguas"
+      ReviewFilterNoMatch = "Sin coincidencia"
+      ReviewFilterFailed = "Fallidas"
+      ReviewColSeason = "Temporada"
+      ReviewColStatus = "Estado"
+      ReviewColUsers = "Usuarios"
+      ReviewColFullyWatched = "Vistos completos"
+      ReviewColCandidates = "Candidatas"
+      ReviewColDecision = "Decisión"
+      ReviewColDecidedAt = "Decidida"
+      ReviewUseThis = "Usar esta"
+      ReviewSetButton = "Fijar coincidencia"
+      ReviewNoneButton = "No está en MyAnimeList"
+      ReviewRetryButton = "Reintentar"
+      ReviewAutoButton = "Volver a automático"
+      ReviewMalIdLabel = "Id o enlace de MyAnimeList"
+      ReviewMalIdHint = "Un número como 1535, o un enlace de myanimelist.net/anime."
+      ReviewNoCandidates = "No hay candidatas guardadas."
+      ReviewManualNone = "No está en MyAnimeList"
+      ReviewWatcherLink = "Ver lo que vieron"
+      ReviewEmpty = "Nada que revisar. Todas las temporadas están emparejadas o esperan al emparejador."
+      ReviewManualEmpty = "No hay decisiones manuales."
+      ReviewMore = fun n -> if n = 1 then "1 más sin mostrar." else $"{n} más sin mostrar."
+      ReviewAccountLink = "Revisar coincidencias de MyAnimeList"
+      ReviewNotice =
+        fun key ->
+            match key with
+            | "set" -> "Coincidencia guardada."
+            | "none" -> "Marcada como no disponible en MyAnimeList."
+            | "retry" -> "En cola para otro intento automático."
+            | "auto" -> "Devuelta al emparejamiento automático."
+            | "unknown-season" -> "Esa temporada no existe. No se cambió nada."
+            | "unknown-anime" -> "MyAnimeList no tiene ningún anime con ese id. No se cambió nada."
+            | "unavailable" -> "MyAnimeList no está disponible ahora. No se cambió nada, inténtalo más tarde."
+            | "not-open" -> "Esa temporada se decidió mientras tanto. No se cambió nada."
+            | "bad-input" -> "Escribe un id de MyAnimeList o un enlace de anime. No se cambió nada."
             | other -> other }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise

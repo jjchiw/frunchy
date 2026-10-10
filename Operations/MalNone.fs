@@ -10,11 +10,11 @@ let run (db: DbConfig) (args: string list) : Task<int> =
     task {
         match args with
         | [ seasonId ] ->
-            match! MalCatalog.writeManual db seasonId None DateTimeOffset.UtcNow with
-            | true ->
+            match! MalActions.setNone db TimeProvider.System MalActions.Any seasonId with
+            | Ok() ->
                 printfn "%s marked as not on MyAnimeList (manual)" seasonId
                 return 0
-            | false ->
+            | Error _ ->
                 eprintfn "unknown season: %s" seasonId
                 return 2
         | _ ->

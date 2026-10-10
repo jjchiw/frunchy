@@ -9,6 +9,7 @@ open Microsoft.AspNetCore.Antiforgery
 open Microsoft.AspNetCore.Authentication
 open Microsoft.AspNetCore.Authentication.Cookies
 open Microsoft.AspNetCore.Http
+open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
 open Npgsql
 open Oxpecker
@@ -49,6 +50,9 @@ let private ProviderClaim = "frunchy:provider"
 
 [<Literal>]
 let private DisplayNameItem = "frunchy.displayName"
+
+[<Literal>]
+let private UsernameItem = "frunchy.username"
 
 let freshWindow = TimeSpan.FromMinutes 10.0
 
@@ -140,6 +144,36 @@ let currentNav (ctx: HttpContext) =
     | Some _, (true, (:? string as name)) -> SignedIn name
     | _ -> SignedOut
 
+/// The signed-in user's username (lowercase), as read by the cookie validation of this request
+let currentUsername (ctx: HttpContext) : string option =
+    match currentUserId ctx, ctx.Items.TryGetValue UsernameItem with
+    | Some _, (true, (:? string as username)) -> Some username
+    | _ -> None
+
+/// Operators are the usernames in `Frunchy:Operators` (a config array, or one comma-separated value),
+/// read on every request; comparison is case-insensitive and an empty list means nobody.
+let isOperator (ctx: HttpContext) : bool =
+    match currentUsername ctx with
+    | None -> false
+    | Some username ->
+        let config = ctx.RequestServices.GetRequiredService<IConfiguration>()
+        let section = config.GetSection "Frunchy:Operators"
+
+        let configured =
+            match section.Get<string[]>() with
+            | null
+            | [||] -> [| config["Frunchy:Operators"] |]
+            | array -> array
+
+        let names =
+            configured
+            |> Array.filter (fun n -> not (isNull n))
+            |> Array.collect (fun n -> n.Split ',')
+            |> Array.map (fun n -> n.Trim())
+            |> Array.filter (fun n -> n <> "")
+
+        names |> Array.exists (fun n -> String.Equals(n, username, StringComparison.OrdinalIgnoreCase))
+
 /// Cookie validation on every request: the user must still exist (deleted elsewhere → signed out).
 /// Also stashes the current display name for the navbar.
 let validatePrincipal (context: CookieValidatePrincipalContext) : Task =
@@ -161,13 +195,14 @@ let validatePrincipal (context: CookieValidatePrincipalContext) : Task =
             let db = context.HttpContext.RequestServices.GetRequiredService<DbConfig>()
             use connection = getConnection db
             do! connection.OpenAsync()
-            use cmd = new NpgsqlCommand("SELECT display_name FROM users WHERE id = @id", connection)
+            use cmd = new NpgsqlCommand("SELECT display_name, username FROM users WHERE id = @id", connection)
             cmd.Parameters.AddWithValue("id", id) |> ignore
-            let! name = cmd.ExecuteScalarAsync()
+            use! reader = cmd.ExecuteReaderAsync()
 
-            match name with
-            | :? string as displayName -> context.HttpContext.Items[DisplayNameItem] <- displayName
-            | _ ->
+            if reader.Read() then
+                context.HttpContext.Items[DisplayNameItem] <- reader.GetString 0
+                context.HttpContext.Items[UsernameItem] <- reader.GetString 1
+            else
                 context.RejectPrincipal()
                 do! context.HttpContext.SignOutAsync SessionScheme
     }

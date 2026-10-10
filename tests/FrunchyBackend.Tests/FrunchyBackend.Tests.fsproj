@@ -54,6 +54,9 @@
     <Compile Include="YearNavigationTests.fs" />
     <Compile Include="AnimeTests.fs" />
     <Compile Include="AnimeLinkTests.fs" />
+    <Compile Include="MalActionsParityTests.fs" />
+    <Compile Include="MalReviewAccessTests.fs" />
+    <Compile Include="MalReviewTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

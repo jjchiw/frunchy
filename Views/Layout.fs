@@ -129,3 +129,15 @@ let messagePage (ctx: HttpContext) (t: Texts) (heading: string) (body: string) =
         }
     }
     |> page ctx t heading
+
+/// Run the handler for a signed-in operator (`Frunchy:Operators`); anyone else gets the plain
+/// 404 page, never a redirect, so the review pages can't be found. Wrap it around everything,
+/// before any form is read.
+let requireOperator (next: System.Guid -> EndpointHandler) : EndpointHandler =
+    fun ctx ->
+        match WebAuth.currentUserId ctx with
+        | Some userId when WebAuth.isOperator ctx -> next userId ctx
+        | _ ->
+            let t = Texts.current ()
+            ctx.SetStatusCode StatusCodes.Status404NotFound
+            ctx.WriteHtmlView(messagePage ctx t t.NotFoundTitle t.NotFoundBody)

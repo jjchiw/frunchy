@@ -97,6 +97,10 @@ type SecurityEventType =
     | BindingReset
     | Reconfirmed
     | DisplayNameChanged
+    | MalSet
+    | MalNone
+    | MalRetry
+    | MalAuto
 
 module SecurityEventType =
     let toDb =
@@ -111,11 +115,16 @@ module SecurityEventType =
         | SecurityEventType.BindingReset -> "binding_reset"
         | SecurityEventType.Reconfirmed -> "reconfirmed"
         | SecurityEventType.DisplayNameChanged -> "display_name_changed"
+        | SecurityEventType.MalSet -> "mal_set"
+        | SecurityEventType.MalNone -> "mal_none"
+        | SecurityEventType.MalRetry -> "mal_retry"
+        | SecurityEventType.MalAuto -> "mal_auto"
 
     let all =
         [ SecurityEventType.AccountCreated; SecurityEventType.SignedIn; SecurityEventType.Claimed
           SecurityEventType.ClaimRefused; SecurityEventType.IdentityLinked; SecurityEventType.IdentityUnlinked
           SecurityEventType.SyncKeyGenerated; SecurityEventType.BindingReset; SecurityEventType.Reconfirmed
-          SecurityEventType.DisplayNameChanged ]
+          SecurityEventType.DisplayNameChanged; SecurityEventType.MalSet; SecurityEventType.MalNone
+          SecurityEventType.MalRetry; SecurityEventType.MalAuto ]
 
     let tryFromDb (value: string) = all |> List.tryFind (fun e -> toDb e = value)

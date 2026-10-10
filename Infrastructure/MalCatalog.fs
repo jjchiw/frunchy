@@ -401,14 +401,11 @@ let seriesOfSeason (db: DbConfig) (seasonId: string) : Task<SeriesInfo option> =
                       Seasons = all |> List.map (fun (_, _, s) -> s) }
     }
 
-/// Set a season by hand (FR-006): matched to `malId`, or "not on MyAnimeList" with None.
-/// Seasons whose match follows this one as dubs follow it too. False for an unknown season.
-let writeManual (db: DbConfig) (seasonId: string) (malId: int option) (now: DateTimeOffset) : Task<bool> =
+/// Set a season by hand (FR-006), in the caller's transaction: matched to `malId`, or "not on
+/// MyAnimeList" with None. Seasons whose match follows this one as dubs follow it too.
+/// False for an unknown season (nothing written).
+let writeManualIn (conn: NpgsqlConnection) (tx: NpgsqlTransaction) (seasonId: string) (malId: int option) (now: DateTimeOffset) : Task<bool> =
     task {
-        use conn = getConnection db
-        do! conn.OpenAsync()
-        use! tx = conn.BeginTransactionAsync()
-
         use exists = new NpgsqlCommand("SELECT EXISTS (SELECT 1 FROM cr_seasons WHERE id = @id)", conn, tx)
         add exists "id" NpgsqlDbType.Text seasonId
         let! found = exists.ExecuteScalarAsync()
@@ -444,6 +441,19 @@ let writeManual (db: DbConfig) (seasonId: string) (malId: int option) (now: Date
             add cmd "mal" NpgsqlDbType.Integer (opt malId)
             add cmd "now" NpgsqlDbType.TimestampTz now
             let! _ = cmd.ExecuteNonQueryAsync()
-            do! tx.CommitAsync()
             return true
+    }
+
+/// Set a season by hand (FR-006) in its own transaction. False for an unknown season.
+let writeManual (db: DbConfig) (seasonId: string) (malId: int option) (now: DateTimeOffset) : Task<bool> =
+    task {
+        use conn = getConnection db
+        do! conn.OpenAsync()
+        use! tx = conn.BeginTransactionAsync()
+        let! found = writeManualIn conn tx seasonId malId now
+
+        if found then
+            do! tx.CommitAsync()
+
+        return found
     }

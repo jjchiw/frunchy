@@ -2,8 +2,8 @@
   "workflow": "companion",
   "specName": "Review MyAnimeList Matches on the Web",
   "branch": "007-mal-review",
-  "currentStep": "tasks",
-  "status": "ready-to-implement",
+  "currentStep": "implement",
+  "status": "implementing",
   "history": [
     {
       "step": "specify",
@@ -67,6 +67,69 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-10-10T18:28:00.543Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-10T18:28:00.685Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T001",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T18:36:46.500Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T002",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T18:36:46.601Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T003",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T18:36:46.763Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T004",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T18:36:46.870Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T005",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T18:36:46.965Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T006",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T18:36:47.069Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T007",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T18:36:47.162Z"
     }
   ],
   "unattended": true,
@@ -236,5 +299,67 @@
       "summary": "16 tasks: setup, 6 foundational (shared actions, auth, events, texts, CLI, parity tests), US1+US3 (4), US2 (2), polish (3)"
     }
   },
-  "approach": "Move mal-set/none/retry into Infrastructure/MalActions.fs with an expect guard, add back-to-automatic (and mal-auto). A Handlers/Review/MalReview.fs slice serves /review/mal to usernames in Frunchy:Operators only; everyone else gets 404 before any forgery check."
+  "approach": "Move mal-set/none/retry into Infrastructure/MalActions.fs with an expect guard, add back-to-automatic (and mal-auto). A Handlers/Review/MalReview.fs slice serves /review/mal to usernames in Frunchy:Operators only; everyone else gets 404 before any forgery check.",
+  "currentTask": "T007",
+  "task_summaries": {
+    "T001": {
+      "status": "DONE",
+      "did": "Registered MalActions, MalReview, MalAuto and three test files as minimal modules",
+      "files": [
+        "FrunchyBackend.fsproj",
+        "tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj",
+        "Infrastructure/MalActions.fs",
+        "Handlers/Review/MalReview.fs",
+        "Operations/MalAuto.fs"
+      ]
+    },
+    "T002": {
+      "status": "DONE",
+      "did": "MalActions: Expect guard with FOR UPDATE, setMatch, setNone, retry, backToAutomatic; MalCatalog.writeManualIn shares the transaction",
+      "files": [
+        "Infrastructure/MalActions.fs",
+        "Infrastructure/MalCatalog.fs"
+      ]
+    },
+    "T003": {
+      "status": "DONE",
+      "did": "WebAuth username in Items, currentUsername, isOperator; Layout.requireOperator answers 404 for non-operators",
+      "files": [
+        "Infrastructure/WebAuth.fs",
+        "Views/Layout.fs"
+      ]
+    },
+    "T004": {
+      "status": "DONE",
+      "did": "SecurityEventType mal_set, mal_none, mal_retry, mal_auto",
+      "files": [
+        "Domains/Identity.fs"
+      ]
+    },
+    "T005": {
+      "status": "DONE",
+      "did": "Review texts and four security event labels in en and es",
+      "files": [
+        "Views/Texts.fs"
+      ]
+    },
+    "T006": {
+      "status": "DONE",
+      "did": "mal-set, mal-none, mal-retry call MalActions with Any; new mal-auto registered in the CLI",
+      "files": [
+        "Operations/MalSet.fs",
+        "Operations/MalNone.fs",
+        "Operations/MalRetry.fs",
+        "Operations/MalAuto.fs",
+        "Program.fs"
+      ]
+    },
+    "T007": {
+      "status": "DONE",
+      "did": "MalActionsParityTests: CLI vs shared action parity for set, none, retry, auto; Open/Manual refusals; Unavailable without client id",
+      "files": [
+        "tests/FrunchyBackend.Tests/MalActionsParityTests.fs"
+      ]
+    }
+  }
 }
