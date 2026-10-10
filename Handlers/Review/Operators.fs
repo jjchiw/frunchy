@@ -44,7 +44,7 @@ let private addForm (ctx: HttpContext) (t: Texts) =
     form(method = "post", action = "/review/operators/add", class' = "fr-card space-y-3").data("action", "add") {
         ctx.GetAntiforgeryInput()
 
-        div(class' = "flex flex-wrap items-end gap-3") {
+        div(class' = "space-y-4") {
             div(class' = "w-full sm:w-72") {
                 fieldWith
                     "text"
