@@ -54,6 +54,9 @@ let private DisplayNameItem = "frunchy.displayName"
 [<Literal>]
 let private UsernameItem = "frunchy.username"
 
+[<Literal>]
+let private OperatorItem = "frunchy.operator"
+
 let freshWindow = TimeSpan.FromMinutes 10.0
 
 let utcNow (ctx: HttpContext) =
@@ -150,32 +153,36 @@ let currentUsername (ctx: HttpContext) : string option =
     | Some _, (true, (:? string as username)) -> Some username
     | _ -> None
 
-/// Operators are the usernames in `Frunchy:Operators` (a config array, or one comma-separated value),
-/// read on every request; comparison is case-insensitive and an empty list means nobody.
-let isOperator (ctx: HttpContext) : bool =
+/// The root operator is the username in `Frunchy:RootOperator` (trimmed, case-insensitive, empty or
+/// missing = no root), read on every request. The root is configuration only, never a database row.
+let rootOperator (config: IConfiguration) : string option =
+    match config["Frunchy:RootOperator"] with
+    | null -> None
+    | value ->
+        match value.Trim() with
+        | "" -> None
+        | name -> Some name
+
+let isRoot (ctx: HttpContext) : bool =
     match currentUsername ctx with
     | None -> false
     | Some username ->
-        let config = ctx.RequestServices.GetRequiredService<IConfiguration>()
-        let section = config.GetSection "Frunchy:Operators"
+        match rootOperator (ctx.RequestServices.GetRequiredService<IConfiguration>()) with
+        | Some root -> String.Equals(root, username, StringComparison.OrdinalIgnoreCase)
+        | None -> false
 
-        let configured =
-            match section.Get<string[]>() with
-            | null
-            | [||] -> [| config["Frunchy:Operators"] |]
-            | array -> array
+/// Whether the signed-in user is in the `operators` table, as read by the cookie validation of this request
+let private isListedOperator (ctx: HttpContext) : bool =
+    match currentUserId ctx, ctx.Items.TryGetValue OperatorItem with
+    | Some _, (true, (:? bool as flag)) -> flag
+    | _ -> false
 
-        let names =
-            configured
-            |> Array.filter (fun n -> not (isNull n))
-            |> Array.collect (fun n -> n.Split ',')
-            |> Array.map (fun n -> n.Trim())
-            |> Array.filter (fun n -> n <> "")
-
-        names |> Array.exists (fun n -> String.Equals(n, username, StringComparison.OrdinalIgnoreCase))
+/// Operators are the root plus the users in the `operators` table; both are read per request, so a
+/// removal closes access at once.
+let isOperator (ctx: HttpContext) : bool = isRoot ctx || isListedOperator ctx
 
 /// Cookie validation on every request: the user must still exist (deleted elsewhere → signed out).
-/// Also stashes the current display name for the navbar.
+/// Also stashes the current display name for the navbar, and whether the user is a listed operator.
 let validatePrincipal (context: CookieValidatePrincipalContext) : Task =
     task {
         let userId =
@@ -195,13 +202,14 @@ let validatePrincipal (context: CookieValidatePrincipalContext) : Task =
             let db = context.HttpContext.RequestServices.GetRequiredService<DbConfig>()
             use connection = getConnection db
             do! connection.OpenAsync()
-            use cmd = new NpgsqlCommand("SELECT display_name, username FROM users WHERE id = @id", connection)
+            use cmd = new NpgsqlCommand("SELECT display_name, username, EXISTS (SELECT 1 FROM operators o WHERE o.user_id = users.id) FROM users WHERE id = @id", connection)
             cmd.Parameters.AddWithValue("id", id) |> ignore
             use! reader = cmd.ExecuteReaderAsync()
 
             if reader.Read() then
                 context.HttpContext.Items[DisplayNameItem] <- reader.GetString 0
                 context.HttpContext.Items[UsernameItem] <- reader.GetString 1
+                context.HttpContext.Items[OperatorItem] <- reader.GetBoolean 2
             else
                 context.RejectPrincipal()
                 do! context.HttpContext.SignOutAsync SessionScheme

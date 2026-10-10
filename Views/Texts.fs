@@ -277,7 +277,29 @@ type Texts =
       ReviewMore: int -> string
       ReviewAccountLink: string
       /// The notice for a `msg` key (set, none, retry, auto, unknown-season, unknown-anime, unavailable, not-open, bad-input)
-      ReviewNotice: string -> string }
+      ReviewNotice: string -> string
+
+      // Operators (/review/operators, feature 008)
+      OperatorsTitle: string
+      OperatorsIntro: string
+      OperatorsRootLabel: string
+      OperatorsRootNote: string
+      OperatorsColUser: string
+      OperatorsColAddedBy: string
+      OperatorsColAddedAt: string
+      /// "Added by" when no root account is on record: added from the terminal, or the granting account was deleted
+      OperatorsAddedFromServer: string
+      OperatorsAddLabel: string
+      OperatorsAddHint: string
+      OperatorsAddButton: string
+      OperatorsRemoveButton: string
+      OperatorsRemoveLabel: string -> string
+      OperatorsEmpty: string
+      /// The notice for a `msg` key (added, removed, unknown-user, is-root, already-operator, not-operator, bad-input)
+      OperatorNotice: string -> string
+      /// Account page: the signed-in user is an operator
+      OperatorStatus: string
+      OperatorsAccountLink: string }
 
 let en =
     { Lang = "en"
@@ -476,6 +498,8 @@ let en =
             | "mal_none" -> "Season marked as not on MyAnimeList"
             | "mal_retry" -> "MyAnimeList match retried"
             | "mal_auto" -> "MyAnimeList match sent back to automatic"
+            | "operator_added" -> "Operator added"
+            | "operator_removed" -> "Operator removed"
             | other -> other
       ByOperator = "by the operator"
 
@@ -616,7 +640,35 @@ let en =
             | "unavailable" -> "MyAnimeList isn't available right now. Nothing changed, try again later."
             | "not-open" -> "That season was decided in the meantime. Nothing changed."
             | "bad-input" -> "Enter a MyAnimeList id or an anime link. Nothing changed."
-            | other -> other }
+            | other -> other
+
+      OperatorsTitle = "Operators"
+      OperatorsIntro = "Operators can review MyAnimeList matches. Only the root operator adds or removes them."
+      OperatorsRootLabel = "Root operator"
+      OperatorsRootNote = "Set in the server configuration, so it can't be added or removed here."
+      OperatorsColUser = "User"
+      OperatorsColAddedBy = "Added by"
+      OperatorsColAddedAt = "Added"
+      OperatorsAddedFromServer = "Server or deleted account"
+      OperatorsAddLabel = "Username"
+      OperatorsAddHint = "The username of an existing account."
+      OperatorsAddButton = "Make operator"
+      OperatorsRemoveButton = "Remove"
+      OperatorsRemoveLabel = fun username -> $"Remove {username} as operator"
+      OperatorsEmpty = "No operators besides the root."
+      OperatorNotice =
+        fun key ->
+            match key with
+            | "added" -> "Operator added."
+            | "removed" -> "Operator removed."
+            | "unknown-user" -> "There's no account with that username. Nothing changed."
+            | "is-root" -> "That's the root operator, set in the server configuration. Nothing changed."
+            | "already-operator" -> "That user is already an operator. Nothing changed."
+            | "not-operator" -> "That user isn't an operator. Nothing changed."
+            | "bad-input" -> "Enter a username. Nothing changed."
+            | other -> other
+      OperatorStatus = "You're an operator."
+      OperatorsAccountLink = "Manage operators" }
 
 let es =
     { Lang = "es"
@@ -815,6 +867,8 @@ let es =
             | "mal_none" -> "Temporada marcada como no disponible en MyAnimeList"
             | "mal_retry" -> "Coincidencia de MyAnimeList reintentada"
             | "mal_auto" -> "Coincidencia de MyAnimeList devuelta a automático"
+            | "operator_added" -> "Operador añadido"
+            | "operator_removed" -> "Operador quitado"
             | other -> other
       ByOperator = "por el operador"
 
@@ -955,7 +1009,35 @@ let es =
             | "unavailable" -> "MyAnimeList no está disponible ahora. No se cambió nada, inténtalo más tarde."
             | "not-open" -> "Esa temporada se decidió mientras tanto. No se cambió nada."
             | "bad-input" -> "Escribe un id de MyAnimeList o un enlace de anime. No se cambió nada."
-            | other -> other }
+            | other -> other
+
+      OperatorsTitle = "Operadores"
+      OperatorsIntro = "Los operadores pueden revisar las coincidencias de MyAnimeList. Solo el operador raíz los añade o los quita."
+      OperatorsRootLabel = "Operador raíz"
+      OperatorsRootNote = "Se define en la configuración del servidor, así que aquí no se puede añadir ni quitar."
+      OperatorsColUser = "Usuario"
+      OperatorsColAddedBy = "Añadido por"
+      OperatorsColAddedAt = "Añadido"
+      OperatorsAddedFromServer = "Servidor o cuenta eliminada"
+      OperatorsAddLabel = "Nombre de usuario"
+      OperatorsAddHint = "El nombre de usuario de una cuenta existente."
+      OperatorsAddButton = "Hacer operador"
+      OperatorsRemoveButton = "Quitar"
+      OperatorsRemoveLabel = fun username -> $"Quitar a {username} como operador"
+      OperatorsEmpty = "No hay operadores además del raíz."
+      OperatorNotice =
+        fun key ->
+            match key with
+            | "added" -> "Operador añadido."
+            | "removed" -> "Operador quitado."
+            | "unknown-user" -> "No hay ninguna cuenta con ese nombre de usuario. No se cambió nada."
+            | "is-root" -> "Es el operador raíz, definido en la configuración del servidor. No se cambió nada."
+            | "already-operator" -> "Ese usuario ya es operador. No se cambió nada."
+            | "not-operator" -> "Ese usuario no es operador. No se cambió nada."
+            | "bad-input" -> "Escribe un nombre de usuario. No se cambió nada."
+            | other -> other
+      OperatorStatus = "Eres operador."
+      OperatorsAccountLink = "Gestionar operadores" }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =

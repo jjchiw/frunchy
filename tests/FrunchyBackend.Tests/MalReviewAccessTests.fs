@@ -37,12 +37,13 @@ type ReviewEnv =
     interface IAsyncDisposable with
         member env.DisposeAsync() = (env.App :> IAsyncDisposable).DisposeAsync()
 
-/// An app whose operators are configured as given, with a boss, a pleb and a visitor. With `enrich`, the 2026 sample is
+/// An app with the given configuration, a boss, a pleb and a visitor, and the named users made operators
+/// in the `operators` table (through the shared action, as the terminal does). With `enrich`, the 2026 sample is
 /// imported and matched, and Slime's OVA season is set ambiguous with two candidates (the matcher itself leaves it without any).
-let newReviewEnv (operators: (string * string) list) (enrich: bool) : Task<ReviewEnv> =
+let newReviewEnvWith (config: (string * string) list) (operators: string list) (enrich: bool) : Task<ReviewEnv> =
     task {
         let! db = newDatabase ()
-        let! app = createAppWith db operators ignore
+        let! app = createAppWith db config ignore
 
         if enrich then
             let! key = createUser app.Db "animenerd"
@@ -67,10 +68,16 @@ let newReviewEnv (operators: (string * string) list) (enrich: bool) : Task<Revie
 
         let! boss = signedUp app "sub-boss" "boss"
         let! pleb = signedUp app "sub-pleb" "pleb"
+
+        for name in operators do
+            let! added = OperatorActions.add app.Db None name OperatorActions.Server
+            Assert.True(Result.isOk added, $"couldn't make {name} an operator")
+
         return { App = app; Boss = boss; Pleb = pleb; Visitor = app.NewBrowser() }
     }
 
-let operatorsOf (names: string list) = names |> List.mapi (fun i n -> $"Frunchy:Operators:{i}", n)
+/// `operators`: usernames made operators in the table; no root is configured
+let newReviewEnv (operators: string list) (enrich: bool) : Task<ReviewEnv> = newReviewEnvWith [] operators enrich
 
 /// Everything the review actions can change
 let reviewSnapshot (app: TestApp) =
@@ -124,7 +131,7 @@ let private assertClosedFor (env: ReviewEnv) (who: string) (browser: Browser) =
 [<Fact>]
 let ``access matrix: visitors and non-operators get 404 everywhere, the operator gets the pages`` () =
     task {
-        use! env = newReviewEnv (operatorsOf [ "boss" ]) true
+        use! env = newReviewEnv [ "boss" ] true
         // a manual decision, so that "auto" has something to act on
         let! _ = MalActions.setNone env.App.Db TimeProvider.System MalActions.Any "GR19CPDWM"
 
@@ -158,46 +165,70 @@ let ``with no operators configured nobody gets in, not even a signed-in boss`` (
     }
 
 [<Fact>]
-let ``operators can be an array, a comma-separated value, in any letter case`` () =
+
+let ``the root, in any letter case, and operators in the table get in; everyone else doesn't`` () =
     task {
-        for name, config in
-            [ "array", [ "Frunchy:Operators:0", "someone"; "Frunchy:Operators:1", "boss" ]
-              "comma", [ "Frunchy:Operators", "someone, boss" ]
-              "comma without spaces", [ "Frunchy:Operators", "boss,someone" ]
-              "upper case", [ "Frunchy:Operators", "BOSS" ]
-              "single array entry", [ "Frunchy:Operators:0", "Boss" ] ] do
-            use! env = newReviewEnv config false
+        for name, config, operators in
+            [ "root", [ "Frunchy:RootOperator", "boss" ], []
+              "root in upper case", [ "Frunchy:RootOperator", "BOSS" ], []
+              "root with spaces", [ "Frunchy:RootOperator", "  Boss " ], []
+              "table", [], [ "boss" ]
+              "table and another root", [ "Frunchy:RootOperator", "someone" ], [ "boss" ] ] do
+
+            use! env = newReviewEnvWith config operators false
             let! boss = env.Boss.GetRaw "/review/mal"
             Assert.True(boss.StatusCode = HttpStatusCode.OK, $"{name}: the boss got {int boss.StatusCode}")
             let! pleb = env.Pleb.GetRaw "/review/mal"
             Assert.True(pleb.StatusCode = HttpStatusCode.NotFound, $"{name}: the pleb got {int pleb.StatusCode}")
 
         for name, config in
-            [ "empty", [ "Frunchy:Operators", "" ]
-              "blank entries", [ "Frunchy:Operators", " , ," ]
-              "someone else", [ "Frunchy:Operators", "bossy" ] ] do
-            use! env = newReviewEnv config false
+            [ "empty root", [ "Frunchy:RootOperator", "" ]
+              "blank root", [ "Frunchy:RootOperator", "   " ]
+              "someone else", [ "Frunchy:RootOperator", "bossy" ]
+              "the retired array", [ "Frunchy:Operators:0", "boss" ]
+              "the retired comma list", [ "Frunchy:Operators", "someone, boss" ] ] do
+
+            use! env = newReviewEnvWith config [] false
             let! boss = env.Boss.GetRaw "/review/mal"
             Assert.True(boss.StatusCode = HttpStatusCode.NotFound, $"{name}: the boss got {int boss.StatusCode}")
     }
 
+
 [<Fact>]
-let ``the configuration is read per request: removing an operator closes the pages`` () =
+let ``the root setting is read per request: changing it closes the pages`` () =
     task {
-        use! env = newReviewEnv (operatorsOf [ "boss" ]) false
+        use! env = newReviewEnvWith [ "Frunchy:RootOperator", "boss" ] [] false
         let! open' = env.Boss.GetRaw "/review/mal"
         Assert.Equal(HttpStatusCode.OK, open'.StatusCode)
 
         let config = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>(env.App.Services)
-        config["Frunchy:Operators:0"] <- "someone-else"
+        config["Frunchy:RootOperator"] <- "someone-else"
         let! closed = env.Boss.GetRaw "/review/mal"
         Assert.Equal(HttpStatusCode.NotFound, closed.StatusCode)
     }
 
+
+[<Fact>]
+
+let ``removing an operator from the table closes the pages at once`` () =
+    task {
+        use! env = newReviewEnv [ "boss" ] false
+        let! open' = env.Boss.GetRaw "/review/mal"
+        Assert.Equal(HttpStatusCode.OK, open'.StatusCode)
+
+        let! removed = OperatorActions.remove env.App.Db None "boss" OperatorActions.Server
+        Assert.True(Result.isOk removed)
+        let! closed = env.Boss.GetRaw "/review/mal"
+        Assert.Equal(HttpStatusCode.NotFound, closed.StatusCode)
+        let! write = postWithToken env.Boss "/review/mal/none" [ "season", "NOPE0000" ]
+        Assert.Equal(HttpStatusCode.NotFound, write.StatusCode)
+    }
+
+
 [<Fact>]
 let ``review writes are limited to 30 a minute per address`` () =
     task {
-        use! env = newReviewEnv (operatorsOf [ "boss" ]) false
+        use! env = newReviewEnv [ "boss" ] false
 
         for i in 1..30 do
             let! response = postWithToken env.Boss "/review/mal/none" [ "season", "NOPE0000" ]
@@ -213,7 +244,7 @@ let ``review writes are limited to 30 a minute per address`` () =
 [<Fact>]
 let ``outsiders are never rate-limited on review actions, so a 429 can't reveal the routes`` () =
     task {
-        use! env = newReviewEnv (operatorsOf [ "boss" ]) false
+        use! env = newReviewEnv [ "boss" ] false
 
         for who, browser in [ "pleb", env.Pleb; "visitor", env.Visitor ] do
             for i in 1..35 do
@@ -224,7 +255,7 @@ let ``outsiders are never rate-limited on review actions, so a 429 can't reveal 
 [<Fact>]
 let ``the account page links to the review only for operators`` () =
     task {
-        use! env = newReviewEnv (operatorsOf [ "boss" ]) false
+        use! env = newReviewEnv [ "boss" ] false
         let! boss = env.Boss.Get "/account"
         Assert.Contains("data-review-link", boss.Html)
         Assert.Contains("href=\"/review/mal\"", boss.Html)
@@ -240,7 +271,7 @@ let ``the account page links to the review only for operators`` () =
 [<Fact>]
 let ``each successful action adds its event to the operator's security activity`` () =
     task {
-        use! env = newReviewEnv (operatorsOf [ "boss" ]) true
+        use! env = newReviewEnv [ "boss" ] true
         let post path fields = postWithToken env.Boss path fields
         let ok (response: HttpResponseMessage) = Assert.Equal(HttpStatusCode.Found, response.StatusCode)
 

@@ -49,6 +49,8 @@ let endpoints =
       Handlers.Users.Anime.endpoint
       // Feature 007: operators review MyAnimeList matches (404 for everyone else)
       yield! Handlers.Review.MalReview.endpoint
+      // Feature 008: the root operator manages operators (404 for everyone else)
+      yield! Handlers.Review.Operators.endpoint
       // Feature 002: sign-in and the private account pages
       Handlers.Auth.SignIn.endpoint
       Handlers.Auth.Complete.endpoint
@@ -347,6 +349,25 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
         )
         |> ignore
 
+        // Operator changes (feature 008) count the root only, for the same reason
+        options.AddPolicy(
+            "operators-write",
+            fun (ctx: HttpContext) ->
+                if WebAuth.isRoot ctx then
+                    let ip =
+                        match ctx.Connection.RemoteIpAddress with
+                        | null -> "unknown"
+                        | address -> string address
+
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        "operators:" + ip,
+                        fun _ -> FixedWindowRateLimiterOptions(PermitLimit = 10, Window = TimeSpan.FromMinutes 1.0, QueueLimit = 0)
+                    )
+                else
+                    RateLimitPartition.GetNoLimiter "operators:outsider"
+        )
+        |> ignore
+
         options.RejectionStatusCode <- StatusCodes.Status429TooManyRequests
 
         options.OnRejected <-
@@ -414,11 +435,13 @@ type CliEnv =
     { Db: DbConfig
       Http: Net.Http.IHttpClientFactory
       Mal: MalClient.MalSettings
-      Clock: TimeProvider }
+      Clock: TimeProvider
+      /// `Frunchy:RootOperator`: the commands refuse to add or remove it
+      RootOperator: string option }
 
 let private dbOnly (run: DbConfig -> string list -> Task<int>) = fun (env: CliEnv) args -> run env.Db args
 
-// Operator CLI: `dotnet run -- <command> [args]` (contracts/operator-cli.md in specs 001, 002, 003)
+// Operator CLI: `dotnet run -- <command> [args]` (contracts/operator-cli.md in specs 001, 002, 003; operators in 008)
 let cliCommands: Map<string, CliEnv -> string list -> Task<int>> =
     Map
         [ "user-create", dbOnly Operations.CreateUser.run
@@ -437,7 +460,10 @@ let cliCommands: Map<string, CliEnv -> string list -> Task<int>> =
           "mal-none", dbOnly Operations.MalNone.run
           "mal-retry", dbOnly Operations.MalRetry.run
           "mal-rebuild", dbOnly Operations.MalRebuild.run
-          "mal-auto", dbOnly Operations.MalAuto.run ]
+          "mal-auto", dbOnly Operations.MalAuto.run
+          "operator-add", (fun env args -> Operations.OperatorAdd.run env.Db env.RootOperator args)
+          "operator-remove", (fun env args -> Operations.OperatorRemove.run env.Db env.RootOperator args)
+          "operator-list", (fun env args -> Operations.OperatorList.run env.Db env.RootOperator args) ]
 
 let private runCli (command: string) (rest: string list) : int =
     // Same configuration sources as the web app (appsettings, environment, user secrets, Bella)
@@ -452,7 +478,8 @@ let private runCli (command: string) (rest: string list) : int =
         { Db = db
           Http = provider.GetRequiredService<Net.Http.IHttpClientFactory>()
           Mal = MalClient.readSettings config
-          Clock = TimeProvider.System }
+          Clock = TimeProvider.System
+          RootOperator = WebAuth.rootOperator config }
 
     task {
         do! initializeSchema db

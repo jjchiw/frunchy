@@ -1,0 +1,496 @@
+{
+  "workflow": "companion",
+  "specName": "Operators Managed by a Root Operator",
+  "branch": "008-root-operator",
+  "currentStep": "implement",
+  "status": "completed",
+  "history": [
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-10T21:49:12.854Z"
+    },
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "complete",
+      "by": "extension",
+      "at": "2026-10-10T21:50:33.519Z"
+    },
+    {
+      "step": "plan",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-10T21:50:33.829Z"
+    },
+    {
+      "step": "plan",
+      "substep": "research",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T21:55:05.515Z"
+    },
+    {
+      "step": "plan",
+      "substep": "design",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T21:55:06.655Z"
+    },
+    {
+      "step": "plan",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T21:55:07.076Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-10T21:55:07.175Z"
+    },
+    {
+      "step": "tasks",
+      "substep": "generate",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T21:55:07.347Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T21:55:07.877Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-10T21:55:08.018Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T001",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T21:58:53.295Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T002",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:00:06.433Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T003",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:00:06.706Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T004",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:00:07.022Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T005",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:02:17.789Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T006",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:02:18.094Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T007",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:06:25.783Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T008",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:11:21.145Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T009",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:11:21.359Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T010",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:12:22.042Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T011",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:15:48.069Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T012",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:15:48.249Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T013",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:17:33.961Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T014",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:18:49.653Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T015",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:20:49.375Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:20:49.408Z"
+    }
+  ],
+  "unattended": true,
+  "telemetryInstanceId": "5c6b6c75-2e00-4e62-be25-ec4838b515a2",
+  "coverage": {
+    "FR-001": {
+      "title": "The root operator MUST be the single username in the `Frunchy:RootOperator` setting. An empty setting means no root. The old `Frunchy:Operators` setting MUST no",
+      "tasks": [
+        "T005",
+        "T007",
+        "T014"
+      ]
+    },
+    "FR-002": {
+      "title": "An operator MUST be the root, or a user listed as an operator in the database. The check MUST NOT add a query to a request: it joins the user lookup each signed",
+      "tasks": [
+        "T005"
+      ]
+    },
+    "FR-003": {
+      "title": "Operators MUST keep everything feature 007 gives them: the review pages and actions.",
+      "tasks": [
+        "T005",
+        "T007"
+      ]
+    },
+    "FR-004": {
+      "title": "The site MUST serve a root-only operators page at `/review/operators`, listing each operator's username, display name, who added them, and when, plus the root s",
+      "tasks": [
+        "T008",
+        "T009"
+      ]
+    },
+    "FR-005": {
+      "title": "The root MUST be able to add an operator by username, and remove one.",
+      "tasks": [
+        "T006",
+        "T008",
+        "T009"
+      ]
+    },
+    "FR-006": {
+      "title": "Adding or removing MUST require a sign-in within the last 10 minutes, using the existing re-confirmation flow.",
+      "tasks": [
+        "T008",
+        "T009"
+      ]
+    },
+    "FR-007": {
+      "title": "The operators page and its actions MUST answer \"page not found\" (404) to everyone but the root, before any form is read. They are never rate-limited for anyone",
+      "tasks": [
+        "T008",
+        "T009"
+      ]
+    },
+    "FR-008": {
+      "title": "Adding the root, an unknown username or an existing operator, or removing someone who isn't an operator, MUST change nothing and show a notice saying why (post/",
+      "tasks": [
+        "T006",
+        "T008"
+      ]
+    },
+    "FR-009": {
+      "title": "Every addition and removal MUST be recorded in the security activity of both the root (or the server, for the terminal) and the affected user.",
+      "tasks": [
+        "T006",
+        "T008",
+        "T012"
+      ]
+    },
+    "FR-010": {
+      "title": "The account page MUST tell operators \"You're an operator\" with the review link. It MUST show the root a link to the operators page too.",
+      "tasks": [
+        "T010"
+      ]
+    },
+    "FR-011": {
+      "title": "`operator-add`, `operator-remove` and `operator-list` MUST run the same code as the page, with the same refusals.",
+      "tasks": [
+        "T011",
+        "T012"
+      ]
+    },
+    "FR-012": {
+      "title": "Deleting a user MUST remove their operator status.",
+      "tasks": [
+        "T002",
+        "T008"
+      ]
+    },
+    "FR-013": {
+      "title": "Every visible text MUST come from the site's English and Spanish texts. The page MUST use the shared design system and work from 360px wide.",
+      "tasks": [
+        "T004",
+        "T009",
+        "T013"
+      ]
+    },
+    "FR-014": {
+      "title": "The extension's API contract MUST NOT change. The docs MUST describe `Frunchy:RootOperator`, replacing `Frunchy:Operators`.",
+      "tasks": [
+        "T014"
+      ]
+    }
+  },
+  "size": "normal",
+  "classification": {
+    "projectedFiles": 14,
+    "projectedTasks": 15,
+    "scopeSignal": "none",
+    "verdict": "normal"
+  },
+  "expectations": [
+    "only one root, set only in configuration",
+    "operators cannot promote others",
+    "no extension API change"
+  ],
+  "context": [
+    "area: Infrastructure (WebAuth isOperator/validatePrincipal, Database schema, SecurityEvents, AccountActions/MalActions pattern)",
+    "area: Views/Layout.fs requireOperator; Handlers/Review (new operators slice), Handlers/Account/AccountPage.fs",
+    "area: Operations (new operator-* commands), Program.fs (CLI, endpoints, limiter)",
+    "constraint: feature 007 access rules (404 before form read, outsiders never rate-limited)",
+    "constraint: requireFresh 10-minute rule for sensitive actions"
+  ],
+  "intent": "One root operator in configuration who grants and removes operators stored in the database",
+  "decisions": [
+    {
+      "decision": "Operator flag joined into validatePrincipal query",
+      "why": "FR-002 no extra query",
+      "rejected": "a lookup per check"
+    },
+    {
+      "decision": "Shared OperatorActions record events in the write transaction",
+      "why": "the CLI must record them too (FR-009)",
+      "rejected": "handler-side events as in 007"
+    },
+    {
+      "decision": "Web events: root Actor.User, affected user Actor.Operator; terminal: affected user only",
+      "why": "accurate by-the-operator label without widening the actor CHECK",
+      "rejected": "a new actor value (schema change)"
+    },
+    {
+      "decision": "operators-write limiter partitions the root only",
+      "why": "outsiders always get 404 (007 rule)",
+      "rejected": "per-IP for everyone"
+    }
+  ],
+  "step_summaries": {
+    "plan": {
+      "summary": "Plan, research, data model, contract and 15 tasks for a root operator plus database operators",
+      "key_finding": "shared actions must record events themselves; the 007 tests encode the retired multi-value setting"
+    },
+    "tasks": {
+      "summary": "15 tasks: setup, 6 foundational, US1 (2), US2 (1), US3 (2), polish (3)"
+    },
+    "implement": {
+      "summary": "15 tasks by a Sonnet teammate; reviewed security first (404 before freshness and form, root-only limiter, root protected, events in the tx, cascade); one layout fix; 338 tests, 337 passed, 1 skipped, 0 warnings"
+    }
+  },
+  "approach": "Root from Frunchy:RootOperator; operators in a new table read in the per-request user lookup; Infrastructure/OperatorActions shared by a root-only /review/operators page (404 first, fresh sign-in) and operator-* CLI commands.",
+  "currentTask": "T015",
+  "task_summaries": {
+    "T001": {
+      "status": "DONE",
+      "did": "Registered the new modules and test files as stubs; build at 0 warnings",
+      "files": [
+        "FrunchyBackend.fsproj",
+        "tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj",
+        "Infrastructure/OperatorActions.fs",
+        "Handlers/Review/Operators.fs",
+        "Operations/OperatorAdd.fs",
+        "Operations/OperatorRemove.fs",
+        "Operations/OperatorList.fs",
+        "tests/FrunchyBackend.Tests/OperatorActionsTests.fs",
+        "tests/FrunchyBackend.Tests/OperatorsPageTests.fs"
+      ]
+    },
+    "T002": {
+      "status": "DONE",
+      "did": "Added the operators table to the idempotent schema and SCHEMA.md",
+      "files": [
+        "Infrastructure/Database.fs",
+        "SCHEMA.md"
+      ]
+    },
+    "T003": {
+      "status": "DONE",
+      "did": "Added OperatorAdded/OperatorRemoved to the SecurityEventType union, toDb and all",
+      "files": [
+        "Domains/Identity.fs"
+      ]
+    },
+    "T004": {
+      "status": "DONE",
+      "did": "Added operators page texts, notice keys, account lines and event labels in en and es",
+      "files": [
+        "Views/Texts.fs"
+      ]
+    },
+    "T005": {
+      "status": "DONE",
+      "did": "WebAuth: validatePrincipal reads the operators flag, isRoot from Frunchy:RootOperator, isOperator = root or flag; Frunchy:Operators parsing removed",
+      "files": [
+        "Infrastructure/WebAuth.fs"
+      ]
+    },
+    "T006": {
+      "status": "DONE",
+      "did": "OperatorActions add/remove/list, each write with its security events in one transaction",
+      "files": [
+        "Infrastructure/OperatorActions.fs"
+      ]
+    },
+    "T007": {
+      "status": "DONE",
+      "did": "Migrated the 007 access tests to root setting plus table rows; added root, table, retired-setting and removal cases",
+      "files": [
+        "tests/FrunchyBackend.Tests/MalReviewAccessTests.fs",
+        "tests/FrunchyBackend.Tests/MalReviewTests.fs",
+        "tests/FrunchyBackend.Tests/DesignSystemTests.fs"
+      ]
+    },
+    "T008": {
+      "status": "DONE",
+      "did": "OperatorsPageTests: access matrix, root page, add/remove, refusals, stale session, rate limit, events, cascade, en/es",
+      "files": [
+        "tests/FrunchyBackend.Tests/OperatorsPageTests.fs"
+      ]
+    },
+    "T009": {
+      "status": "DONE",
+      "did": "Layout.requireRoot, Operators.fs slice (GET page, POST add/remove: requireRoot, requireFresh, form, Username.tryCreate, action, log, redirect), operators-write limiter, endpoints",
+      "files": [
+        "Views/Layout.fs",
+        "Handlers/Review/Operators.fs",
+        "Program.fs"
+      ]
+    },
+    "T010": {
+      "status": "DONE",
+      "did": "Account page takes isRoot: operator status line, root link to /review/operators; tests in OperatorsPageTests",
+      "files": [
+        "Handlers/Account/AccountPage.fs",
+        "tests/FrunchyBackend.Tests/OperatorsPageTests.fs"
+      ]
+    },
+    "T011": {
+      "status": "DONE",
+      "did": "CliEnv.RootOperator from configuration; operator-add/remove/list with contract exit codes, registered in cliCommands",
+      "files": [
+        "Operations/OperatorAdd.fs",
+        "Operations/OperatorRemove.fs",
+        "Operations/OperatorList.fs",
+        "Program.fs"
+      ]
+    },
+    "T012": {
+      "status": "DONE",
+      "did": "OperatorActionsTests: CLI/web parity, exit codes, operator-list output, no root configured",
+      "files": [
+        "tests/FrunchyBackend.Tests/OperatorActionsTests.fs",
+        "tests/FrunchyBackend.Tests/MalActionsParityTests.fs",
+        "tests/FrunchyBackend.Tests/MalReviewTests.fs",
+        "tests/FrunchyBackend.Tests/MalOperationsTests.fs"
+      ]
+    },
+    "T013": {
+      "status": "DONE",
+      "did": "Design-system check covers the operators page as root and the account page's new hooks",
+      "files": [
+        "tests/FrunchyBackend.Tests/DesignSystemTests.fs"
+      ]
+    },
+    "T014": {
+      "status": "DONE",
+      "did": "Docs: RootOperator replaces Operators, operators route and commands, roadmap 008",
+      "files": [
+        "README.md",
+        "CLAUDE.md",
+        "FRONTEND.md",
+        "specs/007-mal-review/quickstart.md",
+        "specs/003-mal-enrichment/contracts/operator-cli.md"
+      ]
+    },
+    "T015": {
+      "status": "DONE",
+      "did": "Full dotnet test green (338 total, 337 passed, 1 skipped), 0 warnings; validation log in quickstart.md",
+      "files": [
+        "specs/008-root-operator/quickstart.md"
+      ]
+    }
+  }
+}

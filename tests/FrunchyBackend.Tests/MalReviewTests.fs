@@ -24,7 +24,7 @@ let private tamerSeason = "GRK5CNJ14"
 let private tamerDub = "GYDQCGK5Q"
 let private statuses = [ "ambiguous"; "no_match"; "failed" ]
 
-let private operatorEnv () = newReviewEnv (operatorsOf [ "boss" ]) true
+let private operatorEnv () = newReviewEnv [ "boss" ] true
 
 let private seasonsIn (html: string) =
     [ for m in Regex.Matches(html, "data-review-season=\"([^\"]+)\"") -> m.Groups[1].Value ]
@@ -225,7 +225,8 @@ let ``the web and the CLI leave the same rows`` () =
             { Db = cli.App.Db
               Http = httpFactory cli.App
               Mal = MalClient.readSettings (Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>(cli.App.Services))
-              Clock = TimeProvider.System }
+              Clock = TimeProvider.System
+              RootOperator = None }
 
         let! _ = post web "/review/mal/set" [ "season", slimeSeason; "mal", "37430" ]
         let! _ = post web "/review/mal/none" [ "season", "GR19CPDWM" ]
