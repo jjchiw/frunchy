@@ -61,6 +61,8 @@ type YearModel =
       Year: int
       /// Years with history, newest first
       Years: int list
+      /// The first month that hasn't happened yet, when the year is the current one (2..12)
+      FirstFutureMonth: int option
       FullyWatched: int64
       /// None below minimumEpisodes (the page-level "not enough data yet")
       Figures: Figures option }
@@ -144,7 +146,7 @@ let private totals (t: Texts) (f: Figures) =
     }
 
 let private topSeries (t: Texts) (s: TopSeries) =
-    (figureSection "year-top-series" t.YearTopSeriesTitle None "lg:col-span-5")
+    (figureSection "year-top-series" t.YearTopSeriesTitle None "")
         .data("series", s.SeriesId)
         .data("episodes", string s.FullyWatched) {
         sectionHeading t.YearTopSeriesTitle
@@ -164,10 +166,10 @@ let private topSeries (t: Texts) (s: TopSeries) =
         }
     }
 
-let private months (t: Texts) (year: int) (f: Figures) =
+let private months (t: Texts) (year: int) (firstFuture: int option) (f: Figures) =
     let peak = max 1L (Array.max f.Months)
     let busiest = f.Months |> Array.mapi (fun i ms -> i + 1, ms) |> Array.maxBy (fun (i, ms) -> ms, -i) |> fst
-    let el = figureSection "year-months" t.YearMonthsTitle None "lg:col-span-7"
+    let el = figureSection "year-months" t.YearMonthsTitle None ""
 
     (if Array.max f.Months > 0L then el.data("busiest", string busiest) else el) {
         sectionHeading t.YearMonthsTitle
@@ -178,16 +180,24 @@ let private months (t: Texts) (year: int) (f: Figures) =
         div(class' = "flex h-40 items-end gap-1.5 sm:gap-2").attr("role", "img").attr("aria-label", t.YearMonthsChart year) {
             for m in 1..12 do
                 let ms = f.Months[m - 1]
+                let future = firstFuture |> Option.exists (fun first -> m >= first)
                 let height = if ms = 0L then 3m else max 6m (100m * decimal ms / decimal peak)
 
-                div(class' = "flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5")
-                    .data("month", string m)
-                    .data("minutes", string (ms / 60_000L)) {
-                    div(class' = (if m = busiest && ms > 0L then "w-full rounded-sm bg-primary" elif ms = 0L then "w-full rounded-sm bg-surface-container-highest" else "w-full rounded-sm bg-primary/45"))
-                        .attr("style", $"""height: {height.ToString("0.#", CultureInfo.InvariantCulture)}%%""")
+                let column =
+                    div(class' = "flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1.5")
+                        .data("month", string m)
+                        .data("minutes", string (ms / 60_000L))
+
+                (if future then column.data("future", "") else column) {
+                    // a month that hasn't happened yet: an outline over the whole height, not an empty bar
+                    if future then
+                        div(class' = "h-full w-full rounded-sm border border-dashed border-outline-variant")
+                    else
+                        div(class' = (if m = busiest && ms > 0L then "w-full rounded-sm bg-primary" elif ms = 0L then "w-full rounded-sm bg-surface-container-highest" else "w-full rounded-sm bg-primary/45"))
+                            .attr("style", $"""height: {height.ToString("0.#", CultureInfo.InvariantCulture)}%%""")
 
                     // one letter on phones, where twelve abbreviations don't fit side by side
-                    span(class' = "text-label-sm font-semibold uppercase text-on-surface-variant").attr("aria-hidden", "true") {
+                    span(class' = (if future then "text-label-sm font-semibold uppercase text-outline" else "text-label-sm font-semibold uppercase text-on-surface-variant")).attr("aria-hidden", "true") {
                         span(class' = "sm:hidden") { (shortMonth t m).Substring(0, 1) }
                         span(class' = "hidden sm:inline") { shortMonth t m }
                     }
@@ -198,7 +208,7 @@ let private months (t: Texts) (year: int) (f: Figures) =
 let private streak (t: Texts) (f: Figures) =
     match f.Streak with
     | Some s ->
-        (figureSection "year-streak" t.YearStreakTitle None "lg:col-span-5")
+        (figureSection "year-streak" t.YearStreakTitle None "")
             .data("value", string s.Days)
             .data("from", s.From.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))
             .data("to", s.To.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)) {
@@ -216,13 +226,13 @@ let private streak (t: Texts) (f: Figures) =
             }
         }
     | None ->
-        (figureSection "year-streak" t.YearStreakTitle None "lg:col-span-5").data("value", "0") {
+        (figureSection "year-streak" t.YearStreakTitle None "").data("value", "0") {
             sectionHeading t.YearStreakTitle
             p(class' = "text-body-md text-on-surface-variant") { t.YearStreakNone }
         }
 
 let private genres (t: Texts) (f: Figures) =
-    let el = figureSection "year-genres" t.YearGenresTitle (Some f.Coverage) "lg:col-span-7"
+    let el = figureSection "year-genres" t.YearGenresTitle (Some f.Coverage) ""
 
     if f.Genres.IsEmpty then
         el {
@@ -287,17 +297,22 @@ let view (ctx: HttpContext) (t: Texts) (m: YearModel) =
         | Some f ->
             totals t f
 
-            div(class' = "grid grid-cols-1 gap-4 lg:grid-cols-12") {
-                months t m.Year f
+            // two columns that stack on their own, so no card stretches to its neighbour's height
+            div(class' = "grid grid-cols-1 items-start gap-4 lg:grid-cols-12") {
+                div(class' = "flex flex-col gap-4 lg:col-span-7") {
+                    months t m.Year m.FirstFutureMonth f
+                    genres t f
+                    shareSection t "year-formats" "format" t.YearFormatsTitle f.Formats f.Coverage ""
+                }
 
-                match f.TopSeries with
-                | Some s -> topSeries t s
-                | None -> Fragment()
+                div(class' = "flex flex-col gap-4 lg:col-span-5") {
+                    match f.TopSeries with
+                    | Some s -> topSeries t s
+                    | None -> Fragment()
 
-                genres t f
-                streak t f
-                shareSection t "year-studios" "rank" t.YearStudiosTitle f.Studios f.Coverage "lg:col-span-6"
-                shareSection t "year-formats" "format" t.YearFormatsTitle f.Formats f.Coverage "lg:col-span-6"
+                    streak t f
+                    shareSection t "year-studios" "rank" t.YearStudiosTitle f.Studios f.Coverage ""
+                }
             }
     }
     |> Layout.page ctx t $"{t.YearTitle m.Year} · {m.DisplayName}"
@@ -615,6 +630,9 @@ let handler (rawUsername: string) (rawYear: string) : EndpointHandler =
                               DisplayName = user.DisplayName
                               Year = y
                               Years = user.Years
+                              FirstFutureMonth =
+                                (let today = ctx.GetService<TimeProvider>().GetUtcNow().UtcDateTime
+                                 if y = today.Year && today.Month < 12 then Some(today.Month + 1) else None)
                               FullyWatched = fullyWatched
                               Figures = figures }
 

@@ -41,7 +41,7 @@ percentages as numbers with 1 decimal, hours and days with 1 decimal, minutes as
 | Rewatch note | `data-rewatch-note` | plain text saying a rewatch counts in the year of its latest watch |
 | Totals | `data-year-totals` | `data-stat="hours"` / `"days"` / `"episodes"` / `"series"`, each with `data-value`; hours, days, episodes and series follow the dashboard's rules restricted to the year |
 | Top series | `data-year-top-series` | `data-series` (Crunchyroll series id), `data-episodes` (its fully watched episodes that year), an `img` with alt = the title |
-| Months | `data-year-months` with `data-busiest` = the busiest month number (1 to 12; ties go to the earlier month) | 12 elements `data-month` with value 1 to 12, in order, each with `data-minutes` |
+| Months | `data-year-months` with `data-busiest` = the busiest month number (1 to 12; ties go to the earlier month) | 12 elements `data-month` with value 1 to 12, in order, each with `data-minutes`; in the current year, months not yet reached also carry `data-future` and show as an outline |
 | New versus continued | `data-year-series-split` | `data-new`, `data-continued` (series counts; they add up to the totals' series count) |
 | Longest streak | `data-year-streak` | `data-value` (days), `data-from`, `data-to` (ISO `yyyy-MM-dd`, UTC) |
 | Top genres | `data-year-genres` | 6 rows `data-genre` (name, or `others`) with `data-share`, `data-top-series` (none on `others`) |

@@ -369,3 +369,17 @@ let ``the figures are identical after a rebuild and after re-sending, and viewin
         Assert.Equal<string list>(signature before, signature rebuilt)
         Assert.Empty app.Mal.Requests
     }
+
+[<Fact>]
+let ``months that haven't happened yet are marked only in the current year`` () =
+    task {
+        let! app, _ = withSample ()
+        use app = app
+        // the clock is 9 October 2026: November and December are still ahead
+        let! current = page app 2026
+        let future = elements "month" current |> List.filter (fun m -> m.ContainsKey "future") |> List.map (attr "month")
+        Assert.Equal<string list>([ "11"; "12" ], future)
+
+        let! past = page app 2024
+        Assert.Empty(elements "month" past |> List.filter (fun m -> m.ContainsKey "future"))
+    }
