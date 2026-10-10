@@ -2,8 +2,8 @@
   "workflow": "companion",
   "specName": "Operators Managed by a Root Operator",
   "branch": "008-root-operator",
-  "currentStep": "specify",
-  "status": "specified",
+  "currentStep": "tasks",
+  "status": "ready-to-implement",
   "history": [
     {
       "step": "specify",
@@ -18,52 +18,158 @@
       "kind": "complete",
       "by": "extension",
       "at": "2026-10-10T21:50:33.519Z"
+    },
+    {
+      "step": "plan",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-10T21:50:33.829Z"
+    },
+    {
+      "step": "plan",
+      "substep": "research",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T21:55:05.515Z"
+    },
+    {
+      "step": "plan",
+      "substep": "design",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T21:55:06.655Z"
+    },
+    {
+      "step": "plan",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T21:55:07.076Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-10T21:55:07.175Z"
+    },
+    {
+      "step": "tasks",
+      "substep": "generate",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T21:55:07.347Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T21:55:07.877Z"
     }
   ],
   "unattended": true,
   "telemetryInstanceId": "5c6b6c75-2e00-4e62-be25-ec4838b515a2",
   "coverage": {
     "FR-001": {
-      "title": "The root operator MUST be the single username in the `Frunchy:RootOperator` setting. An empty setting means no root. The old `Frunchy:Operators` setting MUST no"
+      "title": "The root operator MUST be the single username in the `Frunchy:RootOperator` setting. An empty setting means no root. The old `Frunchy:Operators` setting MUST no",
+      "tasks": [
+        "T005",
+        "T007",
+        "T014"
+      ]
     },
     "FR-002": {
-      "title": "An operator MUST be the root, or a user listed as an operator in the database. The check MUST NOT add a query to a request: it joins the user lookup each signed"
+      "title": "An operator MUST be the root, or a user listed as an operator in the database. The check MUST NOT add a query to a request: it joins the user lookup each signed",
+      "tasks": [
+        "T005"
+      ]
     },
     "FR-003": {
-      "title": "Operators MUST keep everything feature 007 gives them: the review pages and actions."
+      "title": "Operators MUST keep everything feature 007 gives them: the review pages and actions.",
+      "tasks": [
+        "T005",
+        "T007"
+      ]
     },
     "FR-004": {
-      "title": "The site MUST serve a root-only operators page at `/review/operators`, listing each operator's username, display name, who added them, and when, plus the root s"
+      "title": "The site MUST serve a root-only operators page at `/review/operators`, listing each operator's username, display name, who added them, and when, plus the root s",
+      "tasks": [
+        "T008",
+        "T009"
+      ]
     },
     "FR-005": {
-      "title": "The root MUST be able to add an operator by username, and remove one."
+      "title": "The root MUST be able to add an operator by username, and remove one.",
+      "tasks": [
+        "T006",
+        "T008",
+        "T009"
+      ]
     },
     "FR-006": {
-      "title": "Adding or removing MUST require a sign-in within the last 10 minutes, using the existing re-confirmation flow."
+      "title": "Adding or removing MUST require a sign-in within the last 10 minutes, using the existing re-confirmation flow.",
+      "tasks": [
+        "T008",
+        "T009"
+      ]
     },
     "FR-007": {
-      "title": "The operators page and its actions MUST answer \"page not found\" (404) to everyone but the root, before any form is read. They are never rate-limited for anyone"
+      "title": "The operators page and its actions MUST answer \"page not found\" (404) to everyone but the root, before any form is read. They are never rate-limited for anyone",
+      "tasks": [
+        "T008",
+        "T009"
+      ]
     },
     "FR-008": {
-      "title": "Adding the root, an unknown username or an existing operator, or removing someone who isn't an operator, MUST change nothing and show a notice saying why (post/"
+      "title": "Adding the root, an unknown username or an existing operator, or removing someone who isn't an operator, MUST change nothing and show a notice saying why (post/",
+      "tasks": [
+        "T006",
+        "T008"
+      ]
     },
     "FR-009": {
-      "title": "Every addition and removal MUST be recorded in the security activity of both the root (or the server, for the terminal) and the affected user."
+      "title": "Every addition and removal MUST be recorded in the security activity of both the root (or the server, for the terminal) and the affected user.",
+      "tasks": [
+        "T006",
+        "T008",
+        "T012"
+      ]
     },
     "FR-010": {
-      "title": "The account page MUST tell operators \"You're an operator\" with the review link. It MUST show the root a link to the operators page too."
+      "title": "The account page MUST tell operators \"You're an operator\" with the review link. It MUST show the root a link to the operators page too.",
+      "tasks": [
+        "T010"
+      ]
     },
     "FR-011": {
-      "title": "`operator-add`, `operator-remove` and `operator-list` MUST run the same code as the page, with the same refusals."
+      "title": "`operator-add`, `operator-remove` and `operator-list` MUST run the same code as the page, with the same refusals.",
+      "tasks": [
+        "T011",
+        "T012"
+      ]
     },
     "FR-012": {
-      "title": "Deleting a user MUST remove their operator status."
+      "title": "Deleting a user MUST remove their operator status.",
+      "tasks": [
+        "T002",
+        "T008"
+      ]
     },
     "FR-013": {
-      "title": "Every visible text MUST come from the site's English and Spanish texts. The page MUST use the shared design system and work from 360px wide."
+      "title": "Every visible text MUST come from the site's English and Spanish texts. The page MUST use the shared design system and work from 360px wide.",
+      "tasks": [
+        "T004",
+        "T009",
+        "T013"
+      ]
     },
     "FR-014": {
-      "title": "The extension's API contract MUST NOT change. The docs MUST describe `Frunchy:RootOperator`, replacing `Frunchy:Operators`."
+      "title": "The extension's API contract MUST NOT change. The docs MUST describe `Frunchy:RootOperator`, replacing `Frunchy:Operators`.",
+      "tasks": [
+        "T014"
+      ]
     }
   },
   "size": "normal",
@@ -85,5 +191,37 @@
     "constraint: feature 007 access rules (404 before form read, outsiders never rate-limited)",
     "constraint: requireFresh 10-minute rule for sensitive actions"
   ],
-  "intent": "One root operator in configuration who grants and removes operators stored in the database"
+  "intent": "One root operator in configuration who grants and removes operators stored in the database",
+  "decisions": [
+    {
+      "decision": "Operator flag joined into validatePrincipal query",
+      "why": "FR-002 no extra query",
+      "rejected": "a lookup per check"
+    },
+    {
+      "decision": "Shared OperatorActions record events in the write transaction",
+      "why": "the CLI must record them too (FR-009)",
+      "rejected": "handler-side events as in 007"
+    },
+    {
+      "decision": "Web events: root Actor.User, affected user Actor.Operator; terminal: affected user only",
+      "why": "accurate by-the-operator label without widening the actor CHECK",
+      "rejected": "a new actor value (schema change)"
+    },
+    {
+      "decision": "operators-write limiter partitions the root only",
+      "why": "outsiders always get 404 (007 rule)",
+      "rejected": "per-IP for everyone"
+    }
+  ],
+  "step_summaries": {
+    "plan": {
+      "summary": "Plan, research, data model, contract and 15 tasks for a root operator plus database operators",
+      "key_finding": "shared actions must record events themselves; the 007 tests encode the retired multi-value setting"
+    },
+    "tasks": {
+      "summary": "15 tasks: setup, 6 foundational, US1 (2), US2 (1), US3 (2), polish (3)"
+    }
+  },
+  "approach": "Root from Frunchy:RootOperator; operators in a new table read in the per-request user lookup; Infrastructure/OperatorActions shared by a root-only /review/operators page (404 first, fresh sign-in) and operator-* CLI commands."
 }
