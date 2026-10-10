@@ -68,6 +68,7 @@ let private title (html: string) =
 type private PageSeason =
     { Attrs: Map<string, string>
       Mal: string option
+      MalCompact: bool
       MalMissing: bool
       Episodes: Map<string, string> list }
 
@@ -82,10 +83,10 @@ let private outline (html: string) =
     |> List.fold
         (fun (seasons: PageSeason list) (kind, attrs) ->
             match kind, seasons with
-            | "season", _ -> seasons @ [ { Attrs = attrs; Mal = None; MalMissing = false; Episodes = [] } ]
+            | "season", _ -> seasons @ [ { Attrs = attrs; Mal = None; MalCompact = false; MalMissing = false; Episodes = [] } ]
             | "mal", _ :: _ ->
                 let last = List.last seasons
-                List.take (seasons.Length - 1) seasons @ [ { last with Mal = Some(attr "mal" attrs) } ]
+                List.take (seasons.Length - 1) seasons @ [ { last with Mal = Some(attr "mal" attrs); MalCompact = attrs.ContainsKey "mal-compact" } ]
             | "mal-missing", _ :: _ ->
                 let last = List.last seasons
                 List.take (seasons.Length - 1) seasons @ [ { last with MalMissing = true } ]
@@ -368,6 +369,31 @@ let ``a series watched only partly still has a page, with the progress of its ep
         Assert.All(episodes, fun e -> Assert.Equal("false", attr "fully" e))
         Assert.All(episodes, fun e -> Assert.InRange(int (attr "percent" e), 0, 99))
         Assert.Contains(Texts.en.WatchedPercent(int (attr "percent" episodes.Head)), html)
+    }
+
+[<Fact>]
+let ``seasons that share a MyAnimeList entry show its details once and a link on the others`` () =
+    task {
+        let! app, _ = withSample ()
+        use app = app
+        let! series = seriesOfSeason app.Db "GRK5CNJ14"
+        let! html = anime app "en" series
+        let! _ = assertPage app.Db series html
+
+        let seasons = outline html |> List.filter (fun s -> s.Mal.IsSome)
+        let ids = seasons |> List.map (fun s -> s.Mal.Value)
+        Assert.True(ids.Length > (ids |> List.distinct |> List.length), "the original and its dub share an entry")
+
+        // the first season of each entry is the full block; every later one is the compact form
+        let expectedCompact = ids |> List.mapi (fun i id -> List.contains id (List.take i ids))
+        Assert.Equal<bool list>(expectedCompact, seasons |> List.map _.MalCompact)
+        Assert.Contains(true, expectedCompact)
+
+        // one link per season, but the score (and so the rest of the details) once per entry
+        Assert.Equal(seasons.Length, elements "mal-link" html |> List.length)
+        let! scored = Db.dump app.Db "SELECT mal_id FROM mal_anime WHERE score IS NOT NULL"
+        let distinctScored = ids |> List.distinct |> List.filter (fun id -> List.contains id scored)
+        Assert.Equal(distinctScored.Length, elements "mal-score" html |> List.length)
     }
 
 // ---------------------------------------------------------------------------

@@ -224,7 +224,18 @@ let private episodeRow (t: Texts) (e: WatchedEpisode) =
         }
     }
 
-let private seasonCard (t: Texts) (s: SeasonRow) =
+/// A season whose MyAnimeList entry an earlier season already showed: just the link
+let private malCompact (t: Texts) (mal: MalInfo) =
+    div().data("mal", string mal.MalId).data("mal-compact", "") {
+        a(href = mal.Url, target = "_blank", class' = "fr-link inline-flex min-h-6 items-center gap-1 text-label-md")
+            .attr("rel", "noopener")
+            .data("mal-link", "") {
+            t.MyAnimeListLink
+            icon Theme.OpenInNew
+        }
+    }
+
+let private seasonCard (t: Texts) (shownBefore: bool) (s: SeasonRow) =
     let name =
         match s.Id, s.Title, s.Number with
         | None, _, _ -> t.AnimeOtherEpisodes
@@ -269,7 +280,7 @@ let private seasonCard (t: Texts) (s: SeasonRow) =
 
         if s.Id.IsSome then
             match s.Mal with
-            | Some mal -> malDetails t mal
+            | Some mal -> if shownBefore then malCompact t mal else malDetails t mal
             | None ->
                 p(class' = "flex items-center gap-1.5 text-body-md text-on-surface-variant").data("mal-missing", "") {
                     icon Theme.LinkOff
@@ -290,8 +301,17 @@ let view (ctx: HttpContext) (t: Texts) (m: AnimeModel) =
         div(class' = "space-y-4") {
             sectionTitle t.AnimeSeasonsTitle
 
-            for s in m.Seasons do
-                seasonCard t s
+            // Seasons often share one entry (a long series, a dub): its details show once, on the first
+            let firsts =
+                m.Seasons
+                |> List.mapi (fun i s -> i, s.Mal |> Option.map _.MalId)
+                |> List.choose (fun (i, id) -> id |> Option.map (fun id -> id, i))
+                |> List.distinctBy fst
+                |> List.map snd
+                |> Set.ofList
+
+            for i, s in List.indexed m.Seasons do
+                seasonCard t (s.Mal.IsSome && not (firsts.Contains i)) s
         }
     }
     |> Layout.page ctx t m.Title

@@ -59,6 +59,11 @@ episode count (when known), airing status, up to 3 genres, the first studio and 
 fields. An unmatched season shows a plain "not on MyAnimeList yet" line. Format, genre and studio
 names are MyAnimeList's and aren't translated.
 
+**Shared entries**: seasons often share one MyAnimeList entry (a long series, a dub and its original). The
+first season of each entry, in display order, shows the full block. Every later season with the same
+entry shows a compact form: the same `data-mal` and `data-mal-link`, plus `data-mal-compact`, with the
+link only (no `data-mal-score`, pills or genres), so each score appears once per entry.
+
 ## Links added to other pages
 
 Every series title link carries `data-series-link` with `data-value` set to the series id, and leads
