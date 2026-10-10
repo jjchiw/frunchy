@@ -16,7 +16,7 @@ runs the tests before merging.
 
 ## Phase 1: Setup
 
-- [ ] **T001** Register `Handlers/Users/Anime.fs` after `Year.fs` in the app project, and `AnimeTests.fs` and `AnimeLinkTests.fs` after `YearNavigationTests.fs` in the test project, as minimal modules; `dotnet build` stays at 0 warnings · FrunchyBackend.fsproj, tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj, Handlers/Users/Anime.fs, tests/FrunchyBackend.Tests/AnimeTests.fs, tests/FrunchyBackend.Tests/AnimeLinkTests.fs
+- [x] **T001** Register `Handlers/Users/Anime.fs` after `Year.fs` in the app project, and `AnimeTests.fs` and `AnimeLinkTests.fs` after `YearNavigationTests.fs` in the test project, as minimal modules; `dotnet build` stays at 0 warnings · FrunchyBackend.fsproj, tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj, Handlers/Users/Anime.fs, tests/FrunchyBackend.Tests/AnimeTests.fs, tests/FrunchyBackend.Tests/AnimeLinkTests.fs
 
 ## Phase 2: Foundational (blocks both stories)
 

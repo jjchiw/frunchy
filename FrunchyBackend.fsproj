@@ -37,6 +37,7 @@
     <Compile Include="Handlers/Users/Dashboard.fs" />
     <Compile Include="Handlers/Users/Dna.fs" />
     <Compile Include="Handlers/Users/Year.fs" />
+    <Compile Include="Handlers/Users/Anime.fs" />
     <Compile Include="Handlers/Auth/SignIn.fs" />
     <Compile Include="Handlers/Auth/Complete.fs" />
     <Compile Include="Handlers/Auth/SignUp.fs" />

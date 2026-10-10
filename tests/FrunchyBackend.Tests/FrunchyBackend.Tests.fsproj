@@ -52,6 +52,8 @@
     <Compile Include="DnaPaceTests.fs" />
     <Compile Include="YearTests.fs" />
     <Compile Include="YearNavigationTests.fs" />
+    <Compile Include="AnimeTests.fs" />
+    <Compile Include="AnimeLinkTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

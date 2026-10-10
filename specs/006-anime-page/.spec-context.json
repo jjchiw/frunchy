@@ -2,8 +2,8 @@
   "workflow": "companion",
   "specName": "Anime Page",
   "branch": "006-anime-page",
-  "currentStep": "tasks",
-  "status": "ready-to-implement",
+  "currentStep": "implement",
+  "status": "implementing",
   "history": [
     {
       "step": "specify",
@@ -67,6 +67,21 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-10-10T16:17:17.155Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-10T16:17:17.285Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T001",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:17:51.868Z"
     }
   ],
   "telemetryInstanceId": "5a22f3a3-2e7d-4d0f-b5cd-8632cbd348d5",
@@ -232,5 +247,19 @@
       "summary": "14 tasks: setup, 3 foundational (texts, components, DNA/year compile), US1 page (3), US2 links (3), polish (4)"
     }
   },
-  "approach": "A new Handlers/Users/Anime.fs slice reads one user's watches of one series in one statement (totals, seasons with MyAnimeList details, episodes). A shared seriesLink component links titles from the dashboard, DNA and year pages."
+  "approach": "A new Handlers/Users/Anime.fs slice reads one user's watches of one series in one statement (totals, seasons with MyAnimeList details, episodes). A shared seriesLink component links titles from the dashboard, DNA and year pages.",
+  "currentTask": "T001",
+  "task_summaries": {
+    "T001": {
+      "status": "DONE",
+      "did": "registered Anime.fs and the two anime test files as minimal modules; build clean",
+      "files": [
+        "FrunchyBackend.fsproj",
+        "tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj",
+        "Handlers/Users/Anime.fs",
+        "tests/FrunchyBackend.Tests/AnimeTests.fs",
+        "tests/FrunchyBackend.Tests/AnimeLinkTests.fs"
+      ]
+    }
+  }
 }
