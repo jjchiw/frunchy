@@ -126,7 +126,7 @@ let private totals (t: Texts) (f: Figures) =
         metricTile t.DnaCoverageTile "coverage" (inv f.Coverage) (pctText t f.Coverage) (Some t.DnaCoverageCaption)
     }
 
-let private insignia (t: Texts) (i: Insignia) =
+let private insignia (t: Texts) (username: string) (i: Insignia) =
     (figureSection "dna-insignia" t.DnaInsigniaTitle None "lg:col-span-7")
         .data("series", i.SeriesId)
         .data("episodes", string i.FullyWatched) {
@@ -141,7 +141,7 @@ let private insignia (t: Texts) (i: Insignia) =
             | None -> Fragment()
 
             div(class' = "flex min-w-0 flex-col gap-3") {
-                p(class' = "text-headline-lg text-on-surface text-balance") { i.Title }
+                p(class' = "text-headline-lg text-on-surface text-balance") { seriesLink username i.SeriesId i.Title }
 
                 div(class' = "flex flex-wrap gap-2") {
                     match i.Format with
@@ -269,7 +269,7 @@ let private decades (t: Texts) (f: Figures) =
             coverageNote (t.DnaDecadeCoverage f.YearCoverage)
         }
 
-let private genres (t: Texts) (f: Figures) =
+let private genres (t: Texts) (username: string) (f: Figures) =
     let el = figureSection "dna-genres" t.DnaGenresTitle (Some f.Coverage) "lg:col-span-7"
 
     if f.Genres.IsEmpty then
@@ -294,7 +294,7 @@ let private genres (t: Texts) (f: Figures) =
                     else
                         match g.Top with
                         | Some(seriesId, title) ->
-                            row.data("top-series", seriesId) { shareLine g.Name (Some(span() { t.TopAnimePrefix; " "; title })) g.Share t }
+                            row.data("top-series", seriesId) { shareLine g.Name (Some(span() { t.TopAnimePrefix; " "; seriesLink username seriesId title })) g.Share t }
                         | None -> row { shareLine g.Name None g.Share t }
             }
 
@@ -350,13 +350,13 @@ let view (ctx: HttpContext) (t: Texts) (m: DnaModel) =
 
             div(class' = "grid grid-cols-1 gap-4 lg:grid-cols-12") {
                 match f.Insignia with
-                | Some i -> insignia t i
+                | Some i -> insignia t m.Username i
                 | None -> Fragment()
 
                 pace t f.Pace
                 studios t f
                 decades t f
-                genres t f
+                genres t m.Username f
                 formats t f
             }
     }

@@ -147,7 +147,7 @@ let private totals (t: Texts) (f: Figures) =
         }
     }
 
-let private topSeries (t: Texts) (s: TopSeries) =
+let private topSeries (t: Texts) (username: string) (s: TopSeries) =
     (figureSection "year-top-series" t.YearTopSeriesTitle None "")
         .data("series", s.SeriesId)
         .data("episodes", string s.FullyWatched) {
@@ -162,7 +162,7 @@ let private topSeries (t: Texts) (s: TopSeries) =
             | None -> Fragment()
 
             div(class' = "flex min-w-0 flex-col gap-2") {
-                p(class' = "text-headline-lg text-on-surface text-balance") { s.Title }
+                p(class' = "text-headline-lg text-on-surface text-balance") { seriesLink username s.SeriesId s.Title }
                 p(class' = "text-body-md text-on-surface-variant") { t.YearTopSeriesEpisodes s.FullyWatched }
             }
         }
@@ -233,7 +233,7 @@ let private streak (t: Texts) (f: Figures) =
             p(class' = "text-body-md text-on-surface-variant") { t.YearStreakNone }
         }
 
-let private genres (t: Texts) (f: Figures) =
+let private genres (t: Texts) (username: string) (f: Figures) =
     let el = figureSection "year-genres" t.YearGenresTitle (Some f.Coverage) ""
 
     if f.Genres.IsEmpty then
@@ -257,7 +257,7 @@ let private genres (t: Texts) (f: Figures) =
                     else
                         match g.Top with
                         | Some(seriesId, title) ->
-                            row.data("top-series", seriesId) { shareLine g.Name (Some(span() { t.TopAnimePrefix; " "; title })) g.Share t }
+                            row.data("top-series", seriesId) { shareLine g.Name (Some(span() { t.TopAnimePrefix; " "; seriesLink username seriesId title })) g.Share t }
                         | None -> row { shareLine g.Name None g.Share t }
             }
 
@@ -307,13 +307,13 @@ let view (ctx: HttpContext) (t: Texts) (m: YearModel) =
             div(class' = "grid grid-cols-1 items-start gap-4 lg:grid-cols-12") {
                 div(class' = "flex flex-col gap-4 lg:col-span-7") {
                     months t m.Year m.FirstFutureMonth f
-                    genres t f
+                    genres t m.Username f
                     shareSection t "year-formats" "format" t.YearFormatsTitle f.Formats f.Coverage ""
                 }
 
                 div(class' = "flex flex-col gap-4 lg:col-span-5") {
                     match f.TopSeries with
-                    | Some s -> topSeries t s
+                    | Some s -> topSeries t m.Username s
                     | None -> Fragment()
 
                     streak t f

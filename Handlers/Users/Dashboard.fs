@@ -37,7 +37,8 @@ type MalDetails =
       Year: int option }
 
 type RecentEpisode =
-    { SeriesTitle: string
+    { SeriesId: string
+      SeriesTitle: string
       EpisodeNumber: int option
       DurationMs: int
       ThumbnailUrl: string option
@@ -122,7 +123,7 @@ let private malDetails (t: Texts) (cell: string) (mal: MalDetails) =
 
 /// A recent card. With a thumbnail it's a 2-column grid: on phones a small thumbnail sits beside the title
 /// and the other rows span the card; from `sm` the thumbnail is a column of its own, spanning every row.
-let private recentItem (t: Texts) (e: RecentEpisode) =
+let private recentItem (t: Texts) (username: string) (e: RecentEpisode) =
     let rows = 3 + (if e.FullyWatched then 0 else 1) + (if e.Mal.IsSome then 1 else 0)
 
     let grid, cell =
@@ -147,7 +148,7 @@ let private recentItem (t: Texts) (e: RecentEpisode) =
         | None -> Fragment()
 
         div(class' = "min-w-0 space-y-1") {
-            h3(class' = "text-headline-md text-on-surface [overflow-wrap:anywhere]") { e.SeriesTitle }
+            h3(class' = "text-headline-md text-on-surface [overflow-wrap:anywhere]") { seriesLink username e.SeriesId e.SeriesTitle }
 
             p(class' = "text-body-md text-on-surface-variant") {
                 (match e.EpisodeNumber with
@@ -236,7 +237,7 @@ let private header (ctx: HttpContext) (t: Texts) (m: DashboardModel) =
                     span() {
                         span().attr("aria-hidden", "true") { "· " }
                         t.NewestEpisode + ": "
-                        span(class' = "text-on-surface") { newest.SeriesTitle }
+                        span(class' = "text-on-surface") { seriesLink m.Username newest.SeriesId newest.SeriesTitle }
                     }
                 | [] -> Fragment()
             }
@@ -266,7 +267,7 @@ let private recent (t: Texts) (m: DashboardModel) =
 
         div(class' = (if wide then "grid grid-cols-1 gap-3 lg:grid-cols-2" else "grid grid-cols-1 gap-3")) {
             for e in m.Recent do
-                recentItem t e
+                recentItem t m.Username e
         }
     }
 
@@ -380,7 +381,7 @@ let private tryLoad (db: DbConfig) (username: string) : Task<DashboardModel opti
                             WHERE at.mal_id = a.mal_id AND at.kind = 'studio'
                             ORDER BY at.position LIMIT 1),
                            a.type, coalesce(a.year, extract(year FROM a.aired_from)::int),
-                           w.playhead_s
+                           w.playhead_s, e.series_id
                     FROM watch_events w
                     JOIN cr_episodes e ON e.id = w.cr_episode_id
                     LEFT JOIN cr_series s ON s.id = e.series_id
@@ -402,7 +403,8 @@ let private tryLoad (db: DbConfig) (username: string) : Task<DashboardModel opti
 
                     while r.Read() do
                         items.Add
-                            { SeriesTitle = r.GetString 0
+                            { SeriesId = r.GetString 13
+                              SeriesTitle = r.GetString 0
                               EpisodeNumber = if r.IsDBNull 1 then None else Some(r.GetInt32 1)
                               DurationMs = r.GetInt32 2
                               ThumbnailUrl = if r.IsDBNull 3 then None else Some(r.GetString 3)

@@ -130,6 +130,30 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-10-10T16:27:13.700Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T008",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:35:46.459Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T009",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:35:46.557Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T010",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:35:46.679Z"
     }
   ],
   "telemetryInstanceId": "5a22f3a3-2e7d-4d0f-b5cd-8632cbd348d5",
@@ -296,7 +320,7 @@
     }
   },
   "approach": "A new Handlers/Users/Anime.fs slice reads one user's watches of one series in one statement (totals, seasons with MyAnimeList details, episodes). A shared seriesLink component links titles from the dashboard, DNA and year pages.",
-  "currentTask": "T007",
+  "currentTask": "T010",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -351,6 +375,28 @@
       "did": "AnimeTests and full suite green; One Piece on the real database: 266 episodes, 106.4 h, 37-125 ms; checked at 1440px (en) and 360px (es)",
       "files": [
         "Handlers/Users/Anime.fs"
+      ]
+    },
+    "T008": {
+      "status": "DONE",
+      "did": "AnimeLinkTests: dashboard, DNA and year page series links lead to the anime page",
+      "files": [
+        "tests/FrunchyBackend.Tests/AnimeLinkTests.fs"
+      ]
+    },
+    "T009": {
+      "status": "DONE",
+      "did": "Dashboard recent cards carry series_id; card and newest-episode titles use seriesLink",
+      "files": [
+        "Handlers/Users/Dashboard.fs"
+      ]
+    },
+    "T010": {
+      "status": "DONE",
+      "did": "DNA insignia, year top series and genre top anime titles use seriesLink",
+      "files": [
+        "Handlers/Users/Dna.fs",
+        "Handlers/Users/Year.fs"
       ]
     }
   }

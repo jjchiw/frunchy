@@ -86,7 +86,7 @@ Files: Handlers/Users/Dashboard.fs, Handlers/Users/Dna.fs (titles only), Handler
 
 ### Tests
 
-- [ ] **T008** [US2] Write `AnimeLinkTests`. With the 2026 sample:
+- [x] **T008** [US2] Write `AnimeLinkTests`. With the 2026 sample:
   - every recent card on the dashboard, and the header's newest episode, have a `data-series-link` to `/u/animenerd/anime/{id}`, where id is that card's series;
   - so do the DNA insignia and every genre top anime except "Others", and the year page's top series and its genre top anime;
   - each link answers 200.
@@ -95,8 +95,8 @@ Files: Handlers/Users/Dashboard.fs, Handlers/Users/Dna.fs (titles only), Handler
 
 ### Implementation
 
-- [ ] **T009** [US2] Dashboard: the recent query adds `e.series_id` as its last column, and `RecentEpisode` gains `SeriesId`. The card title and the header's newest-episode title use `seriesLink`. The figures and other hooks are unchanged · Handlers/Users/Dashboard.fs
-- [ ] **T010** [US2] DNA and year pages: the insignia and top series titles, and each genre's top anime, use `seriesLink`; view lines only · Handlers/Users/Dna.fs, Handlers/Users/Year.fs
+- [x] **T009** [US2] Dashboard: the recent query adds `e.series_id` as its last column, and `RecentEpisode` gains `SeriesId`. The card title and the header's newest-episode title use `seriesLink`. The figures and other hooks are unchanged · Handlers/Users/Dashboard.fs
+- [x] **T010** [US2] DNA and year pages: the insignia and top series titles, and each genre's top anime, use `seriesLink`; view lines only · Handlers/Users/Dna.fs, Handlers/Users/Year.fs
 
 **Checkpoint**: one click from the dashboard, the DNA page or the year page reaches an anime page (SC-004).
 
