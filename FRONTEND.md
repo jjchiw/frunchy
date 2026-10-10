@@ -27,6 +27,7 @@ Everything comes from CDNs in `Views/Layout.fs`; there's no frontend build step.
 | `GET /u/{username}/year`, `/u/{username}/year/{year}` | `Handlers/Users/Year.fs` | the year in review (feature 005); the first redirects to the newest year with history |
 | `GET /u/{username}/anime/{seriesId}` | `Handlers/Users/Anime.fs` | one series as the user watched it (feature 006); series titles elsewhere link here |
 | `GET /review/mal`, `/review/mal/manual` (+ POST `set`, `none`, `retry`, `auto`) | `Handlers/Review/MalReview.fs` | operators only (feature 007; 404 for everyone else): seasons the matcher couldn't decide with their candidates, an id/link field, retry and "not on MyAnimeList"; the manual decisions with "back to automatic" |
+| `GET /review/operators` (+ POST `add`, `remove`) | `Handlers/Review/Operators.fs` | the root operator only (feature 008; 404 everyone else, operators included): the root, the operators with who added them and when, a username field and a remove button per row; the account page links it for the root |
 | `GET /account`, `/account/key`, `/account/delete` | `Handlers/Account/*.fs` | private owner pages: display name, connect extension (key shown once), Crunchyroll binding, sign-in methods, last 10 syncs, last 20 security events, deletion |
 
 The old placeholder `/dashboard` and `/profile` pages were removed in feature 001: they showed invented

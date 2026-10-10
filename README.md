@@ -33,6 +33,7 @@ Handlers/
 │   ├── Users/Year.fs                GET  /u/{username}/year[/{year}]  year in review (feature 005)
 │   ├── Users/Anime.fs               GET  /u/{username}/anime/{seriesId}  one series (feature 006)
 ├── Review/MalReview.fs          GET  /review/mal[/manual], POST /review/mal/{set,none,retry,auto}  operators only (feature 007)
+├── Review/Operators.fs          GET  /review/operators, POST /review/operators/{add,remove}  root operator only (feature 008)
 ├── Auth/                        /signin, /signin/{provider}, /signin/complete, /signup, /claim, /signin/reconfirm, /signout
 ├── Account/                     /account, /account/key, /account/display-name, /account/binding/reset,
 │                                /account/link|unlink/{provider}, /account/delete   (signed-in owner only)
@@ -120,7 +121,8 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 - `GET /u/{username}/year/{year}`: the year in review (hours, episodes, series, new versus continued, month by month, most watched series, genres, top 3 studios, formats, longest streak) for one UTC calendar year, with a picker of the years that have history; `/u/{username}/year` goes to the newest one
 - `GET /u/{username}/anime/{seriesId}`: one series as that person watched it (episodes, hours, first and latest watch, seasons with their MyAnimeList details, the episodes watched); every series title on the dashboard, DNA and year pages links to it
   from the browser's `Accept-Language`
-- `GET /review/mal` and `/review/mal/manual`, with `POST /review/mal/set|none|retry|auto` (feature 007): operators review the MyAnimeList matches the matcher couldn't decide (pick a candidate, type an id or link, mark the season as not listed, ask for a retry) and send manual decisions back to automatic. Operators are the usernames in `Frunchy:Operators` (a config array, or one comma-separated value); everyone else, signed in or not, gets the plain 404 page. The account page links to it for operators.
+- `GET /review/mal` and `/review/mal/manual`, with `POST /review/mal/set|none|retry|auto` (feature 007): operators review the MyAnimeList matches the matcher couldn't decide (pick a candidate, type an id or link, mark the season as not listed, ask for a retry) and send manual decisions back to automatic. Operators are the root operator (the username in `Frunchy:RootOperator`) plus the users the root added; everyone else, signed in or not, gets the plain 404 page. The account page says "You're an operator" and links to it for operators.
+- `GET /review/operators`, with `POST /review/operators/add|remove` (feature 008): the root operator makes existing users operators and takes them back, from the web. Everyone else, operators included, gets the plain 404 page. Changes need a sign-in within the last 10 minutes and are limited to 10 a minute; each one is a security event on the root's account and on the affected user's account. The account page links to it for the root.
 - Accounts (feature 002): `/signin`, `/signup`, `/claim` and the private `/account` pages. See
   [Accounts](#accounts) and [`contracts/web-account.md`](specs/002-social-login-accounts/contracts/web-account.md).
 
@@ -222,13 +224,17 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 - **Users**: `user-create <username> <displayName>`, `user-regenerate-key <username>`,
   `user-reset-binding <username>`, `user-rebuild <username>`, `user-delete <username> --yes`, `user-list`.
 - **Invites** (feature 002): `invite-create [--days N]`, `invite-list`, `invite-revoke <id>`.
+- **Operators** (feature 008): `operator-add <username>`, `operator-remove <username>`, `operator-list`. They work without a root configured, so they are the way back in if the root can't sign in.
 - **MyAnimeList enrichment** (feature 003): `mal-status`, `mal-list [--status S] [--limit N]`,
   `mal-show <crSeriesId>`, `mal-set <crSeasonId> <malId>`, `mal-none <crSeasonId>`,
   `mal-retry <crSeasonId | crSeriesId>`, `mal-auto <crSeasonId>` (feature 007: back to automatic), `mal-rebuild` (no requests).
 
 Details are in [`001 contracts/operator-cli.md`](specs/001-crunchyroll-history-import/contracts/operator-cli.md),
 [`002 contracts/operator-cli.md`](specs/002-social-login-accounts/contracts/operator-cli.md)
-and [`003 contracts/operator-cli.md`](specs/003-mal-enrichment/contracts/operator-cli.md).
+[`003 contracts/operator-cli.md`](specs/003-mal-enrichment/contracts/operator-cli.md)
+and [`008 contracts/operators.md`](specs/008-root-operator/contracts/operators.md).
+
+**Root operator** (feature 008): set `Frunchy:RootOperator` to one username (`Frunchy__RootOperator` in Bella or the environment; read on every request, case-insensitive, empty or missing means no root). The root is configuration only, never a row, and can't be added or removed. Operators the root adds live in the `operators` table. `Frunchy:Operators` (feature 007) is retired and grants nothing.
 
 ### MyAnimeList enrichment (feature 003)
 
@@ -249,7 +255,7 @@ dashboard then shows score and genres on the recent cards, plus a "Top genres" s
   probe. Nothing is lost on restart: the queue is Postgres.
 - **Uncertain matches** are recorded as `ambiguous` (with candidates) or `no_match`, never guessed.
   Fix them with `mal-list` and `mal-set` / `mal-none`, or on the web at `/review/mal` (operators, see
-  `Frunchy:Operators`); manual decisions are never overwritten, and `mal-auto` hands one back to the matcher.
+  `Frunchy:RootOperator`); manual decisions are never overwritten, and `mal-auto` hands one back to the matcher.
 - **Settings** (`appsettings.json`, no secrets): `Frunchy:EnrichmentWorkerEnabled`,
   `Frunchy:Mal:{Provider, BaseUrl, RequestsPerSecond, RetryBaseDelay, AttemptTimeout}` (plus the
   `ClientId` secret),
@@ -280,6 +286,7 @@ Features are built through spec-kit (`specs/###-name/`), in this order:
 | 005 | **Year in review**: one calendar year of a profile (totals, months, most watched series, genres, studios, formats, new versus continued, longest streak), linked from the dashboard and the DNA page | Implemented ([spec](specs/005-year-in-review/year-in-review.spec.md)) |
 | 006 | **Anime page**: one series as a profile watched it (progress, seasons with MyAnimeList details, episodes), linked from every series title | Implemented ([spec](specs/006-anime-page/anime-page.spec.md)) |
 | 007 | **MyAnimeList review**: operators fix and undo MyAnimeList matches on the web (`/review/mal`), through the same actions as the CLI; everyone else gets a 404 | Implemented ([spec](specs/007-mal-review/mal-review.spec.md)) |
+| 008 | **Root operator**: one root operator (`Frunchy:RootOperator`) adds and removes operators on the web (`/review/operators`) or with `operator-add` / `operator-remove`; operators live in a table, security events on both accounts | Implemented ([spec](specs/008-root-operator/root-operator.spec.md)) |
 
 
 ## Key Design Decisions

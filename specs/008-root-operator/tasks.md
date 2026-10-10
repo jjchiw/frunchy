@@ -84,12 +84,12 @@ Files: Operations/OperatorAdd.fs, Operations/OperatorRemove.fs, Operations/Opera
 
 **Wave 1, independent (different files):**
 
-- [ ] **T013** [P] Add the operators page as root to the every-page design-system check · tests/FrunchyBackend.Tests/DesignSystemTests.fs
-- [ ] **T014** [P] Docs: `Frunchy:RootOperator` replaces `Frunchy:Operators`; the new route and commands; roadmap entry 008 · README.md, CLAUDE.md, FRONTEND.md, specs/007-mal-review/quickstart.md, specs/003-mal-enrichment/contracts/operator-cli.md
+- [x] **T013** [P] Add the operators page as root to the every-page design-system check · tests/FrunchyBackend.Tests/DesignSystemTests.fs
+- [x] **T014** [P] Docs: `Frunchy:RootOperator` replaces `Frunchy:Operators`; the new route and commands; roadmap entry 008 · README.md, CLAUDE.md, FRONTEND.md, specs/007-mal-review/quickstart.md, specs/003-mal-enrichment/contracts/operator-cli.md
 
 **⟶ Wait for Wave 1 to finish, then:**
 
-- [ ] **T015** Run the full `dotnet test` with 0 warnings, validate SC-001 to SC-005, and write the validation log · specs/008-root-operator/quickstart.md
+- [x] **T015** Run the full `dotnet test` with 0 warnings, validate SC-001 to SC-005, and write the validation log · specs/008-root-operator/quickstart.md
 
 ## Dependencies & Execution Order
 

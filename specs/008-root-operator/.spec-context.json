@@ -3,7 +3,7 @@
   "specName": "Operators Managed by a Root Operator",
   "branch": "008-root-operator",
   "currentStep": "implement",
-  "status": "implementing",
+  "status": "implemented",
   "history": [
     {
       "step": "specify",
@@ -170,6 +170,37 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-10-10T22:15:48.249Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T013",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:17:33.961Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T014",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:18:49.653Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T015",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:20:49.375Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:20:49.408Z"
     }
   ],
   "unattended": true,
@@ -327,7 +358,7 @@
     }
   },
   "approach": "Root from Frunchy:RootOperator; operators in a new table read in the per-request user lookup; Infrastructure/OperatorActions shared by a root-only /review/operators page (404 first, fresh sign-in) and operator-* CLI commands.",
-  "currentTask": "T012",
+  "currentTask": "T015",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -431,6 +462,31 @@
         "tests/FrunchyBackend.Tests/MalActionsParityTests.fs",
         "tests/FrunchyBackend.Tests/MalReviewTests.fs",
         "tests/FrunchyBackend.Tests/MalOperationsTests.fs"
+      ]
+    },
+    "T013": {
+      "status": "DONE",
+      "did": "Design-system check covers the operators page as root and the account page's new hooks",
+      "files": [
+        "tests/FrunchyBackend.Tests/DesignSystemTests.fs"
+      ]
+    },
+    "T014": {
+      "status": "DONE",
+      "did": "Docs: RootOperator replaces Operators, operators route and commands, roadmap 008",
+      "files": [
+        "README.md",
+        "CLAUDE.md",
+        "FRONTEND.md",
+        "specs/007-mal-review/quickstart.md",
+        "specs/003-mal-enrichment/contracts/operator-cli.md"
+      ]
+    },
+    "T015": {
+      "status": "DONE",
+      "did": "Full dotnet test green (338 total, 337 passed, 1 skipped), 0 warnings; validation log in quickstart.md",
+      "files": [
+        "specs/008-root-operator/quickstart.md"
       ]
     }
   }

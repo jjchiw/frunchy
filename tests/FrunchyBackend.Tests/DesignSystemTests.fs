@@ -169,7 +169,7 @@ let ``every page is on the design system and keeps its test hooks`` () =
         let! _ = TestHelpers.submitAccepted app key (load2026Sample ())
         let! _ = TestHelpers.processAll app.Db
         let! account = owner.Get "/account"
-        assertPage "account" account.Html [ "data-account"; "data-key-active"; "data-identity=\"test\""; "data-link-provider=\"test2\""; "data-security-event"; "data-sync"; "data-review-link" ]
+        assertPage "account" account.Html [ "data-account"; "data-key-active"; "data-identity=\"test\""; "data-link-provider=\"test2\""; "data-security-event"; "data-sync"; "data-review-link"; "data-operator-status"; "data-operators-link" ]
         let! keyConfirm = owner.Get "/account/key"
         assertPage "connect extension" keyConfirm.Html [ "action=\"/account/key\"" ]
         let! keyShown = owner.PostForm("/account/key", "/account/key", [])
@@ -192,6 +192,11 @@ let ``every page is on the design system and keeps its test hooks`` () =
         assertPage "review (to review)" review.Html [ "data-review=\"open\""; "data-review-filter"; "data-review-empty" ]
         let! manual = owner.Get "/review/mal/manual"
         assertPage "review (manual)" manual.Html [ "data-review=\"manual\""; "data-review-empty" ]
+        // The operators page, as the root: one operator listed, and a refusal notice
+        let! _ = TestHelpers.createUser app.Db "animenerd2"
+        let! _ = FrunchyBackend.Infrastructure.OperatorActions.add db (Some "animenerd") "animenerd2" FrunchyBackend.Infrastructure.OperatorActions.Server
+        let! operators = owner.Get "/review/operators?msg=is-root"
+        assertPage "operators" operators.Html [ "data-operators"; "data-operators-root=\"animenerd\""; "data-operator=\"animenerd2\""; "data-action=\"add\""; "data-action=\"remove\""; "data-operators-notice=\"is-root\"" ]
         let! empty = anonymous.Get "/u/nobody"
         assertPage "user not found" empty.Html []
 

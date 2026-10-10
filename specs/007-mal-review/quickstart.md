@@ -12,17 +12,18 @@ dotnet test
 | Suite | Proves |
 |---|---|
 | `MalActionsParityTests` (10) | **CLI parity (SC-001):** for set, none, retry and auto, the CLI command and the shared `MalActions` call leave identical `cr_season_matches` rows (every column a decision sets), dubs included, and the same stored searches dropped. **State checks:** `Open` and `Manual` refuse the wrong states with `NotOpen` and write nothing; an unknown season is `UnknownSeason` whatever the expectation. **No client id:** `setMatch` is `Unavailable`, makes no request and writes nothing. `mal-auto` exits 2, 3 and 1. |
-| `MalReviewAccessTests` (8) | **Access matrix (SC-003):** a visitor, a signed-in non-operator and a signed-in boss with no operators configured get 404 and the plain not-found page on every route and verb (4 GETs; 4 POSTs, each with a valid token and without one), with no redirect and the database unchanged; the operator gets 200 / 302, and 400 for a forged POST. Operators as an array, as a comma list (with and without spaces) and in any letter case; empty, blank and other names mean nobody; removing an operator at runtime closes the pages. **Rate limit:** 429 on an operator's 31st POST a minute, while 35 outsider POSTs all stay 404. **Account link:** only operators see `data-review-link`. **Security activity:** each action adds its `mal_*` event; refusals add none. |
+| `MalReviewAccessTests` (8) | **Access matrix (SC-003):** a visitor, a signed-in non-operator and a signed-in boss with no operators configured get 404 and the plain not-found page on every route and verb (4 GETs; 4 POSTs, each with a valid token and without one), with no redirect and the database unchanged; the operator gets 200 / 302, and 400 for a forged POST. Since feature 008 the operators are the root (`Frunchy:RootOperator`, any letter case) plus the `operators` table; an empty, blank or other root means nobody, the retired `Frunchy:Operators` grants nothing, and removing an operator from the table closes the pages at once. **Rate limit:** 429 on an operator's 31st POST a minute, while 35 outsider POSTs all stay 404. **Account link:** only operators see `data-review-link`. **Security activity:** each action adds its `mal_*` event; refusals add none. |
 | `MalReviewTests` (15) | **List (SC-002):** the open seasons in the CLI's order, cut to 50 with the "N more" note; the status filter and its empty state; a row's users, fully watched episodes, watcher link (the latest watcher) and candidates. **Actions:** picking a candidate, a typed id (one fetch) or link, none and retry; the dub follows; the web and the CLI leave the same rows. **Refusals:** bad input (before any request), unknown season, unknown anime, stale forms and a missing client id change nothing. **Manual view (US2):** newest first; back to automatic requeues the season and its dubs and drops it from the view. en and es. |
 | `DesignSystemTests` | The review pages (as an operator) and the account link are on the design system and keep their hooks. |
 
 ## 2. On real data
 
-Add yourself as an operator (never commit a username to `appsettings*.json`; use user-secrets, Bella
-or the environment):
+Make yourself the root operator (never commit a username to `appsettings*.json`; use user-secrets, Bella
+or the environment). Feature 008 replaced `Frunchy:Operators`, which grants nothing now; other operators are
+added on `/review/operators` or with `operator-add`:
 
 ```bash
-Frunchy__Operators__0=<your username> bella sdk run -- dotnet run --launch-profile http
+Frunchy__RootOperator=<your username> bella sdk run -- dotnet run --launch-profile http
 open http://127.0.0.1:5099/review/mal
 ```
 
