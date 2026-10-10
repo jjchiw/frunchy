@@ -49,6 +49,8 @@ let endpoints =
       Handlers.Users.Anime.endpoint
       // Feature 007: operators review MyAnimeList matches (404 for everyone else)
       yield! Handlers.Review.MalReview.endpoint
+      // Feature 008: the root operator manages operators (404 for everyone else)
+      yield! Handlers.Review.Operators.endpoint
       // Feature 002: sign-in and the private account pages
       Handlers.Auth.SignIn.endpoint
       Handlers.Auth.Complete.endpoint
@@ -344,6 +346,25 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
                     )
                 else
                     RateLimitPartition.GetNoLimiter "review:outsider"
+        )
+        |> ignore
+
+        // Operator changes (feature 008) count the root only, for the same reason
+        options.AddPolicy(
+            "operators-write",
+            fun (ctx: HttpContext) ->
+                if WebAuth.isRoot ctx then
+                    let ip =
+                        match ctx.Connection.RemoteIpAddress with
+                        | null -> "unknown"
+                        | address -> string address
+
+                    RateLimitPartition.GetFixedWindowLimiter(
+                        "operators:" + ip,
+                        fun _ -> FixedWindowRateLimiterOptions(PermitLimit = 10, Window = TimeSpan.FromMinutes 1.0, QueueLimit = 0)
+                    )
+                else
+                    RateLimitPartition.GetNoLimiter "operators:outsider"
         )
         |> ignore
 

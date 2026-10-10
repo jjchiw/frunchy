@@ -41,7 +41,7 @@ first, and runs the tests.
 
 Files: Views/Layout.fs, Handlers/Review/Operators.fs, Program.fs (endpoints + `operators-write`), tests/FrunchyBackend.Tests/OperatorsPageTests.fs
 
-- [ ] **T008** [US1] `OperatorsPageTests`:
+- [x] **T008** [US1] `OperatorsPageTests`:
   - **Access matrix**: a signed-out visitor, a regular user, an operator who isn't root, and no root configured get 404 on the GET and both POSTs (with and without a token), with nothing changed and no 429 after 15 POSTs.
   - **Root**: the page lists the root separately and operators with added-by and added-at.
   - **Changes**: add and remove work and take effect on the next request.
@@ -52,7 +52,7 @@ Files: Views/Layout.fs, Handlers/Review/Operators.fs, Program.fs (endpoints + `o
   - **Languages**: en and es.
 
   · tests/FrunchyBackend.Tests/OperatorsPageTests.fs
-- [ ] **T009** [US1]:
+- [x] **T009** [US1]:
   - **`Layout.requireRoot`**: shares the 404 branch with `requireOperator`.
   - **`Operators.fs`**: the GET page, and the POST add and remove, in the order `requireRoot`, `requireFresh "/review/operators"`, `readValidatedForm`, `Username.tryCreate`, `OperatorActions`, a log line, then a redirect with `msg`.
   - **Program.fs**: the endpoints, and the `operators-write` limiter (root-only partition, 10 per minute per IP, `GetNoLimiter` otherwise).

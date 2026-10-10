@@ -130,14 +130,25 @@ let messagePage (ctx: HttpContext) (t: Texts) (heading: string) (body: string) =
     }
     |> page ctx t heading
 
-/// Run the handler for a signed-in operator (`Frunchy:Operators`); anyone else gets the plain
-/// 404 page, never a redirect, so the review pages can't be found. Wrap it around everything,
-/// before any form is read.
+/// The plain 404 page the review and operator pages answer to everyone who isn't allowed in
+let private notFound (ctx: HttpContext) =
+    let t = Texts.current ()
+    ctx.SetStatusCode StatusCodes.Status404NotFound
+    ctx.WriteHtmlView(messagePage ctx t t.NotFoundTitle t.NotFoundBody)
+
+/// Run the handler for a signed-in operator (the root, or a user in the `operators` table); anyone
+/// else gets the plain 404 page, never a redirect, so the review pages can't be found. Wrap it around
+/// everything, before any form is read.
 let requireOperator (next: System.Guid -> EndpointHandler) : EndpointHandler =
     fun ctx ->
         match WebAuth.currentUserId ctx with
         | Some userId when WebAuth.isOperator ctx -> next userId ctx
-        | _ ->
-            let t = Texts.current ()
-            ctx.SetStatusCode StatusCodes.Status404NotFound
-            ctx.WriteHtmlView(messagePage ctx t t.NotFoundTitle t.NotFoundBody)
+        | _ -> notFound ctx
+
+/// Like `requireOperator`, but only the root operator (`Frunchy:RootOperator`) gets in: an operator
+/// who isn't root gets the same 404 (feature 008).
+let requireRoot (next: System.Guid -> EndpointHandler) : EndpointHandler =
+    fun ctx ->
+        match WebAuth.currentUserId ctx with
+        | Some userId when WebAuth.isRoot ctx -> next userId ctx
+        | _ -> notFound ctx

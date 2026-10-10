@@ -130,6 +130,22 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-10-10T22:06:25.783Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T008",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:11:21.145Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T009",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:11:21.359Z"
     }
   ],
   "unattended": true,
@@ -287,7 +303,7 @@
     }
   },
   "approach": "Root from Frunchy:RootOperator; operators in a new table read in the per-request user lookup; Infrastructure/OperatorActions shared by a root-only /review/operators page (404 first, fresh sign-in) and operator-* CLI commands.",
-  "currentTask": "T007",
+  "currentTask": "T009",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -347,6 +363,22 @@
         "tests/FrunchyBackend.Tests/MalReviewAccessTests.fs",
         "tests/FrunchyBackend.Tests/MalReviewTests.fs",
         "tests/FrunchyBackend.Tests/DesignSystemTests.fs"
+      ]
+    },
+    "T008": {
+      "status": "DONE",
+      "did": "OperatorsPageTests: access matrix, root page, add/remove, refusals, stale session, rate limit, events, cascade, en/es",
+      "files": [
+        "tests/FrunchyBackend.Tests/OperatorsPageTests.fs"
+      ]
+    },
+    "T009": {
+      "status": "DONE",
+      "did": "Layout.requireRoot, Operators.fs slice (GET page, POST add/remove: requireRoot, requireFresh, form, Username.tryCreate, action, log, redirect), operators-write limiter, endpoints",
+      "files": [
+        "Views/Layout.fs",
+        "Handlers/Review/Operators.fs",
+        "Program.fs"
       ]
     }
   }
