@@ -2,8 +2,8 @@
   "workflow": "companion",
   "specName": "Anime Page",
   "branch": "006-anime-page",
-  "currentStep": "specify",
-  "status": "specified",
+  "currentStep": "plan",
+  "status": "planned",
   "history": [
     {
       "step": "specify",
@@ -18,6 +18,34 @@
       "kind": "complete",
       "by": "extension",
       "at": "2026-10-10T16:12:11.928Z"
+    },
+    {
+      "step": "plan",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-10T16:12:29.146Z"
+    },
+    {
+      "step": "plan",
+      "substep": "research",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:15:10.113Z"
+    },
+    {
+      "step": "plan",
+      "substep": "design",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:16:34.375Z"
+    },
+    {
+      "step": "plan",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:16:34.769Z"
     }
   ],
   "telemetryInstanceId": "5a22f3a3-2e7d-4d0f-b5cd-8632cbd348d5",
@@ -87,5 +115,39 @@
     "constraint: feature 004 design system; data-* test hooks only",
     "data: cr_series has a slug for 338 of 338 series"
   ],
-  "intent": "A public per-series page of what a user watched of one anime, linked from every page that names a series"
+  "intent": "A public per-series page of what a user watched of one anime, linked from every page that names a series",
+  "decisions": [
+    {
+      "decision": "Series id validated as ^[A-Z0-9]{6,20}$ before any query",
+      "why": "every stored id matches; rejects junk without a database round trip",
+      "rejected": "any string, looked up"
+    },
+    {
+      "decision": "Dub marked only from the match method",
+      "why": "the only stored dub relation",
+      "rejected": "a language heuristic"
+    },
+    {
+      "decision": "Audio language names from an explicit Texts map",
+      "why": "ICU display names vary by OS and process culture",
+      "rejected": "CultureInfo.DisplayName"
+    },
+    {
+      "decision": "shareLine detail becomes an element; DnaTopAnime becomes a Top: prefix",
+      "why": "the genre top anime title must be a link",
+      "rejected": "a second shareLine variant"
+    },
+    {
+      "decision": "Drop the genre-name fallback for a missing top series",
+      "why": "a link built from it would point at a series named after the genre",
+      "rejected": "linking only when id differs from name"
+    }
+  ],
+  "step_summaries": {
+    "plan": {
+      "summary": "Plan, research, data model and contract for a one-slice anime page plus links from three pages",
+      "key_finding": "the dashboard recent cards do not carry the series id; adding it as the last column keeps existing indices"
+    }
+  },
+  "approach": "A new Handlers/Users/Anime.fs slice reads one user's watches of one series in one statement (totals, seasons with MyAnimeList details, episodes). A shared seriesLink component links titles from the dashboard, DNA and year pages."
 }
