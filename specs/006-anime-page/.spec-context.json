@@ -1,0 +1,91 @@
+{
+  "workflow": "companion",
+  "specName": "Anime Page",
+  "branch": "006-anime-page",
+  "currentStep": "specify",
+  "status": "specified",
+  "history": [
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-10T16:11:05.651Z"
+    },
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "complete",
+      "by": "extension",
+      "at": "2026-10-10T16:12:11.928Z"
+    }
+  ],
+  "telemetryInstanceId": "5a22f3a3-2e7d-4d0f-b5cd-8632cbd348d5",
+  "unattended": true,
+  "last_action": "living specs evaluated — skipped (not configured)",
+  "coverage": {
+    "FR-001": {
+      "title": "The site MUST serve a public page at `/u/{username}/anime/{seriesId}`, in the viewer's language, with the same visibility as the dashboard."
+    },
+    "FR-002": {
+      "title": "An unknown or deleted user, a series id outside Crunchyroll's id alphabet, or a series with no watched episode with a known length for that user MUST get the no"
+    },
+    "FR-003": {
+      "title": "The header MUST show the series title (the stored series title, else the episodes' series title), a poster (the MyAnimeList image of the user's most-watched mat"
+    },
+    "FR-004": {
+      "title": "When the series has a stored slug, the header MUST link to `https://www.crunchyroll.com/series/{id}/{slug}`, opening in a new tab."
+    },
+    "FR-005": {
+      "title": "The page MUST show the user's fully watched episodes and hours for the series, following the dashboard's rules restricted to that series."
+    },
+    "FR-006": {
+      "title": "The page MUST show the first and the latest watch Frunchy holds for the series, and say that only the latest watch of each episode is kept."
+    },
+    "FR-007": {
+      "title": "Seasons MUST be listed in Crunchyroll's season order (season number, then id), and only those with at least one watched episode."
+    },
+    "FR-008": {
+      "title": "Each season MUST show its title, its audio language, a dub mark when it is a dub of another season, and its fully watched episodes out of the episodes Frunchy k"
+    },
+    "FR-009": {
+      "title": "A matched season MUST show its MyAnimeList title, format, year and season, score (when it has one), episode count (when known), airing status, up to 3 genres, t"
+    },
+    "FR-010": {
+      "title": "Each season MUST list the user's watched episodes in episode-number order (numberless ones last, by title), each with its number or special label, title, length"
+    },
+    "FR-011": {
+      "title": "The dashboard's recent cards, the DNA page's insignia anime and genre top anime, and the year page's most watched series and genre top anime MUST link their ser"
+    },
+    "FR-012": {
+      "title": "Every figure MUST be computed from stored data when the page is viewed, with no call to MyAnimeList and no new stored data, and MUST be identical after `user-re"
+    },
+    "FR-013": {
+      "title": "The page MUST NOT show ratings of the user's own, rankings, recommendations or anything without a real data source. Every visible text comes from the site's Eng"
+    },
+    "FR-014": {
+      "title": "The page MUST use the shared design system and components, work from 360px wide in both languages, and meet WCAG 2.1 AA contrast."
+    }
+  },
+  "size": "normal",
+  "classification": {
+    "projectedFiles": 9,
+    "projectedTasks": 14,
+    "scopeSignal": "none",
+    "verdict": "normal"
+  },
+  "expectations": [
+    "no ratings of the user own, rankings or recommendations",
+    "no rewatch history (only the latest watch is stored)",
+    "no extension API change",
+    "no new tables"
+  ],
+  "context": [
+    "area: Handlers/Users (Dashboard.fs, Dna.fs, Year.fs)",
+    "area: Views (Texts.fs, Components.fs)",
+    "constraint: constitution 1.1.1 (no new tables, localized UI, CDN-only)",
+    "constraint: feature 004 design system; data-* test hooks only",
+    "data: cr_series has a slug for 338 of 338 series"
+  ],
+  "intent": "A public per-series page of what a user watched of one anime, linked from every page that names a series"
+}
