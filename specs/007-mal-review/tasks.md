@@ -98,12 +98,12 @@ Files: Handlers/Review/MalReview.fs (the manual view and auto action only), test
 
 **Wave 1, independent (different files):**
 
-- [ ] **T014** [P] Add the review page (as an operator) to the every-page design-system check · tests/FrunchyBackend.Tests/DesignSystemTests.fs
-- [ ] **T015** [P] Docs: the routes, `Frunchy:Operators`, `mal-auto`, and roadmap entry 007 · README.md, CLAUDE.md, FRONTEND.md, specs/003-mal-enrichment/contracts/operator-cli.md
+- [x] **T014** [P] Add the review page (as an operator) to the every-page design-system check · tests/FrunchyBackend.Tests/DesignSystemTests.fs
+- [x] **T015** [P] Docs: the routes, `Frunchy:Operators`, `mal-auto`, and roadmap entry 007 · README.md, CLAUDE.md, FRONTEND.md, specs/003-mal-enrichment/contracts/operator-cli.md
 
 **⟶ Wait for Wave 1 to finish, then:**
 
-- [ ] **T016** Run the full `dotnet test` with 0 warnings and validate SC-001 to SC-005. Record the result in a validation log, with the real-data check as operator on `frunchydb` · specs/007-mal-review/quickstart.md
+- [x] **T016** Run the full `dotnet test` with 0 warnings and validate SC-001 to SC-005. Record the result in a validation log, with the real-data check as operator on `frunchydb` · specs/007-mal-review/quickstart.md
 
 ## Dependencies & Execution Order
 

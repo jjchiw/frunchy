@@ -3,7 +3,7 @@
   "specName": "Review MyAnimeList Matches on the Web",
   "branch": "007-mal-review",
   "currentStep": "implement",
-  "status": "implementing",
+  "status": "implemented",
   "history": [
     {
       "step": "specify",
@@ -178,6 +178,37 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-10-10T18:56:44.383Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T014",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T19:03:03.383Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T015",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T19:03:03.497Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T016",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T19:03:03.617Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "complete",
+      "by": "extension",
+      "at": "2026-10-10T19:03:03.731Z"
     }
   ],
   "unattended": true,
@@ -348,7 +379,7 @@
     }
   },
   "approach": "Move mal-set/none/retry into Infrastructure/MalActions.fs with an expect guard, add back-to-automatic (and mal-auto). A Handlers/Review/MalReview.fs slice serves /review/mal to usernames in Frunchy:Operators only; everyone else gets 404 before any forgery check.",
-  "currentTask": "T013",
+  "currentTask": "T016",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -450,6 +481,30 @@
       "did": "GET /review/mal/manual and POST /review/mal/auto with Manual expectation, tab links",
       "files": [
         "Handlers/Review/MalReview.fs"
+      ]
+    },
+    "T014": {
+      "status": "DONE",
+      "did": "Review pages (as operator) and the account link added to the every-page design check",
+      "files": [
+        "tests/FrunchyBackend.Tests/DesignSystemTests.fs"
+      ]
+    },
+    "T015": {
+      "status": "DONE",
+      "did": "Docs: README routes, CLI and roadmap 007; CLAUDE.md; FRONTEND.md; operator-cli contract with mal-auto",
+      "files": [
+        "README.md",
+        "CLAUDE.md",
+        "FRONTEND.md",
+        "specs/003-mal-enrichment/contracts/operator-cli.md"
+      ]
+    },
+    "T016": {
+      "status": "DONE",
+      "did": "Full suite 320 passed, 1 skipped, 0 warnings; quickstart with suites and validation log",
+      "files": [
+        "specs/007-mal-review/quickstart.md"
       ]
     }
   }

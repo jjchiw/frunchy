@@ -141,7 +141,9 @@ let private pageProblems (name: string) (html: string) (hooks: string list) =
 [<Fact>]
 let ``every page is on the design system and keeps its test hooks`` () =
     task {
-        use! app = newApp ()
+        // the owner is also an operator, so the review pages can be checked
+        let! db = newDatabase ()
+        use! app = createAppWith db [ "Frunchy:Operators:0", "animenerd" ] ignore
         let problems = ResizeArray<string>()
         let assertPage name html hooks = problems.AddRange(pageProblems name html hooks)
 
@@ -167,7 +169,7 @@ let ``every page is on the design system and keeps its test hooks`` () =
         let! _ = TestHelpers.submitAccepted app key (load2026Sample ())
         let! _ = TestHelpers.processAll app.Db
         let! account = owner.Get "/account"
-        assertPage "account" account.Html [ "data-account"; "data-key-active"; "data-identity=\"test\""; "data-link-provider=\"test2\""; "data-security-event"; "data-sync" ]
+        assertPage "account" account.Html [ "data-account"; "data-key-active"; "data-identity=\"test\""; "data-link-provider=\"test2\""; "data-security-event"; "data-sync"; "data-review-link" ]
         let! keyConfirm = owner.Get "/account/key"
         assertPage "connect extension" keyConfirm.Html [ "action=\"/account/key\"" ]
         let! keyShown = owner.PostForm("/account/key", "/account/key", [])
@@ -185,6 +187,11 @@ let ``every page is on the design system and keeps its test hooks`` () =
         assertPage "anime page" anime.Html [ "data-anime=\""; "data-anime-totals"; "data-season="; "data-episode="; "data-dashboard-link"; "data-rewatch-note" ]
         let! dna = anonymous.Get "/u/animenerd/dna"
         assertPage "anime DNA" dna.Html [ "data-dna-totals"; "data-dashboard-link" ]
+        // The review pages, as an operator: nothing has been matched here, so the list is empty
+        let! review = owner.Get "/review/mal"
+        assertPage "review (to review)" review.Html [ "data-review=\"open\""; "data-review-filter"; "data-review-empty" ]
+        let! manual = owner.Get "/review/mal/manual"
+        assertPage "review (manual)" manual.Html [ "data-review=\"manual\""; "data-review-empty" ]
         let! empty = anonymous.Get "/u/nobody"
         assertPage "user not found" empty.Html []
 
