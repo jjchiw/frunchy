@@ -84,7 +84,8 @@ type Texts =
       DnaGenresTitle: string
       DnaGenresNote: string
       DnaOthers: string
-      DnaTopAnime: string -> string
+      /// "Top:" before a genre's top anime, which is a link
+      TopAnimePrefix: string
       DnaFormatsTitle: string
       DnaEmptyTitle: string
       DnaEmptyCount: int64 -> string
@@ -224,7 +225,26 @@ type Texts =
       YearFormatsTitle: string
       YearEmptyTitle: int -> string
       YearEmptyCount: int64 -> string
-      YearEmptyBody: string }
+      YearEmptyBody: string
+
+      // Anime page (/u/{username}/anime/{seriesId}, feature 006)
+      AnimeSeasonsTitle: string
+      AnimeSeasonNumber: int -> string
+      AnimeRewatchNote: string
+      AnimeFirstWatch: string
+      AnimeLatestWatch: string
+      AnimeWatchOnCrunchyroll: string
+      /// fully watched, known episodes of a season (the known ones come from any user's history)
+      AnimeKnownEpisodes: int64 -> int64 -> string
+      AnimeOtherEpisodes: string
+      AnimeDub: string
+      AnimeStudio: string -> string
+      AnimeMalEpisodes: int -> string
+      /// MyAnimeList's airing status as stored, localized; unknown values are shown as stored
+      AnimeStatus: string -> string
+      AnimeEpisodeWatched: string
+      /// A Crunchyroll audio locale ("ja-JP") as a language name; unknown codes are shown as stored
+      AudioLanguage: string -> string }
 
 let en =
     { Lang = "en"
@@ -319,7 +339,7 @@ let en =
       DnaGenresTitle = "Genres"
       DnaGenresNote = "By watch time. An anime counts in each of its genres."
       DnaOthers = "Others"
-      DnaTopAnime = fun title -> $"Top: {title}"
+      TopAnimePrefix = "Top:"
       DnaFormatsTitle = "Formats"
       DnaEmptyTitle = "Not enough data yet"
       DnaEmptyCount = fun n -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} of 15 fully watched episodes"""
@@ -475,7 +495,47 @@ let en =
       YearFormatsTitle = "Formats"
       YearEmptyTitle = fun y -> $"Not enough data for {y} yet"
       YearEmptyCount = fun n -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} of 15 fully watched episodes"""
-      YearEmptyBody = "A year's review appears after 15 fully watched episodes in it. Pick another year, or sync more history with the Frunchy extension." }
+      YearEmptyBody = "A year's review appears after 15 fully watched episodes in it. Pick another year, or sync more history with the Frunchy extension."
+
+      // Anime page (feature 006)
+      AnimeSeasonsTitle = "Seasons"
+      AnimeSeasonNumber = fun n -> $"Season {n}"
+      AnimeRewatchNote = "Frunchy keeps only the latest watch of each episode, so rewatches aren't counted."
+      AnimeFirstWatch = "First watch"
+      AnimeLatestWatch = "Latest watch"
+      AnimeWatchOnCrunchyroll = "Watch on Crunchyroll"
+      AnimeKnownEpisodes =
+        fun watched known ->
+            $"""{watched.ToString("N0", CultureInfo.GetCultureInfo "en")} of {known.ToString("N0", CultureInfo.GetCultureInfo "en")} known episodes"""
+      AnimeOtherEpisodes = "Other episodes"
+      AnimeDub = "Dub"
+      AnimeStudio = fun name -> $"Studio: {name}"
+      AnimeMalEpisodes = fun n -> if n = 1 then "1 episode" else $"{n} episodes"
+      AnimeStatus =
+        fun status ->
+            match status with
+            | "Finished Airing" -> "Finished airing"
+            | "Currently Airing" -> "Airing now"
+            | "Not yet aired" -> "Not yet aired"
+            | other -> other
+      AnimeEpisodeWatched = "Watched"
+      AudioLanguage =
+        fun code ->
+            match code with
+            | "ja-JP" -> "Japanese"
+            | "en-US" -> "English"
+            | "es-419" -> "Spanish (Latin America)"
+            | "es-ES" -> "Spanish (Spain)"
+            | "zh-CN" -> "Chinese"
+            | "fr-FR" -> "French"
+            | "pt-BR" -> "Portuguese (Brazil)"
+            | "de-DE" -> "German"
+            | "ru-RU" -> "Russian"
+            | "it-IT" -> "Italian"
+            | "ar-SA" -> "Arabic"
+            | "hi-IN" -> "Hindi"
+            | "ko-KR" -> "Korean"
+            | other -> other }
 
 let es =
     { Lang = "es"
@@ -570,7 +630,7 @@ let es =
       DnaGenresTitle = "Géneros"
       DnaGenresNote = "Por tiempo visto. Un anime cuenta en cada uno de sus géneros."
       DnaOthers = "Otros"
-      DnaTopAnime = fun title -> $"Destacado: {title}"
+      TopAnimePrefix = "Destacado:"
       DnaFormatsTitle = "Formatos"
       DnaEmptyTitle = "Aún no hay suficientes datos"
       DnaEmptyCount = fun n -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} de 15 episodios vistos completos"""
@@ -726,7 +786,47 @@ let es =
       YearFormatsTitle = "Formatos"
       YearEmptyTitle = fun y -> $"Aún no hay suficientes datos de {y}"
       YearEmptyCount = fun n -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} de 15 episodios vistos completos"""
-      YearEmptyBody = "El resumen de un año aparece tras 15 episodios vistos completos en él. Elige otro año o sincroniza más historial con la extensión de Frunchy." }
+      YearEmptyBody = "El resumen de un año aparece tras 15 episodios vistos completos en él. Elige otro año o sincroniza más historial con la extensión de Frunchy."
+
+      // Anime page (feature 006)
+      AnimeSeasonsTitle = "Temporadas"
+      AnimeSeasonNumber = fun n -> $"Temporada {n}"
+      AnimeRewatchNote = "Frunchy guarda solo el último visionado de cada episodio, así que las revisiones no se cuentan."
+      AnimeFirstWatch = "Primer visionado"
+      AnimeLatestWatch = "Último visionado"
+      AnimeWatchOnCrunchyroll = "Ver en Crunchyroll"
+      AnimeKnownEpisodes =
+        fun watched known ->
+            $"""{watched.ToString("N0", CultureInfo.GetCultureInfo "es")} de {known.ToString("N0", CultureInfo.GetCultureInfo "es")} episodios conocidos"""
+      AnimeOtherEpisodes = "Otros episodios"
+      AnimeDub = "Doblaje"
+      AnimeStudio = fun name -> $"Estudio: {name}"
+      AnimeMalEpisodes = fun n -> if n = 1 then "1 episodio" else $"{n} episodios"
+      AnimeStatus =
+        fun status ->
+            match status with
+            | "Finished Airing" -> "Emisión terminada"
+            | "Currently Airing" -> "En emisión"
+            | "Not yet aired" -> "Aún sin emitir"
+            | other -> other
+      AnimeEpisodeWatched = "Visto"
+      AudioLanguage =
+        fun code ->
+            match code with
+            | "ja-JP" -> "Japonés"
+            | "en-US" -> "Inglés"
+            | "es-419" -> "Español (Latinoamérica)"
+            | "es-ES" -> "Español (España)"
+            | "zh-CN" -> "Chino"
+            | "fr-FR" -> "Francés"
+            | "pt-BR" -> "Portugués (Brasil)"
+            | "de-DE" -> "Alemán"
+            | "ru-RU" -> "Ruso"
+            | "it-IT" -> "Italiano"
+            | "ar-SA" -> "Árabe"
+            | "hi-IN" -> "Hindi"
+            | "ko-KR" -> "Coreano"
+            | other -> other }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =

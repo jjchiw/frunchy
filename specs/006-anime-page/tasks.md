@@ -22,7 +22,7 @@ runs the tests before merging.
 
 **Wave 1, independent (different files):**
 
-- [ ] **T002** [P] Add the anime page texts in `en` and `es` (research R4–R6):
+- [x] **T002** [P] Add the anime page texts in `en` and `es` (research R4–R6):
   - page title, rewatch note, first and latest watch labels, "Watch on Crunchyroll";
   - "of N known episodes", "Other episodes", the dub mark, the studio label;
   - the MyAnimeList episode count, the three air statuses (with a fallback to the stored value);
@@ -30,7 +30,7 @@ runs the tests before merging.
   - `TopAnimePrefix` ("Top:" / "Destacado:"), which replaces `DnaTopAnime`.
 
   · Views/Texts.fs
-- [ ] **T003** [P] In `Components.fs`:
+- [x] **T003** [P] In `Components.fs`:
   - `shareLine`'s `detail` becomes `HtmlElement option`;
   - add `seriesLink (username: string) (seriesId: string) (title: string)`: an `a` to `/u/{username}/anime/{seriesId}` with `fr-link` and `data-series-link` = the series id.
 
@@ -38,7 +38,7 @@ runs the tests before merging.
 
 **⟶ Wait for Wave 1 to finish, then:**
 
-- [ ] **T004** Make `Dna.fs` and `Year.fs` compile against the new `shareLine` and `TopAnimePrefix` with no visible change yet. A genre without a top series shows no "Top:" line, and "Others" is an explicit flag instead of `Top = None` plus the genre-name fallback (research R7). `DnaTests` and `YearTests` stay green · Handlers/Users/Dna.fs, Handlers/Users/Year.fs
+- [x] **T004** Make `Dna.fs` and `Year.fs` compile against the new `shareLine` and `TopAnimePrefix` with no visible change yet. A genre without a top series shows no "Top:" line, and "Others" is an explicit flag instead of `Top = None` plus the genre-name fallback (research R7). `DnaTests` and `YearTests` stay green · Handlers/Users/Dna.fs, Handlers/Users/Year.fs
 
 **Checkpoint**: build at 0 warnings, the suite green.
 
@@ -48,7 +48,7 @@ Files: Handlers/Users/Anime.fs, Program.fs, tests/FrunchyBackend.Tests/AnimeTest
 
 ### Tests
 
-- [ ] **T005** [US1] Write `AnimeTests` against the contract: the 2026 sample with the feature 003 fixtures, expected values computed in F# from raw rows.
+- [x] **T005** [US1] Write `AnimeTests` against the contract: the 2026 sample with the feature 003 fixtures, expected values computed in F# from raw rows.
   - **Figures**: for a series with several seasons (JUJUTSU KAISEN), one with a dub (The Weakest Tamer: `GRK5CNJ14` and `GYDQCGK5Q`) and one unmatched, every total, season (order, watched, known, audio, dub, MyAnimeList id or missing) and episode (order, fully, percent) equals the expected value.
   - **Totals**: equal the dashboard's rule restricted to the series (SC-002).
   - **Not found**: 404 for an unknown user, a lowercase or 25-character id, and a series the user never watched.
@@ -61,7 +61,7 @@ Files: Handlers/Users/Anime.fs, Program.fs, tests/FrunchyBackend.Tests/AnimeTest
 
 ### Implementation
 
-- [ ] **T006** [US1] `Anime.fs`, following `Year.fs`'s layout:
+- [x] **T006** [US1] `Anime.fs`, following `Year.fs`'s layout:
   - **Model.**
   - **View**:
     - header: title, poster, Crunchyroll link, dashboard link, copy link, rewatch note;
@@ -76,7 +76,7 @@ Files: Handlers/Users/Anime.fs, Program.fs, tests/FrunchyBackend.Tests/AnimeTest
 
 **⟶ Wait for T006, then:**
 
-- [ ] **T007** [US1] Run `AnimeTests` and the suite. Then check `/u/jjchiw/anime/GRMG8ZQZR` (One Piece) on the real database: 266 episodes and 106.4 h, ready in under 1 s, at 1440px and 360px, in en and es. Record it in the quickstart · Handlers/Users/Anime.fs
+- [x] **T007** [US1] Run `AnimeTests` and the suite. Then check `/u/jjchiw/anime/GRMG8ZQZR` (One Piece) on the real database: 266 episodes and 106.4 h, ready in under 1 s, at 1440px and 360px, in en and es. Record it in the quickstart · Handlers/Users/Anime.fs
 
 **Checkpoint**: the anime page works on its own.
 

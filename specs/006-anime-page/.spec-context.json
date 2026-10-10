@@ -82,6 +82,54 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-10-10T16:17:51.868Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T002",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:20:24.485Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T003",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:20:24.590Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T004",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:20:24.761Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T005",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:24:40.480Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T006",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:24:40.567Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T007",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:27:13.700Z"
     }
   ],
   "telemetryInstanceId": "5a22f3a3-2e7d-4d0f-b5cd-8632cbd348d5",
@@ -248,7 +296,7 @@
     }
   },
   "approach": "A new Handlers/Users/Anime.fs slice reads one user's watches of one series in one statement (totals, seasons with MyAnimeList details, episodes). A shared seriesLink component links titles from the dashboard, DNA and year pages.",
-  "currentTask": "T001",
+  "currentTask": "T007",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -259,6 +307,50 @@
         "Handlers/Users/Anime.fs",
         "tests/FrunchyBackend.Tests/AnimeTests.fs",
         "tests/FrunchyBackend.Tests/AnimeLinkTests.fs"
+      ]
+    },
+    "T002": {
+      "status": "DONE",
+      "did": "Anime page texts in en and es, AudioLanguage, TopAnimePrefix replacing DnaTopAnime",
+      "files": [
+        "Views/Texts.fs"
+      ]
+    },
+    "T003": {
+      "status": "DONE",
+      "did": "shareLine detail is HtmlElement option; seriesLink component",
+      "files": [
+        "Views/Components.fs"
+      ]
+    },
+    "T004": {
+      "status": "DONE",
+      "did": "Dna and Year compile against new shareLine/TopAnimePrefix; explicit IsOthers on GenreRow, no genre-name fallback",
+      "files": [
+        "Handlers/Users/Dna.fs",
+        "Handlers/Users/Year.fs"
+      ]
+    },
+    "T005": {
+      "status": "DONE",
+      "did": "AnimeTests: figures, dub, unmatched, totals, not found, Crunchyroll link, languages, stability",
+      "files": [
+        "tests/FrunchyBackend.Tests/AnimeTests.fs"
+      ]
+    },
+    "T006": {
+      "status": "DONE",
+      "did": "Anime slice and route registered in Program.fs",
+      "files": [
+        "Handlers/Users/Anime.fs",
+        "Program.fs"
+      ]
+    },
+    "T007": {
+      "status": "DONE",
+      "did": "AnimeTests and full suite green; One Piece on the real database: 266 episodes, 106.4 h, 37-125 ms; checked at 1440px (en) and 360px (es)",
+      "files": [
+        "Handlers/Users/Anime.fs"
       ]
     }
   }

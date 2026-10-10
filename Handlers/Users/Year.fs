@@ -28,8 +28,10 @@ type ShareRow = { Name: string; Share: decimal }
 type GenreRow =
     { Name: string
       Share: decimal
-      /// (Crunchyroll series id, title) with the most minutes in the genre; None on "Others"
-      Top: (string * string) option }
+      /// (Crunchyroll series id, title) with the most minutes in the genre; None on "Others" and on a genre without one
+      Top: (string * string) option
+      /// The closing "Others" row, which stands for every genre outside the top five
+      IsOthers: bool }
 
 type TopSeries =
     { SeriesId: string
@@ -248,11 +250,15 @@ let private genres (t: Texts) (f: Figures) =
 
             div(class' = "space-y-4") {
                 for g in f.Genres do
-                    let row = div().data("genre", (if g.Top.IsNone then "others" else g.Name)).data("share", inv g.Share)
+                    let row = div().data("genre", (if g.IsOthers then "others" else g.Name)).data("share", inv g.Share)
 
-                    match g.Top with
-                    | Some(seriesId, title) -> row.data("top-series", seriesId) { shareLine g.Name (Some(t.DnaTopAnime title)) g.Share t }
-                    | None -> row { shareLine t.DnaOthers None g.Share t }
+                    if g.IsOthers then
+                        row { shareLine t.DnaOthers None g.Share t }
+                    else
+                        match g.Top with
+                        | Some(seriesId, title) ->
+                            row.data("top-series", seriesId) { shareLine g.Name (Some(span() { t.TopAnimePrefix; " "; title })) g.Share t }
+                        | None -> row { shareLine g.Name None g.Share t }
             }
 
             coverageNote (t.DnaCoverage f.Coverage)
@@ -513,9 +519,10 @@ let private loadYear (connection: NpgsqlConnection) (userId: Guid) (year: int) :
                 [ for n, ms, top in top5 ->
                       { Name = n
                         Share = percent ms genreTotal
-                        Top = top |> Option.orElse (Some(n, n)) }
+                        Top = top
+                        IsOthers = false }
                   if others > 0L then
-                      yield { Name = "others"; Share = percent others genreTotal; Top = None } ]
+                      yield { Name = "others"; Share = percent others genreTotal; Top = None; IsOthers = true } ]
 
             let monthsMs = Array.zeroCreate<int64> 12
 

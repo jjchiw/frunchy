@@ -253,7 +253,7 @@ let figureSection (hook: string) (title: string) (coverage: decimal option) (ext
 let sectionHeading (title: string) =
     h2(class' = "text-headline-md text-on-surface") { title }
 
-let shareLine (name: string) (detail: string option) (share: decimal) (t: Texts) =
+let shareLine (name: string) (detail: HtmlElement option) (share: decimal) (t: Texts) =
     div(class' = "space-y-2") {
         div(class' = "flex items-baseline justify-between gap-4") {
             div(class' = "min-w-0") {
@@ -269,6 +269,10 @@ let shareLine (name: string) (detail: string option) (share: decimal) (t: Texts)
 
         shareBar share
     }
+
+/// A series title that leads to its anime page (feature 006)
+let seriesLink (username: string) (seriesId: string) (title: string) =
+    a(href = $"/u/{username}/anime/{seriesId}", class' = "fr-link").data("series-link", seriesId) { title }
 
 /// Years with history as links, newest first; the shown year is marked for assistive tech
 let yearPicker (label: string) (username: string) (years: int list) (current: int) =

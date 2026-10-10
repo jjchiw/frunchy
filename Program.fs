@@ -46,6 +46,7 @@ let endpoints =
       Handlers.Users.Dashboard.endpoint
       Handlers.Users.Dna.endpoint
       yield! Handlers.Users.Year.endpoint
+      Handlers.Users.Anime.endpoint
       // Feature 002: sign-in and the private account pages
       Handlers.Auth.SignIn.endpoint
       Handlers.Auth.Complete.endpoint
