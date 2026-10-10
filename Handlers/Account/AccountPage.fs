@@ -259,7 +259,7 @@ let private dangerZone (t: Texts) =
         }
     }
 
-let view (ctx: HttpContext) (t: Texts) (providers: AuthConfig.FrunchyProvider list) (msg: string) (m: AccountModel) =
+let view (ctx: HttpContext) (t: Texts) (providers: AuthConfig.FrunchyProvider list) (msg: string) (isOperator: bool) (m: AccountModel) =
     let providerName (name: string) =
         providers |> List.tryFind (fun p -> p.Name = name) |> Option.map _.DisplayName |> Option.defaultValue name
 
@@ -272,6 +272,14 @@ let view (ctx: HttpContext) (t: Texts) (providers: AuthConfig.FrunchyProvider li
         match notice t msg with
         | Some(isError, text) -> (alert (if isError then Failure else Success) text).data("account-notice", msg)
         | None -> Fragment()
+
+        if isOperator then
+            div() {
+                a(href = "/review/mal", class' = btn Secondary).data("review-link", "") {
+                    icon Theme.Link
+                    t.ReviewAccountLink
+                }
+            }
 
         profile ctx t msg m
         extension t m
@@ -377,7 +385,7 @@ let handler: EndpointHandler =
             | Some model ->
                 let providers = ctx.RequestServices.GetServices<AuthConfig.FrunchyProvider>() |> List.ofSeq
                 let msg = ctx.TryGetQueryValue "msg" |> Option.defaultValue ""
-                return! ctx.WriteHtmlView(view ctx (Texts.current ()) providers msg model)
+                return! ctx.WriteHtmlView(view ctx (Texts.current ()) providers msg (WebAuth.isOperator ctx) model)
             | None ->
                 do! WebAuth.signOut ctx
                 return! WebAuth.redirectTo ctx "/signin"

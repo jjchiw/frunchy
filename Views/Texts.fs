@@ -272,7 +272,6 @@ type Texts =
       ReviewMalIdHint: string
       ReviewNoCandidates: string
       ReviewManualNone: string
-      ReviewWatcherLink: string
       ReviewEmpty: string
       ReviewManualEmpty: string
       ReviewMore: int -> string
@@ -601,7 +600,6 @@ let en =
       ReviewMalIdHint = "A number such as 1535, or a myanimelist.net/anime link."
       ReviewNoCandidates = "No candidates stored."
       ReviewManualNone = "Not on MyAnimeList"
-      ReviewWatcherLink = "See what they watched"
       ReviewEmpty = "Nothing to review. Every season is matched or waiting for the matcher."
       ReviewManualEmpty = "No manual decisions."
       ReviewMore = fun n -> $"{n} more not shown."
@@ -941,7 +939,6 @@ let es =
       ReviewMalIdHint = "Un número como 1535, o un enlace de myanimelist.net/anime."
       ReviewNoCandidates = "No hay candidatas guardadas."
       ReviewManualNone = "No está en MyAnimeList"
-      ReviewWatcherLink = "Ver lo que vieron"
       ReviewEmpty = "Nada que revisar. Todas las temporadas están emparejadas o esperan al emparejador."
       ReviewManualEmpty = "No hay decisiones manuales."
       ReviewMore = fun n -> if n = 1 then "1 más sin mostrar." else $"{n} más sin mostrar."

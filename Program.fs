@@ -47,6 +47,8 @@ let endpoints =
       Handlers.Users.Dna.endpoint
       yield! Handlers.Users.Year.endpoint
       Handlers.Users.Anime.endpoint
+      // Feature 007: operators review MyAnimeList matches (404 for everyone else)
+      yield! Handlers.Review.MalReview.endpoint
       // Feature 002: sign-in and the private account pages
       Handlers.Auth.SignIn.endpoint
       Handlers.Auth.Complete.endpoint
@@ -325,6 +327,7 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
         perIp "signup" 10 (TimeSpan.FromMinutes 15.0)
         perIp "claim" 5 (TimeSpan.FromMinutes 15.0)
         perIp "account-write" 30 (TimeSpan.FromMinutes 1.0)
+        perIp "review-write" 30 (TimeSpan.FromMinutes 1.0)
         options.RejectionStatusCode <- StatusCodes.Status429TooManyRequests
 
         options.OnRejected <-

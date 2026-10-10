@@ -130,6 +130,54 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-10-10T18:36:47.162Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T008",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T18:56:43.902Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T009",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T18:56:43.998Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T010",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T18:56:44.097Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T011",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T18:56:44.189Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T012",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T18:56:44.290Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T013",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T18:56:44.383Z"
     }
   ],
   "unattended": true,
@@ -300,7 +348,7 @@
     }
   },
   "approach": "Move mal-set/none/retry into Infrastructure/MalActions.fs with an expect guard, add back-to-automatic (and mal-auto). A Handlers/Review/MalReview.fs slice serves /review/mal to usernames in Frunchy:Operators only; everyone else gets 404 before any forgery check.",
-  "currentTask": "T007",
+  "currentTask": "T013",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -359,6 +407,49 @@
       "did": "MalActionsParityTests: CLI vs shared action parity for set, none, retry, auto; Open/Manual refusals; Unavailable without client id",
       "files": [
         "tests/FrunchyBackend.Tests/MalActionsParityTests.fs"
+      ]
+    },
+    "T008": {
+      "status": "DONE",
+      "did": "MalReviewAccessTests: 404 matrix for visitor/non-operator/no operators on every GET and POST, operator forms, rate limit, account link, security events",
+      "files": [
+        "tests/FrunchyBackend.Tests/MalReviewAccessTests.fs"
+      ]
+    },
+    "T009": {
+      "status": "DONE",
+      "did": "MalReviewTests: list order, filter, row figures, candidates, set/none/retry, CLI parity, refusals, languages",
+      "files": [
+        "tests/FrunchyBackend.Tests/MalReviewTests.fs"
+      ]
+    },
+    "T010": {
+      "status": "DONE",
+      "did": "MalReview slice: GET /review/mal and POST set/none/retry with requireOperator first, input rules, security events, review-write limiter",
+      "files": [
+        "Handlers/Review/MalReview.fs",
+        "Program.fs"
+      ]
+    },
+    "T011": {
+      "status": "DONE",
+      "did": "Operator-only review link on the account page",
+      "files": [
+        "Handlers/Account/AccountPage.fs"
+      ]
+    },
+    "T012": {
+      "status": "DONE",
+      "did": "Manual view and back-to-automatic tests",
+      "files": [
+        "tests/FrunchyBackend.Tests/MalReviewTests.fs"
+      ]
+    },
+    "T013": {
+      "status": "DONE",
+      "did": "GET /review/mal/manual and POST /review/mal/auto with Manual expectation, tab links",
+      "files": [
+        "Handlers/Review/MalReview.fs"
       ]
     }
   }

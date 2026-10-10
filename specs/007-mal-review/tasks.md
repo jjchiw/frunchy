@@ -58,14 +58,14 @@ Files: Handlers/Review/MalReview.fs, Handlers/Account/AccountPage.fs, Program.fs
 
 ### Tests
 
-- [ ] **T008** [US3] Write `MalReviewAccessTests`, with the operators configured through `createAppWith`:
+- [x] **T008** [US3] Write `MalReviewAccessTests`, with the operators configured through `createAppWith`:
   - **Access matrix**: for every route and verb (each POST with a valid token taken from an operator-visible page, and without one), a signed-out visitor, a signed-in non-operator and a configuration with no operators all get 404 and no data change; the operator gets 200 or 302.
   - **Rate limit**: 429 after 30 POSTs in a minute.
   - **Account link**: the operator's account page has `data-review-link`, and others don't.
   - **Security activity**: each successful action adds its event to the operator's account.
 
   · tests/FrunchyBackend.Tests/MalReviewAccessTests.fs
-- [ ] **T009** [US1] Write `MalReviewTests`. Use the 2026 sample enriched by `routeSampleCatalog`; Slime's "OVA Season 1" `GR8D0NQ7R` is ambiguous there.
+- [x] **T009** [US1] Write `MalReviewTests`. Use the 2026 sample enriched by `routeSampleCatalog`; Slime's "OVA Season 1" `GR8D0NQ7R` is ambiguous there.
   - **List**: it shows exactly the open seasons in CLI order. The status filter works. Each row's users, fully watched count and watcher link are right. The ambiguous candidates are listed.
   - **Actions**: picking a candidate, entering an id, entering a link, marking none, and asking for a retry each redirect with the right notice and leave the same rows as the CLI.
   - **Dubs**: they follow their original.
@@ -76,14 +76,14 @@ Files: Handlers/Review/MalReview.fs, Handlers/Account/AccountPage.fs, Program.fs
 
 ### Implementation
 
-- [ ] **T010** [US1] [US3] `MalReview.fs`:
+- [x] **T010** [US1] [US3] `MalReview.fs`:
   - **GET `/review/mal`**: the list (research R4), with the filter, the rows, the candidates each with a "Use this" form, the id/link form, the none and retry forms, the notices, the "N more" note and the empty state.
   - **POST set, none and retry**: `requireOperator` first, then `readValidatedForm`, input validation (R5), the `MalActions` call with `Open`, the security event (R6), and a redirect with the notice.
   - **Program.fs**: register the endpoints with `RequireRateLimiting("review-write")` on the POSTs, and add the `review-write` policy (30 per minute per IP).
   - **Design**: impeccable shape → build → audit.
 
   · Handlers/Review/MalReview.fs, Program.fs
-- [ ] **T011** [US3] The account page's operator-only link (`data-review-link`) · Handlers/Account/AccountPage.fs
+- [x] **T011** [US3] The account page's operator-only link (`data-review-link`) · Handlers/Account/AccountPage.fs
 
 **Checkpoint**: an operator fixes seasons from the web, and everyone else gets 404.
 
@@ -91,8 +91,8 @@ Files: Handlers/Review/MalReview.fs, Handlers/Account/AccountPage.fs, Program.fs
 
 Files: Handlers/Review/MalReview.fs (the manual view and auto action only), tests/FrunchyBackend.Tests/MalReviewTests.fs (manual cases)
 
-- [ ] **T012** [US2] Add tests to `MalReviewTests`: the manual view lists manual decisions newest first, and "back to automatic" makes the row pending (requested) and drops it from the view. A stale form gets `not-open` · tests/FrunchyBackend.Tests/MalReviewTests.fs
-- [ ] **T013** [US2] `GET /review/mal/manual` and `POST /review/mal/auto` (with `Manual`), plus the tab links between the two views · Handlers/Review/MalReview.fs
+- [x] **T012** [US2] Add tests to `MalReviewTests`: the manual view lists manual decisions newest first, and "back to automatic" makes the row pending (requested) and drops it from the view. A stale form gets `not-open` · tests/FrunchyBackend.Tests/MalReviewTests.fs
+- [x] **T013** [US2] `GET /review/mal/manual` and `POST /review/mal/auto` (with `Manual`), plus the tab links between the two views · Handlers/Review/MalReview.fs
 
 ## Phase 5: Polish
 
