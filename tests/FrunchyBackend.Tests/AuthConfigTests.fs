@@ -3,8 +3,13 @@ module FrunchyBackend.Tests.AuthConfigTests
 open System
 open System.IO
 open System.Net
+open System.Net.Http
+open System.Threading
+open System.Threading.Tasks
 open System.Web
 open System.Text.Json
+open Microsoft.AspNetCore.Authentication.OpenIdConnect
+open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.TestHost
 open Microsoft.Extensions.Configuration
@@ -146,6 +151,133 @@ let ``a failed provider round trip shows the sign-in page, not an exception`` ()
 
         // A callback the handler can't correlate (here: a state it never issued)
         let! callback = app.Client.GetAsync "/signin-discord?code=abc&state=not-ours"
+        Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode)
+        Assert.Equal("/signin?error=failed", string callback.Headers.Location)
+    }
+
+// ---------------------------------------------------------------------------
+// Umbral (OpenID Connect)
+// ---------------------------------------------------------------------------
+
+[<Fact>]
+let ``an Umbral authority must be https, or http on localhost`` () =
+    for authority in [ "https://umbral.example"; "http://localhost:5173"; "http://127.0.0.1:5173" ] do
+        Assert.Equal(Ok(), validateAuthority "Umbral" authority)
+
+    for authority in [ "http://umbral.example"; ""; "not a url" ] do
+        match validateAuthority "Umbral" authority with
+        | Error message -> Assert.Contains("Frunchy:Auth:Providers:Umbral:Authority", message)
+        | Ok() -> failwith $"expected an error for '{authority}'"
+
+[<Fact>]
+let ``plain http metadata is allowed only on a loopback host`` () =
+    Assert.True(allowsHttpMetadata "http://localhost:5173")
+    Assert.True(allowsHttpMetadata "http://127.0.0.1:5173")
+    Assert.False(allowsHttpMetadata "https://umbral.example")
+    Assert.False(allowsHttpMetadata "https://localhost:5173")
+    Assert.False(allowsHttpMetadata "http://umbral.example")
+
+[<Fact>]
+let ``the site refuses to start with Umbral on a plain http authority`` () =
+    let ex =
+        Assert.Throws<InvalidOperationException>(fun () ->
+            Program.buildApp Array.empty (fun builder ->
+                builder.WebHost.UseTestServer() |> ignore
+
+                builder.Configuration.AddInMemoryCollection(
+                    dict
+                        [ "ConnectionStrings:Database", "Host=unused"
+                          Program.WorkerEnabledKey, "false"
+                          "Frunchy:Auth:Providers:Umbral:Enabled", "true"
+                          "Frunchy:Auth:Providers:Umbral:ClientId", "id"
+                          "Frunchy:Auth:Providers:Umbral:ClientSecret", "secret"
+                          "Frunchy:Auth:Providers:Umbral:Authority", "http://umbral.example" ]
+                )
+                |> ignore)
+            |> ignore)
+
+    Assert.Contains("Frunchy:Auth:Providers:Umbral:Authority", ex.Message)
+
+/// Answers Umbral's discovery document and records every request, so no network is used
+type private FakeUmbral() =
+    inherit HttpMessageHandler()
+    member val Requests = Collections.Concurrent.ConcurrentQueue<string>()
+
+    override this.SendAsync(request: HttpRequestMessage, _: CancellationToken) : Task<HttpResponseMessage> =
+        this.Requests.Enqueue(string request.RequestUri)
+
+        let body =
+            if request.RequestUri.AbsolutePath = "/.well-known/openid-configuration" then
+                """{ "issuer": "http://localhost:5173/",
+                     "authorization_endpoint": "http://localhost:5173/connect/authorize",
+                     "token_endpoint": "http://localhost:5173/connect/token",
+                     "jwks_uri": "http://localhost:5173/.well-known/jwks",
+                     "response_types_supported": [ "code" ],
+                     "subject_types_supported": [ "public" ],
+                     "id_token_signing_alg_values_supported": [ "RS256" ],
+                     "code_challenge_methods_supported": [ "S256" ] }"""
+            else
+                """{ "keys": [] }"""
+
+        Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK, Content = new StringContent(body, Text.Encoding.UTF8, "application/json")))
+
+let private umbralSettings =
+    [ "Frunchy:Auth:Providers:Umbral:Enabled", "true"
+      "Frunchy:Auth:Providers:Umbral:ClientId", "umbral-client-id"
+      "Frunchy:Auth:Providers:Umbral:ClientSecret", "umbral-secret"
+      "Frunchy:Auth:Providers:Umbral:Authority", "http://localhost:5173" ]
+
+let private withFakeUmbral (fake: FakeUmbral) (builder: WebApplicationBuilder) =
+    builder.Services.Configure<OpenIdConnectOptions>("umbral", Action<OpenIdConnectOptions>(fun o -> o.BackchannelHttpHandler <- fake))
+    |> ignore
+
+[<Fact>]
+let ``the Umbral challenge sends an authorization code request with PKCE and the openid scope`` () =
+    task {
+        let! db = PostgresFixture.newDatabase ()
+        let fake = new FakeUmbral()
+        use! app = PostgresFixture.createAppWith db umbralSettings (withFakeUmbral fake)
+
+        let! response = app.Client.GetAsync "/signin/umbral"
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
+
+        let location = response.Headers.Location
+        Assert.Equal("localhost", location.Host)
+        Assert.Equal(5173, location.Port)
+        Assert.Equal("/connect/authorize", location.AbsolutePath)
+
+        let query = HttpUtility.ParseQueryString location.Query
+        Assert.Equal("umbral-client-id", query["client_id"])
+        Assert.Equal("code", query["response_type"])
+        Assert.Equal("openid", query["scope"])
+        Assert.Equal("S256", query["code_challenge_method"])
+        Assert.False(String.IsNullOrEmpty query["code_challenge"])
+        // response_mode=query: the handler omits it, as the default for the code flow (form_post would be sent)
+        Assert.Null query["response_mode"]
+        Assert.EndsWith("/signin-umbral", query["redirect_uri"])
+        Assert.Null query["prompt"]
+
+        // Discovery ran against the configured Authority, over plain http (allowed on localhost)
+        Assert.Contains("http://localhost:5173/.well-known/openid-configuration", fake.Requests)
+
+        // The correlation and nonce cookies are SameSite=Lax, not Secure over http
+        let cookies = response.Headers.GetValues "Set-Cookie" |> List.ofSeq
+
+        for prefix in [ ".AspNetCore.Correlation."; ".AspNetCore.OpenIdConnect.Nonce." ] do
+            let cookie = cookies |> List.find (fun c -> c.StartsWith prefix) |> fun c -> c.ToLowerInvariant()
+            Assert.Contains("samesite=lax", cookie)
+            Assert.DoesNotContain("secure", cookie)
+    }
+
+[<Fact>]
+let ``a failed Umbral round trip shows the sign-in page, not an exception`` () =
+    task {
+        let! db = PostgresFixture.newDatabase ()
+        let fake = new FakeUmbral()
+        use! app = PostgresFixture.createAppWith db umbralSettings (withFakeUmbral fake)
+
+        // A callback the handler can't correlate (here: a state it never issued)
+        let! callback = app.Client.GetAsync "/signin-umbral?code=abc&state=not-ours"
         Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode)
         Assert.Equal("/signin?error=failed", string callback.Headers.Location)
     }

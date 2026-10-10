@@ -79,6 +79,7 @@
     <PackageReference Include="Npgsql" Version="10.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="10.0.*" />
     <PackageReference Include="AspNet.Security.OAuth.Discord" Version="10.0.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.*" />
     <PackageReference Include="BellaBaxter.AspNet.Configuration" Version="0.1.1-preview.122" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.10.0" />
   </ItemGroup>

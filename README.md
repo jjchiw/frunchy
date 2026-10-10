@@ -184,7 +184,9 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 
 1. Register a free OAuth app. **Discord**: Developer Portal → OAuth2, redirect
    `http://localhost:5099/signin-discord`. **Google**: Cloud Console → Credentials → OAuth client ID (Web),
-   redirect `http://localhost:5099/signin-google`.
+   redirect `http://localhost:5099/signin-google`. **Umbral** (our self-hosted OpenID Connect provider, run
+   from its own repo on `http://localhost:5173`): admin UI → Apps, redirect `http://localhost:5099/signin-umbral`;
+   its `Authority` is already in `appsettings.json`.
 2. Store the credentials **outside the repo**. Never put them in `appsettings*.json` (a test enforces this).
    - **Bella Baxter** (our own secrets manager, recommended). In the Bella project `Frunchy`, environment
      `development`, add the secrets with `__` as the section separator:

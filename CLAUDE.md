@@ -60,7 +60,7 @@ ImportProcessorService → processNext: claim the oldest pending import (FOR UPD
 - **Unresolved entries** create a stub `cr_episodes` row (no `duration_ms`). They're excluded from the figures until a later page brings the details.
 - **Paging fields** (`page` cursor, `total`, `meta`) are opaque and never read.
 
-**Browser auth (feature 002)** uses ASP.NET Core's own handlers: Google (first-party) and Discord (`AspNet.Security.OAuth.Discord`). No identity server. `Infrastructure/WebAuth.fs` holds two cookie schemes:
+**Browser auth (feature 002)** uses ASP.NET Core's own handlers: Google (first-party), Discord (`AspNet.Security.OAuth.Discord`) and Umbral, our self-hosted OpenID Connect provider (separate repo; `AddOpenIdConnect`, code + PKCE, `response_mode=query`, `Authority` in config, https unless loopback). No identity server in this repo. `Infrastructure/WebAuth.fs` holds two cookie schemes:
 - `frunchy.external`: 10 minutes, carries `(provider, provider user id)` from the provider callback to `/signin/complete`, which acts in one of 3 modes (signin, link, reconfirm, passed in the challenge properties);
 - `frunchy.session`: 30 days sliding, with an `auth_time` claim. Generating a key and deleting the account use `requireFresh`, which needs a sign-in within 10 minutes; otherwise `/signin/reconfirm` sends the user back to the same provider.
 

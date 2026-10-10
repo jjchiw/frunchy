@@ -10,6 +10,8 @@ open Microsoft.AspNetCore.Authentication
 open Microsoft.AspNetCore.Authentication.Cookies
 open Microsoft.AspNetCore.Authentication.Google
 open Microsoft.AspNetCore.Authentication.OAuth
+open Microsoft.AspNetCore.Authentication.OpenIdConnect
+open Microsoft.IdentityModel.Protocols.OpenIdConnect
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.DataProtection
 open Microsoft.AspNetCore.Http
@@ -116,7 +118,8 @@ let localizationOptions () =
 let dbConfigFrom (config: IConfiguration) : DbConfig =
     { connectionString = config.GetConnectionString "Database" }
 
-/// Provider round-trip settings shared by Google and Discord:
+/// Provider round-trip settings shared by every provider (the OAuth and OpenID Connect handlers only
+/// share RemoteAuthenticationOptions, so `roundTrip` and `oidcRoundTrip` wire their own events):
 /// - `prompt=` on the authorization URL when a round trip asks for it (re-confirmation);
 /// - a failed or cancelled round trip (the user pressed Cancel, a reloaded callback, "Correlation
 ///   failed") is logged and lands on the sign-in page's "try again" message, or on the account page
@@ -124,42 +127,67 @@ let dbConfigFrom (config: IConfiguration) : DbConfig =
 /// - the correlation cookie is SameSite=Lax and secure only on https. The default (None + Secure)
 ///   breaks over plain http in some browsers; Lax cookies are still sent on the provider's
 ///   top-level redirect back.
-let private roundTrip (options: OAuthOptions) =
+let private laxCorrelation (options: RemoteAuthenticationOptions) =
     options.CorrelationCookie.SameSite <- SameSiteMode.Lax
     options.CorrelationCookie.SecurePolicy <- CookieSecurePolicy.SameAsRequest
 
+let private promptOf (properties: AuthenticationProperties) =
+    match properties.Items.TryGetValue WebAuth.PromptKey with
+    | true, prompt when not (String.IsNullOrEmpty prompt) -> Some prompt
+    | _ -> None
+
+let private remoteFailed (context: RemoteFailureContext) : Task =
+    context.HttpContext
+        .GetLogger("Frunchy.SignIn")
+        .LogWarning(context.Failure, "Sign-in with {Scheme} failed: {Reason}", context.Scheme.Name, context.Failure.Message)
+
+    let mode =
+        match context.Properties with
+        | null -> None
+        | p ->
+            match p.Items.TryGetValue WebAuth.ModeKey with
+            | true, m -> Some m
+            | _ -> None
+
+    context.Response.Redirect(
+        match mode with
+        | Some "link" -> "/account?msg=link-failed"
+        | Some "reconfirm" -> "/account?msg=reconfirm-failed"
+        | _ -> "/signin?error=failed"
+    )
+
+    context.HandleResponse()
+    Task.CompletedTask
+
+/// Google and Discord (OAuth handlers)
+let private roundTrip (options: OAuthOptions) =
+    laxCorrelation options
+
     options.Events.OnRedirectToAuthorizationEndpoint <-
         fun context ->
-            match context.Properties.Items.TryGetValue WebAuth.PromptKey with
-            | true, prompt when not (String.IsNullOrEmpty prompt) ->
-                context.Response.Redirect(context.RedirectUri + "&prompt=" + Uri.EscapeDataString prompt)
-            | _ -> context.Response.Redirect context.RedirectUri
+            match promptOf context.Properties with
+            | Some prompt -> context.Response.Redirect(context.RedirectUri + "&prompt=" + Uri.EscapeDataString prompt)
+            | None -> context.Response.Redirect context.RedirectUri
 
             Task.CompletedTask
 
-    options.Events.OnRemoteFailure <-
+    options.Events.OnRemoteFailure <- Func<RemoteFailureContext, Task> remoteFailed
+
+/// Umbral (OpenID Connect handler). Its nonce cookie gets the correlation cookie's settings, for the
+/// same reason.
+let private oidcRoundTrip (options: OpenIdConnectOptions) =
+    laxCorrelation options
+    options.NonceCookie.SameSite <- SameSiteMode.Lax
+    options.NonceCookie.SecurePolicy <- CookieSecurePolicy.SameAsRequest
+
+    options.Events.OnRedirectToIdentityProvider <-
         fun context ->
-            context.HttpContext
-                .GetLogger("Frunchy.SignIn")
-                .LogWarning(context.Failure, "Sign-in with {Scheme} failed: {Reason}", context.Scheme.Name, context.Failure.Message)
+            promptOf context.Properties
+            |> Option.iter (fun prompt -> context.ProtocolMessage.Prompt <- prompt)
 
-            let mode =
-                match context.Properties with
-                | null -> None
-                | p ->
-                    match p.Items.TryGetValue WebAuth.ModeKey with
-                    | true, m -> Some m
-                    | _ -> None
-
-            context.Response.Redirect(
-                match mode with
-                | Some "link" -> "/account?msg=link-failed"
-                | Some "reconfirm" -> "/account?msg=reconfirm-failed"
-                | _ -> "/signin?error=failed"
-            )
-
-            context.HandleResponse()
             Task.CompletedTask
+
+    options.Events.OnRemoteFailure <- Func<RemoteFailureContext, Task> remoteFailed
 
 /// A provider's ClientId and ClientSecret are bound from its configuration section instead of
 /// copied once, so a secret rotated in Bella Baxter is used on the next sign-in, without a restart
@@ -230,6 +258,40 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
 
             bindCredentials<DiscordAuthenticationOptions> config services "discord" "Discord"
             services.AddSingleton<AuthConfig.FrunchyProvider>(AuthConfig.provider "discord" "Discord" "discord" (Some "consent"))
+            |> ignore
+        | "Umbral" ->
+            match AuthConfig.validateAuthority "Umbral" config["Frunchy:Auth:Providers:Umbral:Authority"] with
+            | Error message -> raise (InvalidOperationException message)
+            | Ok() -> ()
+
+            auth.AddOpenIdConnect(
+                "umbral",
+                fun o ->
+                    o.SignInScheme <- WebAuth.ExternalScheme
+                    o.CallbackPath <- PathString "/signin-umbral"
+                    o.ResponseType <- OpenIdConnectResponseType.Code // the only flow Umbral offers
+                    o.UsePkce <- true // required by Umbral (S256, the handler's method)
+                    // Back on a top-level GET like Google and Discord, so the Lax cookies are sent
+                    // (the default, form_post, is a cross-site POST in production, which drops them)
+                    o.ResponseMode <- OpenIdConnectResponseMode.Query
+                    o.MapInboundClaims <- true // sub → ClaimTypes.NameIdentifier, what WebAuth.tryExternalResult reads
+                    o.Scope.Clear()
+                    o.Scope.Add "openid" // only the stable id is used (FR-021)
+                    oidcRoundTrip o
+            )
+            |> ignore
+
+            // Binds ClientId, ClientSecret and Authority
+            bindCredentials<OpenIdConnectOptions> config services "umbral" "Umbral"
+
+            // After the binding, so it judges the bound Authority (a rotated one too)
+            services.Configure<OpenIdConnectOptions>(
+                "umbral",
+                Action<OpenIdConnectOptions>(fun o -> o.RequireHttpsMetadata <- not (AuthConfig.allowsHttpMetadata o.Authority))
+            )
+            |> ignore
+
+            services.AddSingleton<AuthConfig.FrunchyProvider>(AuthConfig.provider "umbral" "Umbral" "umbral" (Some "login"))
             |> ignore
         | _ -> ()
 

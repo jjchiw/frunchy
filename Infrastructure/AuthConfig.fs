@@ -12,7 +12,7 @@ type ProviderSettings =
       ClientSecret: string }
 
 /// Providers this build knows how to register
-let known = [ "Google"; "Discord" ]
+let known = [ "Google"; "Discord"; "Umbral" ]
 
 let read (config: IConfiguration) : ProviderSettings list =
     [ for name in known ->
@@ -40,7 +40,22 @@ let validate (settings: ProviderSettings list) : Result<unit, string> =
         | Some message -> Error message
         | None -> Ok()
 
-/// A sign-in provider registered with the app (Google, Discord; the tests add "test")
+/// An OpenID Connect provider's keys and endpoints come from the discovery document at its Authority,
+/// so plain http is accepted only on a loopback host (local development, Umbral on http://localhost:5173)
+let allowsHttpMetadata (authority: string) =
+    match Uri.TryCreate(authority, UriKind.Absolute) with
+    | true, uri -> uri.Scheme = Uri.UriSchemeHttp && uri.IsLoopback
+    | _ -> false
+
+/// An enabled OpenID Connect provider needs an https Authority (http only on localhost), checked at startup
+let validateAuthority (name: string) (authority: string) : Result<unit, string> =
+    match Uri.TryCreate(authority, UriKind.Absolute) with
+    | true, uri when uri.Scheme = Uri.UriSchemeHttps || allowsHttpMetadata authority -> Ok()
+    | _ ->
+        Error
+            $"Provider '{name}' is enabled but Frunchy:Auth:Providers:{name}:Authority is not an https URL (plain http is accepted only on localhost): '{authority}'"
+
+/// A sign-in provider registered with the app (Google, Discord, Umbral; the tests add "test")
 type FrunchyProvider =
     { /// Route key: /signin/{Name}
       Name: string
