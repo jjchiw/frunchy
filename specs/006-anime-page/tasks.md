@@ -104,13 +104,13 @@ Files: Handlers/Users/Dashboard.fs, Handlers/Users/Dna.fs (titles only), Handler
 
 **Wave 1, independent (different files):**
 
-- [ ] **T011** [P] Add the anime page to the every-page design-system check · tests/FrunchyBackend.Tests/DesignSystemTests.fs
-- [ ] **T012** [P] Add the anime page to the designer brief (5.4, real data only) · design/BRIEF.md
-- [ ] **T013** [P] Document the route, the data note and roadmap entry 006 · README.md, CLAUDE.md, FRONTEND.md, SCHEMA.md
+- [x] **T011** [P] Add the anime page to the every-page design-system check · tests/FrunchyBackend.Tests/DesignSystemTests.fs
+- [x] **T012** [P] Add the anime page to the designer brief (5.4, real data only) · design/BRIEF.md
+- [x] **T013** [P] Document the route, the data note and roadmap entry 006 · README.md, CLAUDE.md, FRONTEND.md, SCHEMA.md
 
 **⟶ Wait for Wave 1 to finish, then:**
 
-- [ ] **T014** Run the full `dotnet test` with 0 build warnings, and validate SC-001 to SC-005. Record the result in a new validation log · specs/006-anime-page/quickstart.md
+- [x] **T014** Run the full `dotnet test` with 0 build warnings, and validate SC-001 to SC-005. Record the result in a new validation log · specs/006-anime-page/quickstart.md
 
 ## Dependencies & Execution Order
 

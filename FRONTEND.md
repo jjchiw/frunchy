@@ -25,6 +25,7 @@ Everything comes from CDNs in `Views/Layout.fs`; there's no frontend build step.
 | `GET /signin`, `/signup`, `/claim` | `Handlers/Auth/*.fs` | provider buttons; invite + username + display name; "I already have an account" (sync key) |
 | `GET /u/{username}/dna` | `Handlers/Users/Dna.fs` | the Anime DNA (feature 004) |
 | `GET /u/{username}/year`, `/u/{username}/year/{year}` | `Handlers/Users/Year.fs` | the year in review (feature 005); the first redirects to the newest year with history |
+| `GET /u/{username}/anime/{seriesId}` | `Handlers/Users/Anime.fs` | one series as the user watched it (feature 006); series titles elsewhere link here |
 | `GET /account`, `/account/key`, `/account/delete` | `Handlers/Account/*.fs` | private owner pages: display name, connect extension (key shown once), Crunchyroll binding, sign-in methods, last 10 syncs, last 20 security events, deletion |
 
 The old placeholder `/dashboard` and `/profile` pages were removed in feature 001: they showed invented

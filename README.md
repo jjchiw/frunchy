@@ -31,6 +31,7 @@ Handlers/
 ├── Users/Dashboard.fs           GET  /u/{username}          public dashboard
 │   ├── Users/Dna.fs                 GET  /u/{username}/dna      Anime DNA (feature 004)
 │   ├── Users/Year.fs                GET  /u/{username}/year[/{year}]  year in review (feature 005)
+│   ├── Users/Anime.fs               GET  /u/{username}/anime/{seriesId}  one series (feature 006)
 ├── Auth/                        /signin, /signin/{provider}, /signin/complete, /signup, /claim, /signin/reconfirm, /signout
 ├── Account/                     /account, /account/key, /account/display-name, /account/binding/reset,
 │                                /account/link|unlink/{provider}, /account/delete   (signed-in owner only)
@@ -116,6 +117,7 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 - `GET /u/{username}`: public dashboard (series, episodes, hours, days, recent episodes), English or Spanish
 - `GET /u/{username}/dna`: the Anime DNA (favourite studio, dominant decade, genres and formats by watch time, insignia anime, 90-day viewing pace, totals), from 15 fully watched episodes; every MyAnimeList figure states its coverage
 - `GET /u/{username}/year/{year}`: the year in review (hours, episodes, series, new versus continued, month by month, most watched series, genres, top 3 studios, formats, longest streak) for one UTC calendar year, with a picker of the years that have history; `/u/{username}/year` goes to the newest one
+- `GET /u/{username}/anime/{seriesId}`: one series as that person watched it (episodes, hours, first and latest watch, seasons with their MyAnimeList details, the episodes watched); every series title on the dashboard, DNA and year pages links to it
   from the browser's `Accept-Language`
 - Accounts (feature 002): `/signin`, `/signup`, `/claim` and the private `/account` pages. See
   [Accounts](#accounts) and [`contracts/web-account.md`](specs/002-social-login-accounts/contracts/web-account.md).
@@ -273,6 +275,7 @@ Features are built through spec-kit (`specs/###-name/`), in this order:
 | 003 | **MAL enrichment**: match Crunchyroll seasons to MyAnimeList through its official API (paced, retried, per distinct anime): genres, studios, format, scores; score, genres and "Top genres" on the dashboard; operator review commands | Implemented ([spec](specs/003-mal-enrichment/spec.md)) |
 | 004 | **Anime DNA profile + shared design system**: genre distribution, favourite studio, dominant decade, viewing pace, insignia anime; the whole site on the "Neo-Scrobble Profile" design system shared with the extension | Implemented ([spec](specs/004-anime-dna-design-system/spec.md)) |
 | 005 | **Year in review**: one calendar year of a profile (totals, months, most watched series, genres, studios, formats, new versus continued, longest streak), linked from the dashboard and the DNA page | Implemented ([spec](specs/005-year-in-review/year-in-review.spec.md)) |
+| 006 | **Anime page**: one series as a profile watched it (progress, seasons with MyAnimeList details, episodes), linked from every series title | Implemented ([spec](specs/006-anime-page/anime-page.spec.md)) |
 
 
 ## Key Design Decisions

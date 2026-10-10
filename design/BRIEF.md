@@ -166,6 +166,18 @@ The copy below is the site's real copy; keep it or propose better wording.
 > fewer than 15 fully watched episodes ("Not enough data for 2025 yet, 4 of 15"), Spanish, and
 > 360px (the chart must fit 12 months). No rankings, comparisons, share cards or image export.
 
+### 5.4 Anime page (`/u/{username}/anime/{seriesId}`, feature 006)
+> [context] A page for one series of a profile, already built from the components (no mockup yet),
+> to be refined. Header: poster, title, links "Dashboard", "Watch on Crunchyroll" and "Copy link", and
+> a small note that only the latest watch of each episode is kept. Four tiles: episodes watched,
+> hours, first watch, latest watch. Then one card per season the person watched, in order: season
+> title, audio language pill (and a "Dub" pill), "21 of 21 known episodes" with a progress bar, the
+> MyAnimeList details (title, format, season and year, score, episodes, airing status, genres,
+> studio, link; shown once when several seasons share one entry, a link only on the rest) or "Not
+> on MyAnimeList yet", and the episodes watched: number, title, minutes, "Watched" or "40% watched",
+> and when. Variants: a long series (One Piece: 7 seasons, 266 episodes), a dub next to its
+> original, an unmatched series, Spanish, 360px. No ratings, rankings or recommendations.
+
 ## 6. Browser extension
 
 The extension's own Claude session owns these screens and confirmed this list. The popup and the

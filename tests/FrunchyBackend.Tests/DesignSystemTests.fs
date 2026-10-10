@@ -180,6 +180,9 @@ let ``every page is on the design system and keeps its test hooks`` () =
         assertPage "dashboard" dashboard.Html [ "data-stat=\"series\""; "data-recent-item"; "data-dna-link"; "data-fr-time" ]
         let! year = anonymous.Get $"/u/animenerd/year/{DateTime.UtcNow.Year}"
         assertPage "year in review" year.Html [ "data-year=\""; "data-year-picker"; "data-rewatch-note"; "data-dashboard-link"; "data-dna-link" ]
+        let! seriesId = Db.scalar<string> app.Db "SELECT e.series_id FROM watch_events w JOIN cr_episodes e ON e.id = w.cr_episode_id WHERE e.duration_ms IS NOT NULL ORDER BY w.watched_at DESC, e.id LIMIT 1" []
+        let! anime = anonymous.Get $"/u/animenerd/anime/{seriesId}"
+        assertPage "anime page" anime.Html [ "data-anime=\""; "data-anime-totals"; "data-season="; "data-episode="; "data-dashboard-link"; "data-rewatch-note" ]
         let! dna = anonymous.Get "/u/animenerd/dna"
         assertPage "anime DNA" dna.Html [ "data-dna-totals"; "data-dashboard-link" ]
         let! empty = anonymous.Get "/u/nobody"

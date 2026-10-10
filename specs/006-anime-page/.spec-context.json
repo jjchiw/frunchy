@@ -3,7 +3,7 @@
   "specName": "Anime Page",
   "branch": "006-anime-page",
   "currentStep": "implement",
-  "status": "implementing",
+  "status": "completed",
   "history": [
     {
       "step": "specify",
@@ -154,16 +154,58 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-10-10T16:35:46.679Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T011",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:53:04.297Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T012",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:53:23.077Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T013",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:53:23.178Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T014",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T17:26:26.085Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T17:26:26.107Z"
     }
   ],
   "telemetryInstanceId": "5a22f3a3-2e7d-4d0f-b5cd-8632cbd348d5",
   "unattended": true,
-  "last_action": "living specs evaluated — skipped (not configured)",
+  "last_action": "all 14 tasks done, 287/288 tests pass (1 opt-in skip)",
   "coverage": {
     "FR-001": {
       "title": "The site MUST serve a public page at `/u/{username}/anime/{seriesId}`, in the viewer's language, with the same visibility as the dashboard.",
       "tasks": [
         "T006"
+      ],
+      "tests": [
+        "AnimeTests.fs"
       ]
     },
     "FR-002": {
@@ -171,6 +213,9 @@
       "tasks": [
         "T005",
         "T006"
+      ],
+      "tests": [
+        "AnimeTests.fs"
       ]
     },
     "FR-003": {
@@ -192,6 +237,9 @@
       "tasks": [
         "T005",
         "T006"
+      ],
+      "tests": [
+        "AnimeTests.fs"
       ]
     },
     "FR-006": {
@@ -237,6 +285,9 @@
         "T008",
         "T009",
         "T010"
+      ],
+      "tests": [
+        "AnimeLinkTests.fs"
       ]
     },
     "FR-012": {
@@ -244,6 +295,9 @@
       "tasks": [
         "T005",
         "T006"
+      ],
+      "tests": [
+        "AnimeTests.fs"
       ]
     },
     "FR-013": {
@@ -259,6 +313,9 @@
         "T006",
         "T011",
         "T014"
+      ],
+      "tests": [
+        "DesignSystemTests.fs::every page is on the design system and keeps its test hooks"
       ]
     }
   },
@@ -308,6 +365,16 @@
       "decision": "Drop the genre-name fallback for a missing top series",
       "why": "a link built from it would point at a series named after the genre",
       "rejected": "linking only when id differs from name"
+    },
+    {
+      "decision": "Show a MyAnimeList entry shared by several seasons once, compact link on the rest",
+      "why": "One Piece repeated the same block on all 7 seasons",
+      "rejected": "repeating the block"
+    },
+    {
+      "decision": "Implementation delegated to a Sonnet teammate, reviewed by the main session",
+      "why": "owner global instructions",
+      "rejected": "main session writing the code"
     }
   ],
   "step_summaries": {
@@ -317,10 +384,13 @@
     },
     "tasks": {
       "summary": "14 tasks: setup, 3 foundational (texts, components, DNA/year compile), US1 page (3), US2 links (3), polish (4)"
+    },
+    "implement": {
+      "summary": "Anime page shipped at /u/{username}/anime/{seriesId}, linked from every series title"
     }
   },
   "approach": "A new Handlers/Users/Anime.fs slice reads one user's watches of one series in one statement (totals, seasons with MyAnimeList details, episodes). A shared seriesLink component links titles from the dashboard, DNA and year pages.",
-  "currentTask": "T010",
+  "currentTask": "T014",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -398,6 +468,62 @@
         "Handlers/Users/Dna.fs",
         "Handlers/Users/Year.fs"
       ]
+    },
+    "T011": {
+      "status": "DONE",
+      "did": "anime page added to the every-page design-system check",
+      "files": [
+        "tests/FrunchyBackend.Tests/DesignSystemTests.fs"
+      ]
+    },
+    "T012": {
+      "status": "DONE",
+      "did": "designer brief 5.4 for the anime page, real data only",
+      "files": [
+        "design/BRIEF.md"
+      ]
+    },
+    "T013": {
+      "status": "DONE",
+      "did": "route, data note and roadmap 006 in README, CLAUDE.md, FRONTEND.md, SCHEMA.md",
+      "files": [
+        "README.md",
+        "CLAUDE.md",
+        "FRONTEND.md",
+        "SCHEMA.md"
+      ]
+    },
+    "T014": {
+      "status": "DONE",
+      "did": "full suite 287 passed, 1 skipped, 0 warnings; SC-001..SC-005 validated; validation log written",
+      "files": [
+        "specs/006-anime-page/quickstart.md"
+      ]
     }
-  }
+  },
+  "verified": [
+    {
+      "what": "build with 0 warnings",
+      "command": "dotnet build",
+      "source": "derived",
+      "exitCode": 0,
+      "durationSeconds": 1.4,
+      "result": "    0 Warning(s) ·     0 Error(s) · Time Elapsed 00:00:01.19"
+    },
+    {
+      "what": "full test suite",
+      "command": "dotnet test",
+      "result": "287 passed, 1 skipped (opt-in recording), 0 failed"
+    },
+    {
+      "what": "review of the Sonnet agent diffs (b62190b, ebe46e5, 9407229)",
+      "command": "manual review",
+      "result": "accepted after one fix (shared MyAnimeList entry repeated per season)"
+    },
+    {
+      "what": "real data /u/jjchiw/anime/GRMG8ZQZR in the cmux browser",
+      "command": "manual",
+      "result": "266 episodes, 106.4 h, 7 seasons, ~35 ms warm"
+    }
+  ]
 }
