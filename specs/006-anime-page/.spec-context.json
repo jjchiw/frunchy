@@ -2,8 +2,8 @@
   "workflow": "companion",
   "specName": "Anime Page",
   "branch": "006-anime-page",
-  "currentStep": "plan",
-  "status": "planned",
+  "currentStep": "tasks",
+  "status": "ready-to-implement",
   "history": [
     {
       "step": "specify",
@@ -46,6 +46,27 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-10-10T16:16:34.769Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-10T16:16:34.942Z"
+    },
+    {
+      "step": "tasks",
+      "substep": "generate",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:17:16.632Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T16:17:17.155Z"
     }
   ],
   "telemetryInstanceId": "5a22f3a3-2e7d-4d0f-b5cd-8632cbd348d5",
@@ -53,46 +74,105 @@
   "last_action": "living specs evaluated — skipped (not configured)",
   "coverage": {
     "FR-001": {
-      "title": "The site MUST serve a public page at `/u/{username}/anime/{seriesId}`, in the viewer's language, with the same visibility as the dashboard."
+      "title": "The site MUST serve a public page at `/u/{username}/anime/{seriesId}`, in the viewer's language, with the same visibility as the dashboard.",
+      "tasks": [
+        "T006"
+      ]
     },
     "FR-002": {
-      "title": "An unknown or deleted user, a series id outside Crunchyroll's id alphabet, or a series with no watched episode with a known length for that user MUST get the no"
+      "title": "An unknown or deleted user, a series id outside Crunchyroll's id alphabet, or a series with no watched episode with a known length for that user MUST get the no",
+      "tasks": [
+        "T005",
+        "T006"
+      ]
     },
     "FR-003": {
-      "title": "The header MUST show the series title (the stored series title, else the episodes' series title), a poster (the MyAnimeList image of the user's most-watched mat"
+      "title": "The header MUST show the series title (the stored series title, else the episodes' series title), a poster (the MyAnimeList image of the user's most-watched mat",
+      "tasks": [
+        "T005",
+        "T006"
+      ]
     },
     "FR-004": {
-      "title": "When the series has a stored slug, the header MUST link to `https://www.crunchyroll.com/series/{id}/{slug}`, opening in a new tab."
+      "title": "When the series has a stored slug, the header MUST link to `https://www.crunchyroll.com/series/{id}/{slug}`, opening in a new tab.",
+      "tasks": [
+        "T005",
+        "T006"
+      ]
     },
     "FR-005": {
-      "title": "The page MUST show the user's fully watched episodes and hours for the series, following the dashboard's rules restricted to that series."
+      "title": "The page MUST show the user's fully watched episodes and hours for the series, following the dashboard's rules restricted to that series.",
+      "tasks": [
+        "T005",
+        "T006"
+      ]
     },
     "FR-006": {
-      "title": "The page MUST show the first and the latest watch Frunchy holds for the series, and say that only the latest watch of each episode is kept."
+      "title": "The page MUST show the first and the latest watch Frunchy holds for the series, and say that only the latest watch of each episode is kept.",
+      "tasks": [
+        "T002",
+        "T006"
+      ]
     },
     "FR-007": {
-      "title": "Seasons MUST be listed in Crunchyroll's season order (season number, then id), and only those with at least one watched episode."
+      "title": "Seasons MUST be listed in Crunchyroll's season order (season number, then id), and only those with at least one watched episode.",
+      "tasks": [
+        "T005",
+        "T006"
+      ]
     },
     "FR-008": {
-      "title": "Each season MUST show its title, its audio language, a dub mark when it is a dub of another season, and its fully watched episodes out of the episodes Frunchy k"
+      "title": "Each season MUST show its title, its audio language, a dub mark when it is a dub of another season, and its fully watched episodes out of the episodes Frunchy k",
+      "tasks": [
+        "T005",
+        "T006"
+      ]
     },
     "FR-009": {
-      "title": "A matched season MUST show its MyAnimeList title, format, year and season, score (when it has one), episode count (when known), airing status, up to 3 genres, t"
+      "title": "A matched season MUST show its MyAnimeList title, format, year and season, score (when it has one), episode count (when known), airing status, up to 3 genres, t",
+      "tasks": [
+        "T002",
+        "T005",
+        "T006"
+      ]
     },
     "FR-010": {
-      "title": "Each season MUST list the user's watched episodes in episode-number order (numberless ones last, by title), each with its number or special label, title, length"
+      "title": "Each season MUST list the user's watched episodes in episode-number order (numberless ones last, by title), each with its number or special label, title, length",
+      "tasks": [
+        "T005",
+        "T006"
+      ]
     },
     "FR-011": {
-      "title": "The dashboard's recent cards, the DNA page's insignia anime and genre top anime, and the year page's most watched series and genre top anime MUST link their ser"
+      "title": "The dashboard's recent cards, the DNA page's insignia anime and genre top anime, and the year page's most watched series and genre top anime MUST link their ser",
+      "tasks": [
+        "T003",
+        "T008",
+        "T009",
+        "T010"
+      ]
     },
     "FR-012": {
-      "title": "Every figure MUST be computed from stored data when the page is viewed, with no call to MyAnimeList and no new stored data, and MUST be identical after `user-re"
+      "title": "Every figure MUST be computed from stored data when the page is viewed, with no call to MyAnimeList and no new stored data, and MUST be identical after `user-re",
+      "tasks": [
+        "T005",
+        "T006"
+      ]
     },
     "FR-013": {
-      "title": "The page MUST NOT show ratings of the user's own, rankings, recommendations or anything without a real data source. Every visible text comes from the site's Eng"
+      "title": "The page MUST NOT show ratings of the user's own, rankings, recommendations or anything without a real data source. Every visible text comes from the site's Eng",
+      "tasks": [
+        "T002",
+        "T006"
+      ]
     },
     "FR-014": {
-      "title": "The page MUST use the shared design system and components, work from 360px wide in both languages, and meet WCAG 2.1 AA contrast."
+      "title": "The page MUST use the shared design system and components, work from 360px wide in both languages, and meet WCAG 2.1 AA contrast.",
+      "tasks": [
+        "T006",
+        "T011",
+        "T014"
+      ]
     }
   },
   "size": "normal",
@@ -147,6 +227,9 @@
     "plan": {
       "summary": "Plan, research, data model and contract for a one-slice anime page plus links from three pages",
       "key_finding": "the dashboard recent cards do not carry the series id; adding it as the last column keeps existing indices"
+    },
+    "tasks": {
+      "summary": "14 tasks: setup, 3 foundational (texts, components, DNA/year compile), US1 page (3), US2 links (3), polish (4)"
     }
   },
   "approach": "A new Handlers/Users/Anime.fs slice reads one user's watches of one series in one statement (totals, seasons with MyAnimeList details, episodes). A shared seriesLink component links titles from the dashboard, DNA and year pages."
