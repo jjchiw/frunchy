@@ -3,7 +3,7 @@
   "specName": "Operators Managed by a Root Operator",
   "branch": "008-root-operator",
   "currentStep": "implement",
-  "status": "implemented",
+  "status": "completed",
   "history": [
     {
       "step": "specify",
@@ -355,6 +355,9 @@
     },
     "tasks": {
       "summary": "15 tasks: setup, 6 foundational, US1 (2), US2 (1), US3 (2), polish (3)"
+    },
+    "implement": {
+      "summary": "15 tasks by a Sonnet teammate; reviewed security first (404 before freshness and form, root-only limiter, root protected, events in the tx, cascade); one layout fix; 338 tests, 337 passed, 1 skipped, 0 warnings"
     }
   },
   "approach": "Root from Frunchy:RootOperator; operators in a new table read in the per-request user lookup; Infrastructure/OperatorActions shared by a root-only /review/operators page (404 first, fresh sign-in) and operator-* CLI commands.",
