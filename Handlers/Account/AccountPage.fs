@@ -259,7 +259,7 @@ let private dangerZone (t: Texts) =
         }
     }
 
-let view (ctx: HttpContext) (t: Texts) (providers: AuthConfig.FrunchyProvider list) (msg: string) (isOperator: bool) (m: AccountModel) =
+let view (ctx: HttpContext) (t: Texts) (providers: AuthConfig.FrunchyProvider list) (msg: string) (isOperator: bool) (isRoot: bool) (m: AccountModel) =
     let providerName (name: string) =
         providers |> List.tryFind (fun p -> p.Name = name) |> Option.map _.DisplayName |> Option.defaultValue name
 
@@ -274,10 +274,20 @@ let view (ctx: HttpContext) (t: Texts) (providers: AuthConfig.FrunchyProvider li
         | None -> Fragment()
 
         if isOperator then
-            div() {
-                a(href = "/review/mal", class' = btn Secondary).data("review-link", "") {
-                    icon Theme.Link
-                    t.ReviewAccountLink
+            div(class' = "space-y-3") {
+                p(class' = "text-body-md text-on-surface-variant").data("operator-status", "") { t.OperatorStatus }
+
+                div(class' = "flex flex-wrap gap-2") {
+                    a(href = "/review/mal", class' = btn Secondary).data("review-link", "") {
+                        icon Theme.Link
+                        t.ReviewAccountLink
+                    }
+
+                    if isRoot then
+                        a(href = "/review/operators", class' = btn Secondary).data("operators-link", "") {
+                            icon Theme.Shield
+                            t.OperatorsAccountLink
+                        }
                 }
             }
 
@@ -385,7 +395,7 @@ let handler: EndpointHandler =
             | Some model ->
                 let providers = ctx.RequestServices.GetServices<AuthConfig.FrunchyProvider>() |> List.ofSeq
                 let msg = ctx.TryGetQueryValue "msg" |> Option.defaultValue ""
-                return! ctx.WriteHtmlView(view ctx (Texts.current ()) providers msg (WebAuth.isOperator ctx) model)
+                return! ctx.WriteHtmlView(view ctx (Texts.current ()) providers msg (WebAuth.isOperator ctx) (WebAuth.isRoot ctx) model)
             | None ->
                 do! WebAuth.signOut ctx
                 return! WebAuth.redirectTo ctx "/signin"

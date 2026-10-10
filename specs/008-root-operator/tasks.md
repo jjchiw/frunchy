@@ -66,7 +66,7 @@ Files: Views/Layout.fs, Handlers/Review/Operators.fs, Program.fs (endpoints + `o
 
 Files: Handlers/Account/AccountPage.fs
 
-- [ ] **T010** [US2] The account page takes `isRoot`. Operators get the `data-operator-status` line, and the root also gets `data-operators-link`. Tests go in `OperatorsPageTests` · Handlers/Account/AccountPage.fs
+- [x] **T010** [US2] The account page takes `isRoot`. Operators get the `data-operator-status` line, and the root also gets `data-operators-link`. Tests go in `OperatorsPageTests` · Handlers/Account/AccountPage.fs
 
 ## Phase 5: User Story 3 - A way back in from the server (Priority: P2)
 

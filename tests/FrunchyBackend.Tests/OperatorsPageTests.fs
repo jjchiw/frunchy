@@ -351,3 +351,49 @@ let ``the page and its notices are in English and Spanish`` () =
         let! account = esEnv.Boss.Get "/account"
         Assert.Contains("Operador añadido", account.Html)
     }
+
+[<Fact>]
+let ``the account page tells operators what they are, and links the operators page for the root only`` () =
+    task {
+        use! env = newEnv (Some "boss")
+
+        let! root = env.Boss.Get "/account"
+        Assert.Contains("data-operator-status", root.Html)
+        Assert.Contains("You're an operator", root.Html.Replace("&#39;", "'"))
+        Assert.Contains("data-review-link", root.Html)
+        Assert.Contains("data-operators-link", root.Html)
+        Assert.Contains("href=\"/review/operators\"", root.Html)
+
+        let! opr = env.Opr.Get "/account"
+        Assert.Contains("data-operator-status", opr.Html)
+        Assert.Contains("data-review-link", opr.Html)
+        Assert.DoesNotContain("data-operators-link", opr.Html)
+        Assert.DoesNotContain("/review/operators", opr.Html)
+
+        let! pleb = env.Pleb.Get "/account"
+        Assert.DoesNotContain("data-operator-status", pleb.Html)
+        Assert.DoesNotContain("data-operators-link", pleb.Html)
+        Assert.DoesNotContain("/review/", pleb.Html)
+
+        // the line follows the table at once: a new operator sees it, and loses it when removed
+        let! _ = asRoot env "/review/operators/add" "newbie"
+        let! added = env.Newbie.Get "/account"
+        Assert.Contains("data-operator-status", added.Html)
+        let! _ = asRoot env "/review/operators/remove" "newbie"
+        let! removed = env.Newbie.Get "/account"
+        Assert.DoesNotContain("data-operator-status", removed.Html)
+
+        // in Spanish
+        use! es = newEnvIn "es" (Some "boss")
+        let! page = es.Boss.Get "/account"
+        Assert.Contains("Eres operador", page.Html)
+        Assert.Contains("Gestionar operadores", page.Html)
+
+        // no root configured: the table's operator still sees the line, nobody sees the link
+        use! none = newEnv None
+        let! oprPage = none.Opr.Get "/account"
+        Assert.Contains("data-operator-status", oprPage.Html)
+        let! bossPage = none.Boss.Get "/account"
+        Assert.DoesNotContain("data-operator-status", bossPage.Html)
+        Assert.DoesNotContain("data-operators-link", bossPage.Html)
+    }

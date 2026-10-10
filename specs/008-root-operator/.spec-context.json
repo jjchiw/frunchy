@@ -146,6 +146,14 @@
       "kind": "complete",
       "by": "ai",
       "at": "2026-10-10T22:11:21.359Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "task": "T010",
+      "kind": "complete",
+      "by": "ai",
+      "at": "2026-10-10T22:12:22.042Z"
     }
   ],
   "unattended": true,
@@ -303,7 +311,7 @@
     }
   },
   "approach": "Root from Frunchy:RootOperator; operators in a new table read in the per-request user lookup; Infrastructure/OperatorActions shared by a root-only /review/operators page (404 first, fresh sign-in) and operator-* CLI commands.",
-  "currentTask": "T009",
+  "currentTask": "T010",
   "task_summaries": {
     "T001": {
       "status": "DONE",
@@ -379,6 +387,14 @@
         "Views/Layout.fs",
         "Handlers/Review/Operators.fs",
         "Program.fs"
+      ]
+    },
+    "T010": {
+      "status": "DONE",
+      "did": "Account page takes isRoot: operator status line, root link to /review/operators; tests in OperatorsPageTests",
+      "files": [
+        "Handlers/Account/AccountPage.fs",
+        "tests/FrunchyBackend.Tests/OperatorsPageTests.fs"
       ]
     }
   }
