@@ -30,8 +30,9 @@
     held. Its results are `UnknownSeason`, `UnknownAnime`, `Unavailable` (also covers a missing
     client id) and `NotOpen`.
   - `setNone`: wraps `MalCatalog.writeManual db id None`.
-  - `retry`: today's `MalRetry.retry`, moved. It takes a season or series id, and the web passes the
-    season's series id.
+  - `retry`: today's `MalRetry.retry`, moved. It takes a season or series id. The web passes the
+    **season** id: the guard locks that season's row, and a series id would also requeue sibling
+    seasons that are already decided.
   - `backToAutomatic`: **new**. In one transaction, it sets the manual row and the dub rows that
     follow it back to `pending` (clearing mal_id, method, shared_from, candidates, reason, attempts,
     next_attempt_at and claimed_at, with `requested_at = now()`), then drops the series' stored

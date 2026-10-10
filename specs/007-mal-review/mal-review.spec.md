@@ -39,7 +39,7 @@ After each action the page comes back with a short notice of what changed, and t
 3. **Given** a season, **When** the operator enters a MyAnimeList id or a `myanimelist.net/anime/{id}` link that isn't stored yet, **Then** the anime is fetched once and the season matched. **Given** an id MyAnimeList doesn't know, **then** nothing changes and the notice says so.
 4. **Given** no MyAnimeList client id is configured, **When** the operator sets a match for an anime that isn't stored, **Then** nothing changes and the notice says the service isn't available.
 5. **Given** a season, **When** the operator marks it "not on MyAnimeList", **Then** it is recorded as a manual "no match", exactly as `mal-none` would, and automatic matching never changes it.
-6. **Given** a season, **When** the operator asks for a retry, **Then** its series is queued for automatic matching again, exactly as `mal-retry` would, with manual decisions kept.
+6. **Given** a season, **When** the operator asks for a retry, **Then** that season is queued for automatic matching again, exactly as `mal-retry <season>` would, with manual decisions kept.
 7. **Given** an original season with dubs that follow it, **When** the operator changes the original, **Then** the dubs change with it, as they do from the CLI.
 
 ### User Story 2 - Undo a manual decision (Priority: P2)
@@ -92,7 +92,7 @@ Only signed-in users named as operators in the site's configuration can see or u
   - for an ambiguous season, its stored candidates with title, format, year, MyAnimeList id and a link.
 - **FR-003**: Picking a candidate or entering a MyAnimeList id or `myanimelist.net/anime/{id}` link MUST set the season's match exactly as `mal-set` does: fetch the anime once when it isn't stored, refuse an id MyAnimeList doesn't know, and change nothing when the service or its client id is unavailable.
 - **FR-004**: Marking a season "not on MyAnimeList" MUST behave exactly as `mal-none`.
-- **FR-005**: Asking for a retry MUST behave exactly as `mal-retry` for the season's series.
+- **FR-005**: Asking for a retry MUST behave exactly as `mal-retry` given that season's id: the season (and its dubs) goes back to the front of the automatic queue, and the series' stored searches are dropped. Sibling seasons already decided are left alone.
 - **FR-006**: The CLI commands and the web actions MUST call the same shared functions, so their behaviour cannot drift.
 - **FR-007**: The manual view MUST list the manual decisions, and sending one back MUST make it a pending automatic match again.
 - **FR-008**: Only a signed-in user whose username is listed in the `Frunchy:Operators` setting MAY see the pages or take an action. Everyone else MUST get the site's not-found page with a not-found status, for pages and actions alike. The setting is empty by default.
