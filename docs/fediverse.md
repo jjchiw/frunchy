@@ -101,11 +101,20 @@ it; GoToSocial doesn't, so its users paste the post id or the series handle.
 - The `replies` collection holds only replies Megáfono has seen. A reply to a remote reply that doesn't
   reach our inbox never arrives.
 
-**Still to settle, asked of Megáfono:**
+**Settled with Megáfono (its commit 96f9008):**
 
-- The internal calls for updating and deleting a published comment.
-- Actor ids for series: `series-{crSeriesId}`, with handles kept apart from usernames.
-- Blocks are a separate Megáfono task. Frunchy doesn't announce series accounts widely until it lands.
+- **Edit and delete.** Comment edits use `PUT /internal/objects/{objectId}`, which sends Update(Note) to
+  the reply's recipients. `inReplyTo`, type and audience can't change. User deletes and operator
+  removals use `DELETE /internal/objects/{objectId}`, which sends a Tombstone and takes the comment out
+  of the replies collection. Copies already on other servers may stay.
+- **Ids.** Ids match `^[A-Za-z0-9_-]{1,64}$` and are never reused. Series use `series-{crSeriesId}`.
+  A Group lookup sends `type: "Group"`, `locked: false`, and the series page as `profileUrl`.
+- **Handles.** Megáfono allows lowercase letters, digits and underscore, up to 30 characters, so
+  series need a short handle, e.g. `frieren`, decided in Frunchy's spec and kept apart from usernames.
+  Frunchy usernames (`^[a-z0-9][a-z0-9_-]{2,29}$`) can contain dashes, including a trailing one, so
+  Megáfono's pending handle fix must accept that rule. Asked on 2026-10-10.
+- **Blocks.** A separate Megáfono task. Frunchy doesn't announce series accounts widely until it
+  lands, and until then hiding a comment hides it only on Frunchy.
 
 ## Decisions taken
 
