@@ -60,6 +60,53 @@ Every Frunchy user is also a Person account (`@username@frunchy.example`), keyed
 4. **The Megáfono integration:** the actor lookup (`/megafono/actors`), the webhook receiver
    (`/megafono/webhooks`, signature checked and events deduplicated by id), and publishing.
 
+## Megáfono 002 contract (agreed 2026-10-10)
+
+The Megáfono session drafted the shapes on its branch `002-replies-threads`, in
+`specs/002-replies-threads/contracts/` (app-contract.md, internal-api.md and federation.md).
+
+**Publishing a comment** uses the usual objects call, with `Idempotency-Key: comment:{id}`:
+
+```
+POST /internal/actors/{userId}/objects
+{ "audience": "public",
+  "object": { "type": "Note", "content": "<p>…</p>",
+              "url": ".../anime/{s}/episode/{e}#comment-{id}",
+              "inReplyTo": "<thread objectUrl, or a received reply's object.id>",
+              "summary": "Spoilers: S2 E5", "sensitive": true } }
+```
+
+- Replies are `public` or `unlisted`.
+- `inReplyTo` must be one of our objects or a reply Megáfono recorded. Anything else gets 400, and a
+  deleted parent gets 410.
+- The 201 response adds `thread: {objectId, id}`.
+
+**Thread posts** use the same call, from the series Group actor, with `Idempotency-Key:
+thread:{seriesId}:{episodeKey}`. The returned `objectUrl` goes in the episode page as `<link
+rel="alternate" type="application/activity+json">` and in a matching `Link` header. Mastodon follows
+it; GoToSocial doesn't, so its users paste the post id or the series handle.
+
+**Webhooks** all go to the thread root's author, the series Group:
+
+- `reply.received`: `object` = id, url, content (sanitized), summary, sensitive, language, published,
+  updated, audience, inReplyTo, `parent {local, objectId?, userId?}`, `thread {objectId, id}` and
+  attachment.
+- `reply.updated`: the same payload, with `updated` set.
+- `object.deleted`: `{object: {id, thread}, actor}`.
+
+**Frunchy's side:**
+
+- Public pages show only public and unlisted replies. Followers-only and direct replies are stored and
+  not shown.
+- The `replies` collection holds only replies Megáfono has seen. A reply to a remote reply that doesn't
+  reach our inbox never arrives.
+
+**Still to settle, asked of Megáfono:**
+
+- The internal calls for updating and deleting a published comment.
+- Actor ids for series: `series-{crSeriesId}`, with handles kept apart from usernames.
+- Blocks are a separate Megáfono task. Frunchy doesn't announce series accounts widely until it lands.
+
 ## Decisions taken
 
 - **Spoilers are content warnings.** A spoiler comment carries `summary` (e.g. "Spoilers: S2 E5") and
