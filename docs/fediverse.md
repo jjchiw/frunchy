@@ -100,6 +100,10 @@ it; GoToSocial doesn't, so its users paste the post id or the series handle.
   not shown.
 - The `replies` collection holds only replies Megáfono has seen. A reply to a remote reply that doesn't
   reach our inbox never arrives.
+- **A remote reply must reach the series account to show up.** In practice it has to keep the
+  `@series` mention, which clients prefill. GoToSocial sends nothing to Megáfono when the user deletes
+  the mention (tested on 0.22.2); Mastodon wasn't tested without it. The episode page and the help
+  text should say this.
 
 **Settled with Megáfono (its commit 96f9008):**
 
