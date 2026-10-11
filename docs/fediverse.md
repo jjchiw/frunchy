@@ -124,6 +124,18 @@ it; GoToSocial doesn't, so its users paste the post id or the series handle.
 - **Blocks.** A separate Megáfono task. Frunchy doesn't announce series accounts widely until it
   lands, and until then hiding a comment hides it only on Frunchy.
 
+**Megáfono 002 is implemented** (branch `002-replies-threads`, 2026-10-10; merging is the owner's call).
+It was verified against GoToSocial 0.22.2 and Mastodon 4.7.3. What a Frunchy integration should know:
+
+- Series Groups show on Mastodon as a group, not a bot, and follows are accepted at once.
+- A Mastodon reader who follows nobody sees our own replies at once, and replies from other servers
+  after Mastodon's crawl, about 5 minutes.
+- Pasting the episode URL finds the post on Mastodon. GoToSocial users paste the post's own URL.
+- On GoToSocial, a reply in a series thread shows in the thread view, not in followers' home timelines.
+- **References:** the contracts are in `specs/002-replies-threads/contracts/` and the "Replies and
+  threads" section of `docs/operating.md`, in the Megáfono repo. `samples/SampleApp/Megafono.fs` shows
+  the basic calls in about 70 lines.
+
 ## Decisions taken
 
 - **Spoilers are content warnings.** A spoiler comment carries `summary` (e.g. "Spoilers: S2 E5") and
