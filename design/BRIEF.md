@@ -178,6 +178,17 @@ The copy below is the site's real copy; keep it or propose better wording.
 > and when. Variants: a long series (One Piece: 7 seasons, 266 episodes), a dub next to its
 > original, an unmatched series, Spanish, 360px. No ratings, rankings or recommendations.
 
+### 5.5 Episode page with comments (`/anime/{seriesId}/episode/{episodeId}`, planned)
+> [context] Not built yet; the plan is in `docs/fediverse.md`. A public page per episode (not per
+> person): series and episode title, number, minutes, the season's MyAnimeList details, links to the
+> series and "Watch on Crunchyroll". Below it, comments: each has the author (a Frunchy user, or a
+> fediverse account such as `@bob@mastodon.social` with its server visible), when, and the text.
+> Spoilers are hidden behind a "Show spoiler" toggle with the author's warning text. A comment box
+> for signed-in users, with a "Contains spoilers" checkbox. Variants: no comments yet, a long thread,
+> a hidden comment ("Hidden by an operator"), signed out (a sign-in prompt instead of the box),
+> Spanish, 360px. Later, the page also shows the fediverse handle of the series account
+> (`@frieren@frunchy.example`) with a copy button, so people can follow it from Mastodon.
+
 ## 6. Browser extension
 
 The extension's own Claude session owns these screens and confirmed this list. The popup and the
