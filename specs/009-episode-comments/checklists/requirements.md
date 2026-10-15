@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,6 +31,7 @@
 
 ## Notes
 
-- Two open questions, marked in US2 and FR-007: who may comment, and the spoiler default.
+- Both open questions answered on 2026-10-15 (see the spec's Clarifications): any signed-in user
+  may comment, and "Contains spoilers" starts ticked.
 - Routes, the comment id pattern and the summary/sensitive pair are named on purpose: they are the
   shared shapes with Megáfono 002 (see Verbatim Constraints), as earlier specs name their routes.

@@ -8,6 +8,13 @@
 
 **Input**: "Public episode page with local comments: step 1 of `docs/fediverse.md`, built before the Megáfono integration and making no Megáfono calls. A public page per catalog episode, a comment thread on it with spoilers as content warnings, a dub and its original sharing one thread, operator moderation, and comments stored so that fediverse replies fit later."
 
+## Clarifications
+
+### Session 2026-10-15
+
+- Q: Who may comment: any signed-in user, or only one who has watched the episode? → A: Any signed-in user. Remote fediverse replies can't be checked against a watch history either, so one open rule fits both.
+- Q: What does "comments start hidden behind a spoiler toggle by default" (`docs/fediverse.md`) mean? → A: "Contains spoilers" starts ticked; the author unticks it for a spoiler-free comment. The thread itself isn't collapsed.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - One page per episode (Priority: P1)
@@ -41,8 +48,8 @@ Under the episode, a thread of comments. Each comment shows its author (display 
 
 **Acceptance Scenarios**:
 
-1. **Given** a signed-in user [NEEDS CLARIFICATION: any signed-in user, or only one who has watched the episode?], **When** they submit a comment, **Then** it appears in the thread with their name and the time, and the page shows it after the redirect.
-2. **Given** the "Contains spoilers" box ticked, **When** the comment is submitted, **Then** it is stored with a warning naming the season and episode and a spoiler flag, and readers see the warning with the text hidden until they open it.
+1. **Given** any signed-in user, whether or not they watched the episode, **When** they submit a comment, **Then** it appears in the thread with their name and the time, and the page shows it after the redirect.
+2. **Given** the "Contains spoilers" box, ticked by default, left ticked, **When** the comment is submitted, **Then** it is stored with a warning naming the season and episode and a spoiler flag, and readers see the warning with the text hidden until they open it.
 3. **Given** a comment that is empty, only whitespace, or longer than the limit, **When** it is submitted, **Then** nothing is stored and the page says why, keeping what was typed.
 4. **Given** a signed-out visitor, **When** they open the page, **Then** they read the thread and see a sign-in prompt that returns them to this page.
 5. **Given** no comments yet, **When** the page is shown, **Then** it says so plainly.
@@ -122,7 +129,7 @@ An operator (features 007 and 008) can hide any comment on the episode page, and
 
 **Comments**
 
-- **FR-007**: A signed-in user [NEEDS CLARIFICATION: any signed-in user, or only one who has watched the episode?] MUST be able to write a comment on an episode: plain text, 1 to 2,000 characters after trimming, with a "Contains spoilers" option [NEEDS CLARIFICATION: is "Contains spoilers" ticked by default, and is the whole thread collapsed until the reader opens it?].
+- **FR-007**: Any signed-in user MUST be able to write a comment on an episode, whether or not they watched it: plain text, 1 to 2,000 characters after trimming, with a "Contains spoilers" option that starts ticked, so a comment is a spoiler unless its author unticks it. The thread itself is shown open; only spoiler comments are hidden.
 - **FR-008**: A spoiler comment MUST store a warning text naming the season and episode ("Spoilers: S2 E5", or the special label) in the author's language, and a spoiler flag. Readers MUST see the warning and a "Show spoiler" toggle, with the text hidden until they open it.
 - **FR-009**: The thread MUST list every comment on the episode's group, oldest first, each with its author's display name and username (linking to their dashboard), its time in the site's time element, an "edited" mark when edited, and its text as plain text with line breaks kept.
 - **FR-010**: An episode's group MUST be computed when the page is viewed: the episode alone, or, when its season is a dub linked to an original season through MyAnimeList matching, every episode with the same episode number in the original season and in the seasons linked to it. A comment MUST stay attached to the episode it was written on, so regrouping never moves, changes or loses a comment.
