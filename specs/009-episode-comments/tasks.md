@@ -5,7 +5,7 @@
 
 **Tests**: required by constitution V. Integration tests run against real Postgres (Testcontainers) with the
 2026 sample and the feature 003 MyAnimeList fixtures. `AnimeTests.withSample` shows how to import and enrich
-it; season `GRK5CNJ14` is a dub with its original in the same series.
+it; season `GRK5CNJ14` is an original whose series also holds its dub (the season whose matched row has `method = 'dub'`).
 
 **Delegation**: Sonnet subagents write the code. The main session reviews each diff (plan "Security review
 points" first) and runs the tests. Load the `oxpecker` skill for routes and views, and the `impeccable`
@@ -58,7 +58,7 @@ page. Independent test: open matched, unmatched, dub and numberless episodes fro
 from the anime page.
 
 - [x] T007 [US1] `EpisodePageTests`:
-  - **Header (SC-001)**: for a matched episode, an unmatched one, a `GRK5CNJ14` dub episode and a numberless special, every header hook (`data-episode-number`, `-title`, `data-minutes`, `data-audio`, `data-dub`), both Crunchyroll links (`https://www.crunchyroll.com/watch/{e}`, and `/series/{id}/{slug}` only with a slug) and the MyAnimeList block (only when matched) equal a query over the catalog, in en and es.
+  - **Header (SC-001)**: for a matched episode, an unmatched one, a dub episode (`method = 'dub'` in `GRK5CNJ14`'s series) and a numberless special, every header hook (`data-episode-number`, `-title`, `data-minutes`, `data-audio`, `data-dub`), both Crunchyroll links (`https://www.crunchyroll.com/watch/{e}`, and `/series/{id}/{slug}` only with a slug) and the MyAnimeList block (only when matched) equal a query over the catalog, in en and es.
   - **404s**: lowercase or bad-alphabet ids (no query), an unknown episode, an unresolved stub, an episode of another series.
   - **Anyone**: signed out and signed in see the same header.
   - **Anime page**: every `data-episode` row has a `data-episode-link` whose href opens a 200 episode page.
@@ -104,7 +104,7 @@ Goal: comments on an original and its linked dub show on both pages. Independent
 unlink, relink.
 
 - [ ] T012 [US3] `CommentThreadGroupTests`, with the enriched sample:
-  - **Shared thread**: a comment on a `GRK5CNJ14` episode and one on the original season's episode with the same number both show on both pages, each with its own `data-episode`.
+  - **Shared thread**: a comment on an episode of that dub season and one on the original (`GRK5CNJ14`) episode with the same number both show on both pages, each with its own `data-episode`.
   - **Unlinking**: setting the dub's match to `no_match` (and `shared_from` to NULL) makes each page show only its own comments. The `comments` dump is unchanged.
   - **Relinking**: the thread is shared again.
   - **Own threads**: a numberless episode and a seasonless one keep their own thread.
