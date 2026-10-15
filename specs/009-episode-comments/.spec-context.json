@@ -2,8 +2,8 @@
   "workflow": "speckit",
   "specName": "Episode Page and Comments",
   "branch": "009-episode-comments",
-  "currentStep": "plan",
-  "status": "planned",
+  "currentStep": "tasks",
+  "status": "ready-to-implement",
   "history": [
     {
       "step": "specify",
@@ -18,6 +18,13 @@
       "kind": "start",
       "by": "extension",
       "at": "2026-10-15T21:31:30.028Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-15T21:35:34.168Z"
     }
   ],
   "telemetryInstanceId": "03c97599-d0ba-4016-8ea0-bb2793b89937"
