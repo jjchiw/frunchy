@@ -51,6 +51,7 @@ let endpoints =
       yield! Handlers.Episodes.Episode.endpoint
       yield! Handlers.Episodes.EditComment.endpoint
       Handlers.Episodes.DeleteComment.endpoint
+      yield! Handlers.Episodes.HideComment.endpoint
       // Feature 007: operators review MyAnimeList matches (404 for everyone else)
       yield! Handlers.Review.MalReview.endpoint
       // Feature 008: the root operator manages operators (404 for everyone else)

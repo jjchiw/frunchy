@@ -63,7 +63,9 @@ type Comment =
       Summary: string option
       Sensitive: bool
       CreatedAt: DateTime
-      EditedAt: DateTime option }
+      EditedAt: DateTime option
+      /// Hidden by an operator: a placeholder for everyone else
+      Hidden: bool }
 
 /// What the comment form shows: a freshly minted id, and after a refusal the typed text and the error
 type FormState =
@@ -198,29 +200,49 @@ let private header (t: Texts) (m: EpisodeModel) =
         | None -> Fragment()
     }
 
-/// The author's controls: edit (a link to the edit page) and delete (a POST). No script, no confirm dialog.
-let private authorControls (ctx: HttpContext) (t: Texts) (c: Comment) =
+/// The author's controls (edit is a link to the edit page, delete a POST) and the operators' (hide or unhide, a
+/// POST). No script, no confirm dialog.
+let private controls (ctx: HttpContext) (t: Texts) (isAuthor: bool) (isOperator: bool) (c: Comment) =
     div(class' = "flex flex-wrap items-center gap-2") {
-        a(href = $"/comments/{c.Id}/edit", class' = btnSm Ghost).data("comment-edit", "") { t.CommentEditTitle }
+        if isAuthor then
+            a(href = $"/comments/{c.Id}/edit", class' = btnSm Ghost).data("comment-edit", "") { t.CommentEditTitle }
 
-        form(method = "post", action = $"/comments/{c.Id}/delete").data("comment-delete", "") {
-            ctx.GetAntiforgeryInput()
-            button(type' = "submit", class' = btnSm Ghost) { t.CommentDelete }
-        }
+            form(method = "post", action = $"/comments/{c.Id}/delete").data("comment-delete", "") {
+                ctx.GetAntiforgeryInput()
+                button(type' = "submit", class' = btnSm Ghost) { t.CommentDelete }
+            }
+
+        if isOperator then
+            if c.Hidden then
+                form(method = "post", action = $"/comments/{c.Id}/unhide").data("comment-unhide", "") {
+                    ctx.GetAntiforgeryInput()
+                    button(type' = "submit", class' = btnSm Secondary) { t.CommentUnhide }
+                }
+            else
+                form(method = "post", action = $"/comments/{c.Id}/hide").data("comment-hide", "") {
+                    ctx.GetAntiforgeryInput()
+                    button(type' = "submit", class' = btnSm Ghost) { t.CommentHide }
+                }
     }
 
-/// One comment. `viewer` is the signed-in user: the author gets edit and delete here.
+/// One comment. `viewer` is the signed-in user: the author gets edit and delete, operators hide and unhide. A hidden
+/// comment is a placeholder for everyone but operators (the author included, who can still edit and delete it).
 let private commentView (ctx: HttpContext) (t: Texts) (viewer: Guid option) (c: Comment) =
     let isAuthor = (viewer = Some c.AuthorId)
+    let isOperator = WebAuth.isOperator ctx
+    let showBody = not c.Hidden || isOperator
 
     let body =
         p(class' = "whitespace-pre-line text-body-md text-on-surface [overflow-wrap:anywhere]") { c.Content }
 
-    li(id = $"comment-{c.Id}", class' = "space-y-2 py-4 first:pt-0 last:pb-0")
-        .data("comment", c.Id)
-        .data("author", c.Username)
-        .data("episode", c.EpisodeId)
-        .data("created", isoUtc c.CreatedAt) {
+    let el =
+        li(id = $"comment-{c.Id}", class' = "space-y-2 py-4 first:pt-0 last:pb-0")
+            .data("comment", c.Id)
+            .data("author", c.Username)
+            .data("episode", c.EpisodeId)
+            .data("created", isoUtc c.CreatedAt)
+
+    (if c.Hidden then el.data("hidden", "") else el) {
         div(class' = "flex flex-wrap items-baseline gap-x-3 gap-y-0.5") {
             a(href = $"/u/{c.Username}", class' = "text-body-md font-semibold text-on-surface [overflow-wrap:anywhere] hover:underline") {
                 c.DisplayName
@@ -230,9 +252,14 @@ let private commentView (ctx: HttpContext) (t: Texts) (viewer: Guid option) (c: 
 
             if c.EditedAt.IsSome then
                 span(class' = "text-label-md font-normal text-on-surface-variant").data("edited", "") { t.CommentEdited }
+
+            if c.Hidden && isOperator then
+                pill Muted t.CommentHiddenPlaceholder
         }
 
-        if c.Sensitive then
+        if not showBody then
+            p(class' = "text-body-md italic text-on-surface-variant").data("hidden-placeholder", "") { t.CommentHiddenPlaceholder }
+        elif c.Sensitive then
             details(class' = "rounded border border-outline-variant bg-surface-container px-4 py-3").data("spoiler", "") {
                 summary(class' = "flex cursor-pointer flex-wrap items-center justify-between gap-x-4 gap-y-1 text-label-md text-on-surface-variant")
                     .data("spoiler-summary", "") {
@@ -245,8 +272,8 @@ let private commentView (ctx: HttpContext) (t: Texts) (viewer: Guid option) (c: 
         else
             body
 
-        if isAuthor then
-            authorControls ctx t c
+        if isAuthor || isOperator then
+            controls ctx t isAuthor isOperator c
     }
 
 let private commentForm (ctx: HttpContext) (t: Texts) (m: EpisodeModel) (f: FormState) =
@@ -317,6 +344,9 @@ let private view (ctx: HttpContext) (t: Texts) (viewer: Guid option) (m: Episode
             | None -> signInPrompt t m
 
             thread ctx t viewer comments
+
+            if WebAuth.isOperator ctx then
+                p(class' = "text-label-md font-normal text-on-surface-variant").data("moderation-note", "") { t.CommentModerationNote }
         }
     }
     |> Layout.page ctx t (t.EpisodePageTitle m.SeriesTitle (episodeLabel t m))
@@ -429,7 +459,8 @@ let private loadThread (connection: NpgsqlConnection) (episodeIds: string list) 
             new NpgsqlCommand(
                 """
                 SELECT c.id, c.cr_episode_id, c.author_user_id, u.username, u.display_name,
-                       c.content, c.summary, c.sensitive, c.created_at, c.edited_at
+                       c.content, c.summary, c.sensitive, c.created_at, c.edited_at,
+                       c.hidden_at IS NOT NULL
                 FROM comments c
                 JOIN users u ON u.id = c.author_user_id
                 WHERE c.cr_episode_id = ANY(@episode_ids)
@@ -455,7 +486,8 @@ let private loadThread (connection: NpgsqlConnection) (episodeIds: string list) 
                   Summary = (if r.IsDBNull 6 then None else Some(r.GetString 6))
                   Sensitive = r.GetBoolean 7
                   CreatedAt = r.GetDateTime 8
-                  EditedAt = (if r.IsDBNull 9 then None else Some(r.GetDateTime 9)) }
+                  EditedAt = (if r.IsDBNull 9 then None else Some(r.GetDateTime 9))
+                  Hidden = r.GetBoolean 10 }
 
         return List.ofSeq rows
     }

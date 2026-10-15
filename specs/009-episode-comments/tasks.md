@@ -138,7 +138,7 @@ as another user and signed out.
 Goal: operators hide and unhide; outsiders can't tell the routes exist. Independent test: the access matrix
 and what each viewer sees.
 
-- [ ] T016 [US5] `CommentModerationTests`:
+- [x] T016 [US5] `CommentModerationTests`:
   - **Access**: a visitor and a regular user get 404 on POST hide/unhide (with and without a token) and never 429 after 35 POSTs, and nothing changes.
   - **Hiding (as an operator, via `OperatorActions.add … Server` and the root setting)**:
     - visitors and the author see `data-hidden-placeholder`;
@@ -150,7 +150,7 @@ and what each viewer sees.
   - **Unhide**: restores the comment as before.
 
   · tests/FrunchyBackend.Tests/CommentModerationTests.fs
-- [ ] T017 [US5] `HideComment.fs`: `POST /comments/{id}/hide` and `/unhide`, wrapped in `Layout.requireOperator` outermost, then `readValidatedForm`, then one transaction that updates `hidden_at`/`hidden_by` and records both events (`SecurityEvents.record`), then an information log line naming the operator, the author and the comment id, then a 302 to `#comment-{id}`. Unknown or deleted comments get 404. The episode page renders the hidden states and operator controls (research R12). Add the endpoints in Program.fs with `review-write` · Handlers/Episodes/HideComment.fs, Handlers/Episodes/Episode.fs, Program.fs
+- [x] T017 [US5] `HideComment.fs`: `POST /comments/{id}/hide` and `/unhide`, wrapped in `Layout.requireOperator` outermost, then `readValidatedForm`, then one transaction that updates `hidden_at`/`hidden_by` and records both events (`SecurityEvents.record`), then an information log line naming the operator, the author and the comment id, then a 302 to `#comment-{id}`. Unknown or deleted comments get 404. The episode page renders the hidden states and operator controls (research R12). Add the endpoints in Program.fs with `review-write` · Handlers/Episodes/HideComment.fs, Handlers/Episodes/Episode.fs, Program.fs
 
 ## Phase 8: Polish
 
