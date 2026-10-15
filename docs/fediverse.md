@@ -124,8 +124,11 @@ it; GoToSocial doesn't, so its users paste the post id or the series handle.
   keeps their identity, and nobody has federated yet, so there's no handle change to announce.
 - **Blocks.** A separate Megáfono task. Frunchy doesn't announce series accounts widely until it
   lands, and until then hiding a comment hides it only on Frunchy.
+- **Megáfono's next features** (as of 2026-10-15), both before series accounts are announced: actor
+  deletion (`DELETE /internal/actors/{id}`, which Frunchy's `/account/delete` will call), then
+  per-actor and per-instance blocks. Megáfono sends their contracts once they're specced.
 
-**Megáfono 002 is implemented** (branch `002-replies-threads`, 2026-10-10; merging is the owner's call).
+**Megáfono 002 is implemented** (2026-10-10) and on Megáfono's main since 2026-10-15 (merge 43fc4c5).
 It was verified against GoToSocial 0.22.2 and Mastodon 4.7.3. What a Frunchy integration should know:
 
 - Series Groups show on Mastodon as a group, not a bot, and follows are accepted at once.
@@ -149,15 +152,17 @@ It was verified against GoToSocial 0.22.2 and Mastodon 4.7.3. What a Frunchy int
   thousands of accounts.
 - **Threads are created lazily**, the first time an episode page is shown with federation on or when the
   first comment is written, so the catalog doesn't publish posts nobody reads.
+- **Any signed-in user may comment** (feature 009, 2026-10-15), whether or not they watched the
+  episode. Remote replies can't be checked against a watch history either, so one open rule fits both.
+  "Contains spoilers" starts ticked.
+- **Remote edits are kept.** Megáfono 002 sends an edited reply as `reply.updated`, with the same
+  payload and `updated` set; GoToSocial's reused activity ids are handled. (This closes the old
+  "Edits" question.)
 
 ## Open questions
 
-- **Edits.** Megáfono v1 only handles `Update` for actors, so an edited remote comment keeps its first
-  version. Acceptable at first; revisit with Megáfono.
 - **Episodes Frunchy hasn't seen.** A thread exists only for episodes in the catalog, which grows from
   imports. Should a series account announce every new episode, or only those someone has watched?
-- **Who may comment.** Any signed-in Frunchy user, or only someone who has watched the episode? Watched
-  only would be a nice anti-spoiler rule, and it's checkable from `watch_events`.
 - **Removing a remote comment.** Hiding it on Frunchy is easy, but the copies on other servers stay. The
   docs should say so, as Megáfono's do for followers-only posts.
 
