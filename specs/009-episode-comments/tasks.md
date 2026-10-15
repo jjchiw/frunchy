@@ -117,14 +117,14 @@ unlink, relink.
 Goal: authors edit and delete; nobody else can. Independent test: edit and delete as the author; force both
 as another user and signed out.
 
-- [ ] T014 [US4] `CommentEditTests`:
+- [x] T014 [US4] `CommentEditTests`:
   - **Edit**: the author changes the text and the spoiler flag. `data-edited` appears, `summary` is recomputed or cleared, and `audience`/`in_reply_to` are unchanged. A no-op edit doesn't set `edited_at`. Invalid input gives 422 with the edit page and the text kept.
   - **Delete**: the comment leaves every page. The row stays as a tombstone (`deleted_at` set, content `''`, summary NULL), and a create reusing its id stores nothing.
   - **Refusals (SC-006)**: another user, a signed-out visitor and an operator get 404 on GET/POST edit and POST delete, and nothing changes. A deleted comment's edit is 404.
   - **Controls**: only the author sees `data-comment-edit`/`data-comment-delete`.
 
   · tests/FrunchyBackend.Tests/CommentEditTests.fs
-- [ ] T015 [US4] Implement editing and deleting:
+- [x] T015 [US4] Implement editing and deleting:
   - **`EditComment.fs`**: `GET`/`POST /comments/{id}/edit` (`data-comment-edit-page`). The author check runs before reading the form, and anyone else gets 404.
   - **`DeleteComment.fs`**: `POST /comments/{id}/delete` writes the tombstone.
   - **Redirects**: both go to the comment's own episode page.

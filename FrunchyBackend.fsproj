@@ -29,6 +29,7 @@
     <Compile Include="Infrastructure/MalClient.fs" />
     <Compile Include="Infrastructure/MalActions.fs" />
     <Compile Include="Views/Texts.fs" />
+    <Compile Include="Infrastructure/CommentRules.fs" />
     <Compile Include="Views/Theme.fs" />
     <Compile Include="Views/Components.fs" />
     <Compile Include="Views/Layout.fs" />

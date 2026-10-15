@@ -198,9 +198,20 @@ let private header (t: Texts) (m: EpisodeModel) =
         | None -> Fragment()
     }
 
-/// One comment. `viewer` is the signed-in user: later stories hang the author's and operators' controls here.
-let private commentView (t: Texts) (viewer: Guid option) (c: Comment) =
-    ignore viewer
+/// The author's controls: edit (a link to the edit page) and delete (a POST). No script, no confirm dialog.
+let private authorControls (ctx: HttpContext) (t: Texts) (c: Comment) =
+    div(class' = "flex flex-wrap items-center gap-2") {
+        a(href = $"/comments/{c.Id}/edit", class' = btnSm Ghost).data("comment-edit", "") { t.CommentEditTitle }
+
+        form(method = "post", action = $"/comments/{c.Id}/delete").data("comment-delete", "") {
+            ctx.GetAntiforgeryInput()
+            button(type' = "submit", class' = btnSm Ghost) { t.CommentDelete }
+        }
+    }
+
+/// One comment. `viewer` is the signed-in user: the author gets edit and delete here.
+let private commentView (ctx: HttpContext) (t: Texts) (viewer: Guid option) (c: Comment) =
+    let isAuthor = (viewer = Some c.AuthorId)
 
     let body =
         p(class' = "whitespace-pre-line text-body-md text-on-surface [overflow-wrap:anywhere]") { c.Content }
@@ -233,6 +244,9 @@ let private commentView (t: Texts) (viewer: Guid option) (c: Comment) =
             }
         else
             body
+
+        if isAuthor then
+            authorControls ctx t c
     }
 
 let private commentForm (ctx: HttpContext) (t: Texts) (m: EpisodeModel) (f: FormState) =
@@ -281,13 +295,13 @@ let private signInPrompt (t: Texts) (m: EpisodeModel) =
         t.CommentSignInPrompt
     }
 
-let private thread (t: Texts) (viewer: Guid option) (comments: Comment list) =
+let private thread (ctx: HttpContext) (t: Texts) (viewer: Guid option) (comments: Comment list) =
     if comments.IsEmpty then
         (p(class' = "text-body-md text-on-surface-variant").data("thread-empty", "") { t.CommentsEmpty }) :> HtmlElement
     else
         (ol(class' = "divide-y divide-outline-variant/40") {
             for c in comments do
-                commentView t viewer c
+                commentView ctx t viewer c
         })
         :> HtmlElement
 
@@ -302,7 +316,7 @@ let private view (ctx: HttpContext) (t: Texts) (viewer: Guid option) (m: Episode
             | Some _ -> commentForm ctx t m f
             | None -> signInPrompt t m
 
-            thread t viewer comments
+            thread ctx t viewer comments
         }
     }
     |> Layout.page ctx t (t.EpisodePageTitle m.SeriesTitle (episodeLabel t m))
@@ -505,41 +519,9 @@ let private isOwnOnEpisode (connection: NpgsqlConnection) (id: string) (authorId
 // Rules (research R3, R7, R9)
 // ---------------------------------------------------------------------------
 
-/// Crunchyroll's id alphabet, checked before the database is touched
-let private idPattern = Regex(@"\A[A-Z0-9]{6,20}\z", RegexOptions.CultureInvariant)
-
-/// The comment id's alphabet (the `comments.id` CHECK)
-let private commentIdPattern = Regex(@"\A[A-Za-z0-9_-]{1,64}\z", RegexOptions.CultureInvariant)
-
 /// 16 random bytes as 22 characters of base64url
 let private mintId () =
     Base64Url.EncodeToString(RandomNumberGenerator.GetBytes 16)
-
-let private maxLength = 2000
-
-/// CRLF and CR folded to LF, control characters other than LF and TAB removed, broken surrogates replaced, trimmed
-let private normalize (raw: string) : string =
-    let folded = raw.Replace("\r\n", "\n").Replace("\r", "\n")
-    let sb = StringBuilder()
-
-    for rune in folded.EnumerateRunes() do
-        if not (Rune.IsControl rune) || rune.Value = 10 || rune.Value = 9 then
-            sb.Append(rune.ToString()) |> ignore
-
-    sb.ToString().Trim()
-
-let private runeCount (s: string) =
-    let mutable n = 0
-
-    for _ in s.EnumerateRunes() do
-        n <- n + 1
-
-    n
-
-/// The warning stored with a spoiler, in the author's language
-let private spoilerSummary (t: Texts) (m: EpisodeModel) =
-    let season = m.SeasonDisplay |> Option.orElse (m.SeasonNumber |> Option.map string)
-    t.SpoilerSummary season m.Number m.Label
 
 // ---------------------------------------------------------------------------
 // Handlers
@@ -561,7 +543,7 @@ let handler (seriesId: string) (episodeId: string) : EndpointHandler =
         task {
             let t = Texts.current ()
 
-            if not (idPattern.IsMatch seriesId && idPattern.IsMatch episodeId) then
+            if not (CommentRules.crunchyrollIdPattern.IsMatch seriesId && CommentRules.crunchyrollIdPattern.IsMatch episodeId) then
                 return! notFound ctx t
             else
                 use connection = getConnection (ctx.GetService<DbConfig>())
@@ -583,7 +565,7 @@ let createHandler (seriesId: string) (episodeId: string) : EndpointHandler =
             let t = Texts.current ()
             let! form = WebAuth.readValidatedForm ctx
 
-            if not (idPattern.IsMatch seriesId && idPattern.IsMatch episodeId) then
+            if not (CommentRules.crunchyrollIdPattern.IsMatch seriesId && CommentRules.crunchyrollIdPattern.IsMatch episodeId) then
                 return! notFound ctx t
             else
                 use connection = getConnection (ctx.GetService<DbConfig>())
@@ -599,8 +581,6 @@ let createHandler (seriesId: string) (episodeId: string) : EndpointHandler =
 
                     let spoiler = WebAuth.formValue form "spoiler" = "on"
                     let id = WebAuth.formValue form "id"
-                    let content = normalize typed
-                    let length = runeCount content
 
                     let refuse (key: string) =
                         task {
@@ -610,21 +590,25 @@ let createHandler (seriesId: string) (episodeId: string) : EndpointHandler =
                             return! ctx.WriteHtmlView(view ctx t (Some userId) model comments (freshForm spoiler typed (Some key)))
                         }
 
-                    if not (commentIdPattern.IsMatch id) then
+                    if not (CommentRules.commentIdPattern.IsMatch id) then
                         return! refuse "bad-id"
-                    elif length = 0 then
-                        return! refuse "empty"
-                    elif length > maxLength then
-                        return! refuse "too-long"
                     else
-                        let summary = if spoiler then Some(spoilerSummary t model) else None
-                        let! inserted = insertComment connection id model.Id userId content summary
-                        let! mine = if inserted then Task.FromResult true else isOwnOnEpisode connection id userId model.Id
+                        match CommentRules.validateContent typed with
+                        | Error key -> return! refuse key
+                        | Ok content ->
+                            let summary =
+                                if spoiler then
+                                    Some(CommentRules.spoilerSummary t model.SeasonDisplay model.SeasonNumber model.Number model.Label)
+                                else
+                                    None
 
-                        if mine then
-                            return! WebAuth.redirectTo ctx $"{episodePath seriesId episodeId}#comment-{id}"
-                        else
-                            return! refuse "bad-id"
+                            let! inserted = insertComment connection id model.Id userId content summary
+                            let! mine = if inserted then Task.FromResult true else isOwnOnEpisode connection id userId model.Id
+
+                            if mine then
+                                return! WebAuth.redirectTo ctx $"{episodePath seriesId episodeId}#comment-{id}"
+                            else
+                                return! refuse "bad-id"
         })
 
 // ---------------------------------------------------------------------------
