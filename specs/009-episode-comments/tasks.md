@@ -57,15 +57,15 @@ Goal: a public episode page with header, Crunchyroll links and MyAnimeList detai
 page. Independent test: open matched, unmatched, dub and numberless episodes from the sample; follow a link
 from the anime page.
 
-- [ ] T007 [US1] `EpisodePageTests`:
+- [x] T007 [US1] `EpisodePageTests`:
   - **Header (SC-001)**: for a matched episode, an unmatched one, a `GRK5CNJ14` dub episode and a numberless special, every header hook (`data-episode-number`, `-title`, `data-minutes`, `data-audio`, `data-dub`), both Crunchyroll links (`https://www.crunchyroll.com/watch/{e}`, and `/series/{id}/{slug}` only with a slug) and the MyAnimeList block (only when matched) equal a query over the catalog, in en and es.
   - **404s**: lowercase or bad-alphabet ids (no query), an unknown episode, an unresolved stub, an episode of another series.
   - **Anyone**: signed out and signed in see the same header.
   - **Anime page**: every `data-episode` row has a `data-episode-link` whose href opens a 200 episode page.
 
   · tests/FrunchyBackend.Tests/EpisodePageTests.fs
-- [ ] T008 [US1] `Handlers/Episodes/Episode.fs` GET: view → private SQL (one query for the episode, season, `method = 'dub'`, series title/slug, the matched MyAnimeList entry with up to 3 genres) → handler (id pattern check before any query, 404 via `Layout.messagePage`) → `GET [ routef "/anime/{%s}/episode/{%s}" … ]`. Leave an empty thread section with `data-thread="0"` and `data-thread-empty`. Add the endpoint to `Program.endpoints`. Go through impeccable shape → build for the header · Handlers/Episodes/Episode.fs, Program.fs
-- [ ] T009 [US1] Anime page: each episode row's title links to `/anime/{seriesId}/episode/{id}` with `data-episode-link` · Handlers/Users/Anime.fs
+- [x] T008 [US1] `Handlers/Episodes/Episode.fs` GET: view → private SQL (one query for the episode, season, `method = 'dub'`, series title/slug, the matched MyAnimeList entry with up to 3 genres) → handler (id pattern check before any query, 404 via `Layout.messagePage`) → `GET [ routef "/anime/{%s}/episode/{%s}" … ]`. Leave an empty thread section with `data-thread="0"` and `data-thread-empty`. Add the endpoint to `Program.endpoints`. Go through impeccable shape → build for the header · Handlers/Episodes/Episode.fs, Program.fs
+- [x] T009 [US1] Anime page: each episode row's title links to `/anime/{seriesId}/episode/{id}` with `data-episode-link` · Handlers/Users/Anime.fs
 
 **Checkpoint**: the episode page exists and is reachable.
 
@@ -74,7 +74,7 @@ from the anime page.
 Goal: signed-in users write plain-text comments, spoilers closed behind `<details>`, signed-out visitors read
 and get a sign-in prompt. Independent test: two users comment (one spoiler), then read as each and signed out.
 
-- [ ] T010 [US2] `CommentsTests`:
+- [x] T010 [US2] `CommentsTests`:
   - **Create (SC-002)**: two users comment; the thread shows them oldest first with `data-author`, `data-created` and text. The spoiler box is checked by default (`data-spoiler-toggle`), a ticked comment stores the `SpoilerSummary` warning in the author's language with `sensitive = true`, and an unticked one stores NULL/false.
   - **Spoilers closed (SC-003)**: every `data-spoiler` `<details>` has no `open` attribute, for every viewer.
   - **Validation**: empty, whitespace-only, 2,001 runes and a malformed id each give 422 with `data-comment-error`, the typed text kept, and no row. Exactly 2,000 runes (emoji included) is accepted.
@@ -87,7 +87,7 @@ and get a sign-in prompt. Independent test: two users comment (one spoiler), the
   - **1,000 comments (SC-005)**: seeded directly, the page renders them all in under 1 s, measured after a warm-up request.
 
   · tests/FrunchyBackend.Tests/CommentsTests.fs
-- [ ] T011 [US2] In `Episode.fs`:
+- [x] T011 [US2] In `Episode.fs`:
   - **Thread query**: the comments of this episode only for now (US3 widens it). Shown when `deleted_at IS NULL AND audience IN ('public','unlisted')`, ordered by `created_at, id`, joined to `users` for display name and username (linking to `/u/{username}`).
   - **Rendering**: as the contract says. Spoilers go in `<details data-spoiler>` with `<summary data-spoiler-summary>`. Text is `white-space: pre-line`.
   - **Form**: for signed-in users, with a freshly minted id (research R3: 16 random bytes, base64url without padding) and the checkbox ticked. Signed-out visitors get the sign-in prompt instead.

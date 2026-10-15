@@ -47,6 +47,8 @@ let endpoints =
       Handlers.Users.Dna.endpoint
       yield! Handlers.Users.Year.endpoint
       Handlers.Users.Anime.endpoint
+      // Feature 009: the episode page and its comments
+      yield! Handlers.Episodes.Episode.endpoint
       // Feature 007: operators review MyAnimeList matches (404 for everyone else)
       yield! Handlers.Review.MalReview.endpoint
       // Feature 008: the root operator manages operators (404 for everyone else)
@@ -329,6 +331,8 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
         perIp "signup" 10 (TimeSpan.FromMinutes 15.0)
         perIp "claim" 5 (TimeSpan.FromMinutes 15.0)
         perIp "account-write" 30 (TimeSpan.FromMinutes 1.0)
+        // Writing comments (feature 009): create, edit and delete share it
+        perIp "comment-write" 10 (TimeSpan.FromMinutes 1.0)
         // Review actions (feature 007) count operators only: anyone else gets the handler's 404 and is
         // never rate-limited there, so a 429 can't reveal that the routes exist
         options.AddPolicy(

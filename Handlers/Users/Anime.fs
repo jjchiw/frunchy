@@ -188,22 +188,30 @@ let private malDetails (t: Texts) (mal: MalInfo) =
             }
     }
 
-let private episodeRow (t: Texts) (e: WatchedEpisode) =
+let private episodeRow (t: Texts) (seriesId: string) (e: WatchedEpisode) =
     // Wide screens line the columns up across rows (the right-hand group dissolves into the grid)
     li(class' = "flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3 lg:grid lg:grid-cols-[minmax(0,1fr)_4.5rem_10rem_15rem]")
         .data("episode", e.Id)
         .data("fully", (if e.Fully then "true" else "false"))
         .data("percent", string e.Percent) {
         div(class' = "min-w-0 flex-1 basis-60") {
-            span(class' = "text-label-md text-on-surface-variant") {
+            let label =
                 match e.Number with
                 | Some n -> t.EpisodeLabel n
                 | None -> t.SpecialLabel
-            }
+
+            let href = $"/anime/{seriesId}/episode/{e.Id}"
 
             match e.Title with
-            | Some title -> span(class' = "ml-2 text-body-md text-on-surface [overflow-wrap:anywhere]") { title }
-            | None -> Fragment()
+            | Some title ->
+                span(class' = "text-label-md text-on-surface-variant") { label }
+
+                a(href = href, class' = "ml-2 text-body-md text-on-surface [overflow-wrap:anywhere] hover:underline")
+                    .data("episode-link", e.Id) {
+                    title
+                }
+            | None ->
+                a(href = href, class' = "text-label-md text-on-surface-variant hover:underline").data("episode-link", e.Id) { label }
         }
 
         div(class' = "flex flex-wrap items-center gap-x-4 gap-y-1 text-label-md font-normal text-on-surface-variant lg:contents") {
@@ -224,7 +232,7 @@ let private episodeRow (t: Texts) (e: WatchedEpisode) =
         }
     }
 
-let private seasonCard (t: Texts) (shownBefore: bool) (s: SeasonRow) =
+let private seasonCard (t: Texts) (seriesId: string) (shownBefore: bool) (s: SeasonRow) =
     let name =
         match s.Id, s.Title, s.Number with
         | None, _, _ -> t.AnimeOtherEpisodes
@@ -269,7 +277,7 @@ let private seasonCard (t: Texts) (shownBefore: bool) (s: SeasonRow) =
 
         ol(class' = "divide-y divide-outline-variant/40") {
             for e in s.Episodes do
-                episodeRow t e
+                episodeRow t seriesId e
         }
     }
 
@@ -291,7 +299,7 @@ let view (ctx: HttpContext) (t: Texts) (m: AnimeModel) =
                 |> Set.ofList
 
             for i, s in List.indexed m.Seasons do
-                seasonCard t (s.Mal.IsSome && not (firsts.Contains i)) s
+                seasonCard t m.SeriesId (s.Mal.IsSome && not (firsts.Contains i)) s
         }
     }
     |> Layout.page ctx t m.Title

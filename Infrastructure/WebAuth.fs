@@ -122,12 +122,17 @@ let private redirect (ctx: HttpContext) (location: string) =
 let private currentPathAndQuery (ctx: HttpContext) =
     ctx.Request.Path.Value + ctx.Request.QueryString.Value
 
-/// Run the handler for the signed-in user, or send the browser to /signin and back afterwards
-let requireSignedIn (handler: Guid -> EndpointHandler) : EndpointHandler =
+/// Run the handler for the signed-in user, or send the browser to /signin and then to `returnUrl`
+/// (for a POST whose own address has no page to come back to)
+let requireSignedInReturning (returnUrl: string) (handler: Guid -> EndpointHandler) : EndpointHandler =
     fun ctx ->
         match currentUserId ctx with
         | Some userId -> handler userId ctx
-        | None -> redirect ctx $"/signin?returnUrl={Uri.EscapeDataString(currentPathAndQuery ctx)}"
+        | None -> redirect ctx $"/signin?returnUrl={Uri.EscapeDataString returnUrl}"
+
+/// Run the handler for the signed-in user, or send the browser to /signin and back afterwards
+let requireSignedIn (handler: Guid -> EndpointHandler) : EndpointHandler =
+    fun ctx -> requireSignedInReturning (currentPathAndQuery ctx) handler ctx
 
 /// Signed in AND signed in (or re-confirmed) within the last 10 minutes; otherwise re-confirm first
 let requireFresh (returnUrl: string) (handler: Guid -> EndpointHandler) : EndpointHandler =

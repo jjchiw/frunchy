@@ -125,7 +125,7 @@ let componentCss =
   * { scrollbar-color: var(--color-surface-container-highest) var(--color-surface); }
   :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; border-radius: var(--radius-sm); }
   a { text-underline-offset: 3px; }
-  input { caret-color: var(--color-primary); }
+  input, textarea { caret-color: var(--color-primary); }
 }
 @layer components {
   .fr-card { @apply bg-surface-container-low rounded-lg p-6 md:p-8; border: var(--border-micro); }
