@@ -1,0 +1,17 @@
+{
+  "workflow": "speckit",
+  "specName": "Episode Page and Comments",
+  "branch": "009-episode-comments",
+  "currentStep": "specify",
+  "status": "specified",
+  "history": [
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-15T21:23:33.401Z"
+    }
+  ],
+  "telemetryInstanceId": "03c97599-d0ba-4016-8ea0-bb2793b89937"
+}
