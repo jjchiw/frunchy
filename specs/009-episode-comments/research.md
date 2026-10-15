@@ -49,9 +49,11 @@ their defaults:
   `comments`.
 - **Text**: `content` plus `format` (`text` now; `html` for sanitized remote content later).
 - **Warning**: `summary` + `sensitive`, Megáfono 002's publish fields, kept apart from the text.
-- **Thread**: `in_reply_to` (a comment id or a remote object id; always NULL here), `audience`
-  (`public` now; `unlisted`, `followers`, `direct` later), `object_id` (NULL until published,
-  UNIQUE).
+- **Thread**: `in_reply_to` (a comment id or a remote object id; always NULL here), `audience`,
+  and `object_id` (NULL until published, UNIQUE).
+- **Audience**: `public` now. A CHECK keeps local comments to `public` or `unlisted`, the only
+  audiences Megáfono publishes a reply with. Remote replies may arrive as `followers` or `direct`,
+  and those are stored but not shown.
 
 FR-020 is met: the integration adds data and maybe a `remote_actors` table, but no column to
 `comments`.

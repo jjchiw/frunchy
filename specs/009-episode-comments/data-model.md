@@ -23,7 +23,9 @@ CREATE TABLE IF NOT EXISTS comments (
     deleted_at     timestamptz NULL,
     hidden_at      timestamptz NULL,
     hidden_by      uuid NULL REFERENCES users(id) ON DELETE SET NULL,
-    CHECK ((author_user_id IS NULL) <> (remote_actor IS NULL))
+    CHECK ((author_user_id IS NULL) <> (remote_actor IS NULL)),
+    -- Megáfono publishes replies only as public or unlisted; remote replies may arrive with any audience
+    CHECK (author_user_id IS NULL OR audience IN ('public', 'unlisted'))
 );
 
 CREATE INDEX IF NOT EXISTS ix_comments_episode ON comments (cr_episode_id, created_at);
@@ -37,7 +39,7 @@ CREATE INDEX IF NOT EXISTS ix_comments_episode ON comments (cr_episode_id, creat
 | `content`, `format` | plain text, `text` | sanitized HTML from `reply.received`, `html` |
 | `summary`, `sensitive` | the spoiler warning (R7) and its flag; NULL/false when not a spoiler | `summary`, `sensitive` both ways |
 | `in_reply_to` | NULL (threads are flat) | `inReplyTo`: a comment id or a remote object id |
-| `audience` | `public` | `public`/`unlisted` shown; `followers`/`direct` stored, not shown |
+| `audience` | `public`; local comments are limited to `public`/`unlisted` by a CHECK, and an edit never changes it | remote: `public`/`unlisted` shown; `followers`/`direct` stored, not shown. Megáfono refuses other audiences, and audience changes, on publish and edit (its 002 `internal-api.md`) |
 | `object_id` | NULL | Megáfono's object id once published or received |
 | `edited_at` | set by an author edit that changes something | `reply.updated` |
 | `deleted_at` | tombstone: `content = ''`, `summary = NULL` | `object.deleted`, `DELETE /internal/objects/{id}` |
