@@ -115,7 +115,8 @@ it; GoToSocial doesn't, so its users paste the post id or the series handle.
   A Group lookup sends `type: "Group"`, `locked: false`, and the series page as `profileUrl`.
 - **Handles.** Megáfono allows lowercase letters, digits and underscore, up to 30 characters, so
   series need a short handle, e.g. `frieren`, decided in Frunchy's spec and kept apart from usernames.
-  Megáfono's handle fix (its commit 980a3cb) allows `-` inside a handle but not at either end,
+  Megáfono's handle fix (its commit 980a3cb, on its main since 2026-10-15 with 001 and 002, merge
+  43fc4c5) allows `-` inside a handle but not at either end,
   because Mastodon refuses a remote username ending in `-`. Frunchy usernames
   (`^[a-z0-9][a-z0-9_-]{2,29}$`) can end in a dash today. Plan: before federation, tighten the rule
   so the last character is a letter, digit or `_`. Existing users with a trailing dash (none in the
