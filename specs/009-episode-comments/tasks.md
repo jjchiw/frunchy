@@ -13,7 +13,7 @@ skill for UI. Tests read `data-*` hooks only (contract), never classes.
 
 ## Phase 1: Setup
 
-- [ ] T001 Register empty modules in compile order:
+- [x] T001 Register empty modules in compile order:
   - `Handlers/Episodes/Episode.fs`, `EditComment.fs`, `DeleteComment.fs` and `HideComment.fs` after `Handlers/Review/Operators.fs`;
   - the test files `EpisodeHelpers.fs`, `EpisodePageTests.fs`, `CommentsTests.fs`, `CommentThreadGroupTests.fs`, `CommentEditTests.fs` and `CommentModerationTests.fs` after `OperatorsPageTests.fs`.
 
@@ -23,9 +23,9 @@ skill for UI. Tests read `data-*` hooks only (contract), never classes.
 
 **Wave 1, independent (different files):**
 
-- [ ] T002 [P] `comments` table and `ix_comments_episode`, exactly as in data-model.md (both CHECKs on author and the local-audience CHECK), in `initializeSchema`; document the table and the `comment_hidden`/`comment_unhidden` events in SCHEMA.md · Infrastructure/Database.fs, SCHEMA.md
-- [ ] T003 [P] `SecurityEventType.CommentHidden` / `CommentUnhidden` (`comment_hidden`, `comment_unhidden`) in the union, `toDb` and `all` · Domains/Identity.fs
-- [ ] T004 [P] Every text of the feature, en and es, in `Views/Texts.fs` (no literal in views):
+- [x] T002 [P] `comments` table and `ix_comments_episode`, exactly as in data-model.md (both CHECKs on author and the local-audience CHECK), in `initializeSchema`; document the table and the `comment_hidden`/`comment_unhidden` events in SCHEMA.md · Infrastructure/Database.fs, SCHEMA.md
+- [x] T003 [P] `SecurityEventType.CommentHidden` / `CommentUnhidden` (`comment_hidden`, `comment_unhidden`) in the union, `toDb` and `all` · Domains/Identity.fs
+- [x] T004 [P] Every text of the feature, en and es, in `Views/Texts.fs` (no literal in views):
   - **Page and header**: title, "Watch on Crunchyroll", the series link, the season-number fallback.
   - **Thread**: heading, empty state, the edited mark, "Hidden by an operator", the operator-only moderation note (hiding hides it on Frunchy), "Show spoiler".
   - **Form**: label, "Contains spoilers", the submit button, the sign-in prompt.
@@ -39,8 +39,8 @@ skill for UI. Tests read `data-*` hooks only (contract), never classes.
 
 **⟶ Wait for Wave 1, then:**
 
-- [ ] T005 Move the season line (title, audio language via `Texts.AudioLanguage`, dub mark) and `malCompact` from `Handlers/Users/Anime.fs` to `Views/Components.fs` (research R13), keeping every `data-*` hook. `Anime.fs` calls them, and `AnimeTests`/`AnimeLinkTests` stay green unchanged · Views/Components.fs, Handlers/Users/Anime.fs
-- [ ] T006 [P] Test helpers in `EpisodeHelpers.fs`:
+- [x] T005 Move the season line (title, audio language via `Texts.AudioLanguage`, dub mark) and `malCompact` from `Handlers/Users/Anime.fs` to `Views/Components.fs` (research R13), keeping every `data-*` hook. `Anime.fs` calls them, and `AnimeTests`/`AnimeLinkTests` stay green unchanged · Views/Components.fs, Handlers/Users/Anime.fs
+- [x] T006 [P] Test helpers in `EpisodeHelpers.fs`:
   - `episodeUrl series ep`;
   - `episodePage app lang series ep` (GET, decoded with `readHtml`);
   - `comments html`, which returns each `data-comment` with its attributes (author, episode, spoiler, edited, hidden) and text;

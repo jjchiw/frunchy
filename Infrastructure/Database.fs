@@ -175,6 +175,33 @@ let private schema =
         added_at timestamptz NOT NULL DEFAULT now()
     );
 
+    -- Episode comments (feature 009): user content, not derived from imports. author_user_id is the local
+    -- author (CASCADE on user delete); remote_actor and the fediverse columns stay empty until the integration.
+    -- A deleted comment is a tombstone (deleted_at set, content '' and summary NULL).
+    CREATE TABLE IF NOT EXISTS comments (
+        id             text PRIMARY KEY CHECK (id ~ '^[A-Za-z0-9_-]{1,64}$'),
+        cr_episode_id  text NOT NULL REFERENCES cr_episodes(id),
+        author_user_id uuid NULL REFERENCES users(id) ON DELETE CASCADE,
+        remote_actor   text NULL,
+        content        text NOT NULL,
+        format         text NOT NULL DEFAULT 'text' CHECK (format IN ('text', 'html')),
+        summary        text NULL,
+        sensitive      boolean NOT NULL DEFAULT false,
+        in_reply_to    text NULL,
+        audience       text NOT NULL DEFAULT 'public' CHECK (audience IN ('public', 'unlisted', 'followers', 'direct')),
+        object_id      text NULL UNIQUE,
+        created_at     timestamptz NOT NULL DEFAULT now(),
+        edited_at      timestamptz NULL,
+        deleted_at     timestamptz NULL,
+        hidden_at      timestamptz NULL,
+        hidden_by      uuid NULL REFERENCES users(id) ON DELETE SET NULL,
+        CHECK ((author_user_id IS NULL) <> (remote_actor IS NULL)),
+        -- Megáfono publishes replies only as public or unlisted; remote replies may arrive with any audience
+        CHECK (author_user_id IS NULL OR audience IN ('public', 'unlisted'))
+    );
+
+    CREATE INDEX IF NOT EXISTS ix_comments_episode ON comments (cr_episode_id, created_at);
+
     -- MyAnimeList enrichment (feature 003): shared catalog data, nothing references users.
     -- raw columns hold the provider's responses verbatim (source says which provider); everything
     -- else is re-derivable (mal-rebuild).

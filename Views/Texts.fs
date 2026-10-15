@@ -299,7 +299,36 @@ type Texts =
       OperatorNotice: string -> string
       /// Account page: the signed-in user is an operator
       OperatorStatus: string
-      OperatorsAccountLink: string }
+      OperatorsAccountLink: string
+
+      // Episode page and comments (feature 009)
+      /// Page title from the series title and the episode label
+      EpisodePageTitle: string -> string -> string
+      EpisodeWatchOnCrunchyroll: string
+      EpisodeSeriesOnCrunchyroll: string
+      EpisodeBackToAnime: string -> string
+      CommentsHeading: string
+      CommentsEmpty: string
+      CommentEdited: string
+      CommentHiddenPlaceholder: string
+      /// Shown to operators only: hiding a comment hides it on Frunchy, not elsewhere
+      CommentModerationNote: string
+      CommentShowSpoiler: string
+      CommentFormLabel: string
+      CommentSpoilerLabel: string
+      CommentSubmit: string
+      CommentSignInPrompt: string
+      /// The message for an error key (empty, too-long, bad-id)
+      CommentError: string -> string
+      CommentEditTitle: string
+      CommentSave: string
+      CommentCancel: string
+      CommentDelete: string
+      CommentDeleteConfirm: string
+      CommentHide: string
+      CommentUnhide: string
+      /// The warning stored with a spoiler comment: season display number, episode number, special label
+      SpoilerSummary: string option -> int option -> string option -> string }
 
 let en =
     { Lang = "en"
@@ -500,6 +529,8 @@ let en =
             | "mal_auto" -> "MyAnimeList match sent back to automatic"
             | "operator_added" -> "Operator added"
             | "operator_removed" -> "Operator removed"
+            | "comment_hidden" -> "Comment hidden"
+            | "comment_unhidden" -> "Comment shown again"
             | other -> other
       ByOperator = "by the operator"
 
@@ -668,7 +699,44 @@ let en =
             | "bad-input" -> "Enter a username. Nothing changed."
             | other -> other
       OperatorStatus = "You're an operator."
-      OperatorsAccountLink = "Manage operators" }
+      OperatorsAccountLink = "Manage operators"
+
+      EpisodePageTitle = fun series label -> $"{series}, {label}"
+      EpisodeWatchOnCrunchyroll = "Watch on Crunchyroll"
+      EpisodeSeriesOnCrunchyroll = "Series on Crunchyroll"
+      EpisodeBackToAnime = fun title -> $"Back to {title}"
+      CommentsHeading = "Comments"
+      CommentsEmpty = "No comments yet. Be the first to write one."
+      CommentEdited = "edited"
+      CommentHiddenPlaceholder = "Hidden by an operator"
+      CommentModerationNote = "Hiding a comment hides it on Frunchy only."
+      CommentShowSpoiler = "Show spoiler"
+      CommentFormLabel = "Your comment"
+      CommentSpoilerLabel = "Contains spoilers"
+      CommentSubmit = "Post comment"
+      CommentSignInPrompt = "Sign in to write a comment."
+      CommentError =
+        function
+        | "empty" -> "Write something before posting."
+        | "too-long" -> "Comments can have up to 2,000 characters."
+        | "bad-id" -> "This form is no longer valid. Reload the page and try again."
+        | other -> other
+      CommentEditTitle = "Edit your comment"
+      CommentSave = "Save changes"
+      CommentCancel = "Cancel"
+      CommentDelete = "Delete comment"
+      CommentDeleteConfirm = "Delete this comment? It can't be undone."
+      CommentHide = "Hide"
+      CommentUnhide = "Unhide"
+      SpoilerSummary =
+        fun season number label ->
+            match number, label with
+            | Some n, _ ->
+                match season with
+                | Some s -> $"Spoilers: S{s} E{n}"
+                | None -> $"Spoilers: E{n}"
+            | None, Some l -> $"Spoilers: {l}"
+            | None, None -> "Spoilers: Special" }
 
 let es =
     { Lang = "es"
@@ -869,6 +937,8 @@ let es =
             | "mal_auto" -> "Coincidencia de MyAnimeList devuelta a automático"
             | "operator_added" -> "Operador añadido"
             | "operator_removed" -> "Operador quitado"
+            | "comment_hidden" -> "Comentario oculto"
+            | "comment_unhidden" -> "Comentario mostrado de nuevo"
             | other -> other
       ByOperator = "por el operador"
 
@@ -1037,7 +1107,44 @@ let es =
             | "bad-input" -> "Escribe un nombre de usuario. No se cambió nada."
             | other -> other
       OperatorStatus = "Eres operador."
-      OperatorsAccountLink = "Gestionar operadores" }
+      OperatorsAccountLink = "Gestionar operadores"
+
+      EpisodePageTitle = fun series label -> $"{series}, {label}"
+      EpisodeWatchOnCrunchyroll = "Ver en Crunchyroll"
+      EpisodeSeriesOnCrunchyroll = "Serie en Crunchyroll"
+      EpisodeBackToAnime = fun title -> $"Volver a {title}"
+      CommentsHeading = "Comentarios"
+      CommentsEmpty = "Aún no hay comentarios. Escribe el primero."
+      CommentEdited = "editado"
+      CommentHiddenPlaceholder = "Oculto por un operador"
+      CommentModerationNote = "Ocultar un comentario solo lo oculta en Frunchy."
+      CommentShowSpoiler = "Mostrar spoiler"
+      CommentFormLabel = "Tu comentario"
+      CommentSpoilerLabel = "Contiene spoilers"
+      CommentSubmit = "Publicar comentario"
+      CommentSignInPrompt = "Inicia sesión para escribir un comentario."
+      CommentError =
+        function
+        | "empty" -> "Escribe algo antes de publicar."
+        | "too-long" -> "Los comentarios pueden tener hasta 2.000 caracteres."
+        | "bad-id" -> "Este formulario ya no es válido. Recarga la página e inténtalo de nuevo."
+        | other -> other
+      CommentEditTitle = "Editar tu comentario"
+      CommentSave = "Guardar cambios"
+      CommentCancel = "Cancelar"
+      CommentDelete = "Eliminar comentario"
+      CommentDeleteConfirm = "¿Eliminar este comentario? No se puede deshacer."
+      CommentHide = "Ocultar"
+      CommentUnhide = "Mostrar de nuevo"
+      SpoilerSummary =
+        fun season number label ->
+            match number, label with
+            | Some n, _ ->
+                match season with
+                | Some s -> $"Spoilers: T{s} E{n}"
+                | None -> $"Spoilers: E{n}"
+            | None, Some l -> $"Spoilers: {l}"
+            | None, None -> "Spoilers: Especial" }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =

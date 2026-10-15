@@ -42,6 +42,10 @@
     <Compile Include="Handlers/Users/Anime.fs" />
     <Compile Include="Handlers/Review/MalReview.fs" />
     <Compile Include="Handlers/Review/Operators.fs" />
+    <Compile Include="Handlers/Episodes/Episode.fs" />
+    <Compile Include="Handlers/Episodes/EditComment.fs" />
+    <Compile Include="Handlers/Episodes/DeleteComment.fs" />
+    <Compile Include="Handlers/Episodes/HideComment.fs" />
     <Compile Include="Handlers/Auth/SignIn.fs" />
     <Compile Include="Handlers/Auth/Complete.fs" />
     <Compile Include="Handlers/Auth/SignUp.fs" />

@@ -224,17 +224,6 @@ let private episodeRow (t: Texts) (e: WatchedEpisode) =
         }
     }
 
-/// A season whose MyAnimeList entry an earlier season already showed: just the link
-let private malCompact (t: Texts) (mal: MalInfo) =
-    div().data("mal", string mal.MalId).data("mal-compact", "") {
-        a(href = mal.Url, target = "_blank", class' = "fr-link inline-flex min-h-6 items-center gap-1 text-label-md")
-            .attr("rel", "noopener")
-            .data("mal-link", "") {
-            t.MyAnimeListLink
-            icon Theme.OpenInNew
-        }
-    }
-
 let private seasonCard (t: Texts) (shownBefore: bool) (s: SeasonRow) =
     let name =
         match s.Id, s.Title, s.Number with
@@ -257,16 +246,7 @@ let private seasonCard (t: Texts) (shownBefore: bool) (s: SeasonRow) =
 
     (if s.Dub then el.data("dub", "") else el) {
         div(class' = "space-y-3") {
-            div(class' = "flex flex-wrap items-center gap-x-3 gap-y-2") {
-                h3(class' = "text-headline-md text-on-surface [overflow-wrap:anywhere]") { name }
-
-                match s.Audio with
-                | Some audio -> pill (if s.Dub then SecondaryTone else Muted) (t.AudioLanguage audio)
-                | None -> Fragment()
-
-                if s.Dub then
-                    pill SecondaryTone t.AnimeDub
-            }
+            seasonNameLine t name s.Audio s.Dub
 
             // "Other episodes" has no known total to measure against
             if s.Id.IsSome then
@@ -280,7 +260,7 @@ let private seasonCard (t: Texts) (shownBefore: bool) (s: SeasonRow) =
 
         if s.Id.IsSome then
             match s.Mal with
-            | Some mal -> if shownBefore then malCompact t mal else malDetails t mal
+            | Some mal -> if shownBefore then malCompact t mal.MalId mal.Url else malDetails t mal
             | None ->
                 p(class' = "flex items-center gap-1.5 text-body-md text-on-surface-variant").data("mal-missing", "") {
                     icon Theme.LinkOff

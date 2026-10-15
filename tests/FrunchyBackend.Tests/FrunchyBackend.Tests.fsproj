@@ -59,6 +59,12 @@
     <Compile Include="MalReviewTests.fs" />
     <Compile Include="OperatorActionsTests.fs" />
     <Compile Include="OperatorsPageTests.fs" />
+    <Compile Include="EpisodeHelpers.fs" />
+    <Compile Include="EpisodePageTests.fs" />
+    <Compile Include="CommentsTests.fs" />
+    <Compile Include="CommentThreadGroupTests.fs" />
+    <Compile Include="CommentEditTests.fs" />
+    <Compile Include="CommentModerationTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

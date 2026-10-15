@@ -103,6 +103,8 @@ type SecurityEventType =
     | MalAuto
     | OperatorAdded
     | OperatorRemoved
+    | CommentHidden
+    | CommentUnhidden
 
 module SecurityEventType =
     let toDb =
@@ -123,6 +125,8 @@ module SecurityEventType =
         | SecurityEventType.MalAuto -> "mal_auto"
         | SecurityEventType.OperatorAdded -> "operator_added"
         | SecurityEventType.OperatorRemoved -> "operator_removed"
+        | SecurityEventType.CommentHidden -> "comment_hidden"
+        | SecurityEventType.CommentUnhidden -> "comment_unhidden"
 
     let all =
         [ SecurityEventType.AccountCreated; SecurityEventType.SignedIn; SecurityEventType.Claimed
@@ -130,6 +134,6 @@ module SecurityEventType =
           SecurityEventType.SyncKeyGenerated; SecurityEventType.BindingReset; SecurityEventType.Reconfirmed
           SecurityEventType.DisplayNameChanged; SecurityEventType.MalSet; SecurityEventType.MalNone
           SecurityEventType.MalRetry; SecurityEventType.MalAuto; SecurityEventType.OperatorAdded
-          SecurityEventType.OperatorRemoved ]
+          SecurityEventType.OperatorRemoved; SecurityEventType.CommentHidden; SecurityEventType.CommentUnhidden ]
 
     let tryFromDb (value: string) = all |> List.tryFind (fun e -> toDb e = value)

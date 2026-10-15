@@ -285,3 +285,27 @@ let yearPicker (label: string) (username: string) (years: int list) (current: in
 
             if y = current then link.attr("aria-current", "page") { string y } else link { string y }
     }
+
+/// A season's name with its audio language and dub mark, shared by the anime page and the episode page
+let seasonNameLine (t: Texts) (name: string) (audio: string option) (dub: bool) =
+    div(class' = "flex flex-wrap items-center gap-x-3 gap-y-2") {
+        h3(class' = "text-headline-md text-on-surface [overflow-wrap:anywhere]") { name }
+
+        match audio with
+        | Some audio -> pill (if dub then SecondaryTone else Muted) (t.AudioLanguage audio)
+        | None -> Fragment()
+
+        if dub then
+            pill SecondaryTone t.AnimeDub
+    }
+
+/// A MyAnimeList entry shown as just its link (a season whose entry an earlier season already showed)
+let malCompact (t: Texts) (malId: int) (url: string) =
+    div().data("mal", string malId).data("mal-compact", "") {
+        a(href = url, target = "_blank", class' = "fr-link inline-flex min-h-6 items-center gap-1 text-label-md")
+            .attr("rel", "noopener")
+            .data("mal-link", "") {
+            t.MyAnimeListLink
+            icon Theme.OpenInNew
+        }
+    }
