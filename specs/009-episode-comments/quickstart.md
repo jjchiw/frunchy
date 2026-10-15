@@ -39,3 +39,26 @@ open http://127.0.0.1:5099/u/<you>
    an operator"; unhide it. `/account` shows the hide and unhide events.
 8. **Impeccable audit:** check the §5.5 variants (no comments, long thread, hidden comment, signed
    out, Spanish, 360px).
+
+## Validation log
+
+**2026-10-15**, branch `009-episode-comments`:
+- `dotnet build`: 0 warnings, 0 errors.
+- `dotnet test`: 378 total, 376 passed, 2 skipped. The skips predate this feature: the extension `tokens.css` parity check and the opt-in MyAnimeList recording.
+
+| Criterion | Evidence |
+|---|---|
+| SC-001 | `EpisodePageTests`: the header of a matched, an unmatched, a dub and a numberless episode equals the catalog, en and es |
+| SC-002 | `CommentsTests`: two users comment, and each comment shows right after the redirect |
+| SC-003 | `CommentsTests`: spoilers are closed on load for every viewer |
+| SC-004 | `CommentThreadGroupTests`: unlinking and relinking a dub regroups the thread, and the `comments` dump stays identical |
+| SC-005 | `CommentsTests`: a thread of 1,000 comments renders in under 1 s |
+| SC-006 | `CommentEditTests` and `CommentModerationTests`: other users, visitors and non-operators get 404 on every write, and nothing changes |
+| SC-007 | `DesignSystemTests` covers the episode page signed out and as an operator, and the edit page, with every contract hook. The impeccable audit (T020) fixed: delete going through the edit page (P1), the sign-in prompt as a button (P2), and the season line repeating the series title (P3). It left two P3 items: "Show spoiler" stays visible once open, and there is no character counter. |
+
+**Review fixes:** a comment that stays a spoiler keeps its stored warning when edited from another
+language (`d1bc6ff`).
+
+**Not checked by a person yet:** the signed-in and operator views in a browser. The audit read them
+from the rendered HTML, because there's no local sign-in provider. Quickstart §2, steps 2–7, cover
+them on real data.
