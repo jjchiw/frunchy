@@ -49,7 +49,7 @@
 | Comment states | `data-spoiler` on spoilers (the `<details>`), `data-edited` when edited, `data-hidden` when hidden |
 | Spoiler warning | `data-spoiler-summary` |
 | Placeholder | `data-hidden-placeholder` ("Hidden by an operator") |
-| Controls | `data-comment-edit`, `data-comment-delete`, `data-comment-hide`, `data-comment-unhide` |
+| Controls | `data-comment-edit`, `data-comment-delete` (a link to `/comments/{id}/edit#delete` on the episode page, the confirming form on the edit page), `data-comment-hide`, `data-comment-unhide` |
 | Comment form | `data-comment-form`, its checkbox `data-spoiler-toggle` (checked by default) |
 | Form error | `data-comment-error` = key |
 | Sign-in prompt (signed out) | `data-signin-prompt`, href `/signin?returnUrl=…` |

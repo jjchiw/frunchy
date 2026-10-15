@@ -47,6 +47,7 @@
     <Compile Include="RefreshTests.fs" />
     <Compile Include="SqlGuardrailTests.fs" />
     <Compile Include="SampleEnrichmentTests.fs" />
+    <Compile Include="EpisodeHelpers.fs" />
     <Compile Include="DesignSystemTests.fs" />
     <Compile Include="DnaTests.fs" />
     <Compile Include="DnaPaceTests.fs" />
@@ -59,7 +60,6 @@
     <Compile Include="MalReviewTests.fs" />
     <Compile Include="OperatorActionsTests.fs" />
     <Compile Include="OperatorsPageTests.fs" />
-    <Compile Include="EpisodeHelpers.fs" />
     <Compile Include="EpisodePageTests.fs" />
     <Compile Include="CommentsTests.fs" />
     <Compile Include="CommentThreadGroupTests.fs" />

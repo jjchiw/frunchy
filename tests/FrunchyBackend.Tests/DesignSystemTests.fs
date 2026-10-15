@@ -185,6 +185,21 @@ let ``every page is on the design system and keeps its test hooks`` () =
         let! seriesId = Db.scalar<string> app.Db "SELECT e.series_id FROM watch_events w JOIN cr_episodes e ON e.id = w.cr_episode_id WHERE e.duration_ms IS NOT NULL ORDER BY w.watched_at DESC, e.id LIMIT 1" []
         let! anime = anonymous.Get $"/u/animenerd/anime/{seriesId}"
         assertPage "anime page" anime.Html [ "data-anime=\""; "data-anime-totals"; "data-season="; "data-episode="; "data-dashboard-link"; "data-rewatch-note" ]
+        // The episode page (feature 009): a thread with a spoiler and a comment the root hides, then the edit page
+        let! episode = EpisodeHelpers.pickEpisode app.Db "e.episode_number IS NOT NULL AND e.season_id IS NOT NULL"
+        let episodePath = EpisodeHelpers.episodeUrl episode.Series episode.Episode
+        use! commenter = AuthHelpers.signedUp app "sub-commenter" "commenter"
+        let! _ = EpisodeHelpers.postComment commenter episode.Series episode.Episode "a spoiler about the ending" true
+        let! _ = EpisodeHelpers.postComment commenter episode.Series episode.Episode "a plain remark" false
+        let! hiddenId = Db.scalar<string> app.Db "SELECT id FROM comments WHERE content = 'a plain remark'" []
+        let! hidden = owner.PostForm(episodePath, $"/comments/{hiddenId}/hide", [])
+        Assert.Equal(Net.HttpStatusCode.Found, hidden.StatusCode)
+        let! episodeOut = anonymous.Get episodePath
+        assertPage "episode page (signed out)" episodeOut.Html [ "data-episode-page=\""; "data-thread=\"2\""; "data-comment=\""; "data-spoiler"; "data-spoiler-summary"; "data-hidden-placeholder"; "data-signin-prompt" ]
+        let! episodeOperator = owner.Get episodePath
+        assertPage "episode page (operator)" episodeOperator.Html [ "data-episode-page=\""; "data-thread=\"2\""; "data-comment=\""; "data-spoiler"; "data-spoiler-summary"; "data-hidden"; "data-comment-unhide"; "data-moderation-note"; "data-comment-form"; "data-spoiler-toggle" ]
+        let! editPage = commenter.Get $"/comments/{hiddenId}/edit"
+        assertPage "edit comment" editPage.Html [ "data-comment-edit-page=\""; "data-comment-form"; "data-spoiler-toggle" ]
         let! dna = anonymous.Get "/u/animenerd/dna"
         assertPage "anime DNA" dna.Html [ "data-dna-totals"; "data-dashboard-link" ]
         // The review pages, as an operator: nothing has been matched here, so the list is empty

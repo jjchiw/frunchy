@@ -81,7 +81,7 @@ let private editForm (ctx: HttpContext) (t: Texts) (o: Own) (f: FormState) =
     }
 
 let private deleteForm (ctx: HttpContext) (t: Texts) (o: Own) =
-    form(method = "post", action = $"/comments/{o.Id}/delete", class' = "space-y-3 border-t border-outline-variant/40 pt-6")
+    form(id = "delete", method = "post", action = $"/comments/{o.Id}/delete", class' = "space-y-3 border-t border-outline-variant/40 pt-6")
         .data("comment-delete", "") {
         ctx.GetAntiforgeryInput()
         p(class' = "text-body-md text-on-surface-variant") { t.CommentDeleteConfirm }

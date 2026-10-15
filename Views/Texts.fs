@@ -306,7 +306,6 @@ type Texts =
       EpisodePageTitle: string -> string -> string
       EpisodeWatchOnCrunchyroll: string
       EpisodeSeriesOnCrunchyroll: string
-      EpisodeBackToAnime: string -> string
       CommentsHeading: string
       CommentsEmpty: string
       CommentEdited: string
@@ -704,7 +703,6 @@ let en =
       EpisodePageTitle = fun series label -> $"{series}, {label}"
       EpisodeWatchOnCrunchyroll = "Watch on Crunchyroll"
       EpisodeSeriesOnCrunchyroll = "Series on Crunchyroll"
-      EpisodeBackToAnime = fun title -> $"Back to {title}"
       CommentsHeading = "Comments"
       CommentsEmpty = "No comments yet. Be the first to write one."
       CommentEdited = "edited"
@@ -1112,7 +1110,6 @@ let es =
       EpisodePageTitle = fun series label -> $"{series}, {label}"
       EpisodeWatchOnCrunchyroll = "Ver en Crunchyroll"
       EpisodeSeriesOnCrunchyroll = "Serie en Crunchyroll"
-      EpisodeBackToAnime = fun title -> $"Volver a {title}"
       CommentsHeading = "Comentarios"
       CommentsEmpty = "Aún no hay comentarios. Escribe el primero."
       CommentEdited = "editado"

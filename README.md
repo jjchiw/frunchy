@@ -34,6 +34,7 @@ Handlers/
 │   ├── Users/Anime.fs               GET  /u/{username}/anime/{seriesId}  one series (feature 006)
 ├── Review/MalReview.fs          GET  /review/mal[/manual], POST /review/mal/{set,none,retry,auto}  operators only (feature 007)
 ├── Review/Operators.fs          GET  /review/operators, POST /review/operators/{add,remove}  root operator only (feature 008)
+├── Episodes/                    GET  /anime/{seriesId}/episode/{episodeId}, /comments/{id}/edit, POST comments, edit, delete, hide, unhide  (feature 009)
 ├── Auth/                        /signin, /signin/{provider}, /signin/complete, /signup, /claim, /signin/reconfirm, /signout
 ├── Account/                     /account, /account/key, /account/display-name, /account/binding/reset,
 │                                /account/link|unlink/{provider}, /account/delete   (signed-in owner only)
@@ -123,6 +124,7 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
   from the browser's `Accept-Language`
 - `GET /review/mal` and `/review/mal/manual`, with `POST /review/mal/set|none|retry|auto` (feature 007): operators review the MyAnimeList matches the matcher couldn't decide (pick a candidate, type an id or link, mark the season as not listed, ask for a retry) and send manual decisions back to automatic. Operators are the root operator (the username in `Frunchy:RootOperator`) plus the users the root added; everyone else, signed in or not, gets the plain 404 page. The account page says "You're an operator" and links to it for operators.
 - `GET /review/operators`, with `POST /review/operators/add|remove` (feature 008): the root operator makes existing users operators and takes them back, from the web. Everyone else, operators included, gets the plain 404 page. Changes need a sign-in within the last 10 minutes and are limited to 10 a minute; each one is a security event on the root's account and on the affected user's account. The account page links to it for the root.
+- `GET /anime/{seriesId}/episode/{episodeId}`, with `POST …/comments`, `GET/POST /comments/{id}/edit`, `POST /comments/{id}/delete` and `POST /comments/{id}/hide|unhide` (feature 009): the public page of one episode with its comment thread. Any signed-in user can comment (spoilers start ticked and stay closed until opened), edit and delete their own comments; operators hide and unhide any comment (hiding applies on Frunchy only). Comment writes are limited to 10 a minute per IP.
 - Accounts (feature 002): `/signin`, `/signup`, `/claim` and the private `/account` pages. See
   [Accounts](#accounts) and [`contracts/web-account.md`](specs/002-social-login-accounts/contracts/web-account.md).
 
@@ -287,6 +289,7 @@ Features are built through spec-kit (`specs/###-name/`), in this order:
 | 006 | **Anime page**: one series as a profile watched it (progress, seasons with MyAnimeList details, episodes), linked from every series title | Implemented ([spec](specs/006-anime-page/anime-page.spec.md)) |
 | 007 | **MyAnimeList review**: operators fix and undo MyAnimeList matches on the web (`/review/mal`), through the same actions as the CLI; everyone else gets a 404 | Implemented ([spec](specs/007-mal-review/mal-review.spec.md)) |
 | 008 | **Root operator**: one root operator (`Frunchy:RootOperator`) adds and removes operators on the web (`/review/operators`) or with `operator-add` / `operator-remove`; operators live in a table, security events on both accounts | Implemented ([spec](specs/008-root-operator/root-operator.spec.md)) |
+| 009 | **Episode page and comments**: a public page per catalog episode (`/anime/{seriesId}/episode/{episodeId}`) with its details, Crunchyroll and MyAnimeList links and a comment thread; signed-in users comment (spoilers behind a toggle), edit and delete their own, operators hide and unhide; the table is shaped for the fediverse integration in [`docs/fediverse.md`](docs/fediverse.md) | Implemented ([spec](specs/009-episode-comments/episode-comments.spec.md)) |
 
 
 ## Key Design Decisions

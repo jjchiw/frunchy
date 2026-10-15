@@ -140,7 +140,22 @@ let private seasonLine (t: Texts) (m: EpisodeModel) =
             | Some a -> el.data("audio", a)
             | None -> el
 
-        (if m.Dub then el.data("dub", "") else el) { seasonNameLine t name m.Audio m.Dub }
+        let el = if m.Dub then el.data("dub", "") else el
+
+        // A season named like its series would repeat the line above: show only its audio language and dub mark
+        if String.Equals(name, m.SeriesTitle, StringComparison.OrdinalIgnoreCase) then
+            el {
+                div(class' = "flex flex-wrap items-center gap-2") {
+                    match m.Audio with
+                    | Some a -> pill (if m.Dub then SecondaryTone else Muted) (t.AudioLanguage a)
+                    | None -> Fragment()
+
+                    if m.Dub then
+                        pill SecondaryTone t.AnimeDub
+                }
+            }
+        else
+            el { seasonNameLine t name m.Audio m.Dub }
     | None -> div()
 
 let private header (t: Texts) (m: EpisodeModel) =
@@ -200,17 +215,15 @@ let private header (t: Texts) (m: EpisodeModel) =
         | None -> Fragment()
     }
 
-/// The author's controls (edit is a link to the edit page, delete a POST) and the operators' (hide or unhide, a
+/// The author's controls (edit and delete are links to the edit page, where delete is confirmed) and the operators' (hide or unhide, a
 /// POST). No script, no confirm dialog.
 let private controls (ctx: HttpContext) (t: Texts) (isAuthor: bool) (isOperator: bool) (c: Comment) =
     div(class' = "flex flex-wrap items-center gap-2") {
         if isAuthor then
             a(href = $"/comments/{c.Id}/edit", class' = btnSm Ghost).data("comment-edit", "") { t.CommentEditTitle }
 
-            form(method = "post", action = $"/comments/{c.Id}/delete").data("comment-delete", "") {
-                ctx.GetAntiforgeryInput()
-                button(type' = "submit", class' = btnSm Ghost) { t.CommentDelete }
-            }
+            // Deleting can't be undone, so it goes through the edit page, which explains it before the button
+            a(href = $"/comments/{c.Id}/edit#delete", class' = btnSm Ghost).data("comment-delete", "") { t.CommentDelete }
 
         if isOperator then
             if c.Hidden then
@@ -317,7 +330,7 @@ let private commentForm (ctx: HttpContext) (t: Texts) (m: EpisodeModel) (f: Form
     }
 
 let private signInPrompt (t: Texts) (m: EpisodeModel) =
-    a(href = $"/signin?returnUrl={Uri.EscapeDataString(episodePath m.SeriesId m.Id)}", class' = "fr-link text-body-md")
+    a(href = $"/signin?returnUrl={Uri.EscapeDataString(episodePath m.SeriesId m.Id)}", class' = btn Secondary + " w-fit")
         .data("signin-prompt", "") {
         t.CommentSignInPrompt
     }

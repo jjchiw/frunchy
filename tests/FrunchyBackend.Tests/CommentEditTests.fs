@@ -351,8 +351,9 @@ let ``only the author sees the edit and delete controls`` () =
         Assert.True(editA)
         Assert.True(deleteA)
         Assert.Equal(Some $"/comments/{aliceId}/edit", hrefOfHook "comment-edit" mine.Html)
-        Assert.Contains($"action=\"/comments/{aliceId}/delete\"", mine.Html)
-        Assert.Contains("__RequestVerificationToken", mine.Html)
+        // deleting is one step removed: a link to the edit page, where the confirmation and the form live
+        Assert.Equal(Some $"/comments/{aliceId}/edit#delete", hrefOfHook "comment-delete" mine.Html)
+        Assert.DoesNotContain("/delete\"", mine.Html)
         let editB, deleteB, _ = controls asAlice.Html "bob"
         Assert.False(editB)
         Assert.False(deleteB)

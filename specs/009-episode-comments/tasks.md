@@ -156,8 +156,8 @@ and what each viewer sees.
 
 **Wave 1, independent (different files):**
 
-- [ ] T018 [P] Add the episode page (signed out, with comments, as an operator with a hidden comment) and the edit page to the every-page design-system check, asserting the contract's hooks · tests/FrunchyBackend.Tests/DesignSystemTests.fs
-- [ ] T019 [P] Docs:
+- [x] T018 [P] Add the episode page (signed out, with comments, as an operator with a hidden comment) and the edit page to the every-page design-system check, asserting the contract's hooks · tests/FrunchyBackend.Tests/DesignSystemTests.fs
+- [x] T019 [P] Docs:
   - **CLAUDE.md**: the routes (`/anime/{s}/episode/{e}`, `/comments/{id}/…`, the `comment-write` limiter, `Handlers/Episodes/`).
   - **FRONTEND.md**: the page.
   - **design/BRIEF.md** §5.5: marked built.
@@ -168,7 +168,7 @@ and what each viewer sees.
 
 **⟶ Wait for Wave 1, then:**
 
-- [ ] T020 Impeccable audit of the §5.5 variants (no comments, long thread, hidden comment, signed out, Spanish, 360px); fix the blocking findings · Handlers/Episodes/Episode.fs, Handlers/Episodes/EditComment.fs
+- [x] T020 Impeccable audit of the §5.5 variants (no comments, long thread, hidden comment, signed out, Spanish, 360px); fix the blocking findings · Handlers/Episodes/Episode.fs, Handlers/Episodes/EditComment.fs
 - [ ] T021 Run the full `dotnet test` with 0 warnings, validate SC-001 to SC-007 against quickstart.md, and append the validation log · specs/009-episode-comments/quickstart.md
 
 ## Dependencies & Execution Order

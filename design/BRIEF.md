@@ -178,8 +178,8 @@ The copy below is the site's real copy; keep it or propose better wording.
 > and when. Variants: a long series (One Piece: 7 seasons, 266 episodes), a dub next to its
 > original, an unmatched series, Spanish, 360px. No ratings, rankings or recommendations.
 
-### 5.5 Episode page with comments (`/anime/{seriesId}/episode/{episodeId}`, planned)
-> [context] Not built yet; the plan is in `docs/fediverse.md`. A public page per episode (not per
+### 5.5 Episode page with comments (`/anime/{seriesId}/episode/{episodeId}`, built in feature 009)
+> [context] Built with local comments; the fediverse part is planned in `docs/fediverse.md`. A public page per episode (not per
 > person): series and episode title, number, minutes, the season's MyAnimeList details, links to the
 > series and "Watch on Crunchyroll". Below it, comments: each has the author (a Frunchy user, or a
 > fediverse account such as `@bob@mastodon.social` with its server visible), when, and the text.

@@ -169,7 +169,8 @@ It was verified against GoToSocial 0.22.2 and Mastodon 4.7.3. What a Frunchy int
 ## Order
 
 1. **Frunchy: the episode page and local comments**, with spoilers and operator moderation. It works
-   without the fediverse and fixes the data model first.
+   without the fediverse and fixes the data model first. **Done** (feature 009, 2026-10-15); the table
+   shape is in `specs/009-episode-comments/data-model.md`.
 2. **Megáfono: replies**, meaning items 1 to 5 above, in its own session.
 3. **Frunchy: the Megáfono integration.** User accounts, series accounts with episode threads, and
    comments both ways. Then following remote accounts and a feed, once Megáfono item 6 exists.
