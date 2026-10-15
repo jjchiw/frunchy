@@ -103,14 +103,14 @@ and get a sign-in prompt. Independent test: two users comment (one spoiler), the
 Goal: comments on an original and its linked dub show on both pages. Independent test: comment on both,
 unlink, relink.
 
-- [ ] T012 [US3] `CommentThreadGroupTests`, with the enriched sample:
+- [x] T012 [US3] `CommentThreadGroupTests`, with the enriched sample:
   - **Shared thread**: a comment on an episode of that dub season and one on the original (`GRK5CNJ14`) episode with the same number both show on both pages, each with its own `data-episode`.
   - **Unlinking**: setting the dub's match to `no_match` (and `shared_from` to NULL) makes each page show only its own comments. The `comments` dump is unchanged.
   - **Relinking**: the thread is shared again.
   - **Own threads**: a numberless episode and a seasonless one keep their own thread.
 
   · tests/FrunchyBackend.Tests/CommentThreadGroupTests.fs
-- [ ] T013 [US3] Widen the thread query to the episode's group (research R2): the group's episode ids are those with the page episode's number whose season is the original (`coalesce(shared_from, season_id)` over the `matched` row) or a season whose matched row has that `shared_from`. An episode without a season or number is its own group. One statement · Handlers/Episodes/Episode.fs
+- [x] T013 [US3] Widen the thread query to the episode's group (research R2): the group's episode ids are those with the page episode's number whose season is the original (`coalesce(shared_from, season_id)` over the `matched` row) or a season whose matched row has that `shared_from`. An episode without a season or number is its own group. One statement · Handlers/Episodes/Episode.fs
 
 ## Phase 6: User Story 4 - Authors manage their comments (Priority: P2)
 

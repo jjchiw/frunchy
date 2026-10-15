@@ -374,7 +374,41 @@ let private loadEpisode (connection: NpgsqlConnection) (seriesId: string) (episo
             return None
     }
 
-/// The comments shown under the given episodes (for now the page's own), oldest first
+/// The page episode's group (research R2): its own id, plus, when it has a season and a number, the episodes with
+/// that number in its original season or in a season whose matched row shares that original. One statement.
+let private loadGroup (connection: NpgsqlConnection) (episodeId: string) : Task<string list> =
+    task {
+        use cmd =
+            new NpgsqlCommand(
+                """
+                WITH origin AS (
+                    SELECT e.episode_number, coalesce(m.shared_from, e.season_id) AS season_id
+                    FROM cr_episodes e
+                    LEFT JOIN cr_season_matches m ON m.season_id = e.season_id AND m.status = 'matched'
+                    WHERE e.id = @episode_id AND e.season_id IS NOT NULL AND e.episode_number IS NOT NULL
+                )
+                SELECT @episode_id
+                UNION
+                SELECT x.id
+                FROM origin o
+                JOIN cr_episodes x ON x.episode_number = o.episode_number AND x.duration_ms IS NOT NULL
+                LEFT JOIN cr_season_matches xm ON xm.season_id = x.season_id AND xm.status = 'matched'
+                WHERE x.season_id = o.season_id OR xm.shared_from = o.season_id
+                """,
+                connection
+            )
+
+        cmd.Parameters.AddWithValue("episode_id", episodeId) |> ignore
+        use! r = cmd.ExecuteReaderAsync()
+        let ids = ResizeArray<string>()
+
+        while r.Read() do
+            ids.Add(r.GetString 0)
+
+        return List.ofSeq ids
+    }
+
+/// The comments shown under the given episodes (the page's group), oldest first
 let private loadThread (connection: NpgsqlConnection) (episodeIds: string list) : Task<Comment list> =
     task {
         use cmd =
@@ -536,7 +570,8 @@ let handler (seriesId: string) (episodeId: string) : EndpointHandler =
                 match! loadEpisode connection seriesId episodeId with
                 | None -> return! notFound ctx t
                 | Some model ->
-                    let! comments = loadThread connection [ model.Id ]
+                    let! group = loadGroup connection model.Id
+                    let! comments = loadThread connection group
                     return! ctx.WriteHtmlView(view ctx t (WebAuth.currentUserId ctx) model comments (freshForm true "" None))
         }
 
@@ -569,7 +604,8 @@ let createHandler (seriesId: string) (episodeId: string) : EndpointHandler =
 
                     let refuse (key: string) =
                         task {
-                            let! comments = loadThread connection [ model.Id ]
+                            let! group = loadGroup connection model.Id
+                            let! comments = loadThread connection group
                             ctx.SetStatusCode 422
                             return! ctx.WriteHtmlView(view ctx t (Some userId) model comments (freshForm spoiler typed (Some key)))
                         }
