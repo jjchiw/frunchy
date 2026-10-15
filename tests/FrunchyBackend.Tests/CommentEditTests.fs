@@ -149,6 +149,32 @@ let ``an edit that changes nothing leaves edited_at alone`` () =
     }
 
 [<Fact>]
+let ``a comment that stays a spoiler keeps its warning when edited in another language`` () =
+    task {
+        let! app, _ = sampleApp ()
+        use app = app
+        let! ep = numberedEpisode app
+        use! alice = signedUpIn app "es" "sub-a" "alice"
+        let! _ = postComment alice ep.Series ep.Episode "same text" true
+        let! id = commentOf app "alice"
+
+        // as if it had been written in English
+        do! Db.execute app.Db $"UPDATE comments SET summary = 'Spoilers: written in English' WHERE id = '{id}'"
+        let! before = rawCommentRows app.Db
+
+        // saved again from the Spanish browser, unchanged: nothing moves, edited_at included
+        let! response = edit alice $"/comments/{id}/edit" id [ "content", "same text"; "spoiler", "on" ]
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode)
+        let! after = rawCommentRows app.Db
+        Assert.Equal<string list>(before, after)
+
+        // a text change keeps the warning too
+        let! _ = edit alice $"/comments/{id}/edit" id [ "content", "new text"; "spoiler", "on" ]
+        let! stored = row app id
+        Assert.Equal("Spoilers: written in English", (List.exactlyOne stored).Split('|')[1])
+    }
+
+[<Fact>]
 let ``an invalid edit gives 422 with the edit page, the error and the typed text, and nothing changes`` () =
     task {
         let! app, _ = sampleApp ()

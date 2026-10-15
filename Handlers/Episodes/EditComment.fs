@@ -27,7 +27,9 @@ type private Own =
       Number: int option
       Label: string option
       SeasonDisplay: string option
-      SeasonNumber: int option }
+      SeasonNumber: int option
+      /// The stored spoiler warning, kept while the comment stays a spoiler
+      Summary: string option }
 
 /// What the edit form shows: the text and flag as typed (or stored), and a refusal's error key
 type private FormState =
@@ -113,7 +115,7 @@ let private loadOwn (connection: NpgsqlConnection) (id: string) (userId: Guid) :
             new NpgsqlCommand(
                 """
                 SELECT c.id, c.content, c.sensitive, c.cr_episode_id, e.series_id, e.episode_number, e.episode_label,
-                       sea.display_number, sea.season_number
+                       sea.display_number, sea.season_number, c.summary
                 FROM comments c
                 JOIN cr_episodes e ON e.id = c.cr_episode_id
                 LEFT JOIN cr_seasons sea ON sea.id = e.season_id
@@ -140,7 +142,8 @@ let private loadOwn (connection: NpgsqlConnection) (id: string) (userId: Guid) :
                       Number = int' 5
                       Label = text 6
                       SeasonDisplay = text 7
-                      SeasonNumber = int' 8 }
+                      SeasonNumber = int' 8
+                      Summary = text 9 }
         else
             return None
     }
@@ -255,11 +258,11 @@ let postHandler (id: string) : EndpointHandler =
                               Error = Some key }
                     )
             | Ok content ->
+                // A comment that stays a spoiler keeps its warning, so editing in another language changes nothing
                 let summary =
-                    if spoiler then
-                        Some(CommentRules.spoilerSummary t own.SeasonDisplay own.SeasonNumber own.Number own.Label)
-                    else
-                        None
+                    if not spoiler then None
+                    elif own.Sensitive && own.Summary.IsSome then own.Summary
+                    else Some(CommentRules.spoilerSummary t own.SeasonDisplay own.SeasonNumber own.Number own.Label)
 
                 do! update connection id userId content summary
                 return! WebAuth.redirectTo ctx $"{episodePage own}#comment-{id}"
