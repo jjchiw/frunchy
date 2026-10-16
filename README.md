@@ -32,6 +32,7 @@ Handlers/
 │   ├── Users/Dna.fs                 GET  /u/{username}/dna      Anime DNA (feature 004)
 │   ├── Users/Year.fs                GET  /u/{username}/year[/{year}]  year in review (feature 005)
 │   ├── Users/Anime.fs               GET  /u/{username}/anime/{seriesId}  one series (feature 006)
+│   ├── Users/Compare.fs             GET  /u/{username}/compare  taste compatibility, signed in (feature 011)
 ├── Review/MalReview.fs          GET  /review/mal[/manual], POST /review/mal/{set,none,retry,auto}  operators only (feature 007)
 ├── Review/Operators.fs          GET  /review/operators, POST /review/operators/{add,remove}  root operator only (feature 008)
 ├── Episodes/                    GET  /anime/{seriesId}/episode/{episodeId}, /comments/{id}/edit, POST comments, edit, delete, hide, unhide  (feature 009)
@@ -291,6 +292,7 @@ Features are built through spec-kit (`specs/###-name/`), in this order:
 | 008 | **Root operator**: one root operator (`Frunchy:RootOperator`) adds and removes operators on the web (`/review/operators`) or with `operator-add` / `operator-remove`; operators live in a table, security events on both accounts | Implemented ([spec](specs/008-root-operator/root-operator.spec.md)) |
 | 009 | **Episode page and comments**: a public page per catalog episode (`/anime/{seriesId}/episode/{episodeId}`) with its details, Crunchyroll and MyAnimeList links and a comment thread; signed-in users comment (spoilers behind a toggle), edit and delete their own, operators hide and unhide; the table is shaped for the fediverse integration in [`docs/fediverse.md`](docs/fediverse.md) | Implemented ([spec](specs/009-episode-comments/episode-comments.spec.md)) |
 | 010 | **Night Broadcast design system**: the whole site restyled (warm dark surfaces, amber for you, rose for others, Bricolage Grotesque / Figtree / IBM Plex Mono), same token names, shared with the extension through a new contract | Implemented ([spec](specs/010-night-broadcast/night-broadcast.spec.md)); the extension follows in its own session |
+| 011 | **Taste compatibility**: a signed-in viewer sees how their taste matches someone else's, as a level in words (never a percentage), on a card on that dashboard and on `/u/{username}/compare` (genre shares side by side, shared series, shared studios); both need 15 fully watched episodes | Implemented ([spec](specs/011-taste-compatibility/taste-compatibility.spec.md)) |
 
 
 ## Key Design Decisions

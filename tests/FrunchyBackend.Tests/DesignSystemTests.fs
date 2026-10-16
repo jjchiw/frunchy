@@ -233,3 +233,41 @@ let ``every page is on the design system and keeps its test hooks`` () =
 
         Assert.True(problems.Count = 0, String.Join(Environment.NewLine, problems))
     }
+
+/// Feature 011: the compatibility card (a signed-in non-owner viewing a dashboard) and the compare page
+[<Fact>]
+let ``the compatibility card and the compare page are on the design system and keep their test hooks`` () =
+    task {
+        use! app = newApp ()
+        use! viewer = AuthHelpers.signedUp app "sub-viewer" "viewer"
+        use! owner = AuthHelpers.signedUp app "sub-owner2" "ownerb"
+        let! viewerKey = AuthHelpers.connectExtension viewer
+        let! ownerKey = AuthHelpers.connectExtension owner
+        // the same 2026 capture for both (two profiles), so they share every series, genre and studio
+        let! _ = TestHelpers.submitAccepted app viewerKey (load2026Sample ())
+        let! _ = TestHelpers.submitAccepted app ownerKey (load2026SampleRaw () |> withProfile "profile-second")
+        let! _ = TestHelpers.processAll app.Db
+        MalFixtures.routeSampleCatalog app.Mal
+        let! _ = MalFixtures.enrichAll app
+
+        let problems = ResizeArray<string>()
+        let! card = viewer.Get "/u/ownerb"
+        problems.AddRange(
+            pageProblems
+                "dashboard with the compatibility card"
+                card.Html
+                [ "data-compat-card=\"ownerb\""; "data-level-meter"; "data-level-name"; "data-shared-count"; "data-compare-link"; "data-shared-series" ]
+        )
+
+        let! compare = viewer.Get "/u/ownerb/compare"
+        Assert.Equal(Net.HttpStatusCode.OK, compare.Status)
+        problems.AddRange(
+            pageProblems
+                "compare page"
+                compare.Html
+                [ "data-compare=\"ownerb\""; "data-level-meter"; "data-level-name"; "data-compare-summary"; "data-genre-compare"
+                  "data-viewer-coverage"; "data-owner-coverage"; "data-shared-series"; "data-shared-studio" ]
+        )
+
+        Assert.True(problems.Count = 0, String.Join(Environment.NewLine, problems))
+    }

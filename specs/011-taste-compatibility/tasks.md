@@ -93,14 +93,14 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
 
 ## Phase 5: Polish
 
-- [ ] T009 [P] Add the dashboard with the card (as a signed-in non-owner) and the compare page to the every-page design-system check, with the contract's hooks · tests/FrunchyBackend.Tests/DesignSystemTests.fs
-- [ ] T010 [P] Docs:
+- [x] T009 [P] Add the dashboard with the card (as a signed-in non-owner) and the compare page to the every-page design-system check, with the contract's hooks · tests/FrunchyBackend.Tests/DesignSystemTests.fs
+- [x] T010 [P] Docs:
   - **CLAUDE.md**: a Routes bullet for 011, covering the route, the card's conditions, `Infrastructure/Compatibility.fs`, the score and the levels.
   - **FRONTEND.md**: the page.
   - **README.md**: roadmap row 011.
 
   · CLAUDE.md, FRONTEND.md, README.md
-- [ ] T011 Run an impeccable audit of the card and the page (1280 and 360, en and es, with real sample data), the full `dotnet test`, then append the validation log · specs/011-taste-compatibility/quickstart.md
+- [x] T011 Run an impeccable audit of the card and the page (1280 and 360, en and es, with real sample data), the full `dotnet test`, then append the validation log · specs/011-taste-compatibility/quickstart.md
 
 ## Dependencies
 

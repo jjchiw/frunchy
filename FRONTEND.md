@@ -22,12 +22,13 @@ Everything comes from CDNs in `Views/Layout.fs`; there's no frontend build step.
 | Route | Slice | Content |
 |---|---|---|
 | `GET /` | `Handlers/Home.fs` | what Frunchy is and how to sync from the extension (no user list) |
-| `GET /u/{username}` | `Handlers/Users/Dashboard.fs` | public dashboard: series, episodes, hours, days, 6 most recent episodes, last sync, sync-in-progress notice, empty state |
+| `GET /u/{username}` | `Handlers/Users/Dashboard.fs` | public dashboard: series, episodes, hours, days, 6 most recent episodes, last sync, sync-in-progress notice, empty state; for a signed-in viewer on someone else's dashboard, a compatibility card (level in words, shared series, genres and studio, link to the compare page; feature 011) |
 | unknown `/u/…` or any other path | `Program.fs` / the slice | localized 404 page (`/api/…` paths get the JSON error shape instead) |
 | `GET /signin`, `/signup`, `/claim` | `Handlers/Auth/*.fs` | provider buttons; invite + username + display name; "I already have an account" (sync key) |
 | `GET /u/{username}/dna` | `Handlers/Users/Dna.fs` | the Anime DNA (feature 004) |
 | `GET /u/{username}/year`, `/u/{username}/year/{year}` | `Handlers/Users/Year.fs` | the year in review (feature 005); the first redirects to the newest year with history |
 | `GET /u/{username}/anime/{seriesId}` | `Handlers/Users/Anime.fs` | one series as the user watched it (feature 006); series titles elsewhere link here |
+| `GET /u/{username}/compare` | `Handlers/Users/Compare.fs` | taste compatibility with that person (feature 011), signed in only (signed out goes to sign-in, your own name to your dashboard): level in words, genre shares side by side (amber you, rose them), shared series with episodes each, their series you haven't watched, shared studios; "not enough history" says whose |
 | `GET /anime/{seriesId}/episode/{episodeId}` | `Handlers/Episodes/Episode.fs` | public page of one catalog episode (feature 009): details, Crunchyroll and MyAnimeList links, comments with spoilers behind a toggle, a comment form when signed in or a sign-in prompt; operators also see hidden comments and hide or unhide. Authors edit or delete on `GET /comments/{id}/edit` (`Handlers/Episodes/EditComment.fs`) |
 | `GET /review/mal`, `/review/mal/manual` (+ POST `set`, `none`, `retry`, `auto`) | `Handlers/Review/MalReview.fs` | operators only (feature 007; 404 for everyone else): seasons the matcher couldn't decide with their candidates, an id/link field, retry and "not on MyAnimeList"; the manual decisions with "back to automatic" |
 | `GET /review/operators` (+ POST `add`, `remove`) | `Handlers/Review/Operators.fs` | the root operator only (feature 008; 404 everyone else, operators included): the root, the operators with who added them and when, a username field and a remove button per row; the account page links it for the root |
