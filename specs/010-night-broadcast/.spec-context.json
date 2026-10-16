@@ -2,8 +2,8 @@
   "workflow": "speckit",
   "specName": "Night Broadcast Design System",
   "branch": "010-night-broadcast",
-  "currentStep": "specify",
-  "status": "specified",
+  "currentStep": "tasks",
+  "status": "ready-to-implement",
   "history": [
     {
       "step": "specify",
@@ -11,6 +11,14 @@
       "kind": "start",
       "by": "extension",
       "at": "2026-10-16T03:21:55.599Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-16T03:24:21.600Z"
     }
-  ]
+  ],
+  "telemetryInstanceId": "137c3d6c-5065-46c0-bcf5-e91756301d99"
 }
