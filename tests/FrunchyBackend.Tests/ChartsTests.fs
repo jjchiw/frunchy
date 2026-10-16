@@ -154,3 +154,454 @@ let ``people counts need the minimum and count each user once`` () =
         Assert.Equal(None, one)
         Assert.Equal(None, none)
     }
+
+// ===========================================================================
+// T006: the chart pages (contracts/charts.md). The expected figures are computed in F# from the raw
+// watch rows, not by calling Charts.fs or its SQL.
+// ===========================================================================
+
+open System.Net
+open System.Text.RegularExpressions
+open Microsoft.AspNetCore.Builder
+open Microsoft.Extensions.DependencyInjection
+open FrunchyBackend.Tests.AuthHelpers
+open FrunchyBackend.Tests.Fixtures
+open FrunchyBackend.Tests.FreshAuthTests
+
+type private Watch =
+    { User: Guid
+      Series: string
+      Episode: string
+      At: DateTimeOffset }
+
+type private Expected = { Id: string; Rank: int; People: int; Episodes: int }
+
+type private Parsed =
+    { Id: string
+      Rank: int
+      People: int
+      Episodes: int
+      Block: string }
+
+let private fallStart = DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero)
+
+/// (series id, title, slug). "GSER0007" has no slug; "GSER0008" also has an unresolved episode
+let private catalog =
+    [ "GSER0001", "Anime One", Some "anime-one"
+      "GSER0002", "Anime Two", Some "anime-two"
+      "GSER0003", "Anime Three", Some "anime-three"
+      "GSER0004", "Anime Four", Some "anime-four"
+      "GSER0005", "Anime Five", Some "anime-five"
+      "GSER0006", "Tom & Jerry's <Big> Show", Some "tom-and-jerry"
+      "GSER0007", "Anime Seven", None
+      "GSER0008", "Anime Eight", Some "anime-eight" ]
+
+let private titles = catalog |> List.map (fun (id, title, _) -> id, title) |> Map.ofList
+let private episodesOf (series: string) = [ for n in 1..3 -> $"{series}E{n}" ]
+
+let private userGuid (n: int) = Guid.Parse("00000000-0000-0000-0000-0000000000" + n.ToString "00")
+
+let private sqlText (text: string) = text.Replace("'", "''")
+
+let private insertCatalog (db: DbConfig) =
+    task {
+        for id, title, slug in catalog do
+            let slug = slug |> Option.map (fun s -> $"'{s}'") |> Option.defaultValue "NULL"
+            do! Db.execute db $"INSERT INTO cr_series (id, title, slug, source_at) VALUES ('{id}', '{sqlText title}', {slug}, now())"
+
+            for e in episodesOf id do
+                do!
+                    Db.execute
+                        db
+                        $"INSERT INTO cr_episodes (id, series_id, series_title, duration_ms, thumbnail_url) VALUES ('{e}', '{id}', '{sqlText title}', 1440000, 'https://img/{e}.jpg')"
+
+        // an unresolved episode (no length) of the last series: it never counts
+        do! Db.execute db "INSERT INTO cr_episodes (id, series_id, series_title, duration_ms) VALUES ('GSER0008E9', 'GSER0008', 'Anime Eight', NULL)"
+    }
+
+let private addWatch (db: DbConfig) (user: Guid) (episode: string) (at: DateTimeOffset) =
+    Db.execute
+        db
+        $"""INSERT INTO watch_events (user_id, cr_episode_id, watched_at, playhead_s, fully_watched, import_id)
+            VALUES ('{user}', '{episode}', '{at.UtcDateTime:O}', 1400, true, gen_random_uuid())
+            ON CONFLICT (user_id, cr_episode_id) DO UPDATE SET watched_at = EXCLUDED.watched_at"""
+
+let private insertUsers (db: DbConfig) (count: int) =
+    task {
+        for i in 1..count do
+            do! Db.execute db $"INSERT INTO users (id, username, display_name) VALUES ('{userGuid i}', 'user{i}', 'User {i}')"
+    }
+
+/// Five SQL users with random overlapping history over the last 140 days (a third of it in the last week,
+/// a quarter in the week before, a few days inside the current season), plus boundary rows
+let private seedRandom (db: DbConfig) =
+    task {
+        let rng = Random 2026
+        let chosen = Collections.Generic.Dictionary<(int * string), DateTimeOffset>()
+
+        for user in 1..5 do
+            for id, _, _ in catalog do
+                if rng.NextDouble() < 0.75 then
+                    for e in episodesOf id do
+                        if rng.NextDouble() < 0.7 then
+                            let days =
+                                match rng.Next 20 with
+                                | n when n < 7 -> rng.NextDouble() * 7.0
+                                | n when n < 12 -> 7.0 + rng.NextDouble() * 7.0
+                                | n when n < 14 -> 14.0 + rng.NextDouble() * 1.0
+                                | _ -> rng.NextDouble() * 140.0
+
+                            chosen[(user, e)] <- now.AddDays(-days)
+
+        // the unresolved episode, watched by everybody
+        for user in 1..5 do
+            chosen[(user, "GSER0008E9")] <- now.AddDays -1.0
+
+        // boundaries: the week window is [now - 7 days, now), the season window starts at 1 October 00:00 UTC
+        chosen[(1, "GSER0002E2")] <- now.AddDays -7.0
+        chosen[(2, "GSER0002E2")] <- now.AddDays(-7.0).AddSeconds -1.0
+        chosen[(3, "GSER0002E2")] <- now
+        chosen[(4, "GSER0002E3")] <- fallStart
+        chosen[(5, "GSER0002E3")] <- fallStart.AddSeconds -1.0
+
+        for KeyValue((user, episode), at) in chosen do
+            do! addWatch db (userGuid user) episode at
+    }
+
+let private loadWatches (db: DbConfig) : Task<Watch list> =
+    task {
+        let! lines =
+            Db.dump
+                db
+                """SELECT w.user_id, e.series_id, e.id, (extract(epoch from w.watched_at) * 1000)::bigint
+                   FROM watch_events w JOIN cr_episodes e ON e.id = w.cr_episode_id
+                   WHERE e.duration_ms IS NOT NULL"""
+
+        return
+            [ for line in lines do
+                  let p = line.Split '|'
+
+                  { User = Guid.Parse p[0]
+                    Series = p[1]
+                    Episode = p[2]
+                    At = DateTimeOffset.FromUnixTimeMilliseconds(int64 p[3]) } ]
+    }
+
+let private inWindow (window: string) (watches: Watch list) =
+    match window with
+    | "week" -> watches |> List.filter (fun w -> w.At >= now.AddDays -7.0 && w.At < now)
+    | "season" -> watches |> List.filter (fun w -> w.At >= fallStart && w.At < DateTimeOffset(2027, 1, 1, 0, 0, 0, TimeSpan.Zero))
+    | _ -> watches
+
+/// The chart's rows: people, then episodes, then title, then id; at least `minimum` people; at most 20
+let private expectedChart (minimum: int) (watches: Watch list) : Expected list =
+    watches
+    |> List.groupBy _.Series
+    |> List.map (fun (series, ws) -> series, (ws |> List.map _.User |> List.distinct |> List.length), ws.Length)
+    |> List.filter (fun (_, people, _) -> people >= minimum)
+    |> List.sortBy (fun (series, people, episodes) -> -people, -episodes, titles[series], series)
+    |> List.truncate 20
+    |> List.mapi (fun i (series, people, episodes) -> { Id = series; Rank = i + 1; People = people; Episodes = episodes })
+
+let private path (window: string) =
+    match window with
+    | "week" -> "/charts"
+    | "season" -> "/charts/season"
+    | _ -> "/charts/all"
+
+let private appAt (db: DbConfig) (config: (string * string) list) (at: DateTimeOffset) =
+    let clock = TestClock(Now = at)
+    createAppWith db config (fun (b: WebApplicationBuilder) -> b.Services.AddSingleton<TimeProvider>(clock) |> ignore)
+
+let private pageOf (client: Net.Http.HttpClient) (language: string) (url: string) =
+    task {
+        let! response = getWithLanguage client language url
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode)
+        return! readHtml response
+    }
+
+let private parseRows (html: string) : Parsed list =
+    [ for m in Regex.Matches(html, "<li\\b[^>]*\\bdata-chart-row=\"([^\"]*)\"[^>]*>(.*?)</li>", RegexOptions.Singleline) ->
+          let tag = Regex.Match(m.Value, "^<li\\b[^>]*>").Value
+          let a (name: string) = Regex.Match(tag, $"data-{name}=\"([^\"]*)\"").Groups[1].Value
+
+          { Id = m.Groups[1].Value
+            Rank = int (a "rank")
+            People = int (a "people")
+            Episodes = int (a "episodes")
+            Block = m.Value } ]
+
+let private asExpected (rows: Parsed list) : Expected list =
+    rows |> List.map (fun r -> { Id = r.Id; Rank = r.Rank; People = r.People; Episodes = r.Episodes })
+
+let private attrOf (hook: string) (html: string) =
+    Regex.Match(html, $"<[a-z0-9]+\\b[^>]*\\bdata-{hook}=\"([^\"]*)\"[^>]*>").Groups[1].Value
+
+let private fixtureDb () =
+    task {
+        let! db = newDatabase ()
+        do! insertCatalog db
+        do! insertUsers db 5
+        do! seedRandom db
+        return db
+    }
+
+[<Fact>]
+let ``every row of the three charts equals the figures computed from the watch rows, for minimums 2 to 5`` () =
+    task {
+        let! db = fixtureDb ()
+        let! watches = loadWatches db
+
+        // sanity: the fixture gives every window something to compare at the lowest minimum
+        for window in [ "week"; "season"; "all" ] do
+            Assert.NotEmpty(expectedChart 2 (inWindow window watches))
+
+        for minimum in 2..5 do
+            use! app = appAt db [ "Frunchy:Charts:MinPeople", string minimum ] now
+
+            for window in [ "week"; "season"; "all" ] do
+                let! html = pageOf app.Client "en" (path window)
+                let expected = expectedChart minimum (inWindow window watches)
+                let rows = parseRows html
+
+                Assert.Equal<Expected list>(expected, asExpected rows)
+                Assert.Equal(window, attrOf "charts" html)
+                Assert.Equal(string minimum, attrOf "min-people" html)
+
+                // the minimum: no row below it
+                Assert.All(rows, fun r -> Assert.True(r.People >= minimum, $"{r.Id} has {r.People} people at minimum {minimum}"))
+
+                // titles are shown (HTML-escaped on the wire, decoded here)
+                for r in rows do
+                    Assert.Contains(titles[r.Id], r.Block)
+
+                // the empty state shows exactly when there are no rows
+                Assert.Equal(rows.IsEmpty, html.Contains "data-chart-empty")
+
+                // the unresolved episode never counts: "GSER0008" has 3 known episodes and 5 users
+                for r in rows |> List.filter (fun r -> r.Id = "GSER0008") do
+                    Assert.True(r.Episodes <= 15)
+    }
+
+[<Fact>]
+let ``the week window is half open and the season starts at 1 October 00:00 UTC`` () =
+    task {
+        let! db = fixtureDb ()
+        let! watches = loadWatches db
+        use! app = appAt db [ "Frunchy:Charts:MinPeople", "2" ] now
+
+        // GSER0002E2 is watched exactly at now - 7 days (in), one second earlier (out) and at now (out of the week);
+        // GSER0002E3 exactly at the start of the season (in) and one second earlier (out)
+        let! week = pageOf app.Client "en" "/charts"
+        let! season = pageOf app.Client "en" "/charts/season"
+        let two (html: string) = parseRows html |> List.tryFind (fun r -> r.Id = "GSER0002")
+
+        let expectedEpisodes (window: string) =
+            inWindow window watches |> List.filter (fun w -> w.Series = "GSER0002") |> List.length
+
+        Assert.Equal(Some(expectedEpisodes "week"), two week |> Option.map _.Episodes)
+        Assert.Equal(Some(expectedEpisodes "season"), two season |> Option.map _.Episodes)
+
+        // the boundary rows really are on the sides the contract says
+        Assert.Contains(watches, fun w -> w.Episode = "GSER0002E3" && w.At = fallStart)
+        Assert.Contains(watches, fun w -> w.Episode = "GSER0002E3" && w.At = fallStart.AddSeconds -1.0)
+        Assert.Contains(inWindow "season" watches, fun w -> w.Episode = "GSER0002E3" && w.At = fallStart)
+        Assert.DoesNotContain(inWindow "season" watches, fun w -> w.Episode = "GSER0002E3" && w.At = fallStart.AddSeconds -1.0)
+        Assert.Contains(inWindow "week" watches, fun w -> w.Episode = "GSER0002E2" && w.At = now.AddDays -7.0)
+        Assert.DoesNotContain(inWindow "week" watches, fun w -> w.Episode = "GSER0002E2" && w.At = now)
+    }
+
+/// A tie fixture: the ids sort the opposite way to the titles
+let private tieDb () =
+    task {
+        let! db = newDatabase ()
+        do! insertUsers db 3
+
+        do!
+            Db.execute
+                db
+                """INSERT INTO cr_series (id, title, slug, source_at) VALUES
+                     ('TIE00001', 'Zebra', NULL, now()), ('TIE00002', 'Aardvark', NULL, now()),
+                     ('TIE00003', 'Mango', NULL, now()), ('TIE00004', 'Quince', NULL, now());
+                   INSERT INTO cr_episodes (id, series_id, series_title, duration_ms) VALUES
+                     ('TIE1E1', 'TIE00001', 'Zebra', 1440000), ('TIE1E2', 'TIE00001', 'Zebra', 1440000),
+                     ('TIE2E1', 'TIE00002', 'Aardvark', 1440000), ('TIE2E2', 'TIE00002', 'Aardvark', 1440000),
+                     ('TIE3E1', 'TIE00003', 'Mango', 1440000), ('TIE3E2', 'TIE00003', 'Mango', 1440000),
+                     ('TIE4E1', 'TIE00004', 'Quince', 1440000), ('TIE4E2', 'TIE00004', 'Quince', 1440000)"""
+
+        let at = now.AddDays -1.0
+
+        // Mango: 3 people, 6 episodes. Quince: 3 people, 3 episodes.
+        for user in 1..3 do
+            for e in [ "TIE3E1"; "TIE4E1" ] do
+                do! addWatch db (userGuid user) e at
+
+        for user in 1..3 do
+            do! addWatch db (userGuid user) "TIE3E2" at
+
+        // Zebra and Aardvark: 3 people, 4 episodes each
+        for user in 1..3 do
+            do! addWatch db (userGuid user) "TIE1E1" at
+            do! addWatch db (userGuid user) "TIE2E1" at
+
+        do! addWatch db (userGuid 1) "TIE1E2" at
+        do! addWatch db (userGuid 1) "TIE2E2" at
+        return db
+    }
+
+[<Fact>]
+let ``ties on people are broken by episodes, then by title, then by id`` () =
+    task {
+        let! db = tieDb ()
+        use! app = appAt db [] now
+        let! html = pageOf app.Client "en" "/charts"
+        let rows = parseRows html
+
+        // Mango has 3 people and 6 episodes, Aardvark and Zebra 3 people and 4 (Aardvark first by title although its
+        // id sorts after Zebra's), Quince 3 people and 3
+        Assert.Equal<string list>([ "TIE00003"; "TIE00002"; "TIE00001"; "TIE00004" ], rows |> List.map _.Id)
+        Assert.Equal<int list>([ 6; 4; 4; 3 ], rows |> List.map _.Episodes)
+        Assert.Equal<int list>([ 1; 2; 3; 4 ], rows |> List.map _.Rank)
+    }
+
+[<Fact>]
+let ``the viewer's link shows only for a signed-in viewer who watched the series, the Crunchyroll link only with a slug`` () =
+    task {
+        let! db = fixtureDb ()
+        use! app = appAt db [ "Frunchy:Charts:MinPeople", "2" ] now
+        let! viewer = signedUp app "sub-viewer" "viewer"
+        use viewer = viewer
+        let! viewerId = Db.scalar<Guid> db "SELECT id FROM users WHERE username = @u" [ "u", box "viewer" ]
+
+        // the viewer watched series 1 and 3 only
+        do! addWatch db viewerId "GSER0001E1" (now.AddDays -2.0)
+        do! addWatch db viewerId "GSER0003E1" (now.AddDays -300.0)
+
+        let! watches = loadWatches db
+        let expected = expectedChart 2 (inWindow "all" watches)
+        Assert.Contains(expected, fun e -> e.Id = "GSER0001")
+        Assert.Contains(expected, fun e -> e.Id = "GSER0002")
+        Assert.Contains(expected, fun e -> e.Id = "GSER0007")
+
+        let! signedIn = viewer.Get "/charts/all"
+        Assert.Equal(HttpStatusCode.OK, signedIn.Status)
+        let html = WebUtility.HtmlDecode signedIn.Html
+        Assert.Equal<Expected list>(expected, asExpected (parseRows html))
+
+        for r in parseRows html do
+            let mine = r.Block.Contains "data-chart-mine"
+            Assert.Equal(r.Id = "GSER0001" || r.Id = "GSER0003", mine)
+
+            if mine then
+                Assert.Contains($"href=\"/u/viewer/anime/{r.Id}\"", r.Block)
+
+            // Crunchyroll: with a slug only (GSER0007 has none)
+            let hasLink = r.Block.Contains "data-cr-series-link"
+            Assert.Equal(r.Id <> "GSER0007", hasLink)
+
+            if hasLink then
+                let slug = catalog |> List.pick (fun (id, _, s) -> if id = r.Id then s else None)
+                Assert.Contains($"href=\"https://www.crunchyroll.com/series/{r.Id}/{slug}\"", r.Block)
+                Assert.Contains("rel=\"noopener\"", r.Block)
+                Assert.Contains("target=\"_blank\"", r.Block)
+
+        // a signed-out visitor sees no personal link, no user link and no username on the chart
+        let! anonymous = pageOf app.Client "en" "/charts/all"
+        Assert.DoesNotContain("data-chart-mine", anonymous)
+        Assert.DoesNotContain("/u/", anonymous)
+        Assert.DoesNotContain("User 1", anonymous)
+    }
+
+[<Fact>]
+let ``an empty chart shows the empty state and a season name follows the clock at its boundaries`` () =
+    task {
+        let! db = newDatabase ()
+
+        for window in [ "week"; "season"; "all" ] do
+            use! app = appAt db [] now
+            let! html = pageOf app.Client "en" (path window)
+            Assert.Contains("data-chart-empty", html)
+            Assert.Empty(parseRows html)
+
+        let seasonAt (at: DateTimeOffset) =
+            task {
+                use! app = appAt db [] at
+                let! html = pageOf app.Client "en" "/charts/season"
+                return attrOf "season" html
+            }
+
+        let! lastSecondOfSummer = seasonAt (DateTimeOffset(2026, 9, 30, 23, 59, 59, TimeSpan.Zero))
+        let! firstSecondOfFall = seasonAt (DateTimeOffset(2026, 10, 1, 0, 0, 0, TimeSpan.Zero))
+        let! lastSecondOfFall = seasonAt (DateTimeOffset(2026, 12, 31, 23, 59, 59, TimeSpan.Zero))
+        let! firstSecondOfWinter = seasonAt (DateTimeOffset(2027, 1, 1, 0, 0, 0, TimeSpan.Zero))
+        Assert.Equal("summer-2026", lastSecondOfSummer)
+        Assert.Equal("fall-2026", firstSecondOfFall)
+        Assert.Equal("fall-2026", lastSecondOfFall)
+        Assert.Equal("winter-2027", firstSecondOfWinter)
+
+        // only the season chart names a season
+        use! app = appAt db [] now
+        let! week = pageOf app.Client "en" "/charts"
+        let! all = pageOf app.Client "en" "/charts/all"
+        Assert.DoesNotContain("data-season", week)
+        Assert.DoesNotContain("data-season", all)
+    }
+
+[<Fact>]
+let ``the Charts link is in every page's header, for visitors and signed-in users, and the tabs mark the active chart`` () =
+    task {
+        let! app = newApp ()
+        use app = app
+        let! viewer = signedUp app "sub-nav" "navuser"
+        use viewer = viewer
+
+        let hasLink (html: string) =
+            Regex.Matches(html, "<a\\b[^>]*>")
+            |> Seq.exists (fun m -> m.Value.Contains "data-nav=\"charts\"" && m.Value.Contains "href=\"/charts\"")
+
+        for url in [ "/"; "/u/navuser"; "/charts"; "/signin" ] do
+            let! anonymous = pageOf app.Client "en" url
+            Assert.True(hasLink anonymous, $"signed out, {url}")
+            let! page = viewer.Get url
+            Assert.True(hasLink page.Html, $"signed in, {url}")
+
+        for window in [ "week"; "season"; "all" ] do
+            let! html = pageOf app.Client "en" (path window)
+
+            let tabs =
+                [ for m in Regex.Matches(html, "<a\\b[^>]*\\bdata-chart-tab=\"([^\"]*)\"[^>]*>") -> m.Groups[1].Value, m.Value.Contains "aria-current=\"page\"" ]
+
+            Assert.Equal<(string * bool) list>([ "week", (window = "week"); "season", (window = "season"); "all", (window = "all") ], tabs)
+    }
+
+[<Fact>]
+let ``the charts speak English and Spanish from the language header`` () =
+    task {
+        let! db = tieDb ()
+        use! app = appAt db [] now
+
+        let! en = pageOf app.Client "en" "/charts"
+        Assert.Contains("This week", en)
+        Assert.Contains("This season", en)
+        Assert.Contains("All time", en)
+        Assert.Contains("3 people · 6 episodes", en)
+        Assert.Contains("Series appear once 3 people have watched them.", en)
+
+        let! es = pageOf app.Client "es" "/charts"
+        Assert.Contains("Esta semana", es)
+        Assert.Contains("Esta temporada", es)
+        Assert.Contains("Histórico", es)
+        Assert.Contains("3 personas · 6 episodios", es)
+        Assert.Contains("lang=\"es\"", es)
+
+        let! season = pageOf app.Client "es" "/charts/season"
+        Assert.Contains("Otoño 2026", season)
+        let! seasonEn = pageOf app.Client "en" "/charts/season"
+        Assert.Contains("Fall 2026", seasonEn)
+
+        // the empty state is localized too
+        let! emptyDb = newDatabase ()
+        use! empty = appAt emptyDb [] now
+        let! emptyEs = pageOf empty.Client "es" "/charts"
+        Assert.Contains("Todavía no hay series en este ranking", emptyEs)
+    }

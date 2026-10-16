@@ -50,7 +50,7 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
 
 ## Phase 3: User Story 1 - The charts (P1) 🎯 MVP
 
-- [ ] T006 [US1] `ChartsTests`, chart part. The fixture is 6 users with overlapping series and dates set across the last 20 weeks, the current season and earlier seasons. It checks:
+- [x] T006 [US1] `ChartsTests`, chart part. The fixture is 6 users with overlapping series and dates set across the last 20 weeks, the current season and earlier seasons. It checks:
   - **Figures**: every row, rank, people and episodes count for week, season and all time equals an independent query.
   - **Minimum**: for minimums 2–5, no row below it.
   - **Ties**: ordered by episodes, then title.
@@ -60,7 +60,7 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
   - **Languages**: en and es.
 
   · tests/FrunchyBackend.Tests/ChartsTests.fs
-- [ ] T007 [US1] The page and its navigation:
+- [x] T007 [US1] The page and its navigation:
   - **`Handlers/Charts/Charts.fs`**: view, handler and `GET` for the three routes. It reads the minimum from configuration and "now" from `TimeProvider`.
   - **`Layout.fs`**: the "Charts" link for everyone (`data-nav="charts"`).
   - **`Program.fs`**: the endpoints.

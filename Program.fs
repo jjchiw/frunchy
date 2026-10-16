@@ -49,6 +49,8 @@ let endpoints =
       Handlers.Users.Anime.endpoint
       // Feature 011: taste compatibility with another user (signed in)
       Handlers.Users.Compare.endpoint
+      // Feature 012: charts and trends (anyone)
+      yield! Handlers.Charts.Charts.endpoint
       // Feature 009: the episode page and its comments
       yield! Handlers.Episodes.Episode.endpoint
       yield! Handlers.Episodes.EditComment.endpoint
