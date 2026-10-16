@@ -1,0 +1,16 @@
+{
+  "workflow": "speckit",
+  "specName": "Taste Compatibility",
+  "branch": "011-taste-compatibility",
+  "currentStep": "specify",
+  "status": "specified",
+  "history": [
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-16T04:16:13.881Z"
+    }
+  ]
+}
