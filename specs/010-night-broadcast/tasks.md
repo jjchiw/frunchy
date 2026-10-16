@@ -54,7 +54,7 @@ One task per page group. Each task:
 - [x] T006 [US1] Profile pages: DNA, year, anime · Handlers/Users/Dna.fs, Handlers/Users/Year.fs, Handlers/Users/Anime.fs
 - [x] T007 [US1] Episode page and comment edit page · Handlers/Episodes/Episode.fs, Handlers/Episodes/EditComment.fs
 - [x] T008 [US1] Auth and account: sign-in, sign-up, claim, reconfirm, account, key, delete · Handlers/Auth/*.fs, Handlers/Account/*.fs
-- [ ] T009 [US1] Operator pages: MyAnimeList review, operators · Handlers/Review/MalReview.fs, Handlers/Review/Operators.fs
+- [x] T009 [US1] Operator pages: MyAnimeList review, operators · Handlers/Review/MalReview.fs, Handlers/Review/Operators.fs
 
 ## Phase 3: The extension can follow (US3)
 
