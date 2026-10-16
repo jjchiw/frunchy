@@ -203,6 +203,9 @@ type Icon =
     | Shield
     | Star
     | Sync
+    | TrendingDown
+    | TrendingFlat
+    | TrendingUp
     | Warning
 
     /// The Material Symbols ligature
@@ -232,6 +235,9 @@ type Icon =
         | Shield -> "shield"
         | Star -> "star"
         | Sync -> "sync"
+        | TrendingDown -> "trending_down"
+        | TrendingFlat -> "trending_flat"
+        | TrendingUp -> "trending_up"
         | Warning -> "warning"
 
 let iconNames =

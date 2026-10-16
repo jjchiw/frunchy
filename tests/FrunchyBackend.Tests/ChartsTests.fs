@@ -605,3 +605,267 @@ let ``the charts speak English and Spanish from the language header`` () =
         let! emptyEs = pageOf empty.Client "es" "/charts"
         Assert.Contains("Todavía no hay series en este ranking", emptyEs)
     }
+
+// ===========================================================================
+// T008: movement and trend on the week chart, and the speed of the three charts at 2 million events
+// ===========================================================================
+
+/// The week before the current one: [now - 14 days, now - 7 days)
+let private previousWeek (watches: Watch list) =
+    watches |> List.filter (fun w -> w.At >= now.AddDays -14.0 && w.At < now.AddDays -7.0)
+
+/// Last week's ranking with no limit: series id to its 1-based rank
+let private previousRanks (minimum: int) (watches: Watch list) : Map<string, int> =
+    previousWeek watches
+    |> List.groupBy _.Series
+    |> List.map (fun (series, ws) -> series, (ws |> List.map _.User |> List.distinct |> List.length), ws.Length)
+    |> List.filter (fun (_, people, _) -> people >= minimum)
+    |> List.sortBy (fun (series, people, episodes) -> -people, -episodes, titles[series], series)
+    |> List.mapi (fun i (series, _, _) -> series, i + 1)
+    |> Map.ofList
+
+/// (move, by) for a series ranked `rank` now
+let private expectedMove (previous: Map<string, int>) (series: string) (rank: int) : string * int option =
+    match previous.TryFind series with
+    | None -> "new", None
+    | Some before when before > rank -> "up", Some(before - rank)
+    | Some before when before < rank -> "down", Some(rank - before)
+    | Some _ -> "same", None
+
+/// The 8 weekly blocks, oldest first: block i is [now - 7 * (8 - i) days, now - 7 * (7 - i) days)
+let private expectedTrend (series: string) (watches: Watch list) : int list =
+    [ for i in 0..7 ->
+          let from = now.AddDays(-7.0 * float (8 - i))
+          let until = now.AddDays(-7.0 * float (7 - i))
+
+          watches
+          |> List.filter (fun w -> w.Series = series && w.At >= from && w.At < until)
+          |> List.map _.User
+          |> List.distinct
+          |> List.length ]
+
+let private moveOf (r: Parsed) : (string * int option) option =
+    let kind = Regex.Match(r.Block, "data-move=\"([^\"]*)\"")
+
+    if kind.Success then
+        let by = Regex.Match(r.Block, "data-move-by=\"([^\"]*)\"")
+        Some(kind.Groups[1].Value, (if by.Success then Some(int by.Groups[1].Value) else None))
+    else
+        None
+
+let private trendOf (r: Parsed) : int list option =
+    let m = Regex.Match(r.Block, "data-trend=\"([^\"]*)\"")
+    if m.Success then Some(m.Groups[1].Value.Split ',' |> Array.map int |> List.ofArray) else None
+
+[<Fact>]
+let ``movement and the 8-week trend of every row of the week chart equal the figures from the watch rows`` () =
+    task {
+        let! db = fixtureDb ()
+        let! watches = loadWatches db
+
+        for minimum in 2..4 do
+            use! app = appAt db [ "Frunchy:Charts:MinPeople", string minimum ] now
+            let! html = pageOf app.Client "en" "/charts"
+            let rows = parseRows html
+            let previous = previousRanks minimum watches
+            Assert.NotEmpty rows
+
+            for r in rows do
+                Assert.Equal(Some(expectedMove previous r.Id r.Rank), moveOf r)
+                Assert.Equal(Some(expectedTrend r.Id watches), trendOf r)
+
+                // one accessible image per row: role, a text label with the same values, a single polyline
+                let values = (trendOf r).Value
+                Assert.Contains("role=\"img\"", r.Block)
+                Assert.Contains("aria-label=\"Last 8 weeks: " + String.Join(", ", values) + "\"", r.Block)
+                Assert.Equal(1, Regex.Matches(r.Block, "<polyline\\b").Count)
+                Assert.Contains("stroke=\"currentColor\"", r.Block)
+
+                // the points: 8, left to right, the row's own maximum at the top and zero at the bottom
+                let points =
+                    Regex.Match(r.Block, "points=\"([^\"]*)\"").Groups[1].Value.Split ' '
+                    |> Array.map (fun p -> let xy = p.Split ',' in int xy[0], int xy[1])
+
+                Assert.Equal(8, points.Length)
+                Assert.Equal<int[]>(Array.sort (points |> Array.map fst), points |> Array.map fst)
+                Assert.Equal(points |> Array.map fst |> Array.distinct |> Array.length, 8)
+                Assert.All(points, fun (x, y) -> Assert.True(x >= 0 && x <= 80 && y >= 0 && y <= 24))
+                let top = List.max values
+
+                for (_, y), v in Array.zip points (Array.ofList values) do
+                    if v = top then Assert.Equal(2, y)
+                    if v = 0 then Assert.Equal(22, y)
+    }
+
+[<Fact>]
+let ``up, down, same and new from two weeks of known ranks, a series below last week's minimum counting as new`` () =
+    task {
+        let! db = newDatabase ()
+        do! insertUsers db 5
+
+        let names = [ 1, "Alpha"; 2, "Bravo"; 3, "Charlie"; 4, "Delta"; 5, "Echo"; 6, "Foxtrot" ]
+
+        for k, name in names do
+            do! Db.execute db $"INSERT INTO cr_series (id, title, slug, source_at) VALUES ('MOV0000{k}', '{name}', NULL, now())"
+
+            for e in 1..3 do
+                do!
+                    Db.execute
+                        db
+                        $"INSERT INTO cr_episodes (id, series_id, series_title, duration_ms) VALUES ('MOV{k}E{e}', 'MOV0000{k}', '{name}', 1440000)"
+
+        let thisWeek = now.AddDays -2.0
+        let lastWeek = now.AddDays -9.0
+        let watch (users: int list) (episode: string) (at: DateTimeOffset) =
+            task {
+                for u in users do
+                    do! addWatch db (userGuid u) episode at
+            }
+
+        // last week at minimum 3: Alpha 5 people, Bravo 4, Charlie 3, Foxtrot 3 (Charlie before Foxtrot by title);
+        // Delta 2 people, below the minimum, Echo none
+        do! watch [ 1; 2; 3; 4; 5 ] "MOV1E2" lastWeek
+        do! watch [ 1; 2; 3; 4 ] "MOV2E2" lastWeek
+        do! watch [ 1; 2; 3 ] "MOV3E2" lastWeek
+        do! watch [ 1; 2; 3 ] "MOV6E2" lastWeek
+        do! watch [ 1; 2 ] "MOV4E2" lastWeek
+
+        // this week: Foxtrot 5 people and 6 episodes, Bravo 5 and 5, Alpha 4, Charlie 3 and 4 episodes,
+        // Delta 3 and 3, Echo 3 and 3
+        do! watch [ 1; 2; 3; 4; 5 ] "MOV6E1" thisWeek
+        do! watch [ 1 ] "MOV6E3" thisWeek
+        do! watch [ 1; 2; 3; 4; 5 ] "MOV2E1" thisWeek
+        do! watch [ 1; 2; 3; 4 ] "MOV1E1" thisWeek
+        do! watch [ 1; 2; 3 ] "MOV3E1" thisWeek
+        do! watch [ 1 ] "MOV3E3" thisWeek
+        do! watch [ 1; 2; 3 ] "MOV4E1" thisWeek
+        do! watch [ 3; 4; 5 ] "MOV5E1" thisWeek
+
+        use! app = appAt db [] now
+        let! html = pageOf app.Client "en" "/charts"
+        let rows = parseRows html
+
+        Assert.Equal<string list>(
+            [ "MOV00006"; "MOV00002"; "MOV00001"; "MOV00003"; "MOV00004"; "MOV00005" ],
+            rows |> List.map _.Id
+        )
+
+        let moves = rows |> List.map (fun r -> r.Id, moveOf r) |> Map.ofList
+        Assert.Equal(Some("up", Some 3), moves["MOV00006"]) // 4th last week, 1st now
+        Assert.Equal(Some("same", None), moves["MOV00002"]) // 2nd both weeks
+        Assert.Equal(Some("down", Some 2), moves["MOV00001"]) // 1st last week, 3rd now
+        Assert.Equal(Some("down", Some 1), moves["MOV00003"]) // 3rd last week, 4th now
+        Assert.Equal(Some("new", None), moves["MOV00004"]) // 2 people last week: below the minimum
+        Assert.Equal(Some("new", None), moves["MOV00005"]) // unwatched last week
+
+        // the trend of Alpha: 5 people the week before last... in the 7th block, 4 in the 8th
+        let alpha = rows |> List.find (fun r -> r.Id = "MOV00001")
+        Assert.Equal(Some [ 0; 0; 0; 0; 0; 0; 5; 4 ], trendOf alpha)
+        let echo = rows |> List.find (fun r -> r.Id = "MOV00005")
+        Assert.Equal(Some [ 0; 0; 0; 0; 0; 0; 0; 3 ], trendOf echo)
+
+        // the hooks carry the number only for up and down; the icon and the words are shown
+        Assert.Contains("Up 3", (rows |> List.find (fun r -> r.Id = "MOV00006")).Block)
+        Assert.Contains("Down 2", alpha.Block)
+        Assert.Contains("Same", (rows |> List.find (fun r -> r.Id = "MOV00002")).Block)
+        Assert.Contains("New", echo.Block)
+        Assert.Contains("trending_up", (rows |> List.find (fun r -> r.Id = "MOV00006")).Block)
+        Assert.Contains("trending_down", alpha.Block)
+
+        let! es = pageOf app.Client "es" "/charts"
+        Assert.Contains("Sube 3", es)
+        Assert.Contains("Baja 2", es)
+        Assert.Contains("Igual", es)
+        Assert.Contains("Nuevo", es)
+        Assert.Contains("Últimas 8 semanas: 0, 0, 0, 0, 0, 0, 5, 4", es)
+    }
+
+[<Fact>]
+let ``the season and all-time charts carry no movement and no trend`` () =
+    task {
+        let! db = fixtureDb ()
+        use! app = appAt db [ "Frunchy:Charts:MinPeople", "2" ] now
+
+        for window in [ "season"; "all" ] do
+            let! html = pageOf app.Client "en" (path window)
+            Assert.NotEmpty(parseRows html)
+            Assert.DoesNotContain("data-move", html)
+            Assert.DoesNotContain("data-trend", html)
+            Assert.DoesNotContain("<svg viewBox=\"0 0 80 24\"", html)
+    }
+
+[<Fact>]
+let ``no user text enters the trend graphic: a hostile title and a hostile slug stay out of it`` () =
+    task {
+        let! db = newDatabase ()
+        do! insertUsers db 3
+        do! Db.execute db "INSERT INTO cr_series (id, title, slug, source_at) VALUES ('EVIL0001', '\"><script>alert(1)</script>', 'x\"><svg onload=alert(1)>', now())"
+        do! Db.execute db "INSERT INTO cr_episodes (id, series_id, series_title, duration_ms) VALUES ('EVIL1E1', 'EVIL0001', 'evil', 1440000)"
+
+        for u in 1..3 do
+            do! addWatch db (userGuid u) "EVIL1E1" (now.AddDays -1.0)
+
+        use! app = appAt db [] now
+        // the raw body: readHtml would decode the escapes back into markup
+        let! response = getWithLanguage app.Client "en" "/charts"
+        let! html = response.Content.ReadAsStringAsync()
+        let row = parseRows html |> List.exactlyOne
+        let svg = Regex.Match(row.Block, "<svg\\b.*?</svg>", RegexOptions.Singleline).Value
+        Assert.NotEmpty svg
+        Assert.DoesNotContain("script", svg)
+        Assert.DoesNotContain("alert", svg)
+        Assert.DoesNotContain("EVIL", svg)
+        // outside the svg the hostile text is escaped, never markup
+        Assert.DoesNotContain("<script>alert(1)</script>", row.Block)
+        Assert.DoesNotContain("<svg onload", row.Block)
+    }
+
+[<Fact>]
+let ``each chart answers in under a second over 2 million watch events`` () =
+    task {
+        let! db = newDatabase ()
+        let setup = Diagnostics.Stopwatch.StartNew()
+
+        // 20,000 users, 2,000 series, 24,000 episodes; user u watches 100 distinct episodes, spread over two
+        // years before "now". Foreign keys are skipped for the bulk insert (replica role) to keep the setup fast.
+        do!
+            Db.execute
+                db
+                """SET session_replication_role = replica;
+                   INSERT INTO users (id, username, display_name)
+                   SELECT md5('user' || g)::uuid, 'u' || g, 'User ' || g FROM generate_series(0, 19999) g;
+                   INSERT INTO cr_series (id, title, slug, source_at)
+                   SELECT 'SPD' || lpad(g::text, 5, '0'), 'Series ' || g, 'series-' || g, now() FROM generate_series(0, 1999) g;
+                   INSERT INTO cr_episodes (id, series_id, series_title, duration_ms)
+                   SELECT 'EPD' || lpad(g::text, 6, '0'), 'SPD' || lpad((g / 12)::text, 5, '0'), 'Series ' || (g / 12), 1440000
+                   FROM generate_series(0, 23999) g;
+                   INSERT INTO watch_events (user_id, cr_episode_id, watched_at, playhead_s, fully_watched, import_id)
+                   SELECT md5('user' || (i % 20000))::uuid,
+                          'EPD' || lpad(((((i % 20000) * 37) + ((i / 20000) * 241)) % 24000)::text, 6, '0'),
+                          '2026-10-16T12:00:00Z'::timestamptz - ((i::bigint * 104729) % 63072000) * interval '1 second',
+                          1400, true, '00000000-0000-0000-0000-000000000001'
+                   FROM generate_series(0, 1999999) i;
+                   ANALYZE"""
+
+        let! events = Db.count db "watch_events"
+        Assert.Equal(2_000_000L, events)
+        let setupTime = setup.Elapsed
+
+        use! app = appAt db [] now
+
+        // one warm-up GET per chart (plans, pool, JIT), then the timed ones
+        let times = Collections.Generic.List<string * int64>()
+
+        for window in [ "week"; "season"; "all" ] do
+            let! _ = pageOf app.Client "en" (path window)
+
+            let watch = Diagnostics.Stopwatch.StartNew()
+            let! html = pageOf app.Client "en" (path window)
+            watch.Stop()
+            Assert.NotEmpty(parseRows html)
+            times.Add((window, watch.ElapsedMilliseconds))
+
+        let report = String.Join(", ", times |> Seq.map (fun (w, ms) -> $"{w} {ms} ms")) + $" (setup {int setupTime.TotalSeconds} s)"
+        printfn "charts at 2M events: %s" report
+        Assert.True(times |> Seq.forall (fun (_, ms) -> ms < 1000L), "a chart took 1 second or more over 2M events: " + report)
+    }

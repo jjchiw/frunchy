@@ -37,6 +37,53 @@ let private tabs (t: Texts) (current: Window) =
             if window = current then link.attr("aria-current", "page") { label } else link { label }
     }
 
+// --- the trend line: an inline SVG built only from integers we compute (no text from anyone enters it) ---
+
+/// The 8 weekly values as the points of one polyline in an 80 x 24 box, oldest on the left, scaled to the
+/// row's own maximum. All zero is a flat line at the bottom.
+let private trendPoints(values: int list) : string =
+    let top = max 1 (List.max values)
+    let any = values |> List.exists (fun v -> v > 0)
+    let last = max 1 (values.Length - 1)
+
+    values
+    |> List.mapi (fun i v ->
+        let x = (i * 76 + last / 2) / last + 2
+        let y = if any then 22 - (v * 20 + top / 2) / top else 22
+        $"{x},{y}")
+    |> String.concat " "
+
+let private trendSvg (t: Texts) (values: int list) : HtmlElement =
+    // The only text is the localized label, HTML-encoded; every other part is an integer
+    let label = WebUtility.HtmlEncode(t.ChartsTrendLabel values)
+    let data = values |> List.map string |> String.concat ","
+
+    span(class' = "block w-16 shrink-0 text-primary sm:w-24") {
+        raw
+            $"""<svg viewBox="0 0 80 24" class="block h-6 w-full" fill="none" role="img" aria-label="{label}" data-trend="{data}"><polyline points="{trendPoints values}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>"""
+    }
+
+let private movement (t: Texts) (move: Move) : HtmlElement =
+    let line (kind: string) (by: int option) (tone: string) (i: Theme.Icon) (text: string) =
+        let el =
+            span(class' = $"inline-flex items-center gap-1 text-label-md font-semibold {tone}").data("move", kind)
+
+        let el =
+            match by with
+            | Some n -> el.data("move-by", string n)
+            | None -> el
+
+        el {
+            icon i
+            text
+        }
+
+    match move with
+    | Up n -> line "up" (Some n) "text-primary" Theme.TrendingUp (t.ChartsMoveUp n)
+    | Down n -> line "down" (Some n) "text-on-surface-variant" Theme.TrendingDown (t.ChartsMoveDown n)
+    | Same -> line "same" None "text-on-surface-variant" Theme.TrendingFlat t.ChartsMoveSame
+    | New -> (pill TertiaryTone t.ChartsMoveNew).data("move", "new")
+
 let private poster (p: Poster option) =
     span(class' = "flex w-12 shrink-0 justify-center sm:w-24") {
         match p with
@@ -71,6 +118,10 @@ let private row (t: Texts) (username: string option) (top: int) (rank: int) (r: 
                 | Some name when r.Mine ->
                     a(href = $"/u/{name}/anime/{r.SeriesId}", class' = titleClass + " hover:underline").data("chart-mine", "") { r.Title }
                 | _ -> span(class' = titleClass) { r.Title }
+
+                match r.Move with
+                | Some move -> movement t move
+                | None -> Fragment()
             }
 
             p(class' = "text-label-md font-normal text-on-surface-variant") { t.ChartsPeopleEpisodes r.People r.Episodes }
@@ -87,6 +138,9 @@ let private row (t: Texts) (username: string option) (top: int) (rank: int) (r: 
                 }
             | None -> Fragment()
         }
+
+        if r.Move.IsSome then
+            trendSvg t r.Trend
     }
 
 let private view (ctx: HttpContext) (t: Texts) (c: Chart) =

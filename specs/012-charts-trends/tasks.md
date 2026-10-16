@@ -70,8 +70,8 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
 
 ## Phase 4: User Story 2 - Movement and trend (P2)
 
-- [ ] T008 [US2] `ChartsTests`, movement and trend: with two weeks of known ranks, check up, down, same and new (including a series that was below the minimum last week, which counts as new), and each row's 8 trend values against a query. The 2M-row speed test for all three charts also goes here (SC-003) · tests/FrunchyBackend.Tests/ChartsTests.fs
-- [ ] T009 [US2] Show movement (icon plus number, `data-move`, `data-move-by`) and the inline SVG trend (`data-trend`, `role="img"`, `aria-label`) on the week chart (research R6). Add icon cases to `Theme.Icon` only if needed, keeping the subset test green · Handlers/Charts/Charts.fs, Views/Theme.fs
+- [x] T008 [US2] `ChartsTests`, movement and trend: with two weeks of known ranks, check up, down, same and new (including a series that was below the minimum last week, which counts as new), and each row's 8 trend values against a query. The 2M-row speed test for all three charts also goes here (SC-003) · tests/FrunchyBackend.Tests/ChartsTests.fs
+- [x] T009 [US2] Show movement (icon plus number, `data-move`, `data-move-by`) and the inline SVG trend (`data-trend`, `role="img"`, `aria-label`) on the week chart (research R6). Add icon cases to `Theme.Icon` only if needed, keeping the subset test green · Handlers/Charts/Charts.fs, Views/Theme.fs
 
 ## Phase 5: User Story 3 - People counts (P2)
 
