@@ -5,10 +5,12 @@ open System.Globalization
 open System.Text.RegularExpressions
 open System.Threading.Tasks
 open Microsoft.AspNetCore.Http
+open Microsoft.Extensions.Configuration
 open Npgsql
 open Oxpecker
 open Oxpecker.ViewEngine
 open FrunchyBackend.Domains.Identity
+open FrunchyBackend.Infrastructure
 open FrunchyBackend.Infrastructure.Database
 open FrunchyBackend.Views
 open FrunchyBackend.Views.Components
@@ -77,7 +79,13 @@ type AnimeModel =
 // View (contracts/anime-page.md)
 // ---------------------------------------------------------------------------
 
-let private header (ctx: HttpContext) (t: Texts) (m: AnimeModel) =
+/// "Watched by N people on Frunchy" (feature 012): only when the count reaches the chart minimum
+let private peopleLine (t: Texts) (people: int option) =
+    match people with
+    | Some n -> (p(class' = "text-label-md font-normal text-on-surface-variant").data("people-count", string n) { t.ChartsWatchedBy n }) :> HtmlElement
+    | None -> Fragment()
+
+let private header (ctx: HttpContext) (t: Texts) (people: int option) (m: AnimeModel) =
     let address = $"{ctx.Request.Scheme}://{ctx.Request.Host}/u/{m.Username}/anime/{m.SeriesId}"
 
     div(class' = "space-y-6") {
@@ -116,6 +124,8 @@ let private header (ctx: HttpContext) (t: Texts) (m: AnimeModel) =
 
                     copyLink t address
                 }
+
+                peopleLine t people
             }
         }
 
@@ -281,9 +291,9 @@ let private seasonCard (t: Texts) (seriesId: string) (shownBefore: bool) (s: Sea
         }
     }
 
-let view (ctx: HttpContext) (t: Texts) (m: AnimeModel) =
+let view (ctx: HttpContext) (t: Texts) (people: int option) (m: AnimeModel) =
     div(class' = "space-y-10").data("anime", m.SeriesId) {
-        header ctx t m
+        header ctx t people m
         totals t m
 
         div(class' = "space-y-4") {
@@ -538,7 +548,9 @@ let handler (rawUsername: string) (rawSeriesId: string) : EndpointHandler =
 
                     match toModel username rawSeriesId rows with
                     | None -> return! notFound ctx t false
-                    | Some model -> return! ctx.WriteHtmlView(view ctx t model)
+                    | Some model ->
+                        let! people = Charts.seriesPeople (ctx.GetService<DbConfig>()) rawSeriesId (Charts.minPeople (ctx.GetService<IConfiguration>()))
+                        return! ctx.WriteHtmlView(view ctx t people model)
         }
 
 // ---------------------------------------------------------------------------

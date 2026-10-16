@@ -75,8 +75,8 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
 
 ## Phase 5: User Story 3 - People counts (P2)
 
-- [ ] T010 [US3] `ChartsTests`, counts: the anime and episode pages show `data-people-count` equal to a query (the episode count covers the dub group) only at or above the minimum, and are absent below it · tests/FrunchyBackend.Tests/ChartsTests.fs
-- [ ] T011 [US3] Add the count line to the anime page (`Charts.seriesPeople`) and the episode page (`Charts.episodePeople` with the group ids already computed) · Handlers/Users/Anime.fs, Handlers/Episodes/Episode.fs
+- [x] T010 [US3] `ChartsTests`, counts: the anime and episode pages show `data-people-count` equal to a query (the episode count covers the dub group) only at or above the minimum, and are absent below it · tests/FrunchyBackend.Tests/ChartsTests.fs
+- [x] T011 [US3] Add the count line to the anime page (`Charts.seriesPeople`) and the episode page (`Charts.episodePeople` with the group ids already computed) · Handlers/Users/Anime.fs, Handlers/Episodes/Episode.fs
 
 ## Phase 6: Polish
 

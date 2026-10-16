@@ -869,3 +869,151 @@ let ``each chart answers in under a second over 2 million watch events`` () =
         printfn "charts at 2M events: %s" report
         Assert.True(times |> Seq.forall (fun (_, ms) -> ms < 1000L), "a chart took 1 second or more over 2M events: " + report)
     }
+
+// ===========================================================================
+// T010: "Watched by N people on Frunchy" on the anime page and the episode page
+// ===========================================================================
+
+let private countOf (html: string) : string option =
+    let m = Regex.Match(html, "data-people-count=\"([^\"]*)\"")
+    if m.Success then Some m.Groups[1].Value else None
+
+/// Two series for the anime page. "ANM00001": 3 distinct people (user 1 watched two episodes), user 4 only an
+/// unresolved episode. "ANM00002": 2 people.
+let private animeDb () =
+    task {
+        let! db = newDatabase ()
+        do! insertUsers db 4
+
+        do!
+            Db.execute
+                db
+                """INSERT INTO cr_series (id, title, slug, source_at) VALUES
+                     ('ANM00001', 'Counted', NULL, now()), ('ANM00002', 'Rare', NULL, now());
+                   INSERT INTO cr_episodes (id, series_id, series_title, duration_ms) VALUES
+                     ('ANM1E1', 'ANM00001', 'Counted', 1440000), ('ANM1E2', 'ANM00001', 'Counted', 1440000),
+                     ('ANM2E1', 'ANM00002', 'Rare', 1440000);
+                   INSERT INTO cr_episodes (id, series_id, series_title, duration_ms) VALUES
+                     ('ANM1E3', 'ANM00001', 'Counted', NULL)"""
+
+        let at = now.AddDays -3.0
+        do! addWatch db (userGuid 1) "ANM1E1" at
+        do! addWatch db (userGuid 1) "ANM1E2" at
+        do! addWatch db (userGuid 2) "ANM1E1" at
+        do! addWatch db (userGuid 3) "ANM1E2" at
+        do! addWatch db (userGuid 4) "ANM1E3" at
+        do! addWatch db (userGuid 1) "ANM2E1" at
+        do! addWatch db (userGuid 2) "ANM2E1" at
+        return db
+    }
+
+[<Fact>]
+let ``the anime page counts the distinct people who watched the series, only at or above the minimum`` () =
+    task {
+        let! db = animeDb ()
+
+        let! expected1 =
+            Db.scalar<int64>
+                db
+                "SELECT count(DISTINCT w.user_id) FROM watch_events w JOIN cr_episodes e ON e.id = w.cr_episode_id WHERE e.series_id = 'ANM00001' AND e.duration_ms IS NOT NULL"
+                []
+
+        let! expected2 =
+            Db.scalar<int64>
+                db
+                "SELECT count(DISTINCT w.user_id) FROM watch_events w JOIN cr_episodes e ON e.id = w.cr_episode_id WHERE e.series_id = 'ANM00002' AND e.duration_ms IS NOT NULL"
+                []
+
+        Assert.Equal(3L, expected1)
+        Assert.Equal(2L, expected2)
+
+        for minimum, first, second in [ 2, Some "3", Some "2"; 3, Some "3", None; 4, None, None ] do
+            use! app = appAt db [ "Frunchy:Charts:MinPeople", string minimum ] now
+            let! one = pageOf app.Client "en" "/u/user1/anime/ANM00001"
+            let! two = pageOf app.Client "en" "/u/user1/anime/ANM00002"
+            Assert.Equal(first, countOf one)
+            Assert.Equal(second, countOf two)
+
+        // the default minimum is 3
+        use! app = appAt db [] now
+        let! one = pageOf app.Client "en" "/u/user1/anime/ANM00001"
+        let! two = pageOf app.Client "en" "/u/user1/anime/ANM00002"
+        Assert.Equal(Some "3", countOf one)
+        Assert.Equal(None, countOf two)
+        Assert.Contains("Watched by 3 people on Frunchy", one)
+        Assert.DoesNotContain("Watched by", two)
+
+        // the count is the same for another user's page and in Spanish
+        let! other = pageOf app.Client "es" "/u/user2/anime/ANM00001"
+        Assert.Equal(Some "3", countOf other)
+        Assert.Contains("Visto por 3 personas en Frunchy", other)
+    }
+
+/// An episode and its dub (same number, the dub season's matched row shares the original), plus a lone episode.
+/// Users 1 and 2 watched the original, 3 the dub, 1 both; user 4 the lone episode.
+let private episodeDb () =
+    task {
+        let! db = newDatabase ()
+        do! insertUsers db 4
+
+        do!
+            Db.execute
+                db
+                """INSERT INTO cr_series (id, title, slug, source_at) VALUES ('EPS00001', 'Grouped', NULL, now());
+                   INSERT INTO cr_seasons (id, series_id, season_number, title, audio_locale, source_at) VALUES
+                     ('SEASON01', 'EPS00001', 1, 'Original', 'ja-JP', now()), ('SEASON02', 'EPS00001', 1, 'Dub', 'en-US', now());
+                   INSERT INTO cr_episodes (id, series_id, season_id, series_title, episode_number, duration_ms) VALUES
+                     ('EPSO0001', 'EPS00001', 'SEASON01', 'Grouped', 1, 1440000),
+                     ('EPSD0001', 'EPS00001', 'SEASON02', 'Grouped', 1, 1440000),
+                     ('EPSO0002', 'EPS00001', 'SEASON01', 'Grouped', 2, 1440000);
+                   INSERT INTO mal_anime (mal_id, url, title, raw, data_hash, fetched_at, checked_at) VALUES
+                     (900001, 'https://myanimelist.net/anime/900001', 'Grouped', '{}', 'x', now(), now());
+                   INSERT INTO cr_season_matches (season_id, status, mal_id, method, shared_from) VALUES
+                     ('SEASON01', 'matched', 900001, 'search', NULL),
+                     ('SEASON02', 'matched', 900001, 'dub', 'SEASON01')"""
+
+        let at = now.AddDays -3.0
+        do! addWatch db (userGuid 1) "EPSO0001" at
+        do! addWatch db (userGuid 2) "EPSO0001" at
+        do! addWatch db (userGuid 3) "EPSD0001" at
+        do! addWatch db (userGuid 1) "EPSD0001" at
+        do! addWatch db (userGuid 4) "EPSO0002" at
+        return db
+    }
+
+[<Fact>]
+let ``the episode page counts the people who watched the episode or its dub, only at or above the minimum`` () =
+    task {
+        let! db = episodeDb ()
+
+        // the group of the original and of the dub: users who watched either, each once
+        let! expected =
+            Db.scalar<int64>
+                db
+                "SELECT count(DISTINCT user_id) FROM watch_events WHERE cr_episode_id IN ('EPSO0001', 'EPSD0001')"
+                []
+
+        let! lone = Db.scalar<int64> db "SELECT count(DISTINCT user_id) FROM watch_events WHERE cr_episode_id = 'EPSO0002'" []
+        Assert.Equal(3L, expected)
+        Assert.Equal(1L, lone)
+
+        for minimum, grouped in [ 2, Some "3"; 3, Some "3"; 4, None ] do
+            use! app = appAt db [ "Frunchy:Charts:MinPeople", string minimum ] now
+
+            // the page of the original and the page of the dub show the same number
+            for episode in [ "EPSO0001"; "EPSD0001" ] do
+                let! status, html = EpisodeHelpers.episodePage app "en" "EPS00001" episode
+                Assert.Equal(HttpStatusCode.OK, status)
+                Assert.Equal(grouped, countOf html)
+
+            // one person (below any minimum): never shown
+            let! _, alone = EpisodeHelpers.episodePage app "en" "EPS00001" "EPSO0002"
+            Assert.Equal(None, countOf alone)
+            Assert.DoesNotContain("Watched by", alone)
+
+        use! app = appAt db [] now
+        let! _, en = EpisodeHelpers.episodePage app "en" "EPS00001" "EPSO0001"
+        let! _, es = EpisodeHelpers.episodePage app "es" "EPS00001" "EPSO0001"
+        Assert.Contains("Watched by 3 people on Frunchy", en)
+        Assert.Contains("Visto por 3 personas en Frunchy", es)
+    }

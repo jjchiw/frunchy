@@ -9,6 +9,7 @@ open System.Text.RegularExpressions
 open System.Threading.Tasks
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Http
+open Microsoft.Extensions.Configuration
 open Npgsql
 open Oxpecker
 open Oxpecker.ViewEngine
@@ -158,7 +159,13 @@ let private seasonLine (t: Texts) (m: EpisodeModel) =
             el { seasonNameLine t name m.Audio m.Dub }
     | None -> div()
 
-let private header (t: Texts) (m: EpisodeModel) =
+/// "Watched by N people on Frunchy" (feature 012): only when the count reaches the chart minimum
+let private peopleLine (t: Texts) (people: int option) =
+    match people with
+    | Some n -> (p(class' = "text-label-md font-normal text-on-surface-variant").data("people-count", string n) { t.ChartsWatchedBy n }) :> HtmlElement
+    | None -> Fragment()
+
+let private header (t: Texts) (people: int option) (m: EpisodeModel) =
     let minutes = int (Math.Round(float m.DurationMs / 60000.0))
     let label = episodeLabel t m
     let heading = defaultArg m.Title label
@@ -188,6 +195,7 @@ let private header (t: Texts) (m: EpisodeModel) =
                 }
 
                 seasonLine t m
+                peopleLine t people
             }
         }
 
@@ -345,9 +353,9 @@ let private thread (ctx: HttpContext) (t: Texts) (viewer: Guid option) (comments
         })
         :> HtmlElement
 
-let private view (ctx: HttpContext) (t: Texts) (viewer: Guid option) (m: EpisodeModel) (comments: Comment list) (f: FormState) =
+let private view (ctx: HttpContext) (t: Texts) (viewer: Guid option) (people: int option) (m: EpisodeModel) (comments: Comment list) (f: FormState) =
     div(class' = "space-y-10").data("episode-page", m.Id).data("series", m.SeriesId) {
-        header t m
+        header t people m
 
         section(class' = "space-y-6").data("thread", string comments.Length) {
             sectionTitle t.CommentsHeading
@@ -599,7 +607,8 @@ let handler (seriesId: string) (episodeId: string) : EndpointHandler =
                 | Some model ->
                     let! group = loadGroup connection model.Id
                     let! comments = loadThread connection group
-                    return! ctx.WriteHtmlView(view ctx t (WebAuth.currentUserId ctx) model comments (freshForm true "" None))
+                    let! people = Charts.episodePeople (ctx.GetService<DbConfig>()) group (Charts.minPeople (ctx.GetService<IConfiguration>()))
+                    return! ctx.WriteHtmlView(view ctx t (WebAuth.currentUserId ctx) people model comments (freshForm true "" None))
         }
 
 /// POST /anime/{seriesId}/episode/{episodeId}/comments: `id`, `content`, `spoiler`. Signed in (else the
@@ -631,8 +640,9 @@ let createHandler (seriesId: string) (episodeId: string) : EndpointHandler =
                         task {
                             let! group = loadGroup connection model.Id
                             let! comments = loadThread connection group
+                            let! people = Charts.episodePeople (ctx.GetService<DbConfig>()) group (Charts.minPeople (ctx.GetService<IConfiguration>()))
                             ctx.SetStatusCode 422
-                            return! ctx.WriteHtmlView(view ctx t (Some userId) model comments (freshForm spoiler typed (Some key)))
+                            return! ctx.WriteHtmlView(view ctx t (Some userId) people model comments (freshForm spoiler typed (Some key)))
                         }
 
                     if not (CommentRules.commentIdPattern.IsMatch id) then
