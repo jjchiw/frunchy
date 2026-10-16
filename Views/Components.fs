@@ -95,7 +95,7 @@ let alert (kind: AlertKind) (text: string) =
         | Notice -> "fr-alert fr-alert-info", "status", Info
 
     div(class' = cls).attr("role", role) {
-        span(class' = (if kind = Failure then "text-error" else "text-primary")) { icon i }
+        span(class' = (match kind with Failure -> "text-error" | Notice -> "text-secondary" | Success -> "text-primary")) { icon i }
         span() { text }
     }
 
