@@ -69,6 +69,22 @@ and accessibility in 004's contract still apply.
 - **Labels**: no eyebrow labels or decorative overlines above headings.
 - **Accessibility**: WCAG 2.1 AA on every text/background pair, and a visible 2px amber focus ring.
 
+## Clarifications (agreed with the extension session, 2026-10-15)
+
+- **"Figures" in IBM Plex Mono** means *standalone* figures: metric tiles, stat counters, a big
+  number on its own. Numbers inside a sentence ("3 pages waiting", "1,204 processed", date ranges)
+  stay in the text font with `tabular-nums`. Mono is also used for keys, URLs and usernames.
+- **Your own data that sits next to a primary action** is shown as a lilac tag (`tertiary`), so
+  amber stays with the action. Example: the extension's Crunchyroll profile pill.
+- **Neutral states that need attention but aren't warnings** use lilac (`tertiary`). Examples:
+  "waiting to upload", "processing". Rose (`secondary`) is for real warnings and for spoilers.
+  Synced or done is amber, and stored or idle is `on-surface-variant`.
+- **Section headings** are sentence case, never uppercase-tracked. A small uppercase label is only
+  allowed as the label of a value (a metric tile's name), never as a heading or above one.
+- **Selection** is `::selection { background: rgb(255 181 71 / 0.3); color: var(--color-on-surface); }`.
+- **Tints** can be derived from tokens with `rgb(from var(--color-primary) r g b / a)`. The website
+  uses Tailwind's `primary/10` for the same thing. There are no tint tokens.
+
 ## Check
 
 `DesignSystemTests.every token shared with the extension has the same value`: every token in the

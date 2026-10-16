@@ -100,7 +100,7 @@ let private syncTone (status: string) =
     | "completed" -> PrimaryTone
     | "failed" -> TertiaryTone
     | "pending"
-    | "processing" -> SecondaryTone
+    | "processing" -> TertiaryTone
     | _ -> Muted
 
 let private profile (ctx: HttpContext) (t: Texts) (msg: string) (m: AccountModel) =
