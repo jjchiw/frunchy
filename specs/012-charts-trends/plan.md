@@ -71,4 +71,6 @@ navigation, counts, integration tests). The main session reviews, runs the suite
 
 ## Complexity Tracking
 
-None.
+| Addition | Why | Simpler alternative rejected because |
+|---|---|---|
+| A 10-minute in-memory copy of the all-time chart (`IMemoryCache`, built into ASP.NET Core) | All time aggregates every watch event: about 2.5 s at 2M events after the query rewrite (research R4, measured) | Per-request computation misses SC-003 by 2.5×. A precomputed table or a worker is more machinery than one cached list of 20 rows. |

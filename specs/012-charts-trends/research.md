@@ -70,6 +70,22 @@ Without the index they scan the whole table.
   measurement in the validation log.
 - **If all-time misses**: precomputing it is a later decision, and it would need a Complexity
   Tracking justification (constitution II).
+- **Measured (2026-10-16, local copy of the 2M fixture)**:
+
+  | Statement | Week | Season | All time |
+  |---|---|---|---|
+  | First version | 0.1 s | 0.1 s | 4–8 s |
+  | Rewrite | 0.1 s | 0.1 s | ~2.5 s |
+
+  The first version materializes a wide `win` CTE three times, and `count(DISTINCT user_id)` spills
+  90 MB to disk. The rewrite aggregates per (series, user) once, ranks from that, and builds `win`
+  only for the 20 charted series. A bigger `work_mem` doesn't help, because there are 2M
+  (series, user) groups.
+- **Decision**:
+  - the all-time rows are viewer-independent, so they go in `IMemoryCache` for 10 minutes, keyed by
+    the minimum;
+  - `mine` is a separate per-request query over the cached rows' series ids;
+  - week and season aren't cached.
 - `// simplified:` the test seeds 2M rows with one `INSERT … SELECT generate_series`, not imports.
 
 ## R5. Season names

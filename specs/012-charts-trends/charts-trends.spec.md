@@ -19,6 +19,10 @@
 - Q: Trends? → A: The week chart shows **movement** against the previous 7 days (up, down, new) and a small line of the series' people per week over the last 8 weeks. The season and all-time charts show neither.
 - Q: Rewatches? → A: Frunchy keeps only the latest watch of each episode, so a series counts in the window where its episodes were last watched. The page says so in one line, like the anime page does.
 
+### Session 2026-10-16 (after measuring)
+
+- Q: The all-time chart takes 4–8 s at 2M watch events; what now? → A: A faster statement (aggregate per person and series first, look up posters only for the 20 charted series) brings it to about 2.5 s. It can't reach 1 s per request at that scale, so the all-time rows are kept in memory for 10 minutes (ASP.NET's memory cache: no table, no worker). Week and season stay per request. Whether the viewer watched a row's series is checked per request, so nothing personal is cached. Measured on a local copy of the 2M fixture; the cache needs justifying (plan, Complexity Tracking).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - What Frunchy is watching (Priority: P1)
@@ -132,7 +136,7 @@ On a person's anime page and on an episode page, a line says how many people on 
 
 - **SC-001**: For a fixture of several users with controlled dates, every rank, count, movement and trend value on the three charts equals an independent query, in English and Spanish.
 - **SC-002**: No chart, count or line ever reflects a series watched by fewer people than the minimum, at any minimum from 2 to 5.
-- **SC-003**: With 10,000 users × 200 watched episodes each (synthetic), each chart renders in under 1 second.
+- **SC-003**: With 10,000 users × 200 watched episodes each (synthetic), the week and season charts render in under 1 second, and the all-time chart in under 1 second when its 10-minute copy is warm (under 4 seconds cold, measured and logged).
 - **SC-004**: The charts are reachable in 1 click from any page, and a charted series' anime page (for a viewer who watched it) is 1 click from its row.
 - **SC-005**: The pages pass the design-system checks and an impeccable audit with no blocking finding, at 1280 and 360px, in both languages.
 
