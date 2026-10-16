@@ -17,9 +17,11 @@ let icon (i: Icon) =
 
 /// The mark (an inline SVG) next to the wordmark
 let brand (siteName: string) =
-    a(href = "/", class' = "inline-flex items-center gap-2.5 rounded font-display text-headline-md font-extrabold tracking-tight text-on-surface") {
+    // On phones only the mark shows, so the header fits; the link keeps the name as its label
+    a(href = "/", class' = "inline-flex shrink-0 items-center gap-2.5 rounded font-display text-headline-md font-extrabold tracking-tight text-on-surface")
+        .attr("aria-label", siteName) {
         span(class' = "block h-8 w-8") { raw markSvg }
-        siteName
+        span(class' = "hidden sm:inline") { siteName }
     }
 
 type ButtonKind =

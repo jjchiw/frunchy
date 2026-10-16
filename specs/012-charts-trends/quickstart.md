@@ -45,7 +45,7 @@ was deleted. The poster images are broken in the screenshots because the fixture
 
 | Severity | Finding | Outcome |
 |---|---|---|
-| P1 (outside the charts) | At 360 px a signed-in header overflows: with the new "Charts" link, "Sign out" / "Cerrar sesión" is clipped off the right edge on every page (seen on the charts, anime and episode pages). Cause: `Layout.fs` `navEnd` (T007), not the charts views | Not fixed here (the audit scope is `Charts.fs` and the count lines): needs a fix in `Views/Layout.fs`, e.g. let the right-hand group wrap or shrink the ghost buttons' padding at 360 |
+| P1 (outside the charts) | At 360 px a signed-in header overflowed: with the new "Charts" link, "Sign out" / "Cerrar sesión" was clipped off the right edge on every page. Cause: `Layout.fs` `navEnd` (T007) | **Fixed in review**: on phones the header shows the mark without the wordmark (the link keeps "Frunchy" as its label), and the header buttons use less padding below `sm`. Re-checked at 360 px in Spanish: mark, Rankings, Cuenta and Cerrar sesión all fit |
 | P3 | At 360 the chart row is tight: rank, poster, 64 px trend and the text leave about 140 px, so titles wrap to 3–4 lines and "7 personas · 12 episodios" wraps | Not fixed: readable, no overflow, and every element is part of the contract |
 | P3 | The viewer's own link (`data-chart-mine`) looks like plain title text until hover | Not fixed: the contract fixes the link and hook, and an underline on every watched row would add noise |
 | P3 | Rows without a poster keep the empty poster slot (row 3), so the title stays aligned with the others | Kept on purpose |

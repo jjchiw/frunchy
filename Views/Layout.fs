@@ -36,9 +36,12 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 """
 
+/// Header buttons: a little less padding on phones, so the signed-in header fits at 360px in Spanish too
+let private navBtn = Components.btnSm Components.Ghost + " px-2 sm:px-3.5"
+
 /// The charts link every visitor sees (feature 012)
 let private chartsLink (t: Texts) =
-    a(href = "/charts", class' = Components.btnSm Components.Ghost).data("nav", "charts") { t.NavCharts }
+    a(href = "/charts", class' = navBtn).data("nav", "charts") { t.NavCharts }
 
 /// Navigation, right side: "Sign in", or the signed-in user's name (linking to their public dashboard), Account and a
 /// sign-out form (POST + antiforgery)
@@ -51,7 +54,7 @@ let private navEnd (ctx: HttpContext) (t: Texts) =
         }
         :> HtmlElement
     | WebAuth.SignedIn displayName ->
-        div(class' = "flex items-center gap-1 sm:gap-2") {
+        div(class' = "flex min-w-0 items-center gap-0.5 sm:gap-2") {
             let name = "hidden max-w-[16ch] truncate text-label-md text-on-surface-variant sm:inline"
 
             match WebAuth.currentUsername ctx with
@@ -62,11 +65,11 @@ let private navEnd (ctx: HttpContext) (t: Texts) =
             | None -> span(class' = name).data("nav", "user") { displayName }
 
             chartsLink t
-            a(href = "/account", class' = Components.btnSm Components.Ghost) { t.NavAccount }
+            a(href = "/account", class' = navBtn) { t.NavAccount }
 
             form(method = "post", action = "/signout") {
                 ctx.GetAntiforgeryInput()
-                button(type' = "submit", class' = Components.btnSm Components.Ghost) { t.NavSignOut }
+                button(type' = "submit", class' = navBtn) { t.NavSignOut }
             }
         }
         :> HtmlElement
