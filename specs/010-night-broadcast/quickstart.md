@@ -52,7 +52,7 @@ validation log below.
 | SC-002 | Only `DesignSystemTests` changed (its expected values and the leftover checks). Every other test is unchanged and green. |
 | SC-003 | The contrast test passes on the new palette (precomputed in research R1). |
 | SC-004 | `impeccable` audits per page group (T005–T009). The medium findings were fixed: the notice icon, the home step colours and the loud card titles. Signed-in pages were audited from the HTML only, because there's no local sign-in provider. Screenshots are in `.pitches/audit010/` (git-ignored). |
-| SC-005 | **Pending.** The extension session hasn't applied `contracts/extension-handoff.md` yet. Until it does, the parity check fails in the owner's main checkout. |
+| SC-005 | **Pending.** The handoff was sent to the extension session (`frunchy_extension`) on 2026-10-15; it hasn't applied it yet. Until it does, the parity check fails in the owner's main checkout. |
 
 **Review fixes:** rose is kept for warnings and spoilers. The dub and audio pills and the DNA
 studio pill move to lilac (tags), and "In progress" to amber (your own progress).
