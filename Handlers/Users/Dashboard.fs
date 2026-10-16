@@ -8,6 +8,7 @@ open Npgsql
 open Oxpecker
 open Oxpecker.ViewEngine
 open FrunchyBackend.Domains.Identity
+open FrunchyBackend.Infrastructure
 open FrunchyBackend.Infrastructure.Database
 open FrunchyBackend.Views
 open FrunchyBackend.Views.Components
@@ -54,7 +55,8 @@ type TopGenres =
       AllEpisodes: int64 }
 
 type DashboardModel =
-    { Username: string
+    { UserId: Guid
+      Username: string
       DisplayName: string
       LastSyncAt: DateTime option
       SyncInProgress: bool
@@ -271,9 +273,82 @@ let private recent (t: Texts) (m: DashboardModel) =
         }
     }
 
-let view (ctx: HttpContext) (t: Texts) (m: DashboardModel) =
+/// The compatibility card (feature 011, contracts/compatibility.md): for a signed-in viewer on someone else's dashboard
+let private compatCard (t: Texts) (c: Compatibility.Comparison) =
+    let owner = c.Owner.Username
+    let name = c.Owner.DisplayName
+
+    section(class' = "fr-card flex flex-col gap-5 p-5 md:p-6")
+        .attr("aria-labelledby", "compat-title")
+        .data("compat-card", owner)
+        .data("level", (match c.Level with Some l -> string l | None -> "")) {
+        h2(id = "compat-title", class' = "text-headline-md text-on-surface [overflow-wrap:anywhere]") { t.CompatTitle name }
+
+        match c.Level with
+        | Some level ->
+            let shared = c.Shared.Length
+
+            div(class' = "grid grid-cols-1 gap-6 lg:grid-cols-12 lg:gap-8") {
+                div(class' = "min-w-0 space-y-3 lg:col-span-5") {
+                    div(class' = "flex flex-wrap items-center gap-x-4 gap-y-2") {
+                        levelMeter t level
+                        span(class' = "text-headline-md text-primary").data("level-name", string level) { t.CompatLevel level }
+                    }
+
+                    p(class' = "text-body-md text-on-surface-variant") { t.CompatExplain }
+
+                    let count = p(class' = "text-body-lg font-semibold text-on-surface").data("shared-count", string shared)
+                    (if shared = 0 then count.data("shared-none", "") else count) { t.CompatSharedCount shared }
+                }
+
+                if shared > 0 || not c.SharedGenres.IsEmpty then
+                    div(class' = "min-w-0 space-y-4 lg:col-span-7") {
+                        if not c.SharedGenres.IsEmpty || not c.Studios.IsEmpty then
+                            div(class' = "flex flex-wrap items-center gap-2") {
+                                for genre in c.SharedGenres do
+                                    (pill TertiaryTone genre).data("shared-genre", genre)
+
+                                match c.Studios with
+                                | studio :: _ ->
+                                    (pill TertiaryTone studio.Name)
+                                        .data("shared-studio", studio.Name)
+                                        .data("studio-series", string studio.Series)
+                                | [] -> Fragment()
+                            }
+
+                        if shared > 0 then
+                            ul(class' = "space-y-1.5") {
+                                for s in c.Shared |> List.truncate 4 do
+                                    li(class' = "text-body-md [overflow-wrap:anywhere]").data("shared-series", s.SeriesId) {
+                                        seriesLink owner s.SeriesId s.Title
+                                    }
+                            }
+                    }
+            }
+        | None ->
+            let enough, text =
+                match c.Enough with
+                | Compatibility.ViewerShort -> "viewer", t.CompatNotEnoughViewer
+                | Compatibility.OwnerShort -> "owner", t.CompatNotEnoughOwner name
+                | _ -> "both", t.CompatNotEnoughBoth name
+
+            p(class' = "text-body-md text-on-surface-variant").data("compat-not-enough", enough) { text }
+
+        div() {
+            a(href = $"/u/{owner}/compare", class' = btn Primary).data("compare-link", "") {
+                t.CompatSeeComparison
+                icon Theme.ArrowForward
+            }
+        }
+    }
+
+let view (ctx: HttpContext) (t: Texts) (m: DashboardModel) (compat: Compatibility.Comparison option) =
     div(class' = "space-y-8 md:space-y-10") {
         header ctx t m
+
+        match compat with
+        | Some c -> compatCard t c
+        | None -> Fragment()
 
         if m.SyncInProgress then
             (processing t.SyncInProgress).attr("data-sync-in-progress", "")
@@ -494,7 +569,8 @@ let private tryLoad (db: DbConfig) (username: string) : Task<DashboardModel opti
 
             return
                 Some
-                    { Username = username
+                    { UserId = userId
+                      Username = username
                       DisplayName = displayName
                       LastSyncAt = lastSync
                       SyncInProgress = inProgress
@@ -518,7 +594,18 @@ let handler (rawUsername: string) : EndpointHandler =
                 | None -> Task.FromResult None
 
             match model with
-            | Some m -> return! ctx.WriteHtmlView(view ctx t m)
+            | Some m ->
+                // The card is for a signed-in viewer on someone else's dashboard; everyone else runs no extra query
+                let! compat =
+                    match WebAuth.currentUserId ctx with
+                    | Some viewer when viewer <> m.UserId ->
+                        task {
+                            let! c = Compatibility.load (ctx.GetService<DbConfig>()) viewer m.UserId
+                            return Some c
+                        }
+                    | _ -> Task.FromResult None
+
+                return! ctx.WriteHtmlView(view ctx t m compat)
             | None ->
                 ctx.SetStatusCode 404
                 return! ctx.WriteHtmlView(notFoundView ctx t)

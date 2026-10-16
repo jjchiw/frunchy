@@ -77,10 +77,35 @@ let pill (tone: PillTone) (text: string) =
 
     span(class' = $"fr-pill {toneClass}") { text }
 
-/// A share bar (genres, formats, decades): 6px track, solid primary fill
-let shareBar (percent: decimal) =
+/// The colour role of a share bar: amber (primary) is the page's own person or the default, rose (secondary)
+/// the other person (feature 011)
+type BarTone =
+    | PrimaryBar
+    | SecondaryBar
+
+/// A share bar in a colour role: 6px track, solid fill
+let toneBar (tone: BarTone) (percent: decimal) =
     let scale = (max 0m (min 100m percent) / 100m).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
-    div(class' = "fr-track").attr("aria-hidden", "true") { div(class' = "fr-fill").attr("style", $"transform: scaleX({scale})") }
+
+    let fill =
+        match tone with
+        | PrimaryBar -> "fr-fill"
+        | SecondaryBar -> "fr-fill bg-secondary"
+
+    div(class' = "fr-track").attr("aria-hidden", "true") { div(class' = fill).attr("style", $"transform: scaleX({scale})") }
+
+/// A share bar (genres, formats, decades): 6px track, solid primary fill
+let shareBar (percent: decimal) = toneBar PrimaryBar percent
+
+/// A compatibility level as 5 solid segments, `level` of them filled (feature 011). One image for assistive tech.
+let levelMeter (t: Texts) (level: int) =
+    div(class' = "flex items-center gap-1")
+        .attr("role", "img")
+        .attr("aria-label", t.CompatMeterLabel level)
+        .data("level-meter", string level) {
+        for i in 1..5 do
+            span(class' = (if i <= level then "block h-2 w-7 rounded-full bg-primary" else "block h-2 w-7 rounded-full bg-surface-container-highest"))
+    }
 
 type AlertKind =
     | Success

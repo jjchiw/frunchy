@@ -54,7 +54,7 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
 
 ## Phase 3: User Story 1 - The card (Priority: P1) 🎯 MVP
 
-- [ ] T005 [US1] `CompatibilityTests`, card part:
+- [x] T005 [US1] `CompatibilityTests`, card part:
   - **Fixtures**: two users from the sample (A gets the whole sample; B gets a subset plus synthetic series), with 003 enrichment.
   - **Figures**: every card hook equals an independent SQL computation.
   - **Same level**: both sides see the same level.
@@ -64,7 +64,7 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
   - **Languages**: en and es.
 
   · tests/FrunchyBackend.Tests/CompatibilityTests.fs
-- [ ] T006 [US1]:
+- [x] T006 [US1]:
   - **`Components.levelMeter`**: 5 segments, `role="img"`, `aria-label`.
   - **`Components.shareBar`** gains a tone (primary | secondary); existing calls keep primary.
   - **The card**: in `Dashboard.fs`, only when `WebAuth.currentUserId` is set and isn't the owner. It uses `Compatibility.load`, the contract's hooks, and a link to the compare page.
