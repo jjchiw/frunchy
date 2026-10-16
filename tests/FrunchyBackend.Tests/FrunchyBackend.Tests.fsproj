@@ -67,6 +67,8 @@
     <Compile Include="CommentModerationTests.fs" />
     <Compile Include="CompatibilityScoreTests.fs" />
     <Compile Include="CompatibilityTests.fs" />
+    <Compile Include="ChartsUnitTests.fs" />
+    <Compile Include="ChartsTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

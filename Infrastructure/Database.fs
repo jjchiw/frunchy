@@ -128,6 +128,8 @@ let private schema =
     );
 
     CREATE INDEX IF NOT EXISTS ix_watch_events_user_watched ON watch_events (user_id, watched_at DESC);
+    -- Charts (feature 012): the week and season charts read a window of watch_events across all users
+    CREATE INDEX IF NOT EXISTS ix_watch_events_watched ON watch_events (watched_at);
 
     -- Accounts (feature 002): a signed-up user has no sync key until "Connect extension"
     ALTER TABLE users ALTER COLUMN sync_key_hash DROP NOT NULL;

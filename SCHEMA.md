@@ -75,7 +75,7 @@ One row per entry that wasn't processed: `outcome` is `unresolved` (no panel), `
 
 PK `(user_id, cr_episode_id)`, one row per user and episode. It holds the newest watch state
 `(watched_at, fully_watched, playhead_s)`; older or equal states never overwrite it, so arrival
-order doesn't matter. Index `(user_id, watched_at DESC)`.
+order doesn't matter. Indexes `(user_id, watched_at DESC)` and, for the charts of feature 012 (a window of recent watches across all users), `(watched_at)`.
 
 ## Catalog
 

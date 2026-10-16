@@ -11,7 +11,7 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
 
 ## Phase 1: Setup
 
-- [ ] T001 Register empty modules:
+- [x] T001 Register empty modules:
   - in FrunchyBackend.fsproj: `Infrastructure/Charts.fs` after `Compatibility.fs`, and `Handlers/Charts/Charts.fs` after `Handlers/Users/Compare.fs`;
   - in the test project: `ChartsUnitTests.fs` and `ChartsTests.fs`, after the last test file.
 
@@ -19,15 +19,15 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
 
 ## Phase 2: Foundational (blocks every story)
 
-- [ ] T002 [P] Add `ix_watch_events_watched` to the schema and to `SCHEMA.md` (research R3) · Infrastructure/Database.fs, SCHEMA.md
-- [ ] T003 [P] `ChartsUnitTests`:
+- [x] T002 [P] Add `ix_watch_events_watched` to the schema and to `SCHEMA.md` (research R3) · Infrastructure/Database.fs, SCHEMA.md
+- [x] T003 [P] `ChartsUnitTests`:
   - **`seasonOf`**: every quarter and the boundaries (31 Mar 23:59:59Z → Winter; 1 Apr 00:00Z → Spring), in UTC.
   - **`minPeople`**: missing → 3; 0, 1 and negative → 2; 5 → 5.
   - **The movement function**: previous rank map plus current rank → Up n, Down n, Same or New.
   - **The 8 trend blocks**: their bounds, oldest first.
 
   · tests/FrunchyBackend.Tests/ChartsUnitTests.fs
-- [ ] T004 [P] Texts, en and es:
+- [x] T004 [P] Texts, en and es:
   - the nav link "Charts";
   - the page title;
   - the tabs: "This week", "This season", "All time";
@@ -41,7 +41,7 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
   - "Watch on Crunchyroll" (reuse it if it exists).
 
   · Views/Texts.fs
-- [ ] T005 `Infrastructure/Charts.fs`, per research R1, R2, R5 and the data-model shapes:
+- [x] T005 `Infrastructure/Charts.fs`, per research R1, R2, R5 and the data-model shapes:
   - the pure functions, so T003 passes;
   - `chart` (the window statement, the previous-week statement for movement, the trend statement);
   - `seriesPeople` and `episodePeople`.

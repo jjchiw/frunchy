@@ -365,7 +365,32 @@ type Texts =
       CompatNotEnoughOwner: string -> string
       CompatNotEnoughBoth: string -> string
       /// The card's link to the compare page
-      CompatSeeComparison: string }
+      CompatSeeComparison: string
+
+      // Charts and trends (feature 012): /charts, /charts/season, /charts/all and the people counts.
+      // The season label is `DnaSeason` and "Watch on Crunchyroll" is `EpisodeWatchOnCrunchyroll`.
+      /// The header link
+      NavCharts: string
+      ChartsTitle: string
+      ChartsTabWeek: string
+      ChartsTabSeason: string
+      ChartsTabAll: string
+      /// "{n} people · {m} episodes" (people, episodes)
+      ChartsPeopleEpisodes: int -> int -> string
+      /// "Up {n}", "Down {n}"
+      ChartsMoveUp: int -> string
+      ChartsMoveDown: int -> string
+      ChartsMoveSame: string
+      ChartsMoveNew: string
+      /// The trend's accessible label: "Last 8 weeks: {values}", values oldest first
+      ChartsTrendLabel: int list -> string
+      /// An episode counts once, in the week (or season) of its latest watch
+      ChartsLatestNote: string
+      /// "Series appear once {n} people have watched them"
+      ChartsMinNote: int -> string
+      ChartsEmpty: string
+      /// "Watched by {n} people on Frunchy" on the anime and episode pages
+      ChartsWatchedBy: int -> string }
 
 let en =
     { Lang = "en"
@@ -834,7 +859,30 @@ let en =
       CompatNotEnoughBoth =
         fun name ->
             $"Neither your history nor {name}'s is long enough yet. Compatibility appears from 15 fully watched episodes each."
-      CompatSeeComparison = "See how you compare" }
+      CompatSeeComparison = "See how you compare"
+
+      NavCharts = "Charts"
+      ChartsTitle = "Charts"
+      ChartsTabWeek = "This week"
+      ChartsTabSeason = "This season"
+      ChartsTabAll = "All time"
+      ChartsPeopleEpisodes =
+        fun people episodes ->
+            let n (x: int) = x.ToString("N0", CultureInfo.GetCultureInfo "en")
+            let p = if people = 1 then "1 person" else $"{n people} people"
+            let e = if episodes = 1 then "1 episode" else $"{n episodes} episodes"
+            $"{p} · {e}"
+      ChartsMoveUp = fun n -> $"Up {n}"
+      ChartsMoveDown = fun n -> $"Down {n}"
+      ChartsMoveSame = "Same"
+      ChartsMoveNew = "New"
+      ChartsTrendLabel = fun values -> "Last 8 weeks: " + System.String.Join(", ", values)
+      ChartsLatestNote = "Each episode counts once, in the period of its latest watch."
+      ChartsMinNote =
+        fun n -> $"Series appear once {n} people have watched them."
+      ChartsEmpty = "No series on this chart yet. Series appear when enough people have watched them."
+      ChartsWatchedBy =
+        fun n -> if n = 1 then "Watched by 1 person on Frunchy" else $"""Watched by {n.ToString("N0", CultureInfo.GetCultureInfo "en")} people on Frunchy""" }
 
 let es =
     { Lang = "es"
@@ -1307,7 +1355,30 @@ let es =
       CompatNotEnoughBoth =
         fun name ->
             $"Ni tu historial ni el de {name} son todavía lo bastante largos. La compatibilidad aparece desde 15 episodios vistos completos en cada uno."
-      CompatSeeComparison = "Ver cómo se comparan" }
+      CompatSeeComparison = "Ver cómo se comparan"
+
+      NavCharts = "Rankings"
+      ChartsTitle = "Rankings"
+      ChartsTabWeek = "Esta semana"
+      ChartsTabSeason = "Esta temporada"
+      ChartsTabAll = "Histórico"
+      ChartsPeopleEpisodes =
+        fun people episodes ->
+            let n (x: int) = x.ToString("N0", CultureInfo.GetCultureInfo "es")
+            let p = if people = 1 then "1 persona" else $"{n people} personas"
+            let e = if episodes = 1 then "1 episodio" else $"{n episodes} episodios"
+            $"{p} · {e}"
+      ChartsMoveUp = fun n -> $"Sube {n}"
+      ChartsMoveDown = fun n -> $"Baja {n}"
+      ChartsMoveSame = "Igual"
+      ChartsMoveNew = "Nuevo"
+      ChartsTrendLabel = fun values -> "Últimas 8 semanas: " + System.String.Join(", ", values)
+      ChartsLatestNote = "Cada episodio cuenta una vez, en el periodo de su última vez visto."
+      ChartsMinNote =
+        fun n -> $"Las series aparecen cuando las han visto al menos {n} personas."
+      ChartsEmpty = "Todavía no hay series en este ranking. Las series aparecen cuando las ven suficientes personas."
+      ChartsWatchedBy =
+        fun n -> if n = 1 then "Visto por 1 persona en Frunchy" else $"""Visto por {n.ToString("N0", CultureInfo.GetCultureInfo "es")} personas en Frunchy""" }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =
