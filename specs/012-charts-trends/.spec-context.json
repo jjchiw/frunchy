@@ -1,0 +1,16 @@
+{
+  "workflow": "speckit",
+  "specName": "Charts and Trends",
+  "branch": "012-charts-trends",
+  "currentStep": "specify",
+  "status": "specified",
+  "history": [
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-16T15:46:10.757Z"
+    }
+  ]
+}
