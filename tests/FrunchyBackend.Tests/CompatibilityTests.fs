@@ -312,21 +312,31 @@ let private withPair () =
         let! _ = submitAccepted app keyB (load2026SampleRaw () |> withProfile "profile-second")
         let! _ = processAll app.Db
 
+        routeSampleCatalog app.Mal
+        let! _ = enrichAll app
+
+        // ownerb keeps its 6 most watched series, except the most watched matched one (only viewera has it:
+        // it shows as "in their history, not yours" with a MyAnimeList score from the other side)
         do!
             Db.execute
                 app.Db
-                """DELETE FROM watch_events w USING users u
+                """WITH topmatched AS (
+                       SELECT e.series_id FROM watch_events w JOIN users u ON u.id = w.user_id
+                       JOIN cr_episodes e ON e.id = w.cr_episode_id
+                       JOIN cr_season_matches m ON m.season_id = e.season_id AND m.status = 'matched'
+                       WHERE u.username = 'ownerb' GROUP BY e.series_id ORDER BY count(*) DESC, e.series_id LIMIT 1),
+                   kept AS (
+                       SELECT e2.series_id FROM watch_events w2 JOIN users u2 ON u2.id = w2.user_id
+                       JOIN cr_episodes e2 ON e2.id = w2.cr_episode_id
+                       WHERE u2.username = 'ownerb' AND e2.series_id NOT IN (SELECT series_id FROM topmatched)
+                       GROUP BY e2.series_id ORDER BY count(*) DESC, e2.series_id LIMIT 6)
+                   DELETE FROM watch_events w USING users u
                    WHERE w.user_id = u.id AND u.username = 'ownerb'
-                     AND w.cr_episode_id NOT IN (
-                         SELECT e.id FROM cr_episodes e WHERE e.series_id IN (
-                             SELECT e2.series_id FROM watch_events w2 JOIN users u2 ON u2.id = w2.user_id
-                             JOIN cr_episodes e2 ON e2.id = w2.cr_episode_id
-                             WHERE u2.username = 'ownerb' GROUP BY e2.series_id ORDER BY count(*) DESC, e2.series_id LIMIT 6))"""
+                     AND w.cr_episode_id NOT IN (SELECT e.id FROM cr_episodes e WHERE e.series_id IN (SELECT series_id FROM kept))"""
 
         let! _ = submitAccepted app keyB (envelopeForProfile "profile-second" (syntheticPages RealAccountId 2 10))
         let! _ = submitAccepted app keyLoner (envelopeForProfile "profile-loner" (syntheticPages otherAccount 2 10))
         let! _ = processAll app.Db
-        routeSampleCatalog app.Mal
         let! _ = enrichAll app
 
         return
@@ -519,5 +529,339 @@ let ``the card reads in English and Spanish`` () =
         // not enough history reads in Spanish too
         let! spanishNewbie = inLanguage app "es" "sub-newbiea"
         let! short = dashboard spanishNewbie "ownerb"
+        Assert.Contains(Texts.es.CompatNotEnoughViewer, short)
+    }
+
+// ---------------------------------------------------------------------------
+// The compare page (T007)
+// ---------------------------------------------------------------------------
+
+let private comparePage (browser: Browser) (owner: string) =
+    task {
+        let! page = browser.Get $"/u/{owner}/compare"
+        Assert.Equal(HttpStatusCode.OK, page.Status)
+        return page.Html
+    }
+
+let private round1 (d: decimal) = Math.Round(d, 1, MidpointRounding.AwayFromZero)
+let private inv (d: decimal) = d.ToString("0.0", Globalization.CultureInfo.InvariantCulture)
+
+let private coverageOf (f: Facts) = if f.DedupMs = 0L then 0m else round1 (100m * decimal f.MatchedMs / decimal f.DedupMs)
+
+/// `data-compare` also prefixes data-compare-summary and friends: the root is the one carrying the key itself
+let private root (html: string) =
+    elements "compare" html |> List.filter (fun m -> m.ContainsKey "compare") |> List.exactlyOne
+
+/// MyAnimeList scores of a user's matched seasons, per series (formatted as the page's hook is)
+let private scoresOf (db: DbConfig) (username: string) =
+    task {
+        let! rows =
+            Db.dump
+                db
+                $"""SELECT DISTINCT e.series_id, to_char(a.score, 'FM990.00')
+                    FROM watch_events w JOIN users u ON u.id = w.user_id
+                    JOIN cr_episodes e ON e.id = w.cr_episode_id
+                    JOIN cr_season_matches m ON m.season_id = e.season_id AND m.status = 'matched'
+                    JOIN mal_anime a ON a.mal_id = m.mal_id
+                    WHERE u.username = '{username}' AND e.duration_ms IS NOT NULL AND a.score IS NOT NULL"""
+
+        return rows |> List.map (fun r -> let p = r.Split '|' in p[0], p[1]) |> List.groupBy fst |> List.map (fun (k, vs) -> k, vs |> List.map snd |> set) |> Map.ofList
+    }
+
+/// Every figure of the page, against the independent computation
+let private assertPage (t: Texts.Texts) (viewer: Facts) (owner: Facts) (ownerScores: Map<string, Set<string>>) (expected: Expected) (html: string) =
+    let page = root html
+    Assert.Equal(owner.Username, attr "compare" page)
+    Assert.Equal(string expected.Level, attr "level" page)
+    Assert.Equal(string expected.Level, attr "level-meter" (one "level-meter" html))
+    Assert.Equal(string expected.Level, attr "level-name" (one "level-name" html))
+    Assert.Contains($"aria-label=\"{t.CompatMeterLabel expected.Level}\"", html)
+    Assert.Contains(t.CompatLevel expected.Level, html)
+
+    // the summary sentence: the shared count and the first shared genre
+    let summary = t.CompatSummary owner.DisplayName expected.Shared.Length (List.tryHead expected.SharedGenres)
+    Assert.Matches($"<h1[^>]*data-compare-summary[^>]*>\\s*{Regex.Escape summary}\\s*</h1>", html)
+
+    // both people, with their series counts
+    let people = elements "person" html
+    Assert.Equal<string list>([ "viewer"; "owner" ], people |> List.map (attr "person"))
+    Assert.Equal<string list>([ string viewer.Series.Count; string owner.Series.Count ], attrs "series-count" "series-count" html)
+    Assert.Contains($"@{viewer.Username}", html)
+    Assert.Contains($"@{owner.Username}", html)
+    Assert.Contains(viewer.DisplayName, html)
+    Assert.Contains(owner.DisplayName, html)
+
+    // genres: up to 6 rows, both shares with one decimal, and a coverage note per person
+    let rows = elements "genre-compare" html
+    Assert.Equal<string list>(expected.Rows |> List.map (fun (g, _, _) -> g), rows |> List.map (attr "genre-compare"))
+    Assert.Equal<string list>(expected.Rows |> List.map (fun (_, v, _) -> inv (round1 v)), rows |> List.map (attr "viewer-share"))
+    Assert.Equal<string list>(expected.Rows |> List.map (fun (_, _, o) -> inv (round1 o)), rows |> List.map (attr "owner-share"))
+    Assert.True(rows.Length <= 6)
+    Assert.Equal(inv (coverageOf viewer), attr "viewer-coverage" (one "viewer-coverage" html))
+    Assert.Equal(inv (coverageOf owner), attr "owner-coverage" (one "owner-coverage" html))
+    Assert.Contains(t.CompatCoverage viewer.DisplayName (coverageOf viewer), html)
+    Assert.Contains(t.CompatCoverage owner.DisplayName (coverageOf owner), html)
+    Assert.Contains(t.CompatTimeTitle, html)
+
+    // shared series: the 10 both watched most, each person's fully watched episodes, then "and N more"
+    Assert.Equal(string expected.Shared.Length, attr "shared-count" (one "shared-count" html))
+    let shown = expected.Shared |> List.truncate 10
+    let sharedRows = elements "shared-series" html
+    Assert.Equal<string list>(shown |> List.map (fun (id, _, _, _) -> id), sharedRows |> List.map (attr "shared-series"))
+    Assert.Equal<string list>(shown |> List.map (fun (_, _, v, _) -> string v), sharedRows |> List.map (attr "viewer-episodes"))
+    Assert.Equal<string list>(shown |> List.map (fun (_, _, _, o) -> string o), sharedRows |> List.map (attr "owner-episodes"))
+
+    for id, title, _, _ in shown do
+        Assert.Contains($"href=\"/u/{owner.Username}/anime/{id}\"", html)
+        Assert.Contains(title, html)
+
+    if expected.Shared.Length > 10 then
+        Assert.Equal(string (expected.Shared.Length - 10), attr "shared-more" (one "shared-more" html))
+        Assert.Contains(t.CompatMore(expected.Shared.Length - 10), html)
+    else
+        Assert.Empty(elements "shared-more" html)
+
+    if expected.Shared.IsEmpty then
+        Assert.True((one "shared-count" html).ContainsKey "shared-none")
+    else
+        Assert.Empty(elements "shared-none" html)
+
+    // their series, not yours: the owner's most watched, with MyAnimeList's score when matched
+    let theirs = elements "their-series" html
+    Assert.Equal<string list>(expected.Theirs |> List.map (fun (id, _, _) -> id), theirs |> List.map (attr "their-series"))
+
+    for t', (id, title, _) in List.zip theirs expected.Theirs do
+        Assert.Contains($"href=\"/u/{owner.Username}/anime/{id}\"", html)
+        Assert.Contains(title, html)
+
+        // the score is one of the series' matched seasons' scores; a series with none shows no score
+        match t'.TryFind "mal-score" with
+        | Some score -> Assert.Contains(score, ownerScores.TryFind id |> Option.defaultValue Set.empty)
+        | None -> ()
+
+    if expected.Theirs.IsEmpty then
+        Assert.DoesNotContain(t.CompatTheirsTitle owner.DisplayName, html)
+    else
+        Assert.Contains(t.CompatTheirsTitle owner.DisplayName, html)
+
+    // studios both watch, with the number of shared series each covers
+    let studios = elements "shared-studio" html
+    Assert.Equal<string list>(expected.Studios |> List.map (fun (n, _, _) -> n), studios |> List.map (attr "shared-studio"))
+    Assert.Equal<string list>(expected.Studios |> List.map (fun (_, n, _) -> string n), studios |> List.map (attr "studio-series"))
+
+    // no raw score anywhere, and the way back
+    Assert.DoesNotContain("data-score", html)
+    one "dashboard-link" html |> ignore
+    Assert.Contains($"href=\"/u/{owner.Username}\"", html)
+    Assert.Empty(elements "compat-not-enough" html)
+
+[<Fact>]
+let ``the page shows every figure, equal to an independent computation, from both sides`` () =
+    task {
+        let! p = withPair ()
+        use app = p.App
+        let! a = factsOf app.Db "viewera"
+        let! b = factsOf app.Db "ownerb"
+        let! scoresA = scoresOf app.Db "viewera"
+        let! scoresB = scoresOf app.Db "ownerb"
+        let ab, ba = expectedOf a b, expectedOf b a
+
+        let! pageAB = comparePage p.A "ownerb"
+        let! pageBA = comparePage p.B "viewera"
+
+        // viewera -> ownerb: ownerb only has synthetic series the viewer lacks; viewera -> ownerb shares a few
+        Assert.NotEmpty ab.Shared
+        Assert.NotEmpty ab.Theirs
+        Assert.NotEmpty ab.Rows
+        assertPage Texts.en a b scoresB ab pageAB
+
+        // ownerb -> viewera: viewera's other, matched series are "their series", with MyAnimeList scores
+        Assert.Equal(8, ba.Theirs.Length)
+        assertPage Texts.en b a scoresA ba pageBA
+        Assert.NotEmpty(elements "their-series" pageBA |> List.filter (fun m -> m.ContainsKey "mal-score"))
+
+        // the same level from both sides
+        Assert.Equal(attr "level" (root pageAB), attr "level" (root pageBA))
+    }
+
+[<Fact>]
+let ``more than 10 shared series show 10 and how many more`` () =
+    task {
+        let! app = newApp ()
+        use app = app
+        let! viewer = signedUp app "sub-twina" "twina"
+        let! keyA = connectExtension viewer
+        let! keyB = createUser app.Db "twinb"
+        let! _ = submitAccepted app keyA (load2026Sample ())
+        let! _ = submitAccepted app keyB (load2026SampleRaw () |> withProfile "profile-second")
+        let! _ = processAll app.Db
+        routeSampleCatalog app.Mal
+        let! _ = enrichAll app
+        let! a = factsOf app.Db "twina"
+        let! b = factsOf app.Db "twinb"
+        let! scores = scoresOf app.Db "twinb"
+        let expected = expectedOf a b
+        Assert.True(expected.Shared.Length > 10, "the sample has more than 10 series")
+        Assert.Equal(a.Series.Count, expected.Shared.Length)
+
+        let! html = comparePage viewer "twinb"
+        assertPage Texts.en a b scores expected html
+        Assert.Equal(10, (elements "shared-series" html).Length)
+        // nothing is only theirs: that section is absent, not empty
+        Assert.Empty(elements "their-series" html)
+        Assert.Equal(5, expected.Level)
+    }
+
+[<Fact>]
+let ``signed out goes to sign-in and back, yourself goes to your dashboard, unknown and invalid usernames are not found`` () =
+    task {
+        let! p = withPair ()
+        use app = p.App
+
+        // signed out: sign-in first, whoever the username is
+        let anonymous = app.NewBrowser()
+        let! response = anonymous.GetRaw "/u/ownerb/compare"
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode)
+        Assert.Equal("/signin?returnUrl=%2Fu%2Fownerb%2Fcompare", string response.Headers.Location)
+        let! unknown = anonymous.GetRaw "/u/nobody-here/compare"
+        Assert.Equal(HttpStatusCode.Found, unknown.StatusCode)
+        Assert.StartsWith("/signin?returnUrl=", string unknown.Headers.Location)
+
+        // (a local returnUrl is honoured after sign-in: SignInTests)
+        // yourself: your dashboard (the username is read case-insensitively)
+        for path in [ "/u/viewera/compare"; "/u/VIEWERA/compare" ] do
+            let! own = p.A.GetRaw path
+            Assert.Equal(HttpStatusCode.Found, own.StatusCode)
+            Assert.Equal("/u/viewera", string own.Headers.Location)
+
+        // unknown, invalid, reserved and deleted: the not-found page
+        for path in [ "/u/nobody-here/compare"; "/u/a/compare"; "/u/admin/compare"; "/u/has space/compare" ] do
+            let! missing = p.A.Get path
+            Assert.Equal(HttpStatusCode.NotFound, missing.Status)
+            Assert.Contains(Texts.en.UserNotFoundTitle, missing.Html)
+            Assert.Empty(elements "compare" missing.Html)
+
+        do! Db.execute app.Db "DELETE FROM users WHERE username = 'newbieb'"
+        let! deleted = p.A.Get "/u/newbieb/compare"
+        Assert.Equal(HttpStatusCode.NotFound, deleted.Status)
+        Assert.Contains(Texts.en.UserNotFoundTitle, deleted.Html)
+    }
+
+[<Fact>]
+let ``a history under 15 fully watched episodes shows the not-enough state in place of the sections`` () =
+    task {
+        let! p = withPair ()
+        use app = p.App
+
+        let check (html: string) (who: string) (text: string) =
+            let page = root html
+            Assert.Equal("", attr "level" page)
+            Assert.Equal(who, attr "compat-not-enough" (one "compat-not-enough" html))
+            Assert.Contains(text, html)
+
+            for hook in [ "level-meter"; "level-name"; "genre-compare"; "shared-series"; "their-series"; "shared-studio"; "compare-summary" ] do
+                Assert.Empty(elements hook html)
+
+        let! viewerShort = comparePage p.NewbieA "ownerb"
+        check viewerShort "viewer" Texts.en.CompatNotEnoughViewer
+        let! ownerShort = comparePage p.A "newbieb"
+        check ownerShort "owner" (Texts.en.CompatNotEnoughOwner "NEWBIEB")
+        let! both = comparePage p.NewbieA "newbieb"
+        check both "both" (Texts.en.CompatNotEnoughBoth "NEWBIEB")
+    }
+
+[<Fact>]
+let ``with no series in common the page says so and lists nothing`` () =
+    task {
+        let! p = withPair ()
+        use app = p.App
+        let! loner = factsOf app.Db "loner"
+        let! a = factsOf app.Db "viewera"
+        let! scores = scoresOf app.Db "viewera"
+        let expected = expectedOf loner a
+        let! html = comparePage p.Loner "viewera"
+        assertPage Texts.en loner a scores expected html
+        Assert.Empty(elements "shared-series" html)
+        Assert.Contains(Texts.en.CompatSummary a.DisplayName 0 None, html)
+        // the loner has no MyAnimeList genres: the page says the level rests on shared series alone
+        Assert.Contains(Texts.en.CompatNoGenres, html)
+    }
+
+[<Fact>]
+let ``a compare page between two users with 2,000 watched episodes each is ready in under a second`` () =
+    task {
+        let! app = newApp ()
+        use app = app
+        let! viewer = signedUp app "sub-speeda" "speeda"
+        let! keyA = connectExtension viewer
+        let! keyB = createUser app.Db "speedb"
+        // 20 pages of 100 episodes each: 100 series of 20 episodes, the same on both sides
+        let! _ = submitAccepted app keyA (envelopeOf (syntheticPages RealAccountId 20 100))
+        let! _ = submitAccepted app keyB (envelopeForProfile "profile-speed" (syntheticPages otherAccount 20 100))
+        let! _ = processAll app.Db
+        let! episodes = Db.scalar<int64> app.Db "SELECT count(*) FROM watch_events w JOIN users u ON u.id = w.user_id WHERE u.username = 'speedb'" []
+        Assert.Equal(2000L, episodes)
+
+        // a warm-up, then the timed request
+        let! _ = comparePage viewer "speedb"
+        let clock = Diagnostics.Stopwatch.StartNew()
+        let! html = comparePage viewer "speedb"
+        clock.Stop()
+
+        Assert.True(clock.ElapsedMilliseconds < 1000L, $"took {clock.ElapsedMilliseconds} ms")
+        Assert.Equal("100", attr "shared-count" (one "shared-count" html))
+        Assert.Equal("90", attr "shared-more" (one "shared-more" html))
+    }
+
+[<Fact>]
+let ``the card's link opens the compare page`` () =
+    task {
+        let! p = withPair ()
+        use app = p.App
+        let! html = dashboard p.A "ownerb"
+        let tag = Regex.Match(html, "<a\\b[^>]*data-compare-link[^>]*>").Value
+        let href = Regex.Match(tag, "href=\"([^\"]+)\"").Groups[1].Value
+        Assert.Equal("/u/ownerb/compare", href)
+
+        let! page = p.A.Get href
+        Assert.Equal(HttpStatusCode.OK, page.Status)
+        Assert.Equal("ownerb", attr "compare" (root page.Html))
+        // and the page leads back to the dashboard
+        let! dashboardAgain = p.A.Get "/u/ownerb"
+        Assert.Equal(HttpStatusCode.OK, dashboardAgain.Status)
+        Assert.Contains("/u/ownerb\"", page.Html)
+    }
+
+[<Fact>]
+let ``the page reads in English and Spanish with the same figures`` () =
+    task {
+        let! p = withPair ()
+        use app = p.App
+        let! a = factsOf app.Db "viewera"
+        let! b = factsOf app.Db "ownerb"
+        let! scores = scoresOf app.Db "ownerb"
+        let expected = expectedOf a b
+        let! spanish = inLanguage app "es" "sub-viewera"
+        let! es = comparePage spanish "ownerb"
+        let! en = comparePage p.A "ownerb"
+
+        assertPage Texts.en a b scores expected en
+        assertPage Texts.es a b scores expected es
+
+        for text in [ Texts.es.CompatTimeTitle; Texts.es.CompatSharedTitle; Texts.es.CompatTheirsTitle b.DisplayName; Texts.es.CompatExplain ] do
+            Assert.Contains(text, es)
+
+        Assert.DoesNotContain(Texts.en.CompatTimeTitle, es)
+        Assert.DoesNotContain(Texts.es.CompatTimeTitle, en)
+        Assert.Contains($"<title>{Texts.es.CompatPageTitle b.DisplayName}", es)
+
+        // the hooks carry the same invariant values in both languages
+        Assert.Equal<string list>(attrs "genre-compare" "viewer-share" en, attrs "genre-compare" "viewer-share" es)
+        Assert.Equal<string list>(attrs "genre-compare" "owner-share" en, attrs "genre-compare" "owner-share" es)
+        Assert.Equal(attr "viewer-coverage" (one "viewer-coverage" en), attr "viewer-coverage" (one "viewer-coverage" es))
+
+        // not enough history reads in Spanish too
+        let! spanishNewbie = inLanguage app "es" "sub-newbiea"
+        let! short = comparePage spanishNewbie "ownerb"
         Assert.Contains(Texts.es.CompatNotEnoughViewer, short)
     }

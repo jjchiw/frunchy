@@ -47,6 +47,8 @@ let endpoints =
       Handlers.Users.Dna.endpoint
       yield! Handlers.Users.Year.endpoint
       Handlers.Users.Anime.endpoint
+      // Feature 011: taste compatibility with another user (signed in)
+      Handlers.Users.Compare.endpoint
       // Feature 009: the episode page and its comments
       yield! Handlers.Episodes.Episode.endpoint
       yield! Handlers.Episodes.EditComment.endpoint
