@@ -2,8 +2,8 @@
   "workflow": "speckit",
   "specName": "Charts and Trends",
   "branch": "012-charts-trends",
-  "currentStep": "specify",
-  "status": "specified",
+  "currentStep": "tasks",
+  "status": "ready-to-implement",
   "history": [
     {
       "step": "specify",
@@ -11,6 +11,14 @@
       "kind": "start",
       "by": "extension",
       "at": "2026-10-16T15:46:10.757Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-16T15:47:46.054Z"
     }
-  ]
+  ],
+  "telemetryInstanceId": "6ae0d5d7-1878-4779-a9c6-ecb91aa6ca92"
 }
