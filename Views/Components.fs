@@ -54,7 +54,7 @@ let sectionTitle (text: string) =
 let metricTile (label: string) (name: string) (invariantValue: string) (display: string) (caption: string option) =
     div(class' = "fr-card flex flex-col gap-2 p-5 md:p-6") {
         p(class' = "fr-overline") { label }
-        div(class' = "font-mono text-stat-counter text-on-surface").data("stat", name).data("value", invariantValue) { display }
+        div(class' = "font-mono text-stat-counter text-primary").data("stat", name).data("value", invariantValue) { display }
 
         match caption with
         | Some c -> p(class' = "text-label-md font-normal text-on-surface-variant") { c }

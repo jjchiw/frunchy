@@ -64,7 +64,8 @@ let private hero (ctx: HttpContext) (t: Texts) =
     }
 
 let private stepIcons = [ Theme.Extension; Theme.History; Theme.Sync ]
-let private stepTones = [ "bg-primary/10 text-primary"; "bg-secondary/10 text-secondary"; "bg-primary/10 text-primary" ]
+// Amber throughout: the steps are the reader's own, and rose is for other people
+let private stepTone = "bg-primary/10 text-primary"
 
 let private howToSync (t: Texts) =
     section(id = "how-to-sync", class' = "scroll-mt-24 space-y-6").attr("aria-labelledby", "how-to-sync-title") {
@@ -74,7 +75,7 @@ let private howToSync (t: Texts) =
             for i, step in List.indexed t.HomeSteps do
                 li(class' = "fr-card flex flex-col gap-5").data("home-step", string (i + 1)) {
                     div(class' = "flex items-center justify-between").attr("aria-hidden", "true") {
-                        span(class' = $"flex h-10 w-10 items-center justify-center rounded-full text-headline-md {stepTones[i % 3]}") {
+                        span(class' = $"flex h-10 w-10 items-center justify-center rounded-full text-headline-md {stepTone}") {
                             string (i + 1)
                         }
 

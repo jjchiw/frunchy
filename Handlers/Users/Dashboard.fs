@@ -143,12 +143,12 @@ let private recentItem (t: Texts) (username: string) (e: RecentEpisode) =
         match e.ThumbnailUrl with
         | Some url ->
             // Decorative: the title is right next to it
-            img(src = url, alt = "", class' = $"aspect-video w-full rounded bg-surface-container object-cover {thumbRows}")
+            img(src = url, alt = "", class' = $"aspect-video w-full rounded-md bg-surface-container object-cover {thumbRows}")
                 .attr("loading", "lazy")
         | None -> Fragment()
 
         div(class' = "min-w-0 space-y-1") {
-            h3(class' = "text-headline-md text-on-surface [overflow-wrap:anywhere]") { seriesLink username e.SeriesId e.SeriesTitle }
+            h3(class' = "text-headline-md text-on-surface [overflow-wrap:anywhere] [&_a]:no-underline [&_a:hover]:underline") { seriesLink username e.SeriesId e.SeriesTitle }
 
             p(class' = "text-body-md text-on-surface-variant") {
                 (match e.EpisodeNumber with
