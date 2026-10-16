@@ -4,6 +4,7 @@ open System
 open System.Globalization
 open System.IO
 open System.Text.RegularExpressions
+open Microsoft.Extensions.DependencyInjection
 open Xunit
 open FrunchyBackend.Views
 open FrunchyBackend.Tests.Fixtures
@@ -268,6 +269,77 @@ let ``the compatibility card and the compare page are on the design system and k
                 [ "data-compare=\"ownerb\""; "data-level-meter"; "data-level-name"; "data-compare-summary"; "data-genre-compare"
                   "data-viewer-coverage"; "data-owner-coverage"; "data-shared-series"; "data-shared-studio" ]
         )
+
+        Assert.True(problems.Count = 0, String.Join(Environment.NewLine, problems))
+    }
+
+/// Feature 012: the three chart pages (week, season, all time) and the empty state
+[<Fact>]
+let ``the chart pages are on the design system and keep their test hooks`` () =
+    task {
+        let now = DateTimeOffset(2026, 10, 16, 12, 0, 0, TimeSpan.Zero)
+
+        let appAt db =
+            let clock = FreshAuthTests.TestClock(Now = now)
+
+            createAppWith db [ "Frunchy:Charts:MinPeople", "2" ] (fun b ->
+                b.Services.AddSingleton<TimeProvider>(clock) |> ignore)
+
+        let problems = ResizeArray<string>()
+        let tabs = [ "data-chart-tab=\"week\""; "data-chart-tab=\"season\""; "data-chart-tab=\"all\"" ]
+
+        // No history at all: every chart shows its empty state
+        let! emptyDb = newDatabase ()
+        use! emptyApp = appAt emptyDb
+        let anonymousEmpty = emptyApp.NewBrowser()
+
+        for name, path, kind in [ "week", "/charts", "week"; "season", "/charts/season", "season"; "all time", "/charts/all", "all" ] do
+            let! page = anonymousEmpty.Get path
+            problems.AddRange(
+                pageProblems $"charts ({name}, empty)" page.Html ([ $"data-charts=\"{kind}\""; "data-min-people=\"2\""; "data-chart-empty" ] @ tabs)
+            )
+
+        // Three people over two series, this week and this season; the signed-in viewer is one of them
+        let! db = newDatabase ()
+        use! app = appAt db
+        use! viewer = AuthHelpers.signedUp app "sub-charts" "viewer"
+        let! viewerId = Db.scalar<Guid> db "SELECT id FROM users WHERE username = 'viewer'" []
+        let others = [ for n in 1..2 -> Guid.Parse $"00000000-0000-0000-0000-00000000000{n}" ]
+
+        for n, id in List.indexed others do
+            do! Db.execute db $"INSERT INTO users (id, username, display_name) VALUES ('{id}', 'other{n + 1}', 'Other {n + 1}')"
+
+        do!
+            Db.execute
+                db
+                """INSERT INTO cr_series (id, title, slug, source_at) VALUES
+                     ('DSA00001', 'Alpha', 'alpha', now()), ('DSA00002', 'Beta', 'beta', now());
+                   INSERT INTO cr_episodes (id, series_id, series_title, duration_ms) VALUES
+                     ('DSAE1', 'DSA00001', 'Alpha', 1440000), ('DSAE2', 'DSA00001', 'Alpha', 1440000),
+                     ('DSBE1', 'DSA00002', 'Beta', 1440000)"""
+
+        let people = viewerId :: others
+
+        // (person, episode, days before now): Alpha has 3 people and 4 episodes, Beta 2 people and 2 episodes
+        for p, episode, daysAgo in [ 0, "DSAE1", 1.0; 0, "DSAE2", 2.0; 1, "DSAE1", 2.0; 2, "DSAE2", 3.0; 0, "DSBE1", 2.0; 1, "DSBE1", 3.0 ] do
+            do!
+                Db.execute
+                    db
+                    $"""INSERT INTO watch_events (user_id, cr_episode_id, watched_at, playhead_s, fully_watched, import_id)
+                        VALUES ('{people[p]}', '{episode}', '{now.AddDays(-daysAgo).UtcDateTime:O}', 1400, true, gen_random_uuid())"""
+
+        let anonymous = app.NewBrowser()
+        let rowHooks = [ "data-chart-row=\"DSA00001\""; "data-rank=\"1\""; "data-people=\"3\""; "data-episodes=\"4\"" ]
+        let common kind = [ $"data-charts=\"{kind}\""; "data-min-people=\"2\"" ] @ tabs @ rowHooks
+
+        let! week = anonymous.Get "/charts"
+        problems.AddRange(pageProblems "charts (week)" week.Html (common "week" @ [ "data-move="; "data-trend=" ]))
+        let! weekViewer = viewer.Get "/charts"
+        problems.AddRange(pageProblems "charts (week, signed in)" weekViewer.Html (common "week" @ [ "data-move="; "data-trend="; "data-chart-mine" ]))
+        let! season = anonymous.Get "/charts/season"
+        problems.AddRange(pageProblems "charts (season)" season.Html (common "season" @ [ "data-season=\"fall-2026\"" ]))
+        let! all = anonymous.Get "/charts/all"
+        problems.AddRange(pageProblems "charts (all time)" all.Html (common "all"))
 
         Assert.True(problems.Count = 0, String.Join(Environment.NewLine, problems))
     }

@@ -80,14 +80,14 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
 
 ## Phase 6: Polish
 
-- [ ] T012 [P] Add the three chart pages to the every-page design-system check, with their hooks · tests/FrunchyBackend.Tests/DesignSystemTests.fs
-- [ ] T013 [P] Docs:
+- [x] T012 [P] Add the three chart pages to the every-page design-system check, with their hooks · tests/FrunchyBackend.Tests/DesignSystemTests.fs
+- [x] T013 [P] Docs:
   - **CLAUDE.md**: a Routes bullet, the `Frunchy:Charts:MinPeople` setting, and `Infrastructure/Charts.fs`.
   - **FRONTEND.md**: the page.
   - **README.md**: roadmap row 012 and the tree line.
 
   · CLAUDE.md, FRONTEND.md, README.md
-- [ ] T014 Run an impeccable audit of the three charts and the two count lines at 1280 and 360, en and es, with real data rendered through the test harness. Then run the full `dotnet test` and append the validation log, including the measured times · specs/012-charts-trends/quickstart.md
+- [x] T014 Run an impeccable audit of the three charts and the two count lines at 1280 and 360, en and es, with real data rendered through the test harness. Then run the full `dotnet test` and append the validation log, including the measured times · specs/012-charts-trends/quickstart.md
 
 ## Dependencies
 

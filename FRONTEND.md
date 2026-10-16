@@ -29,6 +29,7 @@ Everything comes from CDNs in `Views/Layout.fs`; there's no frontend build step.
 | `GET /u/{username}/year`, `/u/{username}/year/{year}` | `Handlers/Users/Year.fs` | the year in review (feature 005); the first redirects to the newest year with history |
 | `GET /u/{username}/anime/{seriesId}` | `Handlers/Users/Anime.fs` | one series as the user watched it (feature 006); series titles elsewhere link here |
 | `GET /u/{username}/compare` | `Handlers/Users/Compare.fs` | taste compatibility with that person (feature 011), signed in only (signed out goes to sign-in, your own name to your dashboard): level in words, genre shares side by side (amber you, rose them), shared series with episodes each, their series you haven't watched, shared studios; "not enough history" says whose |
+| `GET /charts`, `/charts/season`, `/charts/all` | `Handlers/Charts/Charts.fs` | public charts (feature 012): top 20 series by people this week, this season or all time, with a rank, thumbnail, title, "{n} people · {m} episodes" and an amber bar; the week adds movement (up, down, same, new) and an 8-week trend; a link to your own anime page when you watched it, "Watch on Crunchyroll" when the slug is known; a note when fewer series than the minimum qualify; empty state |
 | `GET /anime/{seriesId}/episode/{episodeId}` | `Handlers/Episodes/Episode.fs` | public page of one catalog episode (feature 009): details, Crunchyroll and MyAnimeList links, comments with spoilers behind a toggle, a comment form when signed in or a sign-in prompt; operators also see hidden comments and hide or unhide. Authors edit or delete on `GET /comments/{id}/edit` (`Handlers/Episodes/EditComment.fs`) |
 | `GET /review/mal`, `/review/mal/manual` (+ POST `set`, `none`, `retry`, `auto`) | `Handlers/Review/MalReview.fs` | operators only (feature 007; 404 for everyone else): seasons the matcher couldn't decide with their candidates, an id/link field, retry and "not on MyAnimeList"; the manual decisions with "back to automatic" |
 | `GET /review/operators` (+ POST `add`, `remove`) | `Handlers/Review/Operators.fs` | the root operator only (feature 008; 404 everyone else, operators included): the root, the operators with who added them and when, a username field and a remove button per row; the account page links it for the root |
@@ -47,7 +48,7 @@ that uses them. Only cross-slice UI lives in `Views/`:
 
 - `Views/Layout.fs`: `page ctx texts title content` (`<html lang>`, CDN scripts, navbar, footer, the time
   script), `messagePage` for 404, 429 and error pages, and `timeElement`, the shared `<time>` helper.
-- The **navbar** shows "Sign in" when signed out. Signed in, it shows the display name, "Account" and a
+- The **navbar** has a "Charts" link for everyone (`data-nav="charts"`). It shows "Sign in" when signed out. Signed in, it shows the display name, "Account" and a
   sign-out button, which is a POST form with an antiforgery token: sign-out is never a GET link.
 - **Forms**: every state-changing form renders `ctx.GetAntiforgeryInput()` and posts. Actions answer with a
   redirect to `/account?msg=…`, which shows a localized notice.
