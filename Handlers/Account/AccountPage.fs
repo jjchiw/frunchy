@@ -98,7 +98,7 @@ let private postButton (ctx: HttpContext) (action: string) (cssClass: string) (i
 let private syncTone (status: string) =
     match status with
     | "completed" -> PrimaryTone
-    | "failed" -> TertiaryTone
+    | "failed" -> SecondaryTone
     | "pending"
     | "processing" -> TertiaryTone
     | _ -> Muted

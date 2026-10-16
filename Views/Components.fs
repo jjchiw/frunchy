@@ -77,7 +77,7 @@ let pill (tone: PillTone) (text: string) =
 
     span(class' = $"fr-pill {toneClass}") { text }
 
-/// A share bar (genres, formats, decades): 6px track, secondary → primary fill
+/// A share bar (genres, formats, decades): 6px track, solid primary fill
 let shareBar (percent: decimal) =
     let scale = (max 0m (min 100m percent) / 100m).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
     div(class' = "fr-track").attr("aria-hidden", "true") { div(class' = "fr-fill").attr("style", $"transform: scaleX({scale})") }
