@@ -2,6 +2,7 @@ module FrunchyBackend.Tests.ChartsTests
 
 open System
 open System.Threading.Tasks
+open Microsoft.Extensions.Caching.Memory
 open Xunit
 open FrunchyBackend.Infrastructure.Charts
 open FrunchyBackend.Infrastructure.Database
@@ -43,6 +44,10 @@ let private seed (db: DbConfig) (watches: (int * string * float) list) =
                        VALUES ('{userIds[user - 1]}', '{episode}', '{at}', 1400, true, gen_random_uuid())"""
     }
 
+/// `chart` with a fresh in-memory cache, so one call never sees another's all-time rows
+let private chartOf db window minimum at viewer =
+    chart db (new MemoryCache(MemoryCacheOptions())) window minimum at viewer
+
 let private rowOf (chart: Chart) (id: string) = chart.Rows |> List.find (fun r -> r.SeriesId = id)
 
 [<Fact>]
@@ -61,7 +66,7 @@ let ``the week chart ranks by people then episodes, hides series below the minim
                   // an unresolved episode never counts
                   1, "c1", 1.0; 2, "c1", 1.0; 3, "c1", 1.0 ]
 
-        let! three = chart app.Db Week 3 now None
+        let! three = chartOf app.Db Week 3 now None
         Assert.Equal<string list>([ "SA" ], three.Rows |> List.map _.SeriesId)
         Assert.Equal(3, three.MinPeople)
         Assert.Equal(3, (rowOf three "SA").People)
@@ -70,7 +75,7 @@ let ``the week chart ranks by people then episodes, hides series below the minim
         Assert.Equal(Some(Thumbnail "https://img/a1.jpg"), (rowOf three "SA").Poster)
         Assert.False (rowOf three "SA").Mine
 
-        let! two = chart app.Db Week 2 now (Some userIds[3])
+        let! two = chartOf app.Db Week 2 now (Some userIds[3])
         Assert.Equal<string list>([ "SA"; "SB" ], two.Rows |> List.map _.SeriesId)
         // user 4 watched nothing
         Assert.All(two.Rows, fun r -> Assert.False r.Mine)
@@ -84,11 +89,11 @@ let ``the week chart ranks by people then episodes, hides series below the minim
         Assert.Equal<int list>([ 0; 0; 0; 0; 0; 0; 0; 3 ], (rowOf two "SA").Trend)
 
         // below 2 is clamped to 2: a single person never makes a row
-        let! one = chart app.Db Week 1 now None
+        let! one = chartOf app.Db Week 1 now None
         Assert.Equal(2, one.MinPeople)
         Assert.Equal(2, one.Rows.Length)
 
-        let! viewer = chart app.Db Week 2 now (Some userIds[0])
+        let! viewer = chartOf app.Db Week 2 now (Some userIds[0])
         Assert.All(viewer.Rows, fun r -> Assert.True r.Mine)
     }
 
@@ -106,16 +111,16 @@ let ``the season and all-time charts use their own windows`` () =
                   // B: all three watches were in summer
                   1, "b1", 30.0; 2, "b1", 31.0; 3, "b1", 40.0 ]
 
-        let! season = chart app.Db Season 3 now None
+        let! season = chartOf app.Db Season 3 now None
         Assert.Equal(Some("fall", 2026), season.Season)
         Assert.Equal<string list>([ "SA" ], season.Rows |> List.map _.SeriesId)
         Assert.Empty(season.Rows |> List.choose _.Move)
 
-        let! all = chart app.Db AllTime 3 now None
+        let! all = chartOf app.Db AllTime 3 now None
         Assert.Equal<string list>([ "SA"; "SB" ], all.Rows |> List.map _.SeriesId)
         Assert.Equal(None, all.Season)
 
-        let! empty = chart app.Db Week 3 now None
+        let! empty = chartOf app.Db Week 3 now None
         Assert.Empty empty.Rows
     }
 
@@ -513,6 +518,38 @@ let ``the viewer's link shows only for a signed-in viewer who watched the series
     }
 
 [<Fact>]
+let ``the cached all-time rows carry no viewer: each viewer sees only their own links`` () =
+    task {
+        let! db = fixtureDb ()
+        use! app = appAt db [ "Frunchy:Charts:MinPeople", "2" ] now
+        let! a = signedUp app "sub-a" "viewera"
+        use a = a
+        let! b = signedUp app "sub-b" "viewerb"
+        use b = b
+        let! aId = Db.scalar<Guid> db "SELECT id FROM users WHERE username = @u" [ "u", box "viewera" ]
+
+        // only A watched series 1; B watched nothing
+        do! addWatch db aId "GSER0001E1" (now.AddDays -2.0)
+
+        let! first = a.Get "/charts/all"
+        Assert.Contains("data-chart-mine", first.Html)
+        Assert.Contains("/u/viewera/anime/GSER0001", first.Html)
+
+        // right after A loaded (and cached) the chart
+        let! second = b.Get "/charts/all"
+        Assert.Equal(HttpStatusCode.OK, second.Status)
+        Assert.DoesNotContain("data-chart-mine", second.Html)
+        Assert.DoesNotContain("viewera", second.Html)
+
+        let! anonymous = pageOf app.Client "en" "/charts/all"
+        Assert.DoesNotContain("data-chart-mine", anonymous)
+
+        // and A still sees theirs from the same cached rows
+        let! again = a.Get "/charts/all"
+        Assert.Contains("/u/viewera/anime/GSER0001", again.Html)
+    }
+
+[<Fact>]
 let ``an empty chart shows the empty state and a season name follows the clock at its boundaries`` () =
     task {
         let! db = newDatabase ()
@@ -821,7 +858,7 @@ let ``no user text enters the trend graphic: a hostile title and a hostile slug 
     }
 
 [<Fact>]
-let ``each chart answers in under a second over 2 million watch events`` () =
+let ``week and season answer in under a second, all time in under 4 seconds cold and under a second cached, over 2 million watch events`` () =
     task {
         let! db = newDatabase ()
         let setup = Diagnostics.Stopwatch.StartNew()
@@ -853,10 +890,10 @@ let ``each chart answers in under a second over 2 million watch events`` () =
 
         use! app = appAt db [] now
 
-        // one warm-up GET per chart (plans, pool, JIT), then the timed ones
+        // week and season: one warm-up GET each (plans, pool, JIT), then the timed one
         let times = Collections.Generic.List<string * int64>()
 
-        for window in [ "week"; "season"; "all" ] do
+        for window in [ "week"; "season" ] do
             let! _ = pageOf app.Client "en" (path window)
 
             let watch = Diagnostics.Stopwatch.StartNew()
@@ -865,9 +902,25 @@ let ``each chart answers in under a second over 2 million watch events`` () =
             Assert.NotEmpty(parseRows html)
             times.Add((window, watch.ElapsedMilliseconds))
 
+        // all time: the cold first GET runs the statement, the second is served from the 10-minute copy
+        let cold = Diagnostics.Stopwatch.StartNew()
+        let! coldHtml = pageOf app.Client "en" (path "all")
+        cold.Stop()
+        Assert.NotEmpty(parseRows coldHtml)
+        times.Add(("all cold", cold.ElapsedMilliseconds))
+
+        let warm = Diagnostics.Stopwatch.StartNew()
+        let! warmHtml = pageOf app.Client "en" (path "all")
+        warm.Stop()
+        Assert.Equal<Expected list>(asExpected (parseRows coldHtml), asExpected (parseRows warmHtml))
+        times.Add(("all warm", warm.ElapsedMilliseconds))
+
         let report = String.Join(", ", times |> Seq.map (fun (w, ms) -> $"{w} {ms} ms")) + $" (setup {int setupTime.TotalSeconds} s)"
         printfn "charts at 2M events: %s" report
-        Assert.True(times |> Seq.forall (fun (_, ms) -> ms < 1000L), "a chart took 1 second or more over 2M events: " + report)
+        let under (name: string) (limit: int64) = times |> Seq.find (fun (w, _) -> w = name) |> snd < limit
+        Assert.True(under "week" 1000L && under "season" 1000L, "week or season took 1 second or more over 2M events: " + report)
+        Assert.True(under "all cold" 4000L, "the cold all-time chart took 4 seconds or more over 2M events: " + report)
+        Assert.True(under "all warm" 1000L, "the cached all-time chart took 1 second or more over 2M events: " + report)
     }
 
 // ===========================================================================

@@ -3,6 +3,7 @@ module FrunchyBackend.Handlers.Charts.Charts
 open System
 open System.Net
 open Microsoft.AspNetCore.Http
+open Microsoft.Extensions.Caching.Memory
 open Microsoft.Extensions.Configuration
 open Oxpecker
 open Oxpecker.ViewEngine
@@ -186,7 +187,7 @@ let private chartHandler (window: Window) : EndpointHandler =
             let t = Texts.current ()
             let minimum = minPeople (ctx.GetService<IConfiguration>())
             let now = ctx.GetService<TimeProvider>().GetUtcNow()
-            let! c = chart (ctx.GetService<DbConfig>()) window minimum now (WebAuth.currentUserId ctx)
+            let! c = chart (ctx.GetService<DbConfig>()) (ctx.GetService<IMemoryCache>()) window minimum now (WebAuth.currentUserId ctx)
             return! ctx.WriteHtmlView(view ctx t c)
         }
 

@@ -391,6 +391,7 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
 
 let configureServices (config: IConfiguration) (services: IServiceCollection) =
     services.AddSingleton<DbConfig>(dbConfigFrom config) |> ignore
+    services.AddMemoryCache() |> ignore
 
     if config.GetValue<bool>(WorkerEnabledKey, true) then
         services.AddHostedService<ImportProcessorService>() |> ignore

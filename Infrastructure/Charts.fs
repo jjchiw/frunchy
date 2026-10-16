@@ -9,6 +9,7 @@ module FrunchyBackend.Infrastructure.Charts
 open System
 open System.Collections.Generic
 open System.Threading.Tasks
+open Microsoft.Extensions.Caching.Memory
 open Microsoft.Extensions.Configuration
 open Npgsql
 open NpgsqlTypes
@@ -116,44 +117,51 @@ let private timestamp (name: string) (value: DateTimeOffset option) =
 let private optionalString (r: Data.Common.DbDataReader) (i: int) = if r.IsDBNull i then None else Some(r.GetString i)
 
 /// The window's rows: the top 20 (people, episodes, title, series id) with at least `@min` people.
-/// The viewer id is only compared inside `mine`; NULL when signed out. The poster is the MyAnimeList
-/// image of the series' most watched matched season in the window, else its newest episode thumbnail.
-/// Last week's ranking with no LIMIT, so a series that ranked 25th still has its rank
-/// The people per weekly block for the charted series. The 8 blocks come from `trendBlocks`, so SQL and
-/// F# share one definition (`@froms`/`@tos`, ordinal k = 1..8, oldest first); empty weeks are 0. The
-/// minimum filters which series are charted, not these weekly values.
+/// The per-user counts are grouped first, so ranking never sorts the raw watch rows; the poster and
+/// thumbnail only look at the 20 charted series. The rows hold no viewer data (`Mine` is false, see `loadMine`).
+/// The poster is the MyAnimeList image of the series' most watched matched season in the window, else its
+/// newest episode thumbnail.
 let private loadRows
     (connection: NpgsqlConnection)
     (from: DateTimeOffset option)
     (until: DateTimeOffset option)
     (minPeople: int)
-    (viewer: Guid option)
     : Task<ChartRow list> =
     task {
         use cmd =
             new NpgsqlCommand(
                 """
-    WITH win AS (
-        SELECT w.user_id, e.series_id, e.series_title, e.id AS episode_id, e.season_id, e.thumbnail_url, w.watched_at
+    WITH per_user AS (
+        SELECT e.series_id, w.user_id, count(*) AS n, min(e.series_title) AS episode_title
         FROM watch_events w
         JOIN cr_episodes e ON e.id = w.cr_episode_id
         WHERE e.duration_ms IS NOT NULL
           AND (@from IS NULL OR w.watched_at >= @from)
           AND (@to IS NULL OR w.watched_at < @to)
+        GROUP BY e.series_id, w.user_id
     ),
     ranked AS (
-        SELECT series_id, count(DISTINCT user_id) AS people, count(*) AS episodes, min(series_title) AS episode_title
-        FROM win
+        SELECT series_id, count(*) AS people, sum(n)::bigint AS episodes, min(episode_title) AS episode_title
+        FROM per_user
         GROUP BY series_id
-        HAVING count(DISTINCT user_id) >= @min
+        HAVING count(*) >= @min
     ),
     top AS (
         SELECT r.series_id, r.people, r.episodes,
                coalesce(s.title, r.episode_title, r.series_id) AS title, s.slug
         FROM ranked r
         LEFT JOIN cr_series s ON s.id = r.series_id
-        ORDER BY r.people DESC, r.episodes DESC, coalesce(s.title, r.episode_title, r.series_id), r.series_id
+        ORDER BY r.people DESC, r.episodes DESC, 4, r.series_id
         LIMIT 20
+    ),
+    win AS MATERIALIZED (
+        SELECT e.series_id, e.id AS episode_id, e.season_id, e.thumbnail_url, w.watched_at
+        FROM watch_events w
+        JOIN cr_episodes e ON e.id = w.cr_episode_id
+        WHERE e.series_id IN (SELECT series_id FROM top)
+          AND e.duration_ms IS NOT NULL
+          AND (@from IS NULL OR w.watched_at >= @from)
+          AND (@to IS NULL OR w.watched_at < @to)
     ),
     portrait AS (
         SELECT DISTINCT ON (t.series_id) t.series_id, a.image_url
@@ -171,11 +179,7 @@ let private loadRows
         WHERE win.thumbnail_url IS NOT NULL
         ORDER BY t.series_id, win.watched_at DESC, win.episode_id
     )
-    SELECT t.series_id, t.people, t.episodes, t.title, t.slug, p.image_url, th.thumbnail_url,
-           EXISTS (SELECT 1
-                   FROM watch_events mw
-                   JOIN cr_episodes me ON me.id = mw.cr_episode_id
-                   WHERE mw.user_id = @viewer AND me.series_id = t.series_id AND me.duration_ms IS NOT NULL) AS mine
+    SELECT t.series_id, t.people, t.episodes, t.title, t.slug, p.image_url, th.thumbnail_url
     FROM top t
     LEFT JOIN portrait p ON p.series_id = t.series_id
     LEFT JOIN thumbnail th ON th.series_id = t.series_id
@@ -186,9 +190,6 @@ let private loadRows
         cmd.Parameters.Add(timestamp "from" from) |> ignore
         cmd.Parameters.Add(timestamp "to" until) |> ignore
         cmd.Parameters.AddWithValue("min", minPeople) |> ignore
-        let viewerParameter = NpgsqlParameter("viewer", NpgsqlDbType.Uuid)
-        viewerParameter.Value <- (match viewer with Some id -> box id | None -> box DBNull.Value)
-        cmd.Parameters.Add viewerParameter |> ignore
 
         let rows = ResizeArray<ChartRow>()
         use! r = cmd.ExecuteReaderAsync()
@@ -207,11 +208,35 @@ let private loadRows
                   Poster = poster
                   People = int (r.GetInt64 1)
                   Episodes = int (r.GetInt64 2)
-                  Mine = r.GetBoolean 7
+                  Mine = false
                   Move = None
                   Trend = [] }
 
         return List.ofSeq rows
+    }
+
+/// Which of these series the viewer ever watched (episodes of known length). Run per request, never cached.
+let private loadMine (connection: NpgsqlConnection) (viewer: Guid) (seriesIds: string[]) : Task<Set<string>> =
+    task {
+        use cmd =
+            new NpgsqlCommand(
+                """
+    SELECT DISTINCT e.series_id
+    FROM watch_events w
+    JOIN cr_episodes e ON e.id = w.cr_episode_id
+    WHERE w.user_id = @viewer AND e.duration_ms IS NOT NULL AND e.series_id = ANY(@series)
+    """,
+                connection
+            )
+        cmd.Parameters.AddWithValue("viewer", viewer) |> ignore
+        cmd.Parameters.AddWithValue("series", seriesIds) |> ignore
+        let mutable mine = Set.empty
+        use! r = cmd.ExecuteReaderAsync()
+
+        while! r.ReadAsync() do
+            mine <- mine.Add(r.GetString 0)
+
+        return mine
     }
 
 let private loadPreviousRanks (connection: NpgsqlConnection) (now: DateTimeOffset) (minPeople: int) : Task<Map<string, int>> =
@@ -219,17 +244,18 @@ let private loadPreviousRanks (connection: NpgsqlConnection) (now: DateTimeOffse
         use cmd =
             new NpgsqlCommand(
                 """
-    WITH win AS (
-        SELECT w.user_id, e.series_id, e.series_title
+    WITH per_user AS (
+        SELECT e.series_id, w.user_id, count(*) AS n, min(e.series_title) AS episode_title
         FROM watch_events w
         JOIN cr_episodes e ON e.id = w.cr_episode_id
         WHERE e.duration_ms IS NOT NULL AND w.watched_at >= @from AND w.watched_at < @to
+        GROUP BY e.series_id, w.user_id
     ),
     ranked AS (
-        SELECT series_id, count(DISTINCT user_id) AS people, count(*) AS episodes, min(series_title) AS episode_title
-        FROM win
+        SELECT series_id, count(*) AS people, sum(n)::bigint AS episodes, min(episode_title) AS episode_title
+        FROM per_user
         GROUP BY series_id
-        HAVING count(DISTINCT user_id) >= @min
+        HAVING count(*) >= @min
     )
     SELECT r.series_id,
            row_number() OVER (ORDER BY r.people DESC, r.episodes DESC,
@@ -307,18 +333,40 @@ let private loadTrends (connection: NpgsqlConnection) (now: DateTimeOffset) (ser
 // Public API
 // ---------------------------------------------------------------------------
 
+/// How long the all-time rows are kept in memory (specs/012-charts-trends/research.md R4)
+let allTimeCacheLifetime = TimeSpan.FromMinutes 10.0
+
 /// The chart of a window, up to 20 rows. `now` fixes the window ends (tests pass a fixed clock); `viewer`
-/// is the signed-in user's id, only used to flag the series they watched. The week chart also carries
-/// each row's movement against the previous 7 days and its 8-week trend.
-let chart (db: DbConfig) (window: Window) (minPeople: int) (now: DateTimeOffset) (viewer: Guid option) : Task<Chart> =
+/// is the signed-in user's id, only used to flag the series they watched (a separate statement per
+/// request). The week chart also carries each row's movement against the previous 7 days and its 8-week
+/// trend. The all-time rows, which hold no user data, are kept in `cache` for 10 minutes; week and season
+/// are never cached.
+let chart
+    (db: DbConfig)
+    (cache: IMemoryCache)
+    (window: Window)
+    (minPeople: int)
+    (now: DateTimeOffset)
+    (viewer: Guid option)
+    : Task<Chart> =
     task {
         use connection = getConnection db
         do! connection.OpenAsync()
         let minPeople = max 2 minPeople
 
+        let withMine (rows: ChartRow list) : Task<ChartRow list> =
+            task {
+                match viewer with
+                | Some id when not rows.IsEmpty ->
+                    let! mine = loadMine connection id (rows |> List.map _.SeriesId |> Array.ofList)
+                    return rows |> List.map (fun row -> { row with Mine = mine.Contains row.SeriesId })
+                | _ -> return rows
+            }
+
         match window with
         | Week ->
-            let! rows = loadRows connection (Some(now.AddDays -7.0)) (Some now) minPeople viewer
+            let! rows = loadRows connection (Some(now.AddDays -7.0)) (Some now) minPeople
+            let! rows = withMine rows
             let! previous = loadPreviousRanks connection now minPeople
 
             let! trends =
@@ -337,10 +385,23 @@ let chart (db: DbConfig) (window: Window) (minPeople: int) (now: DateTimeOffset)
             return { Window = Week; Season = None; MinPeople = minPeople; Rows = rows }
         | Season ->
             let name, year, start = seasonOf now
-            let! rows = loadRows connection (Some start) (Some(start.AddMonths 3)) minPeople viewer
+            let! rows = loadRows connection (Some start) (Some(start.AddMonths 3)) minPeople
+            let! rows = withMine rows
             return { Window = Season; Season = Some(name, year); MinPeople = minPeople; Rows = rows }
         | AllTime ->
-            let! rows = loadRows connection None None minPeople viewer
+            let key = $"charts:all:{minPeople}"
+
+            let! rows =
+                match cache.TryGetValue key with
+                | true, (:? (ChartRow list) as cached) -> Task.FromResult cached
+                | _ ->
+                    task {
+                        let! fresh = loadRows connection None None minPeople
+                        cache.Set(key, fresh, allTimeCacheLifetime) |> ignore
+                        return fresh
+                    }
+
+            let! rows = withMine rows
             return { Window = AllTime; Season = None; MinPeople = minPeople; Rows = rows }
     }
 

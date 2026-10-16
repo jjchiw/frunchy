@@ -129,7 +129,8 @@ module Db =
         task {
             use connection = getConnection db
             do! connection.OpenAsync()
-            use cmd = new NpgsqlCommand(sql, connection)
+            // the 2-million-event speed test inserts for longer than Npgsql's default 30 seconds
+            use cmd = new NpgsqlCommand(sql, connection, CommandTimeout = 300)
             let! _ = cmd.ExecuteNonQueryAsync()
             ()
         }
