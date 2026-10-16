@@ -74,7 +74,7 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
 
 ## Phase 4: User Story 2 - The compare page (Priority: P1)
 
-- [ ] T007 [US2] `CompatibilityTests`, page part:
+- [x] T007 [US2] `CompatibilityTests`, page part:
   - **Figures**: every page hook equals an independent query (summary, genre rows with both shares and coverage, shared series with both episode counts and "more", their series with MyAnimeList score, shared studios with series counts).
   - **Access**: signed out goes to sign-in with returnUrl; self redirects to the dashboard; unknown and invalid usernames get 404.
   - **Not enough history.**
@@ -83,7 +83,7 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
   - **Languages**: en and es.
 
   · tests/FrunchyBackend.Tests/CompatibilityTests.fs
-- [ ] T008 [US2] `Handlers/Users/Compare.fs`:
+- [x] T008 [US2] `Handlers/Users/Compare.fs`:
   - **Slice**: view, handler and `GET [ routef "/u/{%s}/compare" … ]`.
   - **Order** (research R5): `WebAuth.requireSignedIn`, then the username, then the lookup, then self, then load.
   - **Program.fs**: add the endpoint.

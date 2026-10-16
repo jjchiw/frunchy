@@ -315,8 +315,9 @@ let private withPair () =
         routeSampleCatalog app.Mal
         let! _ = enrichAll app
 
-        // ownerb keeps its 6 most watched series, except the most watched matched one (only viewera has it:
-        // it shows as "in their history, not yours" with a MyAnimeList score from the other side)
+        // ownerb keeps 6 series, matched ones first so it has genres to share, except the most watched matched
+        // one (only viewera has it: it shows as "in their history, not yours" with a MyAnimeList score from the
+        // other side)
         do!
             Db.execute
                 app.Db
@@ -328,8 +329,9 @@ let private withPair () =
                    kept AS (
                        SELECT e2.series_id FROM watch_events w2 JOIN users u2 ON u2.id = w2.user_id
                        JOIN cr_episodes e2 ON e2.id = w2.cr_episode_id
+                       LEFT JOIN cr_season_matches m2 ON m2.season_id = e2.season_id AND m2.status = 'matched'
                        WHERE u2.username = 'ownerb' AND e2.series_id NOT IN (SELECT series_id FROM topmatched)
-                       GROUP BY e2.series_id ORDER BY count(*) DESC, e2.series_id LIMIT 6)
+                       GROUP BY e2.series_id ORDER BY bool_or(m2.mal_id IS NOT NULL) DESC, count(*) DESC, e2.series_id LIMIT 6)
                    DELETE FROM watch_events w USING users u
                    WHERE w.user_id = u.id AND u.username = 'ownerb'
                      AND w.cr_episode_id NOT IN (SELECT e.id FROM cr_episodes e WHERE e.series_id IN (SELECT series_id FROM kept))"""
