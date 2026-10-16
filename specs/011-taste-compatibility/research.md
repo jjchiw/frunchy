@@ -29,7 +29,8 @@ Titles follow the DNA page's rule: `cr_series.title`, else the episodes' series 
 
 ## R3. The score (pure, `Compatibility.score`)
 
-- **Shared series**: `S = |A ∩ B| / min(|A|, |B|)`, or 0 when either side is empty.
+- **Shared series**: `S = |A ∩ B| / min(|A|, |B|) × min(1, min(|A|, |B|) / 10)`, or 0 when either side is empty.
+  The confidence factor (added 2026-10-16) stops a one-series history scoring a full match.
 - **Genre similarity**: `G = cosine(a, b)` over the union of genres, where `a` and `b` are each
   person's minutes per genre. When either vector is empty, G is undefined.
 - **Score**: `(S + G) / 2`, or `S` alone when G is undefined.

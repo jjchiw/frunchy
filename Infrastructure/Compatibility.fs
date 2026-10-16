@@ -124,14 +124,20 @@ let cosine (a: Map<string, int64>) (b: Map<string, int64>) : float =
 
     if denominator = 0.0 then 0.0 else min 1.0 (dot / denominator)
 
-/// The shared-series signal: series both watched, measured against the smaller history. 0 when a side is empty.
+/// The smaller history needs this many series for the shared-series signal to count in full
+let confidentSeries = 10
+
+/// The shared-series signal: series both watched, measured against the smaller history, and scaled down
+/// while that history has fewer than `confidentSeries` series (one shared series out of one isn't a
+/// match). 0 when a side is empty.
 let sharedSignal (a: Set<string>) (b: Set<string>) : float =
     let smaller = min a.Count b.Count
 
     if smaller = 0 then
         0.0
     else
-        float (Set.intersect a b).Count / float smaller
+        let confidence = min 1.0 (float smaller / float confidentSeries)
+        float (Set.intersect a b).Count / float smaller * confidence
 
 /// The compatibility score, 0..1: the average of the shared-series signal and the genre cosine, or the
 /// shared-series signal alone when either genre map is empty. Symmetric in its two sides.

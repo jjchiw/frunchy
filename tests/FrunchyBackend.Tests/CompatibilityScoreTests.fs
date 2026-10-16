@@ -51,14 +51,33 @@ let ``an empty vector gives 0`` () =
 
 // --- Shared series -----------------------------------------------------------
 
+let private many (prefix: string) (n: int) = ids [ for i in 1..n -> $"{prefix}{i}" ]
+
 [<Fact>]
 let ``shared series are measured against the smaller history`` () =
-    let small = ids [ "A"; "B"; "C"; "D" ]
-    let big = ids [ "A"; "B"; "C"; "D"; "E"; "F"; "G"; "H"; "I"; "J" ]
-    // every series of the newcomer is in the big history
+    let small = many "S" 10
+    let big = Set.union small (many "B" 40)
+    // every series of the newcomer (10 of them, enough for full confidence) is in the big history
     Assert.Equal(1.0, sharedSignal small big)
     Assert.Equal(1.0, sharedSignal big small)
-    Assert.Equal(0.5, sharedSignal (ids [ "A"; "B"; "X"; "Y" ]) big)
+    Assert.Equal(0.5, sharedSignal (Set.union (many "S" 5) (many "X" 5)) big, 12)
+
+[<Fact>]
+let ``a small history counts for less until it has 10 series`` () =
+    let big = many "S" 50
+    // one series, shared: a tenth of the signal, not a full match
+    Assert.Equal(0.1, sharedSignal (many "S" 1) big, 12)
+    // four series, all shared: four tenths
+    Assert.Equal(0.4, sharedSignal (many "S" 4) big, 12)
+    // from 10 series on, full confidence
+    Assert.Equal(1.0, sharedSignal (many "S" 10) big, 12)
+    Assert.Equal(1.0, sharedSignal (many "S" 20) big, 12)
+    // the smaller side decides, whichever side it is
+    Assert.Equal(sharedSignal (many "S" 4) big, sharedSignal big (many "S" 4))
+
+[<Fact>]
+let ``one shared series and no genres is not very high compatibility`` () =
+    Assert.Equal(1, level (score (many "S" 1) Map.empty (many "S" 30) Map.empty))
 
 [<Fact>]
 let ``an empty side gives 0 shared series`` () =
@@ -70,17 +89,17 @@ let ``an empty side gives 0 shared series`` () =
 
 [<Fact>]
 let ``the score is the shared signal alone when either genre map is empty`` () =
-    let a = ids [ "A"; "B"; "C"; "D" ]
-    let b = ids [ "A"; "B"; "X"; "Y" ]
+    let a = Set.union (many "S" 5) (many "A" 5)
+    let b = Set.union (many "S" 5) (many "B" 5)
     let g = genres [ "Action", 10L ]
-    Assert.Equal(0.5, score a Map.empty b g)
-    Assert.Equal(0.5, score a g b Map.empty)
-    Assert.Equal(0.5, score a Map.empty b Map.empty)
+    Assert.Equal(0.5, score a Map.empty b g, 12)
+    Assert.Equal(0.5, score a g b Map.empty, 12)
+    Assert.Equal(0.5, score a Map.empty b Map.empty, 12)
 
 [<Fact>]
 let ``the score averages the shared signal and the genre cosine`` () =
-    let a = ids [ "A"; "B" ]
-    let b = ids [ "A"; "B" ]
+    let a = many "S" 10
+    let b = many "S" 10
     // shared = 1, cosine = 0
     Assert.Equal(0.5, score a (genres [ "Action", 1L ]) b (genres [ "Comedy", 1L ]))
     // shared = 1, cosine = 1

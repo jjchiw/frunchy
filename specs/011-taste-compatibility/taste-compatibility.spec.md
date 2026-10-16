@@ -18,6 +18,10 @@
 - Q: How much history is enough? → A: The DNA page's rule: both people need at least 15 fully watched episodes. Below that, the card and page say there isn't enough yet, for whichever side is missing.
 - Q: Is "In Mika's history, not yours" a recommendation? → A: No. It's a plain list of series in the other person's history that you have never watched, ordered by how much they watched. It isn't "recommended for you" and has no scores of its own.
 
+### Session 2026-10-16
+
+- Q: Can one shared series make two people "Very high"? → A: No. Shared series count in full only once the smaller history has 10 series; below that the signal is scaled down in proportion (one series out of one gives a tenth). Raised in the 011 review and approved by the owner.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - See how compatible you are (Priority: P1)
@@ -65,7 +69,7 @@ The compare page (`/u/{username}/compare`) shows:
 - **No MyAnimeList data on one side**: the genre and studio sections say so; the level then rests on shared series alone, and the page says that.
 - **Dubs**: a dub and its original count as one series, as everywhere: series are keyed on the Crunchyroll series.
 - **Unresolved episodes**: they don't count, as on the dashboard.
-- **Very different history sizes** (50 series against 900): the shared-series signal is measured against the smaller history, so a newcomer whose few series are all in a big history still scores high.
+- **Very different history sizes** (50 series against 900): the shared-series signal is measured against the smaller history, so a newcomer whose series are all in a big history still scores high, once the newcomer has 10 series (fewer count proportionally less).
 - **Rename**: compare pages use the current username; the old URL is not found, as for dashboards.
 - **Symmetry**: the level is the same from both sides.
 
@@ -81,7 +85,7 @@ The compare page (`/u/{username}/compare`) shows:
 **The level**
 
 - **FR-003**: Compatibility MUST combine two signals, each from 0 to 1:
-  - **Shared series**: the number of Crunchyroll series both have watched (any episode with a known length), divided by the smaller of the two people's series counts.
+  - **Shared series**: the number of Crunchyroll series both have watched (any episode with a known length), divided by the smaller of the two people's series counts, scaled by that smaller count ÷ 10 while it is below 10 (confidence).
   - **Genre similarity**: how alike the two people's shares of minutes per MyAnimeList genre are (cosine similarity), over deduplicated minutes of matched seasons, the DNA page's rule.
 
   The score is their average. When either side has no matched genres, the score is the shared-series signal alone.

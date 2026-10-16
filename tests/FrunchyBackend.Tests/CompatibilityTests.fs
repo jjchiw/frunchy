@@ -213,7 +213,9 @@ let private expectedOf (viewer: Facts) (owner: Facts) : Expected =
     let seriesIds (f: Facts) = f.Series |> Map.toList |> List.map fst |> Set.ofList
     let a, b = seriesIds viewer, seriesIds owner
     let common = Set.intersect a b
-    let signal = if a.IsEmpty || b.IsEmpty then 0.0 else float common.Count / float (min a.Count b.Count)
+    // shared over the smaller history, scaled down while it has fewer than 10 series
+    let smaller = min a.Count b.Count
+    let signal = if smaller = 0 then 0.0 else float common.Count / float smaller * min 1.0 (float smaller / 10.0)
 
     let cosine =
         let dot =
