@@ -1,0 +1,16 @@
+{
+  "workflow": "speckit",
+  "specName": "Night Broadcast Design System",
+  "branch": "010-night-broadcast",
+  "currentStep": "specify",
+  "status": "specified",
+  "history": [
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-16T03:21:55.599Z"
+    }
+  ]
+}
