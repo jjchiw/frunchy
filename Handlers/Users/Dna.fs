@@ -110,7 +110,7 @@ let private totals (t: Texts) (f: Figures) =
             p(class' = "fr-overline") { t.DnaWatchTime }
 
             div(class' = "flex items-baseline gap-1.5") {
-                span(class' = "text-stat-counter text-on-surface").data("stat", "hours").data("value", inv f.Hours) {
+                span(class' = "text-stat-counter text-primary").data("stat", "hours").data("value", inv f.Hours) {
                     f.Hours.ToString("N1", t.Culture)
                 }
 
@@ -135,7 +135,7 @@ let private insignia (t: Texts) (username: string) (i: Insignia) =
         div(class' = "flex flex-col gap-5 sm:flex-row") {
             match i.Poster with
             | Some url ->
-                img(src = url, alt = i.Title, class' = "aspect-[2/3] w-32 shrink-0 rounded object-cover sm:w-40")
+                img(src = url, alt = i.Title, class' = "aspect-[2/3] w-32 shrink-0 rounded-md object-cover sm:w-40")
                     .attr("loading", "lazy")
                     .attr("style", "box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4)")
             | None -> Fragment()

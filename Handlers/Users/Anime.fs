@@ -84,11 +84,11 @@ let private header (ctx: HttpContext) (t: Texts) (m: AnimeModel) =
         div(class' = "flex flex-col gap-6 sm:flex-row sm:items-end") {
             match m.Poster with
             | Some(Portrait url) ->
-                img(src = url, alt = "", class' = "aspect-[2/3] w-32 shrink-0 rounded object-cover sm:w-40")
+                img(src = url, alt = "", class' = "aspect-[2/3] w-32 shrink-0 rounded-md object-cover sm:w-40")
                     .attr("loading", "lazy")
                     .attr("style", "box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4)")
             | Some(Thumbnail url) ->
-                img(src = url, alt = "", class' = "aspect-video w-full max-w-xs shrink-0 rounded object-cover sm:w-64")
+                img(src = url, alt = "", class' = "aspect-video w-full max-w-xs shrink-0 rounded-md object-cover sm:w-64")
                     .attr("loading", "lazy")
                     .attr("style", "box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4)")
             | None -> Fragment()

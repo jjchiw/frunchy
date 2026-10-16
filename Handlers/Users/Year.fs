@@ -128,7 +128,7 @@ let private totals (t: Texts) (f: Figures) =
         div(class' = "fr-card flex flex-col gap-2 p-5 md:p-6") {
             p(class' = "fr-overline") { t.StatHours }
 
-            div(class' = "text-stat-counter text-on-surface").data("stat", "hours").data("value", inv f.Hours) {
+            div(class' = "text-stat-counter text-primary").data("stat", "hours").data("value", inv f.Hours) {
                 f.Hours.ToString("N1", t.Culture)
             }
 
@@ -156,7 +156,7 @@ let private topSeries (t: Texts) (username: string) (s: TopSeries) =
         div(class' = "flex flex-col gap-5 sm:flex-row lg:flex-col xl:flex-row") {
             match s.Poster with
             | Some url ->
-                img(src = url, alt = s.Title, class' = "aspect-[2/3] w-32 shrink-0 rounded object-cover sm:w-40")
+                img(src = url, alt = s.Title, class' = "aspect-[2/3] w-32 shrink-0 rounded-md object-cover sm:w-40")
                     .attr("loading", "lazy")
                     .attr("style", "box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4)")
             | None -> Fragment()
