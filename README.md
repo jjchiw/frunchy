@@ -290,6 +290,7 @@ Features are built through spec-kit (`specs/###-name/`), in this order:
 | 007 | **MyAnimeList review**: operators fix and undo MyAnimeList matches on the web (`/review/mal`), through the same actions as the CLI; everyone else gets a 404 | Implemented ([spec](specs/007-mal-review/mal-review.spec.md)) |
 | 008 | **Root operator**: one root operator (`Frunchy:RootOperator`) adds and removes operators on the web (`/review/operators`) or with `operator-add` / `operator-remove`; operators live in a table, security events on both accounts | Implemented ([spec](specs/008-root-operator/root-operator.spec.md)) |
 | 009 | **Episode page and comments**: a public page per catalog episode (`/anime/{seriesId}/episode/{episodeId}`) with its details, Crunchyroll and MyAnimeList links and a comment thread; signed-in users comment (spoilers behind a toggle), edit and delete their own, operators hide and unhide; the table is shaped for the fediverse integration in [`docs/fediverse.md`](docs/fediverse.md) | Implemented ([spec](specs/009-episode-comments/episode-comments.spec.md)) |
+| 010 | **Night Broadcast design system**: the whole site restyled (warm dark surfaces, amber for you, rose for others, Bricolage Grotesque / Figtree / IBM Plex Mono), same token names, shared with the extension through a new contract | Implemented ([spec](specs/010-night-broadcast/night-broadcast.spec.md)); the extension follows in its own session |
 
 
 ## Key Design Decisions

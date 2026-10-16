@@ -147,11 +147,11 @@ let private seasonLine (t: Texts) (m: EpisodeModel) =
             el {
                 div(class' = "flex flex-wrap items-center gap-2") {
                     match m.Audio with
-                    | Some a -> pill (if m.Dub then SecondaryTone else Muted) (t.AudioLanguage a)
+                    | Some a -> pill (if m.Dub then TertiaryTone else Muted) (t.AudioLanguage a)
                     | None -> Fragment()
 
                     if m.Dub then
-                        pill SecondaryTone t.AnimeDub
+                        pill TertiaryTone t.AnimeDub
                 }
             }
         else

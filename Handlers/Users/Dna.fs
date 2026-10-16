@@ -149,7 +149,7 @@ let private insignia (t: Texts) (username: string) (i: Insignia) =
                     | None -> Fragment()
 
                     match i.Studio with
-                    | Some s -> pill SecondaryTone s
+                    | Some s -> pill TertiaryTone s
                     | None -> Fragment()
 
                     match i.Season, i.Year with

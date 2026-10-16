@@ -38,3 +38,25 @@ Compare them with row 2 of the pitch canvas.
 
 Audit every page above. Fix every blocking finding, and list the rest with their severity in the
 validation log below.
+
+## Validation log
+
+**2026-10-15**, branch `010-night-broadcast`:
+- `dotnet build`: 0 warnings.
+- `dotnet test`: 380 total, 378 passed, 2 skipped. The skips are the extension parity check (no
+  `../browser-extension` beside the worktree) and the opt-in MyAnimeList recording.
+
+| Criterion | Evidence |
+|---|---|
+| SC-001 | The every-page check fails on any Neo-Scrobble value or old font, and passes on all pages. |
+| SC-002 | Only `DesignSystemTests` changed (its expected values and the leftover checks). Every other test is unchanged and green. |
+| SC-003 | The contrast test passes on the new palette (precomputed in research R1). |
+| SC-004 | `impeccable` audits per page group (T005–T009). The medium findings were fixed: the notice icon, the home step colours and the loud card titles. Signed-in pages were audited from the HTML only, because there's no local sign-in provider. Screenshots are in `.pitches/audit010/` (git-ignored). |
+| SC-005 | **Pending.** The extension session hasn't applied `contracts/extension-handoff.md` yet. Until it does, the parity check fails in the owner's main checkout. |
+
+**Review fixes:** rose is kept for warnings and spoilers. The dub and audio pills and the DNA
+studio pill move to lilac (tags), and "In progress" to amber (your own progress).
+
+**Open:**
+- **Comment author names**: rose for "others" was considered and not done.
+- **Account deletion box**: `DeleteAccount.fs` has `border-error/30` without a `border`; left as is.

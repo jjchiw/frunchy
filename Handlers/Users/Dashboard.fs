@@ -163,7 +163,7 @@ let private recentItem (t: Texts) (username: string) (e: RecentEpisode) =
             let watched = watchedPercent e
 
             div(class' = $"flex flex-wrap items-center gap-x-3 gap-y-2 {cell}") {
-                pill SecondaryTone t.InProgress
+                pill PrimaryTone t.InProgress
                 div(class' = "min-w-16 flex-1") { shareBar (decimal watched) }
                 span(class' = "shrink-0 text-label-md font-normal text-on-surface-variant") { t.WatchedPercent watched }
             }

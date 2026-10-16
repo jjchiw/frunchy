@@ -292,11 +292,11 @@ let seasonNameLine (t: Texts) (name: string) (audio: string option) (dub: bool) 
         h3(class' = "text-headline-md text-on-surface [overflow-wrap:anywhere]") { name }
 
         match audio with
-        | Some audio -> pill (if dub then SecondaryTone else Muted) (t.AudioLanguage audio)
+        | Some audio -> pill (if dub then TertiaryTone else Muted) (t.AudioLanguage audio)
         | None -> Fragment()
 
         if dub then
-            pill SecondaryTone t.AnimeDub
+            pill TertiaryTone t.AnimeDub
     }
 
 /// A MyAnimeList entry shown as just its link (a season whose entry an earlier season already showed)

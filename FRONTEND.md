@@ -10,7 +10,9 @@
   loaded and ready, but feature 001 doesn't use them yet.
 - **Tailwind CSS** (CDN) on the shared design system: tokens in `Views/Theme.fs` (the same names and
   values as the extension's `tokens.css`), components in `Views/Components.fs`, fonts and icons from
-  Google Fonts. DaisyUI is gone (feature 004).
+  Google Fonts. DaisyUI is gone (feature 004). The look is "Night Broadcast" (feature 010,
+  `design/night_broadcast/DESIGN.md`): Figtree, Bricolage Grotesque headings, IBM Plex Mono figures, amber for
+  the page's own person, rose for others and spoilers, no gradients.
 
 Everything comes from CDNs in `Views/Layout.fs`; there's no frontend build step. Keep the htmx script on
 **4.x**, because the `Oxpecker.Htmx` package emits htmx 4 attributes.

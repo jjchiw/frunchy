@@ -58,17 +58,17 @@ One task per page group. Each task:
 
 ## Phase 3: The extension can follow (US3)
 
-- [ ] T010 [US3] The contract and the handoff are written (contracts/). Send the handoff to the extension session if one is running; otherwise record that the owner has to start it · specs/010-night-broadcast/contracts/extension-handoff.md
+- [x] T010 [US3] The contract and the handoff are written (contracts/). Send the handoff to the extension session if one is running; otherwise record that the owner has to start it · specs/010-night-broadcast/contracts/extension-handoff.md
 
 ## Phase 4: Polish
 
-- [ ] T011 [P] Update the docs:
+- [x] T011 [P] Update the docs:
   - `CLAUDE.md`: the design-system paragraph: Night Broadcast, the colour roles, `--font-display`, and that the extension follows through the 010 contract.
   - `FRONTEND.md`: the design lines.
   - `README.md`: roadmap row 010.
 
   · CLAUDE.md, FRONTEND.md, README.md
-- [ ] T012 Run the full suite and an `impeccable` audit of every page in quickstart §2 (1280 and 360, en and es), then append the validation log · specs/010-night-broadcast/quickstart.md
+- [x] T012 Run the full suite and an `impeccable` audit of every page in quickstart §2 (1280 and 360, en and es), then append the validation log · specs/010-night-broadcast/quickstart.md
 
 ## Dependencies
 
