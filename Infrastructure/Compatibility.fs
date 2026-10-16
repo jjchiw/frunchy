@@ -151,12 +151,15 @@ let level (score: float) : int =
     elif score < 0.8 then 4
     else 5
 
-/// A person's share of matched deduplicated minutes per genre, in percent (unrounded)
-let genreShares (matchedMs: int64) (genreMs: Map<string, int64>) : Map<string, decimal> =
-    if matchedMs <= 0L then
+/// A person's share of genre minutes per genre, in percent (unrounded): the DNA page's rule (over the sum of
+/// genre minutes, so a person's shares add up to 100 and match their DNA page)
+let genreShares (genreMs: Map<string, int64>) : Map<string, decimal> =
+    let total = genreMs |> Map.fold (fun acc _ ms -> acc + ms) 0L
+
+    if total <= 0L then
         Map.empty
     else
-        genreMs |> Map.map (fun _ ms -> 100m * decimal ms / decimal matchedMs)
+        genreMs |> Map.map (fun _ ms -> 100m * decimal ms / decimal total)
 
 let private topNames (n: int) (shares: Map<string, decimal>) =
     shares |> Map.toList |> List.sortBy (fun (name, share) -> -share, name) |> List.truncate n |> List.map fst
@@ -255,8 +258,8 @@ let ofPeople (viewer: Person) (owner: Person) : Comparison =
           Studios = [] }
     else
         let value = score (seriesOf viewer) viewer.GenreMs (seriesOf owner) owner.GenreMs
-        let viewerShares = genreShares viewer.MatchedMs viewer.GenreMs
-        let ownerShares = genreShares owner.MatchedMs owner.GenreMs
+        let viewerShares = genreShares viewer.GenreMs
+        let ownerShares = genreShares owner.GenreMs
 
         { Viewer = viewer
           Owner = owner

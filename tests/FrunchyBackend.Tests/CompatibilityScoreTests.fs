@@ -152,8 +152,8 @@ let ``genre rows are the union of the top 4, ordered by summed share, up to 6`` 
     Assert.Equal(45m, horror.OwnerShare)
 
 [<Fact>]
-let ``genre shares are percents of the matched minutes`` () =
-    let result = genreShares 200L (genres [ "Action", 50L; "Comedy", 200L ])
+let ``genre shares are percents of the genre minutes, as on the DNA page`` () =
+    let result = genreShares (genres [ "Action", 50L; "Comedy", 150L ])
     Assert.Equal(25m, result["Action"])
-    Assert.Equal(100m, result["Comedy"])
-    Assert.Empty(genreShares 0L (genres [ "Action", 50L ]))
+    Assert.Equal(75m, result["Comedy"])
+    Assert.Empty(genreShares Map.empty)

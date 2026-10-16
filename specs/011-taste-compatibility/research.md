@@ -44,16 +44,17 @@ Titles follow the DNA page's rule: `cr_series.title`, else the episodes' series 
 - **Shared genres (card)**: genres in both people's top 5 by share, ordered by the sum of shares,
   up to 3.
 - **Genre comparison (page)**: the union of each person's top 4 by share, ordered by the sum of
-  shares, up to 6. Each genre shows its share of that person's matched deduplicated minutes, with
-  the coverage note: matched minutes ÷ all deduplicated minutes, per person (the DNA wording).
+  shares, up to 6. Each genre shows its share of that person's genre minutes (the DNA page's rule,
+  so the figures match the DNA page), with the coverage note: matched minutes ÷ all deduplicated minutes, per person (the DNA wording).
 - **Shared series**: ordered by the smaller of the two people's minutes (descending), then title.
   The card shows 4; the page shows 10 plus "and N more".
 - **Their series, not yours**: the owner's series the viewer never watched, ordered by the owner's
   minutes, up to 8. **Statement 2** adds, for those ids only, the MyAnimeList score and up to 3
   genres of the series' most-watched matched season (the anime page's poster rule).
 - **Shared studios**: studios in both people's studio rows. They're ordered by the number of
-  shared series they cover, then by summed minutes. The card shows 1, the page 5. "Shared series
-  it covers" counts series in the shared set whose matched seasons list that studio.
+  shared series they cover, then by summed minutes. The card shows the first, the page 5. "Shared
+  series it covers" counts series in the shared set whose matched seasons list that studio, on both
+  sides.
 - **Summary sentence**: the shared count, plus the first shared genre when there is one.
 
 ## R5. Access and errors

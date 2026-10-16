@@ -95,7 +95,7 @@ The compare page (`/u/{username}/compare`) shows:
   - the level and its meter;
   - the shared series count;
   - up to 3 shared genres (genres in both people's top 5 by share, ordered by the sum of shares);
-  - the shared studio both watch most (by summed minutes), when there is one;
+  - the shared studio that covers the most shared series (the first of the page's studio list), when there is one;
   - up to 4 shared series, most watched by both first;
   - a link to the compare page.
 - **FR-008**: The compare page MUST show:
