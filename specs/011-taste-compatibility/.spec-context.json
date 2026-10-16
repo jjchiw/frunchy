@@ -2,8 +2,8 @@
   "workflow": "speckit",
   "specName": "Taste Compatibility",
   "branch": "011-taste-compatibility",
-  "currentStep": "specify",
-  "status": "specified",
+  "currentStep": "tasks",
+  "status": "ready-to-implement",
   "history": [
     {
       "step": "specify",
@@ -11,6 +11,14 @@
       "kind": "start",
       "by": "extension",
       "at": "2026-10-16T04:16:13.881Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-16T04:18:52.486Z"
     }
-  ]
+  ],
+  "telemetryInstanceId": "8cdd49e8-7913-4afd-acd2-6ae6cdd10742"
 }
