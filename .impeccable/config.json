@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "plus jakarta sans",
+        "createdAt": "2026-10-16T02:26:47.854Z",
+        "reason": "Frunchy design-system font: --font-family token in Views/Theme.fs, shared with the browser extension's tokens.css and pinned equal by DesignSystemTests (feature 004)"
+      }
+    ]
+  }
+}
