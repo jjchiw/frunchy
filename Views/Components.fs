@@ -17,7 +17,7 @@ let icon (i: Icon) =
 
 /// The mark (an inline SVG) next to the wordmark
 let brand (siteName: string) =
-    a(href = "/", class' = "inline-flex items-center gap-2.5 rounded text-headline-md font-extrabold tracking-tight text-on-surface") {
+    a(href = "/", class' = "inline-flex items-center gap-2.5 rounded font-display text-headline-md font-extrabold tracking-tight text-on-surface") {
         span(class' = "block h-8 w-8") { raw markSvg }
         siteName
     }
@@ -54,7 +54,7 @@ let sectionTitle (text: string) =
 let metricTile (label: string) (name: string) (invariantValue: string) (display: string) (caption: string option) =
     div(class' = "fr-card flex flex-col gap-2 p-5 md:p-6") {
         p(class' = "fr-overline") { label }
-        div(class' = "text-stat-counter text-on-surface").data("stat", name).data("value", invariantValue) { display }
+        div(class' = "font-mono text-stat-counter text-on-surface").data("stat", name).data("value", invariantValue) { display }
 
         match caption with
         | Some c -> p(class' = "text-label-md font-normal text-on-surface-variant") { c }

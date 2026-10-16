@@ -9,7 +9,7 @@ open FrunchyBackend.Views
 open FrunchyBackend.Tests.Fixtures
 open FrunchyBackend.Tests.Infrastructure.PostgresFixture
 
-// Feature 004: the shared design system (contracts/design-system.md, research R13, R14)
+// Feature 004: the shared design system (contracts/design-system.md, research R13, R14); feature 010 moved the values to Night Broadcast
 
 /// The browser extension's tokens file, next to this repository (null when it isn't checked out)
 let private extensionTokensFile () =
@@ -90,6 +90,14 @@ let ``the icon font is subset to exactly the icons the views can use`` () =
     Assert.Contains($"icon_names={names}", Theme.fontStylesheets |> String.concat " ")
     Assert.Equal(Theme.iconNames.Length, Theme.iconNames |> List.distinct |> List.length)
 
+[<Fact>]
+let ``the component CSS has no gradient`` () =
+    Assert.DoesNotContain("gradient", Theme.componentCss, StringComparison.OrdinalIgnoreCase)
+
+[<Fact>]
+let ``the display font is a token`` () =
+    Assert.Contains("--font-display", Theme.tokens |> List.map fst)
+
 [<Theory>]
 [<InlineData("/")>]
 [<InlineData("/signin")>]
@@ -101,8 +109,8 @@ let ``pages load the design system, not DaisyUI`` (path: string) =
         let! html = readHtml response
         Assert.DoesNotContain("daisyui", html)
         Assert.DoesNotContain("data-theme", html)
-        Assert.Contains("family=Plus+Jakarta+Sans", html)
-        Assert.Contains("--color-primary: #4cd7f6;", html)
+        Assert.Contains("family=Figtree", html)
+        Assert.Contains("--color-primary: #ffb547;", html)
         Assert.Contains("tailwind.config", html)
         Assert.Contains("<main id=\"main\"", html)
         Assert.Contains("href=\"#main\"", html)
@@ -111,6 +119,10 @@ let ``pages load the design system, not DaisyUI`` (path: string) =
 // ---------------------------------------------------------------------------
 // Every page: on the design system, with its test hooks (T015, contracts/design-system.md)
 // ---------------------------------------------------------------------------
+
+/// Neo-Scrobble values and fonts (feature 004) that Night Broadcast (feature 010) replaced; none may survive
+let private retiredValues =
+    [ "#4cd7f6"; "#0f131c"; "#06b6d4"; "#c0c1ff"; "Plus+Jakarta"; "Plus Jakarta"; "JetBrains"; "--color-primary: #4cd7f6" ]
 
 /// DaisyUI component classes and the old palette classes; none may survive the redesign
 let private daisyClasses =
@@ -132,8 +144,11 @@ let private pageProblems (name: string) (html: string) (hooks: string list) =
     [ match leftovers html with
       | [] -> ()
       | found -> yield $"""{name}: DaisyUI classes left: {String.Join(", ", found)}"""
-      if not (html.Contains "--color-primary: #4cd7f6;") then
+      if not (html.Contains "--color-primary: #ffb547;") then
           yield $"{name}: not on the design system layout"
+      for value in retiredValues do
+          if html.Contains(value, StringComparison.OrdinalIgnoreCase) then
+              yield $"{name}: still has the retired value {value}"
       for hook in hooks do
           if not (html.Contains hook) then
               yield $"{name}: missing {hook}" ]

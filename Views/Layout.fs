@@ -79,7 +79,7 @@ let page (ctx: HttpContext) (t: Texts) (titleText: string) (content: HtmlElement
             meta(charset = "UTF-8")
             meta(name = "viewport", content = "width=device-width, initial-scale=1.0")
             meta(name = "color-scheme", content = "dark")
-            meta(name = "theme-color", content = "#0f131c")
+            meta(name = "theme-color", content = "#13111a")
             title() { $"{titleText} | {t.SiteName}" }
             link(rel = "icon", href = Theme.faviconHref).attr("type", "image/svg+xml")
             link(rel = "preconnect", href = "https://fonts.googleapis.com")

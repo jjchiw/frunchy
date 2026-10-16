@@ -11,14 +11,14 @@ hook kept) and runs the suite. UI work goes through the `impeccable` skill, view
 
 ## Phase 1: Foundational, tokens and components (US2, blocks everything)
 
-- [ ] T001 [US2] `DesignSystemTests` first; it fails until T002 lands:
+- [x] T001 [US2] `DesignSystemTests` first; it fails until T002 lands:
   - **Expected values**: change them to the contract: `--color-primary: #ffb547;` and `family=Figtree` (in `pages load the design system` and `pageProblems`).
   - **New test: no Neo-Scrobble values or old fonts.** No page in the every-page check contains `#4cd7f6`, `#0f131c`, `#06b6d4`, `#c0c1ff`, `Plus+Jakarta`, `Plus Jakarta`, `JetBrains` or `--color-primary: #4cd7f6`.
   - **New test: no gradients.** `Theme.componentCss` contains no `gradient`.
   - **New test: `--font-display`** is in `Theme.tokens`.
 
   · tests/FrunchyBackend.Tests/DesignSystemTests.fs
-- [ ] T002 [US2] `Views/Theme.fs`:
+- [x] T002 [US2] `Views/Theme.fs`:
   - **Colours**: every value from research R1, with the same names.
   - **Type styles**: R3 weights and tracking only.
   - **Radii**: R3.
@@ -36,8 +36,8 @@ hook kept) and runs the suite. UI work goes through the `impeccable` skill, view
   - **Mark and favicon**: `markSvg` recoloured per R5; favicon tile `#13111a`.
 
   · Views/Theme.fs
-- [ ] T003 [US2] Add `theme-color` `#13111a` and the wordmark in `font-display` to `Views/Layout.fs`. In `Views/Components.fs`, metric tile values and stat counters use `font-mono`. Keep every hook · Views/Layout.fs, Views/Components.fs
-- [ ] T004 [P] [US2] Recolour `design/brand/frunchy-mark.svg` per R5 and update its comment. Write `design/night_broadcast/DESIGN.md` (R9: values, roles, rules, the pitch link), and add a "superseded by night_broadcast" line at the top of `design/neo_scrobble_profile/DESIGN.md` · design/brand/frunchy-mark.svg, design/night_broadcast/DESIGN.md, design/neo_scrobble_profile/DESIGN.md
+- [x] T003 [US2] Add `theme-color` `#13111a` and the wordmark in `font-display` to `Views/Layout.fs`. In `Views/Components.fs`, metric tile values and stat counters use `font-mono`. Keep every hook · Views/Layout.fs, Views/Components.fs
+- [x] T004 [P] [US2] Recolour `design/brand/frunchy-mark.svg` per R5 and update its comment. Write `design/night_broadcast/DESIGN.md` (R9: values, roles, rules, the pitch link), and add a "superseded by night_broadcast" line at the top of `design/neo_scrobble_profile/DESIGN.md` · design/brand/frunchy-mark.svg, design/night_broadcast/DESIGN.md, design/neo_scrobble_profile/DESIGN.md
 
 **Checkpoint**: the full suite is green, and every page is on the new tokens.
 

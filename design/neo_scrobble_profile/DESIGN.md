@@ -1,3 +1,4 @@
+<!-- Superseded by design/night_broadcast/DESIGN.md (feature 010). Kept for history. -->
 ---
 name: Neo-Scrobble Profile
 colors:
