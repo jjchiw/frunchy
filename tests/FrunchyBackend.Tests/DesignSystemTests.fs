@@ -80,7 +80,8 @@ let ``text and controls meet WCAG AA contrast on every surface they're used on``
         Assert.True(ratio >= 4.5, $"{text} on {background}: {ratio:F2} < 4.5")
 
     // Input borders and other UI boundaries against the surfaces they sit on (WCAG 1.4.11)
-    for s in [ "surface"; "surface-container-low" ] do
+    // ... the input itself fills with surface-container, so its border is checked against that too
+    for s in [ "surface"; "surface-container-low"; "surface-container" ] do
         let ratio = contrast (color "outline") (color s)
         Assert.True(ratio >= 3.0, $"outline on {s}: {ratio:F2} < 3")
 

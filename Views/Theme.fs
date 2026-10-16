@@ -139,7 +139,7 @@ let componentCss =
   .fr-btn-destructive { @apply bg-error text-on-error; }
   .fr-btn-sm { @apply h-9 px-3.5 text-label-md; }
   .fr-label { @apply block text-label-sm uppercase text-on-surface-variant mb-1.5; }
-  .fr-input { @apply w-full h-11 rounded bg-surface-container border border-outline-variant px-3.5 text-body-md text-on-surface placeholder:text-outline; }
+  .fr-input { @apply w-full h-11 rounded bg-surface-container border border-outline px-3.5 text-body-md text-on-surface placeholder:text-outline; }
   .fr-input:focus { @apply border-primary outline-none; }
   .fr-input[aria-invalid="true"] { @apply border-error; }
   .fr-hint { @apply mt-1.5 text-label-md font-normal text-on-surface-variant; }
