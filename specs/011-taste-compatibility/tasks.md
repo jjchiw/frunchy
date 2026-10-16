@@ -11,7 +11,7 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
 
 ## Phase 1: Setup
 
-- [ ] T001 Register empty modules:
+- [x] T001 Register empty modules:
   - `Infrastructure/Compatibility.fs` after the last `Infrastructure` module, and `Handlers/Users/Compare.fs` after `Anime.fs`, both in FrunchyBackend.fsproj;
   - the tests `CompatibilityScoreTests.fs` and `CompatibilityTests.fs` after the last test file, in the test project.
 
@@ -19,7 +19,7 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
 
 ## Phase 2: Foundational (the computation; blocks both stories)
 
-- [ ] T002 [P] `CompatibilityScoreTests`, unit tests, no database:
+- [x] T002 [P] `CompatibilityScoreTests`, unit tests, no database:
   - **Bands**: the level at 0, 0.1999, 0.2, 0.3999, 0.4, 0.6, 0.7999, 0.8, 1.
   - **Cosine**: identical vectors give 1, disjoint ones 0, and a known pair its expected value.
   - **Shared series**: S is measured against the smaller history; an empty side gives 0.
@@ -29,7 +29,7 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
   - **Genre rows**: the union of the top 4, up to 6.
 
   · tests/FrunchyBackend.Tests/CompatibilityScoreTests.fs
-- [ ] T003 [P] Texts, en and es:
+- [x] T003 [P] Texts, en and es:
   - the card title "You and {name}";
   - the level names and "{level} compatibility";
   - the meter's accessible label "{level}: {n} of 5";
@@ -45,7 +45,7 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
   - the page title.
 
   · Views/Texts.fs
-- [ ] T004 `Infrastructure/Compatibility.fs` (research R1–R4, data-model shapes):
+- [x] T004 `Infrastructure/Compatibility.fs` (research R1–R4, data-model shapes):
   - **Pure functions**: `cosine`, `sharedSignal`, `score`, `level`, `sharedGenres`, `genreRows`, and the section builders.
   - **`load db viewer owner`**: statement 1 for both users (`= ANY(@users)`), statement 2 for the owner's series the viewer hasn't watched (top 8 ids, MyAnimeList score and up to 3 genres of each series' most-watched matched season).
   - **SQL**: literal, with parameters; it reuses the DNA page's dedup CTE shape (copy it; don't call Dna.fs's private code).

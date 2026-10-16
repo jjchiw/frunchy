@@ -28,6 +28,7 @@
     <Compile Include="Infrastructure/MalCatalog.fs" />
     <Compile Include="Infrastructure/MalClient.fs" />
     <Compile Include="Infrastructure/MalActions.fs" />
+    <Compile Include="Infrastructure/Compatibility.fs" />
     <Compile Include="Views/Texts.fs" />
     <Compile Include="Infrastructure/CommentRules.fs" />
     <Compile Include="Views/Theme.fs" />
@@ -41,6 +42,7 @@
     <Compile Include="Handlers/Users/Dna.fs" />
     <Compile Include="Handlers/Users/Year.fs" />
     <Compile Include="Handlers/Users/Anime.fs" />
+    <Compile Include="Handlers/Users/Compare.fs" />
     <Compile Include="Handlers/Review/MalReview.fs" />
     <Compile Include="Handlers/Review/Operators.fs" />
     <Compile Include="Handlers/Episodes/Episode.fs" />

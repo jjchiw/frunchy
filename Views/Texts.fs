@@ -327,7 +327,45 @@ type Texts =
       CommentHide: string
       CommentUnhide: string
       /// The warning stored with a spoiler comment: season display number, episode number, special label
-      SpoilerSummary: string option -> int option -> string option -> string }
+      SpoilerSummary: string option -> int option -> string option -> string
+
+      // Taste compatibility (feature 011): the dashboard card and /u/{username}/compare.
+      // No text prints a score or a percentage of the level.
+      /// "You and {name}"
+      CompatTitle: string -> string
+      /// The compare page's title, "Compare with {name}"
+      CompatPageTitle: string -> string
+      /// The level's name for 1..5: Low, Some, Good, High, Very high
+      CompatLevelName: int -> string
+      /// "{Level} compatibility"
+      CompatLevel: int -> string
+      /// The meter's accessible label: "{Level}: {n} of 5"
+      CompatMeterLabel: int -> string
+      /// "{n} series in common", "No series in common yet" at 0
+      CompatSharedCount: int -> string
+      /// Name, shared count, first shared genre: "You and {name} share {n} series and a soft spot for {genre}"
+      CompatSummary: string -> int -> string option -> string
+      /// One plain sentence on what the level rests on
+      CompatExplain: string
+      /// Said on the page when a side has no MyAnimeList genres
+      CompatNoGenres: string
+      CompatYou: string
+      /// "{n} series", for a person's total and for a studio's shared series
+      CompatSeriesCount: int -> string
+      CompatTimeTitle: string
+      CompatSharedTitle: string
+      /// "In {name}'s history, not yours"
+      CompatTheirsTitle: string -> string
+      CompatStudiosTitle: string
+      /// "and {n} more"
+      CompatMore: int -> string
+      /// "Based on {p}% of {name}'s watch time." (name, percent)
+      CompatCoverage: string -> decimal -> string
+      CompatNotEnoughViewer: string
+      CompatNotEnoughOwner: string -> string
+      CompatNotEnoughBoth: string -> string
+      /// The card's link to the compare page
+      CompatSeeComparison: string }
 
 let en =
     { Lang = "en"
@@ -734,7 +772,69 @@ let en =
                 | Some s -> $"Spoilers: S{s} E{n}"
                 | None -> $"Spoilers: E{n}"
             | None, Some l -> $"Spoilers: {l}"
-            | None, None -> "Spoilers: Special" }
+            | None, None -> "Spoilers: Special"
+
+      CompatTitle = fun name -> $"You and {name}"
+      CompatPageTitle = fun name -> $"Compare with {name}"
+      CompatLevelName =
+        function
+        | 1 -> "Low"
+        | 2 -> "Some"
+        | 3 -> "Good"
+        | 4 -> "High"
+        | _ -> "Very high"
+      CompatLevel =
+        function
+        | 1 -> "Low compatibility"
+        | 2 -> "Some compatibility"
+        | 3 -> "Good compatibility"
+        | 4 -> "High compatibility"
+        | _ -> "Very high compatibility"
+      CompatMeterLabel =
+        fun level ->
+            let name =
+                match level with
+                | 1 -> "Low"
+                | 2 -> "Some"
+                | 3 -> "Good"
+                | 4 -> "High"
+                | _ -> "Very high"
+
+            $"{name}: {level} of 5"
+      CompatSharedCount =
+        fun n ->
+            if n = 0 then "No series in common yet"
+            elif n = 1 then "1 series in common"
+            else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} series in common"""
+      CompatSummary =
+        fun name n genre ->
+            let shared =
+                if n = 0 then $"You and {name} share no series yet"
+                elif n = 1 then $"You and {name} share 1 series"
+                else $"""You and {name} share {n.ToString("N0", CultureInfo.GetCultureInfo "en")} series"""
+
+            match genre with
+            | Some g -> $"{shared} and a soft spot for {g}"
+            | None -> shared
+      CompatExplain = "This rests on the series you've both watched and how alike your time per genre is."
+      CompatNoGenres = "One of you has no MyAnimeList genres yet, so this rests on the series you've both watched alone."
+      CompatYou = "You"
+      CompatSeriesCount =
+        fun n -> if n = 1 then "1 series" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} series"""
+      CompatTimeTitle = "Where your time goes"
+      CompatSharedTitle = "Series you've both watched"
+      CompatTheirsTitle = fun name -> $"In {name}'s history, not yours"
+      CompatStudiosTitle = "Studios you share"
+      CompatMore = fun n -> $"""and {n.ToString("N0", CultureInfo.GetCultureInfo "en")} more"""
+      CompatCoverage =
+        fun name p -> $"""Based on {p.ToString("0.#", CultureInfo.GetCultureInfo "en")}%% of {name}'s watch time."""
+      CompatNotEnoughViewer = "Your history isn't long enough yet. Compatibility appears from 15 fully watched episodes."
+      CompatNotEnoughOwner =
+        fun name -> $"{name}'s history isn't long enough yet. Compatibility appears from 15 fully watched episodes."
+      CompatNotEnoughBoth =
+        fun name ->
+            $"Neither your history nor {name}'s is long enough yet. Compatibility appears from 15 fully watched episodes each."
+      CompatSeeComparison = "See how you compare" }
 
 let es =
     { Lang = "es"
@@ -1141,7 +1241,73 @@ let es =
                 | Some s -> $"Spoilers: T{s} E{n}"
                 | None -> $"Spoilers: E{n}"
             | None, Some l -> $"Spoilers: {l}"
-            | None, None -> "Spoilers: Especial" }
+            | None, None -> "Spoilers: Especial"
+
+      CompatTitle = fun name -> $"Tú y {name}"
+      CompatPageTitle = fun name -> $"Compararte con {name}"
+      CompatLevelName =
+        function
+        | 1 -> "Baja"
+        | 2 -> "Algo"
+        | 3 -> "Buena"
+        | 4 -> "Alta"
+        | _ -> "Muy alta"
+      CompatLevel =
+        function
+        | 1 -> "Compatibilidad baja"
+        | 2 -> "Algo de compatibilidad"
+        | 3 -> "Compatibilidad buena"
+        | 4 -> "Compatibilidad alta"
+        | _ -> "Compatibilidad muy alta"
+      CompatMeterLabel =
+        fun level ->
+            let name =
+                match level with
+                | 1 -> "Baja"
+                | 2 -> "Algo"
+                | 3 -> "Buena"
+                | 4 -> "Alta"
+                | _ -> "Muy alta"
+
+            $"{name}: {level} de 5"
+      CompatSharedCount =
+        fun n ->
+            if n = 0 then "Todavía no hay series en común"
+            elif n = 1 then "1 serie en común"
+            else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} series en común"""
+      CompatSummary =
+        fun name n genre ->
+            let shared =
+                if n = 0 then $"Tú y {name} todavía no comparten ninguna serie"
+                elif n = 1 then $"Tú y {name} comparten 1 serie"
+                else $"""Tú y {name} comparten {n.ToString("N0", CultureInfo.GetCultureInfo "es")} series"""
+
+            match genre with
+            | Some g -> $"{shared} y una debilidad por {g}"
+            | None -> shared
+      CompatExplain =
+        "Se basa en las series que han visto los dos y en cuánto se parece el tiempo que dedican a cada género."
+      CompatNoGenres =
+        "Alguno de los dos todavía no tiene géneros de MyAnimeList, así que se basa solo en las series que han visto los dos."
+      CompatYou = "Tú"
+      CompatSeriesCount =
+        fun n -> if n = 1 then "1 serie" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} series"""
+      CompatTimeTitle = "En qué se va tu tiempo"
+      CompatSharedTitle = "Series que han visto los dos"
+      CompatTheirsTitle = fun name -> $"En el historial de {name}, no en el tuyo"
+      CompatStudiosTitle = "Estudios en común"
+      CompatMore = fun n -> $"""y {n.ToString("N0", CultureInfo.GetCultureInfo "es")} más"""
+      CompatCoverage =
+        fun name p -> $"""Basado en el {p.ToString("0.#", CultureInfo.GetCultureInfo "es")}%% del tiempo visto de {name}."""
+      CompatNotEnoughViewer =
+        "Tu historial todavía no es lo bastante largo. La compatibilidad aparece desde 15 episodios vistos completos."
+      CompatNotEnoughOwner =
+        fun name ->
+            $"El historial de {name} todavía no es lo bastante largo. La compatibilidad aparece desde 15 episodios vistos completos."
+      CompatNotEnoughBoth =
+        fun name ->
+            $"Ni tu historial ni el de {name} son todavía lo bastante largos. La compatibilidad aparece desde 15 episodios vistos completos en cada uno."
+      CompatSeeComparison = "Ver cómo se comparan" }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =
