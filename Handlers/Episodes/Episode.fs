@@ -98,7 +98,7 @@ let private seasonName (t: Texts) (m: EpisodeModel) =
     | Some id, None, None -> Some id
 
 let private thumbnail (url: string) =
-    img(src = url, alt = "", class' = "aspect-video w-full max-w-xs shrink-0 rounded object-cover sm:w-64")
+    img(src = url, alt = "", class' = "aspect-video w-full max-w-xs shrink-0 rounded-md object-cover sm:w-64")
         .attr("loading", "lazy")
         .attr("style", "box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4)")
 
@@ -273,11 +273,11 @@ let private commentView (ctx: HttpContext) (t: Texts) (viewer: Guid option) (c: 
         if not showBody then
             p(class' = "text-body-md italic text-on-surface-variant").data("hidden-placeholder", "") { t.CommentHiddenPlaceholder }
         elif c.Sensitive then
-            details(class' = "rounded border border-outline-variant bg-surface-container px-4 py-3").data("spoiler", "") {
+            details(class' = "rounded border border-secondary/30 bg-secondary/5 px-4 py-3").data("spoiler", "") {
                 summary(class' = "flex cursor-pointer flex-wrap items-center justify-between gap-x-4 gap-y-1 text-label-md text-on-surface-variant")
                     .data("spoiler-summary", "") {
                     span() { defaultArg c.Summary "" }
-                    span(class' = "text-primary") { t.CommentShowSpoiler }
+                    span(class' = "text-secondary") { t.CommentShowSpoiler }
                 }
 
                 div(class' = "pt-3") { body }
