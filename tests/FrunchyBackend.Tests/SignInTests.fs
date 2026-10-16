@@ -129,6 +129,8 @@ let ``signed-in navbar shows the display name, account and sign out`` () =
         use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
         let! page = browser.Get "/"
         Assert.Contains("data-nav=\"user\">ANIMENERD<", page.Html)
+        // the name leads to the user's public dashboard
+        Assert.Matches("<a href=\"/u/animenerd\"[^>]*data-nav=\"user\">", page.Html)
         Assert.Contains("href=\"/account\"", page.Html)
         Assert.Contains("action=\"/signout\"", page.Html)
     }

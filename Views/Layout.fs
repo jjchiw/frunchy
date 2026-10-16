@@ -36,13 +36,22 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 """
 
-/// Navigation, right side: "Sign in", or the signed-in user's name, Account and a sign-out form (POST + antiforgery)
+/// Navigation, right side: "Sign in", or the signed-in user's name (linking to their public dashboard), Account and a
+/// sign-out form (POST + antiforgery)
 let private navEnd (ctx: HttpContext) (t: Texts) =
     match WebAuth.currentNav ctx with
     | WebAuth.SignedOut -> a(href = "/signin", class' = Components.btnSm Components.Primary) { t.NavSignIn } :> HtmlElement
     | WebAuth.SignedIn displayName ->
         div(class' = "flex items-center gap-1 sm:gap-2") {
-            span(class' = "hidden max-w-[16ch] truncate text-label-md text-on-surface-variant sm:inline").data("nav", "user") { displayName }
+            let name = "hidden max-w-[16ch] truncate text-label-md text-on-surface-variant sm:inline"
+
+            match WebAuth.currentUsername ctx with
+            | Some username ->
+                a(href = $"/u/{username}", class' = name + " hover:text-on-surface hover:underline").data("nav", "user") {
+                    displayName
+                }
+            | None -> span(class' = name).data("nav", "user") { displayName }
+
             a(href = "/account", class' = Components.btnSm Components.Ghost) { t.NavAccount }
 
             form(method = "post", action = "/signout") {
