@@ -20,7 +20,7 @@
   - **Episode page**: its series title links to the series page.
   - **A person's anime page**: it gains a link to the series page.
   - **The rest**: dashboard, DNA, year and compare keep linking to the person's anime page, since they are about a person.
-- Q: Usernames ending in a dash? → A: New usernames (sign-up, `user-create`, and the operator commands' input) must end in a letter, digit or underscore. Existing usernames keep working: lookups still accept the old rule. The local database has none (checked 2026-10-10), and there's no rename feature. A `user-list` marker for any that exist is left for 014 if needed.
+- Q: Usernames ending in a dash? → A: New usernames (sign-up and `user-create`) must end in a letter, digit or underscore. Existing usernames keep working: lookups still accept the old rule. The local database has none (checked 2026-10-10), and there's no rename feature. A `user-list` marker for any that exist is left for 014 if needed.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -114,7 +114,7 @@ A new username can't end in a dash; sign-up and `user-create` explain the rule. 
 
 **Usernames**
 
-- **FR-008**: New usernames (sign-up, `user-create`, and the usernames typed into operator commands and the operators page) MUST end in a letter, digit or underscore, in addition to today's rule.
+- **FR-008**: New usernames (sign-up and `user-create`) MUST end in a letter, digit or underscore, in addition to today's rule. Commands and pages that look up an existing user (operator commands, the operators page) keep today's rule, so a user stored with a trailing dash can still be managed.
 - **FR-009**: Looking up an existing user MUST keep accepting today's rule, so stored usernames ending in `-` still resolve.
 
 **General**
