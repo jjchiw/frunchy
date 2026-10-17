@@ -36,7 +36,7 @@ session's screens).
 
 | Folder | Use for | Keep | Drop |
 |---|---|---|---|
-| `frunchy_base_components_sheet/` | `Views/Components.fs` | primary, secondary, ghost and destructive buttons; Discord and Google buttons; field with hint and error; success and error alerts; processing line; empty state with action; destructive confirmation | "YAML Token Compliant" badge, "telemetry" wording in examples |
+| `frunchy_base_components_sheet/` | `Views/Components.fs` | primary, secondary, ghost and destructive buttons; Google and Umbral buttons (Discord was removed in feature 014); field with hint and error; success and error alerts; processing line; empty state with action; destructive confirmation | "YAML Token Compliant" badge, "telemetry" wording in examples |
 | `frunchy_public_dashboard_u_username/` (navigation and footer) | `Views/Layout.fs` | sticky navigation with mark + wordmark, "Sign in" or "Account / Sign out"; footer with "Frunchy, a Last.fm for anime" | "Telemetry Ingestion Active", nav links other than the dashboard (when signed in) and the DNA page (on a profile), search, avatar, versions, © lines with invented company names |
 
 ## Website pages
@@ -44,7 +44,7 @@ session's screens).
 | Page (route) | Folder | Keep | Drop or change |
 |---|---|---|---|
 | Home (`/`) | `frunchy_home/` | hero "Your anime identity, in numbers" + intro; "Sign in" CTA; the public-dashboards note; "How to sync" as 3 numbered cards (our 3 steps); the deletion banner state; the signed-in variant | the "Telemetry sample" stats and velocity chart, "Explore public demo", key/URI/status chips in the steps, the "Private ingestion" block's "View documentation" (keep one plain sentence: no Crunchyroll password is ever asked), footer links |
-| Sign in (`/signin`) | `frunchy_sign_in_signin/` | centered card, overline + title + intro, error alert, Discord and Google buttons, "Back to home" | — |
+| Sign in (`/signin`) | `frunchy_sign_in_signin/` | centered card, overline + title + intro, error alert, Google and Umbral buttons, "Back to home" | — |
 | Sign up (`/signup`) | `frunchy_create_account_signup/` | the three fields with errors; the live "frunchy…/u/{username}" preview (Alpine, the real host); "I already have a Frunchy account" | "Invite-only beta" chip only if the copy exists in texts (it's true: keep as a pill) |
 | Claim (`/claim`) | `frunchy_attach_existing_account_claim/` | sync key field (mono), error, the two links | — |
 | Confirm it's you (`/signin/reconfirm`) | `frunchy_confirm_identity_signin_reconfirm/` | card, error state, "Continue with {provider}", return link | — |
