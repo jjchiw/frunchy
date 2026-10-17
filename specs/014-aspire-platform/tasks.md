@@ -45,22 +45,22 @@ AppHost by hand.
 
 ## Phase 2: AppHost and self-hosting (US1, US4)
 
-- [ ] T008 [US1] `AppHost/` (research R1–R3, contract):
+- [x] T008 [US1] `AppHost/` (research R1–R3, contract):
   - the project and `appsettings.json`;
   - `AppHost.fs` with the parameters (token and webhook secret generated, the master key required and checked to be 32 bytes, the domain);
   - Megáfono's source path or image tag;
   - the resources, endpoints, environment and waits, with Megáfono's health check on `internal` `/health`.
 
   Paths come from `__SOURCE_DIRECTORY__`. Add it to `FrunchyBackend.slnx`, and make sure `dotnet test` from the root still doesn't need Docker or the Megáfono checkout to build the tests (keep the AppHost out of the test build if needed) · AppHost/*, FrunchyBackend.slnx
-- [ ] T009 [US4] A multi-stage `Dockerfile` (sdk:10.0 → aspnet:10.0, port 8080, non-root user), `.dockerignore`, `deploy/compose.yaml` with profiles, `deploy/.env.example`, and `deploy/postgres-init/01-databases.sql`. Validate with `docker compose config` with and without the profile · Dockerfile, .dockerignore, deploy/*
-- [ ] T010 Docs:
+- [x] T009 [US4] A multi-stage `Dockerfile` (sdk:10.0 → aspnet:10.0, port 8080, non-root user), `.dockerignore`, `deploy/compose.yaml` with profiles, `deploy/.env.example`, and `deploy/postgres-init/01-databases.sql`. Validate with `docker compose config` with and without the profile · Dockerfile, .dockerignore, deploy/*
+- [x] T010 Docs:
   - **README**: running under Aspire, the wipe, self-hosting, and the CLI against the AppHost's database.
   - **CLAUDE.md**: commands, settings, AppHost, no Discord, and the federation switch.
   - **FRONTEND.md and design/BRIEF.md**: Discord mentions removed.
   - **docs/fediverse.md**: platform ready, 015 next.
 
   · README.md, CLAUDE.md, FRONTEND.md, design/BRIEF.md, docs/fediverse.md
-- [ ] T011 Run the full `dotnet test`, the AppHost build, `docker compose config` both ways, and one build plus run of the minimal compose profile (the home page answers), then write the validation log. The AppHost run is done by the main session · specs/014-aspire-platform/quickstart.md
+- [x] T011 Run the full `dotnet test`, the AppHost build, `docker compose config` both ways, and one build plus run of the minimal compose profile (the home page answers), then write the validation log. The AppHost run is done by the main session (not done here: the quickstart's section 2 is still to be checked by hand) · specs/014-aspire-platform/quickstart.md
 
 ## Dependencies
 

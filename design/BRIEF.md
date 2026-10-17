@@ -33,7 +33,7 @@ lists them, plus the missing states of the existing three, and gives one prompt 
 2. **Brand**: a logo and wordmark (the site shows a 🎬 emoji today), a favicon, and the extension
    icon at 16, 32, 48 and 128 px.
 3. **Base components**, on one sheet: buttons (primary, secondary, destructive, and for "Sign in
-   with Discord / Google"); text input with hint and error; success and error alerts; an empty
+   with Google / Umbral"); text input with hint and error; success and error alerts; an empty
    state; a loading or "processing" state; a confirmation page for destructive actions.
 4. **Optional**: an Open Graph image for sharing a profile link (`/u/{username}`).
 
@@ -44,7 +44,7 @@ lists them, plus the missing states of the existing three, and gives one prompt 
 - **MyAnimeList**, per matched season: title, poster, community score, genres, themes,
   demographics, studios, format (TV, Movie, OVA, ONA, Special), year and season, airing status.
   About 93% of seasons are matched; the rest show without these fields.
-- **Account**: username (public, in the URL), display name, sign-in methods (Discord, Google),
+- **Account**: username (public, in the URL), display name, sign-in methods (Google, Umbral),
   whether a sync key is active, whether the Crunchyroll profile is bound, recent syncs with their
   status and counts, security activity, account creation date.
 
@@ -70,7 +70,7 @@ The copy below is the site's real copy; keep it or propose better wording.
 
 ### 4.2 Sign in (`/signin`)
 > [context] A centered sign-in card: title "Sign in", text "Sign in or create your Frunchy account.
-> Frunchy never asks for a password.", two buttons "Sign in with Discord" and "Sign in with Google"
+> Frunchy never asks for a password.", two buttons "Sign in with Google" and "Sign in with Umbral"
 > with their logos. Variants: the error "Sign-in was cancelled or failed; try again." above the
 > buttons, and "Sign-in isn't available right now." with no buttons.
 
@@ -95,7 +95,7 @@ The copy below is the site's real copy; keep it or propose better wording.
 >    syncing.", button "Connect extension".
 > 3. Crunchyroll history: "Bound to a Crunchyroll profile." or "Not bound yet: your first sync
 >    binds it.", button "Reset Crunchyroll binding".
-> 4. Sign-in methods: Discord and Google rows, each "Link {provider}" or "Remove" (removing the
+> 4. Sign-in methods: Google and Umbral rows, each "Link {provider}" or "Remove" (removing the
 >    last one is disabled).
 > 5. Recent syncs: a list of syncs with time, status (pending, processing, completed, failed) and
 >    counts "120 processed · 2 unresolved · 0 unsupported · 0 failed". Empty: "No syncs yet:
@@ -115,7 +115,7 @@ The copy below is the site's real copy; keep it or propose better wording.
 ### 4.7 Confirm it's you (`/signin/reconfirm`)
 > [context] An interstitial before sensitive actions (new key, account deletion) when the last
 > sign-in is older than 10 minutes: short text and one button to continue with the provider used
-> (Discord or Google). Error variant: "We couldn't confirm it's you. Try again with the sign-in
+> (Google or Umbral). Error variant: "We couldn't confirm it's you. Try again with the sign-in
 > method you used."
 
 ### 4.8 Delete your account (`/account/delete`)

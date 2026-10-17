@@ -133,7 +133,7 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 
 ## Accounts
 
-- **Sign in** with Discord or Google. Frunchy never stores passwords, emails or avatars, only "provider +
+- **Sign in** with Google or Umbral. Frunchy never stores passwords, emails or avatars, only "provider +
   that provider's stable user id".
 - **Sign-up is invite-only**: the operator runs `dotnet run -- invite-create`, which prints a one-time code
   valid for 7 days. The first sign-in asks for the code, a username (the dashboard address, fixed) and a
@@ -142,7 +142,7 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
   account" and paste the account's current sync key. This works only while the account has no sign-in
   method yet.
 - **`/account`**: rename the display name, "Connect extension" (a new sync key shown once; the old one
-  stops working), reset the Crunchyroll binding, link or unlink Discord/Google (never the last one), see
+  stops working), reset the Crunchyroll binding, link or unlink Google/Umbral (never the last one), see
   the last 10 syncs and the last 20 security events, and delete the account. A new key and deletion need
   a sign-in within the last 10 minutes; otherwise you re-confirm with your provider.
 - The extension keeps using the sync key exactly as before (import contract v1.2).
@@ -160,19 +160,48 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 
 ### Prerequisites
 - .NET SDK 10
-- PostgreSQL 14+ (locally it runs in Docker: container `postgres-postgres-1`)
-- Docker running, for the tests (Testcontainers)
+- Docker running (Aspire starts Postgres and Megáfono in containers, the tests use Testcontainers)
+- To run the whole platform: a checkout of Megáfono (the fediverse service, a separate repo) at `../../Megafono` relative to this repo's root, or set `Megafono:SourcePath`, or set `Megafono:ImageTag` to use a published image
+- To run Frunchy alone: PostgreSQL 14+ (locally it runs in Docker: container `postgres-postgres-1`)
 
-### Setup
+### Run the platform with Aspire (feature 014)
+
+`AppHost/` is an F# [Aspire](https://aspire.dev) AppHost that starts Postgres (databases `frunchydb` and `megafono`), Megáfono, its gateway and Frunchy, with the shared secrets wired in. Aspire is only the development orchestrator: production is the compose file below.
+
+1. **Master key**, once. Megáfono encrypts every actor's private key with it, so it must be base64 of 32 bytes, and you keep a copy:
+   ```bash
+   dotnet user-secrets set "Parameters:megafono-master-key" "$(openssl rand -base64 32)" --project AppHost
+   ```
+   The token and webhook secret between Frunchy and Megáfono are generated and persisted in the same user secrets. `Parameters:domain` defaults to `frunchy.test`.
+2. **Run** (`aspire run` also works):
+   ```bash
+   dotnet run --project AppHost
+   ```
+   The Aspire dashboard lists `pg`, both databases, `megafono`, `gateway` and `frunchy`. The **gateway** is the one public entrance on a single domain: Megáfono's routes (`/.well-known/webfinger`, `/.well-known/nodeinfo`, `/nodeinfo/*`, `/ap/*`, `/inbox`) go to Megáfono and everything else to Frunchy. Megáfono's internal API (port 8081) is reachable only by Frunchy.
+3. **The domain is permanent once you federate**: actor ids are `https://{domain}/ap/actors/{users.id}` and changing the domain later orphans every follower.
+
+**One-time wipe.** The schema bootstrap now assumes an empty database, and the AppHost uses its own volume (`frunchy-pg`), so nothing from before carries over. If you ran an older version against `postgres-postgres-1`, drop its old databases (dev data, not real history):
+```bash
+docker exec postgres-postgres-1 dropdb -U postgres frunchydb
+docker exec postgres-postgres-1 dropdb -U postgres megafono   # if it exists
+```
+
+**Operator commands against the AppHost's database.** The commands read `ConnectionStrings__Database`: copy the `frunchydb` connection string from the Aspire dashboard (resource `pg`, database `frunchydb`) into that variable for the command:
+```bash
+ConnectionStrings__Database="Host=localhost;Port=<port>;Username=postgres;Password=<password>;Database=frunchydb" \
+  dotnet run -- user-create animenerd "AnimeNerd"
+```
+
+### Run Frunchy alone (federation off)
+
+No Aspire, no Megáfono: Frunchy is a complete web app without federation (`Frunchy:Federation:Enabled` is `false` by default).
 
 1. **Database**: `appsettings.json` → `ConnectionStrings:Database` (default
    `Host=localhost;Port=5432;Username=postgres;Password=postgres;Database=frunchydb`), or override with the
-   `ConnectionStrings__Database` environment variable. The schema is created on startup.
-
-   A database created by an older version is not migrated: drop it and let the app create it again
-   (there's no local `psql`, so run it inside the Postgres container, or use DBeaver):
+   `ConnectionStrings__Database` environment variable. The schema is created on startup on an empty database;
+   a database from an older layout isn't migrated, so create a fresh one (there's no local `psql`, so run it
+   inside the Postgres container, or use DBeaver):
    ```bash
-   docker exec postgres-postgres-1 dropdb -U postgres frunchydb
    docker exec postgres-postgres-1 createdb -U postgres frunchydb
    ```
 
@@ -186,23 +215,43 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
    dotnet run --launch-profile http
    ```
 
-4. **Test** from the repo root (`FrunchyBackend.slnx`):
+4. **Test** from the repo root (`FrunchyBackend.slnx`; the tests need Docker, not Aspire or Megáfono):
    ```bash
    dotnet test
    ```
 
+### Settings added by feature 014
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Frunchy:Federation:Enabled` | `false` | When `true`, the four keys below are required and startup fails naming the missing key (never its value) |
+| `Frunchy:Federation:Domain` | | The public host, no scheme. Permanent once federating |
+| `Frunchy:Megafono:Url` | | Megáfono's **internal** API base URL (port 8081), never through the gateway |
+| `Frunchy:Megafono:Token`, `Frunchy:Megafono:WebhookSecret` | | Bearer token and webhook HMAC key shared with Megáfono |
+| `Frunchy:TrustedProxies` | empty | Comma- or semicolon-separated IPs or CIDRs whose `X-Forwarded-For/-Proto/-Host` are believed; empty means none |
+
+### Self-hosting with Docker Compose
+
+`Dockerfile` builds Frunchy; `deploy/compose.yaml` runs it with Postgres. Federation is an optional profile that adds Megáfono and its gateway (pinned `0.1.1`):
+
+```bash
+cp deploy/.env.example deploy/.env      # fill it in: every variable has its generation command
+docker compose -f deploy/compose.yaml --env-file deploy/.env up -d --build
+```
+
+Without the profile you get Frunchy and Postgres, and Frunchy listens on `127.0.0.1:${FRUNCHY_PORT}`. To federate, set `COMPOSE_PROFILES=federation` and `FRUNCHY_FEDERATION_ENABLED=true` together with `DOMAIN` and the Megáfono secrets; the gateway then listens on `127.0.0.1:${GATEWAY_PORT}` and is the entrance of the domain. Neither terminates TLS: put a TLS proxy in front. Megáfono's internal port 8081 is never published. **`DOMAIN` is permanent once you federate, and `MEGAFONO_MASTER_KEY` must be backed up apart from the database.**
+
 ### Sign-in providers (optional locally; the tests use a fake provider)
 
-1. Register a free OAuth app. **Discord**: Developer Portal → OAuth2, redirect
-   `http://localhost:5099/signin-discord`. **Google**: Cloud Console → Credentials → OAuth client ID (Web),
+1. Register a free OAuth app. **Google**: Cloud Console → Credentials → OAuth client ID (Web),
    redirect `http://localhost:5099/signin-google`. **Umbral** (our self-hosted OpenID Connect provider, run
    from its own repo on `http://localhost:5173`): admin UI → Apps, redirect `http://localhost:5099/signin-umbral`;
    its `Authority` is already in `appsettings.json`.
 2. Store the credentials **outside the repo**. Never put them in `appsettings*.json` (a test enforces this).
    - **Bella Baxter** (our own secrets manager, recommended). In the Bella project `Frunchy`, environment
      `development`, add the secrets with `__` as the section separator:
-     `Frunchy__Auth__Providers__Discord__ClientId`, `Frunchy__Auth__Providers__Discord__ClientSecret` and
-     `Frunchy__Auth__Providers__Discord__Enabled` = `true`. Then run through the Bella CLI, which hands the
+     `Frunchy__Auth__Providers__Google__ClientId`, `Frunchy__Auth__Providers__Google__ClientSecret` and
+     `Frunchy__Auth__Providers__Google__Enabled` = `true`. Then run through the Bella CLI, which hands the
      app its Bella credentials (the app fetches the secrets itself, via `BellaBaxter.AspNet.Configuration`):
      ```bash
      bella sdk run -- dotnet run --launch-profile http
@@ -214,14 +263,14 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
      isn't used at all.
    - **User secrets**:
      ```bash
-     dotnet user-secrets set "Frunchy:Auth:Providers:Discord:ClientId" "<id>"
-     dotnet user-secrets set "Frunchy:Auth:Providers:Discord:ClientSecret" "<secret>"
-     dotnet user-secrets set "Frunchy:Auth:Providers:Discord:Enabled" "true"
+     dotnet user-secrets set "Frunchy:Auth:Providers:Google:ClientId" "<id>"
+     dotnet user-secrets set "Frunchy:Auth:Providers:Google:ClientSecret" "<secret>"
+     dotnet user-secrets set "Frunchy:Auth:Providers:Google:Enabled" "true"
      ```
-   In production use Bella or environment variables (`Frunchy__Auth__Providers__Discord__ClientSecret`) and
+   In production use Bella or environment variables (`Frunchy__Auth__Providers__Google__ClientSecret`) and
    set `Frunchy:DataProtection:KeysPath` to a persistent directory so sessions survive restarts. The site
    refuses to start if a provider is enabled without its credentials.
-3. `dotnet run --launch-profile http` (Development, so user secrets are loaded) and open `/signin`.
+3. `dotnet run --launch-profile http` (Development, so user secrets are loaded; the AppHost runs Frunchy in Development too) and open `/signin`.
 
 ### Operator commands
 
@@ -286,7 +335,7 @@ Features are built through spec-kit (`specs/###-name/`), in this order:
 | # | Feature | Status |
 |---|---|---|
 | 001 | **Crunchyroll history import + real dashboard**: raw import, normalization to watch events, import status, public per-user dashboard (`/u/{username}`), sync-key identity bound to the user's Crunchyroll account, English/Spanish UI | Implemented ([spec](specs/001-crunchyroll-history-import/spec.md)) |
-| 002 | **Accounts**: sign in through an external provider (Discord / Google / AniList, decided in its spec), self-service sign-up, sync key and account deletion. **Required before inviting a second user.** | Implemented ([spec](specs/002-social-login-accounts/spec.md)) |
+| 002 | **Accounts**: sign in through an external provider (Google / Umbral), self-service sign-up, sync key and account deletion. **Required before inviting a second user.** | Implemented ([spec](specs/002-social-login-accounts/spec.md)) |
 | 003 | **MAL enrichment**: match Crunchyroll seasons to MyAnimeList through its official API (paced, retried, per distinct anime): genres, studios, format, scores; score, genres and "Top genres" on the dashboard; operator review commands | Implemented ([spec](specs/003-mal-enrichment/spec.md)) |
 | 004 | **Anime DNA profile + shared design system**: genre distribution, favourite studio, dominant decade, viewing pace, insignia anime; the whole site on the "Neo-Scrobble Profile" design system shared with the extension | Implemented ([spec](specs/004-anime-dna-design-system/spec.md)) |
 | 005 | **Year in review**: one calendar year of a profile (totals, months, most watched series, genres, studios, formats, new versus continued, longest streak), linked from the dashboard and the DNA page | Implemented ([spec](specs/005-year-in-review/year-in-review.spec.md)) |
@@ -298,6 +347,7 @@ Features are built through spec-kit (`specs/###-name/`), in this order:
 | 011 | **Taste compatibility**: a signed-in viewer sees how their taste matches someone else's, as a level in words (never a percentage), on a card on that dashboard and on `/u/{username}/compare` (genre shares side by side, shared series, shared studios); both need 15 fully watched episodes | Implemented ([spec](specs/011-taste-compatibility/taste-compatibility.spec.md)) |
 | 012 | **Charts and trends**: the most-watched series this week, this season and of all time (`/charts`), ranked by people, with movement and an 8-week trend on the week chart, and "Watched by N people on Frunchy" on anime and episode pages; nothing shows below `Frunchy:Charts:MinPeople` people (default 3) | Implemented ([spec](specs/012-charts-trends/charts-trends.spec.md)) |
 | 013 | **Series page**: a public page per series (`/anime/{seriesId}`) with its seasons, MyAnimeList details, known episodes with their comment counts and "Watched by N people"; chart rows, the episode page and the anime page link to it; new usernames can no longer end in a dash (Mastodon refuses them) | Implemented ([spec](specs/013-series-page/series-page.spec.md)) |
+| 014 | **Aspire platform reset**: an F# Aspire AppHost runs Postgres, Megáfono, its gateway and Frunchy on one domain; a federation switch (off by default) with validated Megáfono settings; forwarded headers only from trusted proxies; Discord removed; a clean schema bootstrap; a Dockerfile and a compose file with an optional federation profile | In progress ([spec](specs/014-aspire-platform/aspire-platform.spec.md)) |
 
 
 ## Key Design Decisions

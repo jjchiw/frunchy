@@ -1,6 +1,6 @@
 # Frunchy on the fediverse: episode comments and following
 
-Status: design note, 2026-10-10, updated 2026-10-17. Of this, only the pieces named below as done are built (feature 009's local comments, feature 013's series page and username rule). Each step below becomes its own spec-kit feature.
+Status: design note, 2026-10-10, updated 2026-10-17. Of this, only the pieces named below as done are built (feature 009's local comments, feature 013's series page and username rule, feature 014's platform). Each step below becomes its own spec-kit feature.
 
 Frunchy joins the fediverse through **Megáfono** (`../../Megafono`), a self-hosted ActivityPub sidecar.
 Frunchy keeps its users, data and pages, and contains no ActivityPub code. Megáfono owns the protocol:
@@ -152,8 +152,27 @@ It was verified against GoToSocial 0.22.2 and Mastodon 4.7.3. What a Frunchy int
   - Following and remote-actor lookups answer 409 `blocked` for a blocked actor or domain.
   - `follow.removed` now carries `follow.direction`, including `outbound`.
 - **Not built yet:** the feed of posts from followed accounts (Megáfono item 6).
-- **Open, the owner's decision:** how Frunchy runs Megáfono (its public repo and image, maybe through
-  Aspire).
+- **Decided (feature 014):** how Frunchy runs Megáfono. Locally, an F# Aspire AppHost; self-hosted, a
+  compose file with an optional `federation` profile. See "The platform" below.
+
+## The platform (feature 014, done)
+
+The ground for the integration is in place, with no federation code yet:
+
+- **Topology.** The AppHost (`AppHost/`, `dotnet run --project AppHost`) starts one Postgres with two
+  databases (`frunchydb` and `megafono`), Megáfono, its gateway and Frunchy. The compose file
+  (`deploy/compose.yaml`, profile `federation`) is the same shape for self-hosters.
+- **One domain through the gateway.** The gateway is the only public entrance. Megáfono's routes
+  (`/.well-known/webfinger`, `/.well-known/nodeinfo`, `/nodeinfo/*`, `/ap/*`, `/inbox`) go to Megáfono and
+  everything else to Frunchy, with the original `Host` preserved. Megáfono's internal API (port 8081) is
+  reachable by Frunchy only: never external, never a gateway destination, never published.
+- **Actor ids** are `https://{domain}/ap/actors/{users.id}`, keyed on the immutable `users.id`. The domain
+  is permanent once federating: changing it orphans every follower.
+- **Settings.** `Frunchy:Federation:Enabled` is off by default; when on, `Frunchy:Federation:Domain` and
+  `Frunchy:Megafono:Url|Token|WebhookSecret` are required (startup names the missing key, never a value),
+  and the `FederationSettings` singleton is what the integration reads. `Frunchy:TrustedProxies` makes
+  Frunchy believe the gateway's `X-Forwarded-*` headers, from nobody else.
+- **Also in 014:** Discord sign-in removed, and a clean schema bootstrap for an empty database.
 
 ## Decisions taken
 
@@ -188,6 +207,7 @@ It was verified against GoToSocial 0.22.2 and Mastodon 4.7.3. What a Frunchy int
    shape is in `specs/009-episode-comments/data-model.md`.
 2. **Megáfono: replies**, meaning items 1 to 5 above, in its own session. **Done** (Megáfono 002 to 004,
    the last two being actor deletion and blocks; on its main as of 2026-10-17).
-3. **Frunchy: the Megáfono integration** (feature 014, next). User accounts, series accounts with episode
+3. **Frunchy: the platform** (feature 014). **Done**: the AppHost, the federation switch, the compose file.
+4. **Frunchy: the Megáfono integration** (feature 015, next). User accounts, series accounts with episode
    threads, comments both ways, account deletion and blocks. Following remote accounts and a feed come
    later, once Megáfono item 6 exists.
