@@ -89,3 +89,25 @@ docker compose -f deploy/compose.yaml --env-file deploy/.env.example --profile f
   passed as a build argument.
 - In the AppHost, Frunchy trusts `127.0.0.1`, `::1` and the private ranges as proxies, and Megafono the
   private ranges.
+
+**2026-10-17, manual AppHost run (main session).**
+
+- **Fix first**: the AppHost had no `Properties/launchSettings.json`, so `dotnet run` started it as Production
+  and the user secrets (master key, `Megafono:SourcePath`) never loaded ("Parameter megafono-master-key is not
+  set" although it was). Added `AppHost/Properties/launchSettings.json` (Development, dashboard on
+  `http://localhost:15180`, unsecured local transport), as Aspire's templates have.
+- **Run**: `dotnet run --project AppHost/Frunchy.AppHost.fsproj` with the master key and
+  `Megafono:SourcePath` in AppHost user secrets. The first build of the Megafono and gateway images took about
+  3 minutes. `pg` (postgres:18.3), `megafono` and `gateway` came up, and Frunchy started with federation on
+  (all four settings valid; it refuses to start otherwise).
+- **Probes** (the gateway's host port, with `Host: frunchy.test`):
+
+  | Path | Result |
+  |---|---|
+  | `/`, `/charts` | 200 from Frunchy. The gateway container reaches the host process through the Aspire endpoint reference; no `host.docker.internal` fallback was needed |
+  | `/.well-known/webfinger?resource=acct:nobody@frunchy.test` | 404 from Megafono (unknown account; Frunchy's actor lookup comes in 015) |
+  | `/.well-known/nodeinfo` | 200 from Megafono |
+  | `/internal/actors` | 404: the internal API isn't routed through the gateway |
+
+  Megafono's internal `/health` answered `{"database":"ok","status":"ok"}`.
+- **Stopped**: Ctrl+C (SIGINT) stopped every container.
