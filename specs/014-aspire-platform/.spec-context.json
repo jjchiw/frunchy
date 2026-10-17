@@ -1,0 +1,16 @@
+{
+  "workflow": "speckit",
+  "specName": "Aspire Platform Reset",
+  "branch": "014-aspire-platform",
+  "currentStep": "specify",
+  "status": "specified",
+  "history": [
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-17T21:42:00.057Z"
+    }
+  ]
+}
