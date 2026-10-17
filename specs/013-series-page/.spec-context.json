@@ -1,0 +1,16 @@
+{
+  "workflow": "speckit",
+  "specName": "Public Series Page",
+  "branch": "013-series-page",
+  "currentStep": "specify",
+  "status": "specified",
+  "history": [
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-17T20:08:24.740Z"
+    }
+  ]
+}
