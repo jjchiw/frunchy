@@ -26,20 +26,20 @@ AppHost by hand.
   - the tests that use Discord as an example switch to Google or Umbral.
 
   Add tests: the sign-in page has no Discord option (with every provider enabled in test config), and `/signin/discord` is a 404 · FrunchyBackend.fsproj, Program.fs, Infrastructure/AuthConfig.fs, Handlers/Auth/SignIn.fs, Views/Components.fs, appsettings.json, tests
-- [ ] T004 [US2] `FederationSettingsTests`:
+- [x] T004 [US2] `FederationSettingsTests`:
   - **off**: no settings needed;
   - **on**: each of the 4 missing keys fails startup with the key named, and the message never contains the secret values;
   - **all set**: it starts, and `FederationSettings` resolves from DI with the values.
 
   · tests/FrunchyBackend.Tests/FederationSettingsTests.fs
-- [ ] T005 [US2] `Infrastructure/Federation.fs` (settings record, read, validate) and its wiring in `configureServices` (research R4), before the providers' check, in the same style · Infrastructure/Federation.fs, Program.fs, FrunchyBackend.fsproj
-- [ ] T006 [US2] `ForwardedHeadersTests`, using the TestServer, where the remote address can be set via a test middleware or `HttpContext.Connection` feature:
+- [x] T005 [US2] `Infrastructure/Federation.fs` (settings record, read, validate) and its wiring in `configureServices` (research R4), before the providers' check, in the same style · Infrastructure/Federation.fs, Program.fs, FrunchyBackend.fsproj
+- [x] T006 [US2] `ForwardedHeadersTests`, using the TestServer, where the remote address can be set via a test middleware or `HttpContext.Connection` feature:
   - with `Frunchy:TrustedProxies` set and the request from it, `X-Forwarded-Proto: https` and `X-Forwarded-Host: frunchy.test` reach the redirect URI of `/signin/test` (or `Request.Scheme`/`Host` as the app sees them);
   - from another address, they are ignored;
   - with none configured, they are ignored.
 
   · tests/FrunchyBackend.Tests/ForwardedHeadersTests.fs
-- [ ] T007 [US2] Forwarded headers in `configureApp`, before authentication: only when `Frunchy:TrustedProxies` is set, with `KnownProxies` and `KnownNetworks` cleared and filled from it · Program.fs
+- [x] T007 [US2] Forwarded headers in `configureApp`, before authentication: only when `Frunchy:TrustedProxies` is set, with `KnownProxies` and `KnownNetworks` cleared and filled from it · Program.fs
 
 **Checkpoint**: the full suite is green with no Aspire.
 

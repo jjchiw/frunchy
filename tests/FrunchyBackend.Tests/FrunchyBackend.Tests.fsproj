@@ -27,6 +27,8 @@
     <Compile Include="DashboardTests.fs" />
     <Compile Include="OperationsTests.fs" />
     <Compile Include="AuthConfigTests.fs" />
+    <Compile Include="FederationSettingsTests.fs" />
+    <Compile Include="ForwardedHeadersTests.fs" />
     <Compile Include="AccountActionsTests.fs" />
     <Compile Include="InviteOperationsTests.fs" />
     <Compile Include="SignInTests.fs" />

@@ -15,6 +15,7 @@ open Microsoft.IdentityModel.Protocols.OpenIdConnect
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.DataProtection
 open Microsoft.AspNetCore.Http
+open Microsoft.AspNetCore.HttpOverrides
 open Microsoft.AspNetCore.Localization
 open Microsoft.AspNetCore.RateLimiting
 open Microsoft.Extensions.Configuration
@@ -389,10 +390,56 @@ let configureServices (config: IConfiguration) (services: IServiceCollection) =
     if config.GetValue<bool>(EnrichmentWorkerEnabledKey, true) then
         services.AddHostedService<Workers.Enrichment.EnrichmentService>() |> ignore
 
+    // Feature 014: the federation switch, checked at startup like the providers' credentials
+    match Federation.read config with
+    | Error message -> raise (InvalidOperationException message)
+    | Ok settings -> services.AddSingleton<Federation.FederationSettings>(settings) |> ignore
+
     configureAuth config services
     services.AddRouting().AddOxpecker() |> ignore
 
+/// Feature 014: `Frunchy:TrustedProxies`, comma-separated IPs or CIDR ranges whose X-Forwarded-* headers
+/// are honoured. Empty or absent means none. A bad entry stops startup, naming the key and the entry.
+let trustedProxies (config: IConfiguration) : (Net.IPAddress list * Net.IPNetwork list) =
+    let entries =
+        (match config["Frunchy:TrustedProxies"] with
+         | null -> ""
+         | value -> value)
+            .Split([| ','; ';' |], StringSplitOptions.RemoveEmptyEntries ||| StringSplitOptions.TrimEntries)
+        |> List.ofArray
+
+    let parse (entry: string) =
+        if entry.Contains '/' then
+            match Net.IPNetwork.TryParse entry with
+            | true, network -> Choice2Of2 network
+            | _ -> raise (InvalidOperationException $"Frunchy:TrustedProxies has an entry that is not an IP address or CIDR range: '{entry}'")
+        else
+            match Net.IPAddress.TryParse entry with
+            | true, address -> Choice1Of2 address
+            | _ -> raise (InvalidOperationException $"Frunchy:TrustedProxies has an entry that is not an IP address or CIDR range: '{entry}'")
+
+    let parsed = entries |> List.map parse
+    parsed |> List.choose (function Choice1Of2 a -> Some a | _ -> None), parsed |> List.choose (function Choice2Of2 n -> Some n | _ -> None)
+
+/// X-Forwarded-For/-Proto/-Host from the configured proxies only (never from anyone else), so the
+/// scheme, host and client address the app sees are the public ones behind the gateway
+let private useForwardedHeaders (app: WebApplication) =
+    match trustedProxies app.Configuration with
+    | [], [] -> ()
+    | addresses, networks ->
+        let options = ForwardedHeadersOptions()
+        options.ForwardedHeaders <- ForwardedHeaders.XForwardedFor ||| ForwardedHeaders.XForwardedProto ||| ForwardedHeaders.XForwardedHost
+        // The defaults trust loopback; only what is configured is trusted
+        options.KnownProxies.Clear()
+        options.KnownIPNetworks.Clear()
+        for address in addresses do options.KnownProxies.Add address
+        for network in networks do options.KnownIPNetworks.Add network
+        app.UseForwardedHeaders options |> ignore
+
 let configureApp (app: WebApplication) =
+    // Before anything that reads the scheme, host or client address (authentication, rate limiting, redirects)
+    useForwardedHeaders app
+
     app
         .UseRequestLocalization(localizationOptions ())
         .UseRouting()
