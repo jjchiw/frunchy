@@ -1,0 +1,129 @@
+# Self-hosting Frunchy (feature 014). Run from the repository root or from deploy/:
+#
+#   docker compose -f deploy/compose.yaml --env-file deploy/.env up -d --build
+#
+# Two shapes, one file:
+#   - default: postgres + frunchy. Frunchy is a plain web app (no federation).
+#   - the `federation` profile adds megafono and its gateway, and the gateway becomes the entrance. Turn it on with
+#     `COMPOSE_PROFILES=federation` AND `FRUNCHY_FEDERATION_ENABLED=true` in .env (compose cannot derive one from
+#     the other). If Frunchy is told to federate without Megafono's settings it refuses to start, naming the key.
+#
+# Nothing here terminates TLS: put a TLS proxy (Caddy, Traefik, nginx) in front of the one published port and send
+# it the whole domain. Every setting comes from the environment; deploy/.env.example documents each one.
+
+name: frunchy
+
+services:
+  frunchy:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    image: ghcr.io/cosmic-chimps/frunchy
+    restart: unless-stopped
+    environment:
+      ConnectionStrings__Database: Host=postgres;Database=frunchydb;Username=frunchy;Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      Frunchy__DataProtection__KeysPath: /keys # sessions and forms survive a restart
+      Frunchy__RootOperator: ${FRUNCHY_ROOT_OPERATOR:-}
+      Frunchy__Mal__ClientId: ${FRUNCHY_MAL_CLIENT_ID:-}
+      Frunchy__Auth__Providers__Google__Enabled: ${GOOGLE_ENABLED:-false}
+      Frunchy__Auth__Providers__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      Frunchy__Auth__Providers__Google__ClientSecret: ${GOOGLE_CLIENT_SECRET:-}
+      Frunchy__Auth__Providers__Umbral__Enabled: ${UMBRAL_ENABLED:-false}
+      Frunchy__Auth__Providers__Umbral__Authority: ${UMBRAL_AUTHORITY:-}
+      Frunchy__Auth__Providers__Umbral__ClientId: ${UMBRAL_CLIENT_ID:-}
+      Frunchy__Auth__Providers__Umbral__ClientSecret: ${UMBRAL_CLIENT_SECRET:-}
+      # Federation (015 uses these). Off by default; when on, all four of the next lines are required.
+      Frunchy__Federation__Enabled: ${FRUNCHY_FEDERATION_ENABLED:-false}
+      Frunchy__Federation__Domain: ${DOMAIN:-}
+      Frunchy__Megafono__Url: http://megafono-internal:8081 # the internal API: this name exists only on the internal network
+      Frunchy__Megafono__Token: ${MEGAFONO_TOKEN:-}
+      Frunchy__Megafono__WebhookSecret: ${MEGAFONO_WEBHOOK_SECRET:-}
+      # X-Forwarded-* are honoured only from these: the gateway (fixed address below), plus a TLS proxy placed
+      # directly in front of Frunchy when you run without the federation profile (FRUNCHY_TRUSTED_PROXIES).
+      Frunchy__TrustedProxies: 172.30.0.10${FRUNCHY_TRUSTED_PROXIES:+,${FRUNCHY_TRUSTED_PROXIES}}
+    ports:
+      # Loopback only: your TLS proxy reaches it here. With the federation profile the proxy should point at the
+      # gateway's port instead, and this one is only for local checks. Compose cannot drop a port by profile.
+      - "127.0.0.1:${FRUNCHY_PORT:-8080}:8080"
+    volumes:
+      - frunchy-keys:/keys
+    networks: [edge, internal]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: frunchydb
+      POSTGRES_USER: frunchy
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Runs once, when the volume is first created: adds the megafono database next to frunchydb
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U frunchy -d frunchydb"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [internal]
+
+  # --- federation profile ---------------------------------------------------------------------------------------
+
+  megafono:
+    profiles: [federation]
+    image: ghcr.io/cosmic-chimps/megafono:${MEGAFONO_VERSION:-0.1.1} # pinned, change it deliberately
+    restart: unless-stopped
+    environment:
+      Megafono__Domain: ${DOMAIN:?set DOMAIN} # permanent: actor ids are https://{domain}/ap/actors/{id}
+      Megafono__MasterKey: ${MEGAFONO_MASTER_KEY:?set MEGAFONO_MASTER_KEY}
+      Megafono__App__BaseUrl: http://frunchy:8080
+      Megafono__App__Token: ${MEGAFONO_TOKEN:?set MEGAFONO_TOKEN}
+      Megafono__App__WebhookSecret: ${MEGAFONO_WEBHOOK_SECRET:?set MEGAFONO_WEBHOOK_SECRET}
+      ConnectionStrings__Database: Host=postgres;Database=megafono;Username=frunchy;Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      Megafono__TrustedProxies: 172.30.0.10 # the gateway; without it every request would count as the gateway's address
+      Megafono__Ports__InternalBindAddress: 172.31.0.10 # the internal API listens on this address only: edge cannot reach 8081
+    # 8080 (federation) is routed by the gateway over edge; 8081 (internal API) listens only on this address on
+    # internal and is never published. No `ports:` entry exists for either.
+    networks:
+      edge: {}
+      internal:
+        ipv4_address: 172.31.0.10
+        aliases: [megafono-internal] # Frunchy reaches the internal API by this name, which edge does not resolve
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  gateway:
+    profiles: [federation]
+    image: ghcr.io/cosmic-chimps/megafono-gateway:${MEGAFONO_VERSION:-0.1.1} # pinned with megafono
+    restart: unless-stopped
+    environment:
+      ReverseProxy__Clusters__megafono__Destinations__primary__Address: http://megafono:8080
+      ReverseProxy__Clusters__app__Destinations__primary__Address: http://frunchy:8080
+      # The TLS proxy in front of the gateway: as the gateway sees it, a connection through a published port comes
+      # from the bridge's address on this network. Check it with the gateway's logs if client addresses look wrong.
+      Gateway__TrustedProxies: ${GATEWAY_TRUSTED_PROXIES:-172.30.0.1}
+    ports:
+      - "127.0.0.1:${GATEWAY_PORT:-8090}:8080" # the entrance of the domain: point your TLS proxy here
+    networks:
+      edge:
+        ipv4_address: 172.30.0.10 # fixed, so Megafono and Frunchy can trust the forwarded headers it sets
+    depends_on: [megafono, frunchy]
+
+networks:
+  edge: # frunchy, gateway, megafono (federation port); outbound traffic leaves from here
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+  internal:
+    internal: true # no route to the outside: frunchy, megafono (internal API), postgres
+    ipam:
+      config:
+        - subnet: 172.31.0.0/24
+
+volumes:
+  postgres-data: {}
+  frunchy-keys: {}

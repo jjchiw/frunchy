@@ -1,0 +1,28 @@
+# The image holds FrunchyBackend only: keep the build context small and never ship personal data
+**/bin/
+**/obj/
+.git/
+.gitignore
+.claude/
+.pitches/
+.serena/
+.specify/
+.impeccable/
+.bella/
+.vs/
+.vscode/
+.idea/
+tests/
+AppHost/
+specs/
+design/
+docs/
+deploy/
+TestResults/
+# Full personal Crunchyroll captures and secrets must never enter an image
+JsonSamples/
+.env
+.env.*
+*.md
+Dockerfile
+.dockerignore
