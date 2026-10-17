@@ -1,0 +1,23 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- The Megafono master key and the other parameters live in the AppHost's user secrets, outside the repo -->
+    <UserSecretsId>frunchy-apphost</UserSecretsId>
+    <!-- ASPIRE001: Aspire's F# support is partial (no Projects.* code generation), so Frunchy is added by path.
+         ASPIRE010: the Aspire CLI bundle is off; harmless.
+         NU1902: a MessagePack advisory arrives transitively through Aspire; there is no fix on our side. -->
+    <NoWarn>$(NoWarn);ASPIRE001;ASPIRE010;NU1902</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="AppHost.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.6.1" />
+    <PackageReference Include="FSharp.Aspire.Hosting.AppHost" Version="13.0.0" />
+  </ItemGroup>
+
+</Project>

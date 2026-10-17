@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
-    <!-- The nested test project must not be picked up by the Web SDK's default globs -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);tests/**</DefaultItemExcludes>
+    <!-- The nested test and AppHost projects must not be picked up by the Web SDK's default globs -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);tests/**;AppHost/**</DefaultItemExcludes>
     <!-- Provider credentials live in `dotnet user-secrets` (outside the repo) or the environment -->
     <UserSecretsId>frunchy-backend</UserSecretsId>
   </PropertyGroup>

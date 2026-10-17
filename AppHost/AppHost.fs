@@ -1,0 +1,150 @@
+/// Feature 014: the local platform. One command starts Postgres (frunchydb and megafono), Megafono, its
+/// gateway and Frunchy, with the shared secrets wired in. See specs/014-aspire-platform/ (research R1-R3,
+/// contracts/settings.md). Aspire is a dev orchestrator only: production is deploy/compose.yaml.
+///
+/// Aspire's F# support is partial: no Projects.* classes, so Frunchy is added by path, and
+/// FSharp.Aspire.Hosting.AppHost supplies the WithReference/WaitFor overloads F# lacks (no covariance).
+/// A connection string with a custom name has no F# overload either, so both apps get
+/// ConnectionStrings__Database from the database's ConnectionStringExpression.
+module Frunchy.AppHost
+
+open System
+open System.IO
+open Aspire.Hosting
+open Aspire.Hosting.ApplicationModel
+
+/// What the developer runs when the master key is missing or malformed. The value is never printed.
+let private masterKeyHelp =
+    "Set it once with: dotnet user-secrets set \"Parameters:megafono-master-key\" \"$(openssl rand -base64 32)\" "
+    + "--project AppHost   (the key encrypts every actor's private key in Megafono: keep a copy of it)"
+
+/// The master key must be base64 of exactly 32 bytes (Megafono refuses anything else at startup).
+/// Fails before the app is built, naming the setting and the fix, never the value.
+let private checkMasterKey (value: string) =
+    match value with
+    | null
+    | "" -> failwithf "Parameter megafono-master-key is not set. %s" masterKeyHelp
+    | text ->
+        let ok =
+            let buffer = Array.zeroCreate<byte> 64
+            match Convert.TryFromBase64String(text.Trim(), Span<byte>(buffer)) with
+            | true, written -> written = 32
+            | _ -> false
+
+        if not ok then
+            failwithf "Parameter megafono-master-key must be the base64 of exactly 32 bytes. %s" masterKeyHelp
+
+/// Private ranges: how the gateway and the containers reach Megafono and Frunchy in dev
+let private privateRanges = "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+
+let private generated () =
+    // 32 letters and digits, no symbols: the values travel in headers and environment variables
+    GenerateParameterDefault(MinLength = 32, Special = false) :> ParameterDefault
+
+[<EntryPoint>]
+let main args =
+    let builder = DistributedApplication.CreateBuilder(args)
+
+    // Frunchy's repository root: AppHost/ sits directly under it
+    let repoRoot = Path.GetFullPath(Path.Combine(__SOURCE_DIRECTORY__, ".."))
+
+    // Parameters (user secrets "Parameters:<name>"); the two shared secrets are generated once and persisted
+    let token = builder.AddParameter("megafono-token", generated (), secret = true, persist = true)
+    let webhookSecret = builder.AddParameter("megafono-webhook-secret", generated (), secret = true, persist = true)
+    let masterKey = builder.AddParameter("megafono-master-key", secret = true)
+    // "domain" has no generated default: read the setting here and fall back to frunchy.test
+    let domainValue =
+        match builder.Configuration["Parameters:domain"] with
+        | null
+        | "" -> "frunchy.test"
+        | value -> value.Trim()
+
+    let domain = builder.AddParameter("domain", domainValue)
+
+    checkMasterKey builder.Configuration["Parameters:megafono-master-key"]
+
+    // Megafono: built from a checkout by default, or a published image when an image tag is configured
+    let imageTag = builder.Configuration["Megafono:ImageTag"]
+    let useImage = not (String.IsNullOrWhiteSpace imageTag)
+
+    let sourcePath =
+        match builder.Configuration["Megafono:SourcePath"] with
+        | null
+        | "" -> "../../Megafono"
+        | path -> path
+        |> fun path -> Path.GetFullPath(path, repoRoot)
+
+    if not useImage && not (File.Exists(Path.Combine(sourcePath, "deploy", "Dockerfile.megafono"))) then
+        failwithf
+            "Megafono's source was not found at %s. Check it out there, or set Megafono:SourcePath (AppHost/appsettings.json or user secrets), or set Megafono:ImageTag to use the published image."
+            sourcePath
+
+    // Postgres: one server, one database per app
+    let pg = builder.AddPostgres("pg").WithDataVolume("frunchy-pg")
+    let frunchyDb = pg.AddDatabase("frunchydb")
+    let megafonoDb = pg.AddDatabase("megafono-db", "megafono")
+
+    // Frunchy is declared first so Megafono and the gateway can point at its endpoint; it is wired to them below
+    let frunchy = builder.AddProject("frunchy", Path.Combine(repoRoot, "FrunchyBackend.fsproj"))
+
+    let megafonoBase =
+        if useImage then
+            builder.AddContainer("megafono", "ghcr.io/cosmic-chimps/megafono", imageTag.Trim())
+        else
+            builder.AddDockerfile("megafono", sourcePath, "deploy/Dockerfile.megafono")
+
+    let megafono =
+        megafonoBase
+            // 8080 federation (the gateway routes to it), 8081 internal API (never external, never a gateway destination)
+            .WithHttpEndpoint(targetPort = 8080, name = "federation")
+            .WithHttpEndpoint(targetPort = 8081, name = "internal")
+            .WithEnvironment("ConnectionStrings__Database", megafonoDb.Resource.ConnectionStringExpression)
+            .WithEnvironment("Megafono__Domain", domain)
+            .WithEnvironment("Megafono__MasterKey", masterKey)
+            .WithEnvironment("Megafono__App__BaseUrl", frunchy.GetEndpoint("http"))
+            .WithEnvironment("Megafono__App__Token", token)
+            .WithEnvironment("Megafono__App__WebhookSecret", webhookSecret)
+            // Container-network addresses of the gateway in dev: any private range
+            .WithEnvironment("Megafono__TrustedProxies", privateRanges)
+            .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+            // Dev only (refused in Production): lets Megafono reach frunchy.test-style private hosts over http
+            .WithEnvironment("Megafono__Federation__AllowPrivateAddresses", "true")
+            .WithHttpHealthCheck(path = "/health", endpointName = "internal")
+            .WaitFor(megafonoDb)
+
+    // The gateway is the single public entrance: Megafono's routes go to Megafono, everything else to Frunchy
+    let gatewayBuilder =
+        if useImage then
+            builder.AddContainer("gateway", "ghcr.io/cosmic-chimps/megafono-gateway", imageTag.Trim())
+        else
+            builder.AddDockerfile("gateway", sourcePath, "deploy/Dockerfile.gateway")
+
+    let gateway =
+        gatewayBuilder
+            .WithHttpEndpoint(targetPort = 8080, name = "http")
+            .WithExternalHttpEndpoints()
+            .WithEnvironment(
+                "ReverseProxy__Clusters__megafono__Destinations__primary__Address",
+                megafono.GetEndpoint("federation")
+            )
+            .WithEnvironment("ReverseProxy__Clusters__app__Destinations__primary__Address", frunchy.GetEndpoint("http"))
+            .WaitFor(megafono)
+            .WaitFor(frunchy)
+
+    gateway |> ignore
+
+    // Frunchy: a host process. Loopback and the private ranges are trusted, since the gateway reaches it from
+    // a container (through the host's docker address) and the Aspire proxy connects from loopback.
+    frunchy
+        .WithEnvironment("ConnectionStrings__Database", frunchyDb.Resource.ConnectionStringExpression)
+        .WithEnvironment("Frunchy__Federation__Enabled", "true")
+        .WithEnvironment("Frunchy__Federation__Domain", domain)
+        .WithEnvironment("Frunchy__Megafono__Url", megafono.GetEndpoint("internal"))
+        .WithEnvironment("Frunchy__Megafono__Token", token)
+        .WithEnvironment("Frunchy__Megafono__WebhookSecret", webhookSecret)
+        .WithEnvironment("Frunchy__TrustedProxies", $"127.0.0.1,::1,{privateRanges}")
+        .WaitFor(frunchyDb)
+    |> ignore
+
+    builder.Build().Run()
+    0
