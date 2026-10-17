@@ -51,6 +51,8 @@ let endpoints =
       Handlers.Users.Compare.endpoint
       // Feature 012: charts and trends (anyone)
       yield! Handlers.Charts.Charts.endpoint
+      // Feature 013: the public series page
+      Handlers.Series.Series.endpoint
       // Feature 009: the episode page and its comments
       yield! Handlers.Episodes.Episode.endpoint
       yield! Handlers.Episodes.EditComment.endpoint

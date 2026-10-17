@@ -33,7 +33,7 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
 
 ## Phase 2: User Story 1 - The page (P1) 🎯 MVP
 
-- [ ] T005 [US1] `SeriesPageTests`, every bullet of the quickstart row, against independent SQL:
+- [x] T005 [US1] `SeriesPageTests`, every bullet of the quickstart row, against independent SQL:
   - the header;
   - seasons and their order;
   - MyAnimeList shown once per entry, and the unmatched line;
@@ -47,7 +47,7 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
   - en and es.
 
   · tests/FrunchyBackend.Tests/SeriesPageTests.fs
-- [ ] T006 [US1] `Handlers/Series/Series.fs`:
+- [x] T006 [US1] `Handlers/Series/Series.fs`:
   - **The slice**: view, the body statement (research R2), the poster query, the handler (id check before any query, then a 404) and `GET [ routef "/anime/{%s}" … ]`.
   - **`Program.fs`**: the endpoint.
   - **Design**: impeccable shape → build in Night Broadcast, reusing `Components.seasonNameLine`, `malDetails` and `malCompact`.
