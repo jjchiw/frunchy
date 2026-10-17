@@ -65,6 +65,27 @@ let ``username and display name rules`` () =
     }
 
 [<Fact>]
+let ``a trailing dash is refused with the username error and creates nothing, but _ and inner dashes are fine`` () =
+    task {
+        use! app = newApp ()
+        let! code = createInvite app
+        do! assertRefused app code "abc-" "X" "That username isn't allowed"
+
+        // the invite survived the refusal, so it still works for allowed names
+        use underscore = app.NewBrowser()
+        let! response = submitSignUp underscore "sub-underscore" code "abc_" "Underscore"
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
+
+        let! second = createInvite app
+        use inner = app.NewBrowser()
+        let! response = submitSignUp inner "sub-inner" second "a-b" "Inner"
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
+
+        let! names = Db.dump app.Db "SELECT username FROM users ORDER BY username"
+        Assert.Equal<string list>([ "a-b"; "abc_" ], names)
+    }
+
+[<Fact>]
 let ``a valid sign-up creates the account, consumes the invite and signs in`` () =
     task {
         use! app = newApp ()

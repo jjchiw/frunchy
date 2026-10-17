@@ -25,6 +25,45 @@ let ``invalid usernames are rejected`` (raw: string) = Assert.Equal(None, Userna
 [<Fact>]
 let ``null username is rejected`` () = Assert.Equal(None, Username.tryCreate null)
 
+// Feature 013: new names can't end in a dash; lookups keep the old rule so existing accounts resolve
+
+[<Theory>]
+[<InlineData("abc-", false, true)>]
+[<InlineData("ABC-", false, true)>]
+[<InlineData("abc_", true, true)>]
+[<InlineData("a-b", true, true)>]
+[<InlineData("a1b", true, true)>]
+[<InlineData("a--", false, true)>]
+[<InlineData("-ab", false, false)>]
+[<InlineData("abc", true, true)>]
+let ``new names refuse a trailing dash while lookups still accept it`` (raw: string, newOk: bool, lookupOk: bool) =
+    Assert.Equal(newOk, (Username.tryCreateNew raw).IsSome)
+    Assert.Equal(lookupOk, (Username.tryCreate raw).IsSome)
+
+[<Theory>]
+[<InlineData(2, false)>]
+[<InlineData(3, true)>]
+[<InlineData(30, true)>]
+[<InlineData(31, false)>]
+let ``new names are 3 to 30 characters, like lookups`` (length: int, ok: bool) =
+    let name = System.String('a', length)
+    Assert.Equal(ok, (Username.tryCreateNew name).IsSome)
+    Assert.Equal(ok, (Username.tryCreate name).IsSome)
+
+[<Theory>]
+[<InlineData("admin")>]
+[<InlineData("Account")>]
+[<InlineData("signin")>]
+[<InlineData("frunchy")>]
+let ``reserved names are refused by both rules`` (raw: string) =
+    Assert.Equal(None, Username.tryCreateNew raw)
+    Assert.Equal(None, Username.tryCreate raw)
+
+[<Fact>]
+let ``new names are trimmed and lowercased, and null is refused`` () =
+    Assert.Equal(Some "jj_chiw-01", Username.tryCreateNew "  JJ_Chiw-01 ")
+    Assert.Equal(None, Username.tryCreateNew null)
+
 [<Fact>]
 let ``sync keys are frk_ plus 43 base64url chars and unique`` () =
     let a = SyncKey.generate ()

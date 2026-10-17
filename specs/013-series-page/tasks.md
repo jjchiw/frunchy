@@ -66,14 +66,14 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
 
 ## Phase 4: User Story 3 - Usernames (P2)
 
-- [ ] T009 [US3] Tests:
+- [x] T009 [US3] Tests:
   - sign-up refuses `abc-` and creates nothing; it accepts `abc_` and `a-b`;
   - `user-create abc-` exits with the bad-username code and creates nothing;
   - a user inserted with `abc-` keeps a working dashboard and is found by `operator-add`;
   - unit tests for `tryCreateNew` and `tryCreate` side by side.
 
   · tests/FrunchyBackend.Tests (the existing sign-up, CLI and username test files)
-- [ ] T010 [US3] Add `Username.tryCreateNew` and use it in sign-up and `user-create` · Domains/Identity.fs, Handlers/Auth/SignUp.fs, Operations/CreateUser.fs
+- [x] T010 [US3] Add `Username.tryCreateNew` and use it in sign-up and `user-create` · Domains/Identity.fs, Handlers/Auth/SignUp.fs, Operations/CreateUser.fs
 
 ## Phase 5: Polish
 

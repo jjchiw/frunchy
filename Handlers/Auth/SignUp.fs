@@ -195,7 +195,7 @@ let submit: EndpointHandler =
                 ctx.SetStatusCode StatusCodes.Status400BadRequest
                 ctx.WriteHtmlView(view ctx t values (Some message))
 
-            match Username.tryCreate values.Username with
+            match Username.tryCreateNew values.Username with
             | None -> return! refuse t.UsernameInvalid
             | Some _ when values.DisplayName.Length < 1 || values.DisplayName.Length > 60 -> return! refuse t.DisplayNameInvalid
             | Some _ when values.Invite = "" -> return! refuse t.InviteInvalid

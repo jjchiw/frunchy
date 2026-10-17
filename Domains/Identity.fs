@@ -9,6 +9,10 @@ open System.Text.RegularExpressions
 module Username =
     let private pattern = Regex("^[a-z0-9][a-z0-9_-]{2,29}$", RegexOptions.Compiled)
 
+    /// The rule for names created from now on: like `pattern`, but the last character can't be a dash
+    /// (Mastodon refuses remote usernames ending in "-")
+    let private newPattern = Regex("^[a-z0-9][a-z0-9_-]{1,28}[a-z0-9_]$", RegexOptions.Compiled)
+
     /// Names that would collide with Frunchy's own pages or be misleading (feature 002 data-model)
     let reserved =
         set [ "admin"; "api"; "account"; "accounts"; "login"; "logout"; "signin"; "signout"; "signup"
@@ -21,6 +25,15 @@ module Username =
         else
             let value = raw.Trim().ToLowerInvariant()
             if pattern.IsMatch value && not (reserved.Contains value) then Some value else None
+
+    /// The creation rule (sign-up, `user-create`): `tryCreate`'s, plus no trailing dash. Lookups keep
+    /// `tryCreate`, so accounts created before the rule still resolve.
+    let tryCreateNew (raw: string) =
+        if isNull raw then
+            None
+        else
+            let value = raw.Trim().ToLowerInvariant()
+            if newPattern.IsMatch value && not (reserved.Contains value) then Some value else None
 
 /// Secret the extension sends as `Authorization: Bearer <key>`. Only its SHA-256 hash is stored.
 module SyncKey =

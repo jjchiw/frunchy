@@ -33,6 +33,23 @@ let ``reserved usernames are refused by user-create`` (name: string) =
     }
 
 [<Fact>]
+let ``user-create refuses a trailing dash with the bad-username code and creates nothing`` () =
+    task {
+        let! db = newDatabase ()
+        let! code = CreateUser.run db [ "abc-"; "X" ]
+        Assert.Equal(3, code)
+        let! users = Db.count db "users"
+        Assert.Equal(0L, users)
+        // names ending in _ or with an inner dash are fine
+        let! code = CreateUser.run db [ "abc_"; "X" ]
+        Assert.Equal(0, code)
+        let! code = CreateUser.run db [ "a-b"; "X" ]
+        Assert.Equal(0, code)
+        let! users = Db.count db "users"
+        Assert.Equal(2L, users)
+    }
+
+[<Fact>]
 let ``deleting a user removes their security events`` () =
     task {
         use! app = newApp ()

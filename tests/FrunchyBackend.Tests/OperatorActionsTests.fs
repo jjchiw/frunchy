@@ -206,3 +206,20 @@ let ``with no root configured the terminal still works, which is the way back in
         let! closed = newbie.GetRaw "/review/mal"
         Assert.Equal(HttpStatusCode.NotFound, closed.StatusCode)
     }
+
+[<Fact>]
+let ``an account whose name ends in a dash (made before the rule) keeps its dashboard and operator-add finds it`` () =
+    task {
+        let! db = newDatabase ()
+        let! app = createAppWith db [] ignore
+        use app = app
+        do! Db.execute app.Db "INSERT INTO users (id, username, display_name) VALUES (gen_random_uuid(), 'abc-', 'Old Timer')"
+
+        let! response = app.Client.GetAsync "/u/abc-"
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode)
+
+        let! code = cli app None "operator-add" [ "abc-" ]
+        Assert.Equal(0, code)
+        let! operators = Db.dump app.Db "SELECT u.username FROM operators o JOIN users u ON u.id = o.user_id"
+        Assert.Equal<string list>([ "abc-" ], operators)
+    }

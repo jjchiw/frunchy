@@ -21,7 +21,7 @@ let createUser (db: DbConfig) (rawUsername: string) (rawDisplayName: string) : T
     task {
         let displayName = if isNull rawDisplayName then "" else rawDisplayName.Trim()
 
-        match Username.tryCreate rawUsername with
+        match Username.tryCreateNew rawUsername with
         | None -> return Error InvalidUsername
         | Some _ when displayName.Length = 0 || displayName.Length > 60 -> return Error InvalidDisplayName
         | Some username ->
@@ -63,7 +63,7 @@ let run (db: DbConfig) (args: string list) : Task<int> =
                 printfn "Public dashboard: /u/%s" created.Username
                 return 0
             | Error InvalidUsername ->
-                eprintfn "Invalid username '%s': use 3-30 chars, a-z 0-9 _ -, starting with a letter or digit." username
+                eprintfn "Invalid username '%s': use 3-30 chars, a-z 0-9 _ -, starting with a letter or digit and ending with a letter, digit or _." username
                 return 3
             | Error UsernameTaken ->
                 eprintfn "Username '%s' is already taken." (username.ToLowerInvariant())
