@@ -97,6 +97,8 @@ let private header (ctx: HttpContext) (t: Texts) (people: int option) (m: AnimeM
                         t.DashboardLink
                     }
 
+                    a(href = $"/anime/{m.SeriesId}", class' = btn Ghost).data("series-page-link", "") { t.SeriesPageLink }
+
                     match m.Slug with
                     | Some slug ->
                         a(href = $"https://www.crunchyroll.com/series/{m.SeriesId}/{slug}", target = "_blank", class' = btn Secondary)

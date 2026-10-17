@@ -115,10 +115,8 @@ let private row (t: Texts) (username: string option) (top: int) (rank: int) (r: 
 
         div(class' = "min-w-0 flex-1 space-y-1.5") {
             div(class' = "flex flex-wrap items-center gap-x-3 gap-y-1") {
-                match username with
-                | Some name when r.Mine ->
-                    a(href = $"/u/{name}/anime/{r.SeriesId}", class' = titleClass + " hover:underline").data("chart-mine", "") { r.Title }
-                | _ -> span(class' = titleClass) { r.Title }
+                // The title leads to the public series page, for everyone (feature 013)
+                a(href = $"/anime/{r.SeriesId}", class' = titleClass + " hover:underline").data("series-page-link", "") { r.Title }
 
                 match r.Move with
                 | Some move -> movement t move
@@ -129,15 +127,28 @@ let private row (t: Texts) (username: string option) (top: int) (rank: int) (r: 
 
             toneBar PrimaryBar share
 
-            match r.Slug with
-            | Some slug ->
-                a(href = $"https://www.crunchyroll.com/series/{r.SeriesId}/{slug}", target = "_blank", class' = "fr-link inline-flex min-h-6 items-center gap-1 text-label-md")
-                    .attr("rel", "noopener")
-                    .data("cr-series-link", "") {
-                    t.EpisodeWatchOnCrunchyroll
-                    icon Theme.OpenInNew
+            // An empty row would still take its share of the spacing
+            if r.Slug.IsSome || (username.IsSome && r.Mine) then
+                div(class' = "flex flex-wrap items-center gap-x-4 gap-y-1") {
+                    match r.Slug with
+                    | Some slug ->
+                        a(href = $"https://www.crunchyroll.com/series/{r.SeriesId}/{slug}", target = "_blank", class' = "fr-link inline-flex min-h-6 items-center gap-1 text-label-md")
+                            .attr("rel", "noopener")
+                            .data("cr-series-link", "") {
+                            t.EpisodeWatchOnCrunchyroll
+                            icon Theme.OpenInNew
+                        }
+                    | None -> Fragment()
+
+                    // The viewer's own anime page, only for a signed-in viewer who watched the series
+                    match username with
+                    | Some name when r.Mine ->
+                        a(href = $"/u/{name}/anime/{r.SeriesId}", class' = "fr-link inline-flex min-h-6 items-center text-label-md")
+                            .data("chart-mine", "") {
+                            t.ChartsYourHistory
+                        }
+                    | _ -> Fragment()
                 }
-            | None -> Fragment()
         }
 
         if r.Move.IsSome then

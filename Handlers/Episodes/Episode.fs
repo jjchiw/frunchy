@@ -187,7 +187,11 @@ let private header (t: Texts) (people: int option) (m: EpisodeModel) =
                     heading
                 }
 
-                p(class' = "text-body-lg text-on-surface-variant [overflow-wrap:anywhere]") { m.SeriesTitle }
+                p(class' = "text-body-lg text-on-surface-variant [overflow-wrap:anywhere]") {
+                    a(href = $"/anime/{m.SeriesId}", class' = "hover:text-on-surface hover:underline").data("series-page-link", "") {
+                        m.SeriesTitle
+                    }
+                }
 
                 p(class' = "flex flex-wrap items-center gap-x-3 gap-y-1 text-label-md font-normal text-on-surface-variant") {
                     span().data("episode-number", numberText) { label }

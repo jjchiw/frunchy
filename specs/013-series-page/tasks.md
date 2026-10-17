@@ -56,13 +56,13 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
 
 ## Phase 3: User Story 2 - Links (P2)
 
-- [ ] T007 [US2] `SeriesLinkTests`:
+- [x] T007 [US2] `SeriesLinkTests`:
   - the chart row title links to the series page for everyone, and "Your history" (`data-chart-mine`) shows only for a viewer who watched the series;
   - the episode page's series title links to the series page;
   - the anime page links to the series page.
 
   Update the 012 tests that read `data-chart-mine` on the title to its new element · tests/FrunchyBackend.Tests/SeriesLinkTests.fs, tests/FrunchyBackend.Tests/ChartsTests.fs
-- [ ] T008 [US2] Add the links, per research R5 · Handlers/Charts/Charts.fs, Handlers/Episodes/Episode.fs, Handlers/Users/Anime.fs
+- [x] T008 [US2] Add the links, per research R5 · Handlers/Charts/Charts.fs, Handlers/Episodes/Episode.fs, Handlers/Users/Anime.fs
 
 ## Phase 4: User Story 3 - Usernames (P2)
 
