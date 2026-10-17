@@ -11,6 +11,7 @@
     <Compile Include="Infrastructure/FakeMal.fs" />
     <Compile Include="Infrastructure/Browser.fs" />
     <Compile Include="Infrastructure/PostgresFixture.fs" />
+    <Compile Include="Infrastructure/Collections.fs" />
     <Compile Include="Fixtures.fs" />
     <Compile Include="IdentityTests.fs" />
     <Compile Include="DatabaseTests.fs" />

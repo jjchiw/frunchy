@@ -11,7 +11,7 @@ starts as before.
 
 | Command | Effect | Output |
 |---|---|---|
-| `user-create <username> <displayName>` | creates the user (username rule `^[a-z0-9][a-z0-9_-]{2,29}$`, lowercased) and issues a sync key | the key, printed **once**, plus the dashboard path |
+| `user-create <username> <displayName>` | creates the user (username rule `^[a-z0-9][a-z0-9_-]{1,28}[a-z0-9_]$` since feature 013, so it can't end in `-`; lowercased) and issues a sync key | the key, printed **once**, plus the dashboard path |
 | `user-regenerate-key <username>` | replaces the key hash; the old key stops working immediately | the new key, printed once |
 | `user-reset-binding <username>` | clears `cr_account_id` / `cr_profile_id`; the next accepted submission binds again; history is kept | confirmation |
 | `user-rebuild <username>` | deletes the user's watch events and entry issues, sets all their imports back to `pending` (counts zeroed); the running worker, or the next app start, reprocesses them | number of imports queued |

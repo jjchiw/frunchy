@@ -1,3 +1,5 @@
+// The 2M-row speed test lives here, so the whole module runs alone (Infrastructure/Collections.fs)
+[<Xunit.Collection(FrunchyBackend.Tests.Infrastructure.Collections.Timed)>]
 module FrunchyBackend.Tests.ChartsTests
 
 open System
