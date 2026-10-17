@@ -15,6 +15,7 @@
     <Compile Include="Fixtures.fs" />
     <Compile Include="IdentityTests.fs" />
     <Compile Include="DatabaseTests.fs" />
+    <Compile Include="SchemaBootstrapTests.fs" />
     <Compile Include="TestHelpers.fs" />
     <Compile Include="AuthHelpers.fs" />
     <Compile Include="HomeTests.fs" />

@@ -5,9 +5,10 @@ every app start and before every operator CLI command, and it's idempotent (`CRE
 EXISTS`, no migration framework). Keep this document in sync with it. The design rationale is in
 `specs/001-crunchyroll-history-import/data-model.md` and `research.md`.
 
-> **Legacy layout**: databases created before feature 001 (tables `import_records`, `users.email`,
-> `cr_imports.payload`) held only placeholder data. The bootstrap detects them and stops. Reset
-> once with `dropdb frunchydb && createdb frunchydb`.
+> **Clean bootstrap** (feature 014): the script describes each table's final shape in one `CREATE
+> TABLE`, for an empty database. There is no legacy check and no `ALTER` patch: a database built by an
+> older version is reset (drop it and let the app create it again). `SchemaBootstrapTests` proves the
+> script builds the same columns, constraints and indexes the old patch-style script did.
 
 ## Data classes
 

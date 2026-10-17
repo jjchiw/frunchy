@@ -169,7 +169,7 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
    `Host=localhost;Port=5432;Username=postgres;Password=postgres;Database=frunchydb`), or override with the
    `ConnectionStrings__Database` environment variable. The schema is created on startup.
 
-   Databases from before feature 001 have a legacy placeholder layout, which the app refuses. Reset once
+   A database created by an older version is not migrated: drop it and let the app create it again
    (there's no local `psql`, so run it inside the Postgres container, or use DBeaver):
    ```bash
    docker exec postgres-postgres-1 dropdb -U postgres frunchydb

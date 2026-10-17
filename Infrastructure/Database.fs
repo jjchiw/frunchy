@@ -6,22 +6,9 @@ open Npgsql
 type DbConfig =
     { connectionString: string }
 
-/// Raised when the database still has the pre-001 placeholder layout, which never held real data
-exception LegacySchemaException of string
-
 /// Get a database connection from the connection string
 let getConnection (config: DbConfig) : NpgsqlConnection =
     new NpgsqlConnection(config.connectionString)
-
-let private legacyLayoutQuery =
-    """
-    SELECT EXISTS (SELECT 1 FROM information_schema.tables
-                   WHERE table_schema = current_schema() AND table_name = 'import_records')
-        OR EXISTS (SELECT 1 FROM information_schema.columns
-                   WHERE table_schema = current_schema() AND table_name = 'users' AND column_name = 'email')
-        OR EXISTS (SELECT 1 FROM information_schema.columns
-                   WHERE table_schema = current_schema() AND table_name = 'cr_imports' AND column_name = 'payload')
-    """
 
 // See specs/001-crunchyroll-history-import/data-model.md and SCHEMA.md
 let private schema =
@@ -31,8 +18,8 @@ let private schema =
         id                  uuid PRIMARY KEY,
         username            text NOT NULL UNIQUE,
         display_name        text NOT NULL,
-        sync_key_hash       text NOT NULL UNIQUE,
-        sync_key_created_at timestamptz NOT NULL,
+        sync_key_hash       text NULL UNIQUE, -- a signed-up user has no sync key until "Connect extension"
+        sync_key_created_at timestamptz NULL,
         cr_account_id       text NULL,
         cr_profile_id       text NULL,
         created_at          timestamptz NOT NULL DEFAULT now(),
@@ -130,10 +117,6 @@ let private schema =
     CREATE INDEX IF NOT EXISTS ix_watch_events_user_watched ON watch_events (user_id, watched_at DESC);
     -- Charts (feature 012): the week and season charts read a window of watch_events across all users
     CREATE INDEX IF NOT EXISTS ix_watch_events_watched ON watch_events (watched_at);
-
-    -- Accounts (feature 002): a signed-up user has no sync key until "Connect extension"
-    ALTER TABLE users ALTER COLUMN sync_key_hash DROP NOT NULL;
-    ALTER TABLE users ALTER COLUMN sync_key_created_at DROP NOT NULL;
 
     -- One provider identity belongs to at most one user (shape of ASP.NET Core Identity's user logins)
     CREATE TABLE IF NOT EXISTS user_identities (
@@ -273,10 +256,6 @@ let private schema =
         searched_at timestamptz NOT NULL
     );
 
-    -- Databases created before the provider switch (feature 003 amendment)
-    ALTER TABLE mal_anime ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'jikan';
-    ALTER TABLE mal_searches ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'jikan';
-
     -- One row per Crunchyroll season: its MyAnimeList match and its place in the enrichment queue
     CREATE TABLE IF NOT EXISTS cr_season_matches (
         season_id       text PRIMARY KEY REFERENCES cr_seasons(id) ON DELETE CASCADE,
@@ -301,21 +280,11 @@ let private schema =
     CREATE INDEX IF NOT EXISTS ix_cr_season_matches_queue ON cr_season_matches (status, next_attempt_at);
     """
 
-/// Create the schema if missing (idempotent). Fails fast on the legacy placeholder layout.
+/// Create the schema if missing (idempotent: every statement is IF NOT EXISTS, so a second run changes nothing)
 let initializeSchema (config: DbConfig) : Task<unit> =
     task {
         use connection = getConnection config
         do! connection.OpenAsync()
-
-        use legacyCmd = new NpgsqlCommand(legacyLayoutQuery, connection)
-        let! legacy = legacyCmd.ExecuteScalarAsync()
-
-        if unbox<bool> legacy then
-            raise (
-                LegacySchemaException
-                    "The database has the legacy pre-001 schema (placeholder tables, never real data). Reset the dev database and start again: dropdb frunchydb && createdb frunchydb (locally: docker exec postgres-postgres-1 dropdb -U postgres frunchydb, then createdb), see README Getting Started"
-            )
-
         use cmd = new NpgsqlCommand(schema, connection)
         let! _ = cmd.ExecuteNonQueryAsync()
         ()

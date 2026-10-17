@@ -18,8 +18,7 @@ let private allowedInterpolations =
 let private allowedNames =
     set
         [ "Infrastructure/MalCatalog.fs", "sql" // MalCatalog.exec: every caller passes a literal (checked)
-          "Infrastructure/Database.fs", "schema"
-          "Infrastructure/Database.fs", "legacyLayoutQuery" ]
+          "Infrastructure/Database.fs", "schema" ]
 
 let private commandStart = Regex(@"new\s+NpgsqlCommand\(\s*", RegexOptions.Compiled)
 
@@ -98,7 +97,6 @@ let ``the commands built from a name get literal SQL`` () =
     let sources = Map(productionSources ())
     let database = sources["Infrastructure/Database.fs"]
     Assert.Matches(@"let private schema =\s*""""""", database)
-    Assert.Matches(@"let private legacyLayoutQuery =\s*""""""", database)
 
     // MalCatalog.exec db <sql> …: every call passes a literal
     let catalog = sources["Infrastructure/MalCatalog.fs"]

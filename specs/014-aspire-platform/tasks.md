@@ -11,14 +11,14 @@ AppHost by hand.
 
 ## Phase 1: Frunchy (US2, US3)
 
-- [ ] T001 [US3] `SchemaBootstrapTests`:
+- [x] T001 [US3] `SchemaBootstrapTests`:
   - copy the **current** `initializeSchema` SQL verbatim into the test as `oldBootstrap`;
   - run it on one fresh database and `Database.initializeSchema` on another;
   - compare `information_schema.columns` (table, column, data type, nullability, default), `pg_constraint` (table, type, `pg_get_constraintdef`) and `pg_indexes` (table, `indexdef`), sorted, as string lists;
   - run `initializeSchema` a second time and compare again.
 
   · tests/FrunchyBackend.Tests/SchemaBootstrapTests.fs
-- [ ] T002 [US3] Rewrite `initializeSchema` for an empty database: fold every `ALTER TABLE` and `ADD COLUMN IF NOT EXISTS` into the `CREATE TABLE`s, and remove `LegacySchemaException` and its query (research R6). T001 must pass. Update the legacy note in SCHEMA.md and the README reset paragraph · Infrastructure/Database.fs, SCHEMA.md
+- [x] T002 [US3] Rewrite `initializeSchema` for an empty database: fold every `ALTER TABLE` and `ADD COLUMN IF NOT EXISTS` into the `CREATE TABLE`s, and remove `LegacySchemaException` and its query (research R6). T001 must pass. Update the legacy note in SCHEMA.md and the README reset paragraph · Infrastructure/Database.fs, SCHEMA.md
 - [ ] T003 [US3] Remove Discord (research R5):
   - the package, the provider registration and its comments;
   - `AuthConfig.known`, `providerBtn`, the sign-in icon and `appsettings.json`;

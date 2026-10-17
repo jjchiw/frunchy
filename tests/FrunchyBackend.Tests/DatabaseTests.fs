@@ -45,12 +45,3 @@ let ``Jikan responses are stored as json not jsonb`` () =
                 []
         Assert.Equal("json,json", types)
     }
-
-[<Fact>]
-let ``legacy layout is refused with reset instructions`` () =
-    task {
-        let! db = newEmptyDatabase ()
-        do! Db.execute db "CREATE TABLE import_records (cr_import_id uuid PRIMARY KEY)"
-        let! ex = Assert.ThrowsAsync<LegacySchemaException>(fun () -> initializeSchema db :> System.Threading.Tasks.Task)
-        Assert.Contains("dropdb frunchydb", ex.Data0)
-    }
