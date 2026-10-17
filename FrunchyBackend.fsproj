@@ -45,6 +45,7 @@
     <Compile Include="Handlers/Users/Anime.fs" />
     <Compile Include="Handlers/Users/Compare.fs" />
     <Compile Include="Handlers/Charts/Charts.fs" />
+    <Compile Include="Handlers/Series/Series.fs" />
     <Compile Include="Handlers/Review/MalReview.fs" />
     <Compile Include="Handlers/Review/Operators.fs" />
     <Compile Include="Handlers/Episodes/Episode.fs" />

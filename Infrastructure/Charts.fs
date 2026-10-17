@@ -429,6 +429,28 @@ let seriesPeople (db: DbConfig) (seriesId: string) (minPeople: int) : Task<int o
         return countOrNone minPeople (unbox<int64> people)
     }
 
+/// The same since `from` (inclusive): distinct users whose latest watch of a known-length episode of the series
+/// is at or after it (feature 013, "this week"). None below the minimum.
+let seriesPeopleSince (db: DbConfig) (seriesId: string) (from: DateTimeOffset) (minPeople: int) : Task<int option> =
+    task {
+        use connection = getConnection db
+        do! connection.OpenAsync()
+        use cmd =
+            new NpgsqlCommand(
+                """
+    SELECT count(DISTINCT w.user_id)
+    FROM watch_events w
+    JOIN cr_episodes e ON e.id = w.cr_episode_id
+    WHERE e.series_id = @series_id AND e.duration_ms IS NOT NULL AND w.watched_at >= @from
+    """,
+                connection
+            )
+        cmd.Parameters.AddWithValue("series_id", seriesId) |> ignore
+        cmd.Parameters.Add(timestamp "from" (Some from)) |> ignore
+        let! people = cmd.ExecuteScalarAsync()
+        return countOrNone minPeople (unbox<int64> people)
+    }
+
 /// The same for a group of episodes (an episode and its dubs): users who watched any of them
 let episodePeople (db: DbConfig) (episodeIds: string list) (minPeople: int) : Task<int option> =
     task {

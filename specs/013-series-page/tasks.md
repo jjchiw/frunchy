@@ -11,13 +11,13 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
 
 ## Phase 1: Setup and foundation
 
-- [ ] T001 Register the new files:
+- [x] T001 Register the new files:
   - in FrunchyBackend.fsproj, `Handlers/Series/Series.fs` after `Handlers/Charts/Charts.fs`;
   - in the test project, `SeriesPageTests.fs` and `SeriesLinkTests.fs` after the last test file.
 
   · FrunchyBackend.fsproj, tests/FrunchyBackend.Tests/FrunchyBackend.Tests.fsproj
-- [ ] T002 [P] Move `malDetails` from `Handlers/Users/Anime.fs` to `Views/Components.fs`. Its output is identical, and AnimeTests and DesignSystemTests stay green unchanged · Views/Components.fs, Handlers/Users/Anime.fs
-- [ ] T003 [P] Texts, en and es:
+- [x] T002 [P] Move `malDetails` from `Handlers/Users/Anime.fs` to `Views/Components.fs`. Its output is identical, and AnimeTests and DesignSystemTests stay green unchanged · Views/Components.fs, Handlers/Users/Anime.fs
+- [x] T003 [P] Texts, en and es:
   - the page title;
   - "{n} known episodes" (plural);
   - "Watched by {n} people this week" (plural);
@@ -29,7 +29,7 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
   - `UsernameHint` updated to say the name ends in a letter, digit or _.
 
   · Views/Texts.fs
-- [ ] T004 [P] `Charts.seriesPeopleSince db seriesId (from: DateTimeOffset) minPeople : Task<int option>`: distinct users with a watched episode of known length at or after `from`, None below the minimum. Add unit or smoke tests for it · Infrastructure/Charts.fs, tests/FrunchyBackend.Tests/ChartsTests.fs
+- [x] T004 [P] `Charts.seriesPeopleSince db seriesId (from: DateTimeOffset) minPeople : Task<int option>`: distinct users with a watched episode of known length at or after `from`, None below the minimum. Add unit or smoke tests for it · Infrastructure/Charts.fs, tests/FrunchyBackend.Tests/ChartsTests.fs
 
 ## Phase 2: User Story 1 - The page (P1) 🎯 MVP
 

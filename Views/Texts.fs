@@ -390,7 +390,21 @@ type Texts =
       ChartsMinNote: int -> string
       ChartsEmpty: string
       /// "Watched by {n} people on Frunchy" on the anime and episode pages
-      ChartsWatchedBy: int -> string }
+      ChartsWatchedBy: int -> string
+      /// The series page's browser title (feature 013): {series title}
+      SeriesPageTitle: string -> string
+      /// "{n} known episodes" (the summary of a collapsed season, and each season's count)
+      SeriesKnownEpisodes: int -> string
+      /// "Watched by {n} people this week"
+      SeriesWatchedWeek: int -> string
+      /// Says the list is what Frunchy knows, not the season's full Crunchyroll list
+      SeriesKnownNote: string
+      /// The chart row's link to the viewer's own anime page
+      ChartsYourHistory: string
+      /// A link from a person's anime page to the series page
+      SeriesPageLink: string
+      /// "{n} comments", the accessible label of an episode's comment count
+      SeriesCommentsLabel: int -> string }
 
 let en =
     { Lang = "en"
@@ -511,7 +525,7 @@ let en =
       SignUpIntro = "First time here with this account. Enter your invite code and choose how you'll appear."
       InviteCodeLabel = "Invite code"
       UsernameLabel = "Username"
-      UsernameHint = "Your public dashboard address: 3-30 characters, a-z 0-9 _ -. It can't be changed later."
+      UsernameHint = "Your public dashboard address: 3-30 characters, a-z 0-9 _ -, ending in a letter, digit or _. It can't be changed later."
       DisplayNameLabel = "Display name"
       CreateAccountButton = "Create account"
       HaveAccountLink = "I already have a Frunchy account"
@@ -882,7 +896,16 @@ let en =
         fun n -> $"Series appear once {n} people have watched them."
       ChartsEmpty = "No series on this chart yet. Series appear when enough people have watched them."
       ChartsWatchedBy =
-        fun n -> if n = 1 then "Watched by 1 person on Frunchy" else $"""Watched by {n.ToString("N0", CultureInfo.GetCultureInfo "en")} people on Frunchy""" }
+        fun n -> if n = 1 then "Watched by 1 person on Frunchy" else $"""Watched by {n.ToString("N0", CultureInfo.GetCultureInfo "en")} people on Frunchy"""
+      SeriesPageTitle = fun title -> title
+      SeriesKnownEpisodes =
+        fun n -> if n = 1 then "1 known episode" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} known episodes"""
+      SeriesWatchedWeek =
+        fun n -> if n = 1 then "Watched by 1 person this week" else $"""Watched by {n.ToString("N0", CultureInfo.GetCultureInfo "en")} people this week"""
+      SeriesKnownNote = "These are the episodes Frunchy knows from people's histories, not the full Crunchyroll list."
+      ChartsYourHistory = "Your history"
+      SeriesPageLink = "About this series"
+      SeriesCommentsLabel = fun n -> if n = 1 then "1 comment" else $"{n} comments" }
 
 let es =
     { Lang = "es"
@@ -1003,7 +1026,7 @@ let es =
       SignUpIntro = "Es la primera vez que entras con esta cuenta. Escribe tu código de invitación y elige cómo aparecerás."
       InviteCodeLabel = "Código de invitación"
       UsernameLabel = "Nombre de usuario"
-      UsernameHint = "La dirección de tu dashboard público: 3-30 caracteres, a-z 0-9 _ -. No se puede cambiar después."
+      UsernameHint = "La dirección de tu dashboard público: 3-30 caracteres, a-z 0-9 _ -, terminando en letra, número o _. No se puede cambiar después."
       DisplayNameLabel = "Nombre visible"
       CreateAccountButton = "Crear cuenta"
       HaveAccountLink = "Ya tengo una cuenta de Frunchy"
@@ -1378,7 +1401,16 @@ let es =
         fun n -> $"Las series aparecen cuando las han visto al menos {n} personas."
       ChartsEmpty = "Todavía no hay series en este ranking. Las series aparecen cuando las ven suficientes personas."
       ChartsWatchedBy =
-        fun n -> if n = 1 then "Visto por 1 persona en Frunchy" else $"""Visto por {n.ToString("N0", CultureInfo.GetCultureInfo "es")} personas en Frunchy""" }
+        fun n -> if n = 1 then "Visto por 1 persona en Frunchy" else $"""Visto por {n.ToString("N0", CultureInfo.GetCultureInfo "es")} personas en Frunchy"""
+      SeriesPageTitle = fun title -> title
+      SeriesKnownEpisodes =
+        fun n -> if n = 1 then "1 episodio conocido" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} episodios conocidos"""
+      SeriesWatchedWeek =
+        fun n -> if n = 1 then "Visto por 1 persona esta semana" else $"""Visto por {n.ToString("N0", CultureInfo.GetCultureInfo "es")} personas esta semana"""
+      SeriesKnownNote = "Son los episodios que Frunchy conoce por los historiales de la gente, no la lista completa de Crunchyroll."
+      ChartsYourHistory = "Tu historial"
+      SeriesPageLink = "Sobre esta serie"
+      SeriesCommentsLabel = fun n -> if n = 1 then "1 comentario" else $"{n} comentarios" }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =

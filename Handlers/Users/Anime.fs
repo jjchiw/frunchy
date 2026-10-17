@@ -20,21 +20,6 @@ open FrunchyBackend.Views.Texts
 // Model (specs/006-anime-page/data-model.md)
 // ---------------------------------------------------------------------------
 
-/// The MyAnimeList entry a season matched (research R5)
-type MalInfo =
-    { MalId: int
-      Title: string
-      Url: string
-      Format: string option
-      Season: string option
-      Year: int option
-      Score: decimal option
-      Episodes: int option
-      Status: string option
-      /// Up to 3, by position
-      Genres: string list
-      Studio: string option }
-
 type WatchedEpisode =
     { Id: string
       Number: int option
@@ -147,55 +132,6 @@ let private totals (t: Texts) (m: AnimeModel) =
         metricTile t.StatHours "hours" (inv m.Hours) (m.Hours.ToString("N1", t.Culture)) None
         watchTile t t.AnimeFirstWatch "first-watch" m.FirstWatch
         watchTile t t.AnimeLatestWatch "latest-watch" m.LatestWatch
-    }
-
-let private malDetails (t: Texts) (mal: MalInfo) =
-    div(class' = "space-y-3").data("mal", string mal.MalId) {
-        div(class' = "flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1") {
-            p(class' = "min-w-0 text-body-lg font-semibold text-on-surface [overflow-wrap:anywhere]") { mal.Title }
-
-            a(href = mal.Url, target = "_blank", class' = "fr-link inline-flex min-h-6 items-center gap-1 text-label-md")
-                .attr("rel", "noopener")
-                .data("mal-link", "") {
-                t.MyAnimeListLink
-                icon Theme.OpenInNew
-            }
-        }
-
-        div(class' = "flex flex-wrap items-center gap-1.5") {
-            match mal.Format with
-            | Some f -> pill Muted f
-            | None -> Fragment()
-
-            match mal.Year with
-            | Some y -> pill Muted (t.DnaSeason (defaultArg mal.Season "") y)
-            | None -> Fragment()
-
-            match mal.Score with
-            | Some score ->
-                (pill TertiaryTone ("★ " + score.ToString("N2", t.Culture)))
-                    .data("mal-score", score.ToString("0.00", CultureInfo.InvariantCulture))
-                    .attr("role", "group")
-                    .attr("aria-label", t.ScoreLabel)
-            | None -> Fragment()
-
-            match mal.Episodes with
-            | Some n when n > 0 -> pill Muted (t.AnimeMalEpisodes n)
-            | _ -> Fragment()
-
-            match mal.Status with
-            | Some s -> pill Muted (t.AnimeStatus s)
-            | None -> Fragment()
-        }
-
-        if not mal.Genres.IsEmpty || mal.Studio.IsSome then
-            p(class' = "text-body-md text-on-surface-variant") {
-                String.Join(" / ", mal.Genres)
-
-                match mal.Studio with
-                | Some studio -> (if mal.Genres.IsEmpty then "" else " · ") + t.AnimeStudio studio
-                | None -> ""
-            }
     }
 
 let private episodeRow (t: Texts) (seriesId: string) (e: WatchedEpisode) =

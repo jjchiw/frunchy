@@ -160,6 +160,35 @@ let ``people counts need the minimum and count each user once`` () =
         Assert.Equal(None, none)
     }
 
+[<Fact>]
+let ``people since a date count each user once, include the boundary and respect the minimum`` () =
+    task {
+        let! app = newApp ()
+        use app = app
+
+        do!
+            seed
+                app.Db
+                // A: users 1 (twice), 3 and 4 (exactly 7 days) are inside the week, user 2 (20 days) is not
+                [ 1, "a1", 1.0; 1, "a2", 2.0; 2, "a1", 20.0; 3, "a2", 3.0; 4, "a1", 7.0
+                  // B: user 1 inside, user 2 just outside
+                  1, "b1", 1.0; 2, "b1", 7.01
+                  // an unresolved episode doesn't count
+                  2, "c1", 1.0; 3, "c1", 1.0 ]
+
+        let from = now.AddDays -7.0
+        let! a3 = seriesPeopleSince app.Db "SA" from 3
+        let! a4 = seriesPeopleSince app.Db "SA" from 4
+        let! b1 = seriesPeopleSince app.Db "SB" from 1 // 1 clamps to 2, and only one person is inside
+        let! c2 = seriesPeopleSince app.Db "SC" from 2
+        let! long = seriesPeopleSince app.Db "SA" (now.AddDays -30.0) 4
+        Assert.Equal(Some 3, a3)
+        Assert.Equal(None, a4)
+        Assert.Equal(None, b1)
+        Assert.Equal(None, c2)
+        Assert.Equal(Some 4, long)
+    }
+
 // ===========================================================================
 // T006: the chart pages (contracts/charts.md). The expected figures are computed in F# from the raw
 // watch rows, not by calling Charts.fs or its SQL.

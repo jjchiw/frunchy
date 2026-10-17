@@ -69,6 +69,8 @@
     <Compile Include="CompatibilityTests.fs" />
     <Compile Include="ChartsUnitTests.fs" />
     <Compile Include="ChartsTests.fs" />
+    <Compile Include="SeriesPageTests.fs" />
+    <Compile Include="SeriesLinkTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
