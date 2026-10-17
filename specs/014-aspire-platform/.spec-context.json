@@ -2,8 +2,8 @@
   "workflow": "speckit",
   "specName": "Aspire Platform Reset",
   "branch": "014-aspire-platform",
-  "currentStep": "specify",
-  "status": "specified",
+  "currentStep": "tasks",
+  "status": "ready-to-implement",
   "history": [
     {
       "step": "specify",
@@ -11,6 +11,14 @@
       "kind": "start",
       "by": "extension",
       "at": "2026-10-17T21:42:00.057Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-17T21:43:45.227Z"
     }
-  ]
+  ],
+  "telemetryInstanceId": "304d09a7-3543-45aa-bc8d-0d359351caef"
 }
