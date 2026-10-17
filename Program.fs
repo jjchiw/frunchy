@@ -21,7 +21,6 @@ open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.DependencyInjection.Extensions
 open Microsoft.Extensions.Logging
-open AspNet.Security.OAuth.Discord
 open BellaBaxter.AspNet.Configuration
 open Oxpecker
 open FrunchyBackend.Infrastructure
@@ -175,7 +174,7 @@ let private remoteFailed (context: RemoteFailureContext) : Task =
     context.HandleResponse()
     Task.CompletedTask
 
-/// Google and Discord (OAuth handlers)
+/// Google (OAuth handler)
 let private roundTrip (options: OAuthOptions) =
     laxCorrelation options
 
@@ -260,21 +259,6 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
             bindCredentials<GoogleOptions> config services "google" "Google"
             services.AddSingleton<AuthConfig.FrunchyProvider>(AuthConfig.provider "google" "Google" "google" (Some "select_account"))
             |> ignore
-        | "Discord" ->
-            auth.AddDiscord(
-                "discord",
-                fun o ->
-                    o.SignInScheme <- WebAuth.ExternalScheme
-                    o.CallbackPath <- PathString "/signin-discord"
-                    o.Scope.Clear()
-                    o.Scope.Add "identify" // only the stable id is used (FR-021)
-                    roundTrip o
-            )
-            |> ignore
-
-            bindCredentials<DiscordAuthenticationOptions> config services "discord" "Discord"
-            services.AddSingleton<AuthConfig.FrunchyProvider>(AuthConfig.provider "discord" "Discord" "discord" (Some "consent"))
-            |> ignore
         | "Umbral" ->
             match AuthConfig.validateAuthority "Umbral" config["Frunchy:Auth:Providers:Umbral:Authority"] with
             | Error message -> raise (InvalidOperationException message)
@@ -287,7 +271,7 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
                     o.CallbackPath <- PathString "/signin-umbral"
                     o.ResponseType <- OpenIdConnectResponseType.Code // the only flow Umbral offers
                     o.UsePkce <- true // required by Umbral (S256, the handler's method)
-                    // Back on a top-level GET like Google and Discord, so the Lax cookies are sent
+                    // Back on a top-level GET like Google, so the Lax cookies are sent
                     // (the default, form_post, is a cross-site POST in production, which drops them)
                     o.ResponseMode <- OpenIdConnectResponseMode.Query
                     o.MapInboundClaims <- true // sub → ClaimTypes.NameIdentifier, what WebAuth.tryExternalResult reads
@@ -422,7 +406,7 @@ let configureApp (app: WebApplication) =
 /// Bella Baxter (our own secrets manager, dogfooded): when Bella credentials are present, from
 /// `bella sdk run` or `BellaBaxter:ApiKey` in user secrets, the environment's secrets join the
 /// configuration and are polled for changes. Secret keys use `__` for sections
-/// (`Frunchy__Auth__Providers__Discord__ClientSecret`). Bella overrides appsettings and user
+/// (`Frunchy__Auth__Providers__Google__ClientSecret`). Bella overrides appsettings and user
 /// secrets; environment variables and the command line still win. Without credentials (plain
 /// `dotnet run`, the tests) nothing is added.
 let addBellaSecrets (args: string array) (config: ConfigurationManager) =

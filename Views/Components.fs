@@ -40,12 +40,6 @@ let btn (kind: ButtonKind) =
 
 let btnSm kind = btn kind + " fr-btn-sm"
 
-/// Provider sign-in buttons keep the provider's own colour (Discord blurple; Google on a neutral surface)
-let providerBtn (provider: string) =
-    match provider with
-    | "discord" -> "fr-btn w-full text-white bg-[#5865F2] hover:bg-[#4752c4]"
-    | _ -> btn Secondary + " w-full"
-
 let card () = div(class' = "fr-card")
 
 let sectionTitle (text: string) =

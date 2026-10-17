@@ -38,7 +38,7 @@ type FakeProviderHandler(options: IOptionsMonitor<AuthenticationSchemeOptions>, 
                 context.Response.Redirect redirect
         }
 
-/// A second fake provider, so tests can link two different providers (like Discord + Google)
+/// A second fake provider, so tests can link two different providers (like Google + Umbral)
 [<Literal>]
 let Scheme2 = "test2"
 

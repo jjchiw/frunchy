@@ -19,7 +19,7 @@ AppHost by hand.
 
   · tests/FrunchyBackend.Tests/SchemaBootstrapTests.fs
 - [x] T002 [US3] Rewrite `initializeSchema` for an empty database: fold every `ALTER TABLE` and `ADD COLUMN IF NOT EXISTS` into the `CREATE TABLE`s, and remove `LegacySchemaException` and its query (research R6). T001 must pass. Update the legacy note in SCHEMA.md and the README reset paragraph · Infrastructure/Database.fs, SCHEMA.md
-- [ ] T003 [US3] Remove Discord (research R5):
+- [x] T003 [US3] Remove Discord (research R5):
   - the package, the provider registration and its comments;
   - `AuthConfig.known`, `providerBtn`, the sign-in icon and `appsettings.json`;
   - the texts, if any;

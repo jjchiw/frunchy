@@ -69,7 +69,7 @@ let private signInMode (ctx: HttpContext) (db: DbConfig) (ext: WebAuth.ExternalR
             ctx.Response.Redirect "/signup"
     }
 
-/// Account page "Link Google/Discord": attach the identity to the signed-in user (FR-012)
+/// Account page "Link Google/Umbral": attach the identity to the signed-in user (FR-012)
 let private linkMode (ctx: HttpContext) (db: DbConfig) (userId: Guid) (ext: WebAuth.ExternalResult) : Task =
     task {
         let! owner = tryLinkedUser db ext.Identity

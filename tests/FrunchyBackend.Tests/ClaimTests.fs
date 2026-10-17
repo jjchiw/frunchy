@@ -36,7 +36,7 @@ let ``the owner claims an operator-created account with its sync key and keeps e
         let! _ = processAll app.Db
         let! before = dashboard app "jjchiw"
 
-        let! browser, response = claim app "owner-discord" key
+        let! browser, response = claim app "owner-sub" key
         use browser = browser
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
         Assert.Equal("/account", string response.Headers.Location)
@@ -44,7 +44,7 @@ let ``the owner claims an operator-created account with its sync key and keeps e
         let! account = browser.Get "/account"
         Assert.Contains(">jjchiw<", account.Html)
         let! identities = Db.dump app.Db "SELECT u.username, i.provider, i.provider_user_id FROM user_identities i JOIN users u ON u.id = i.user_id"
-        Assert.Equal<string list>([ "jjchiw|test|owner-discord" ], identities)
+        Assert.Equal<string list>([ "jjchiw|test|owner-sub" ], identities)
         let! events = Db.dump app.Db "SELECT event, provider, actor FROM security_events"
         Assert.Equal<string list>([ "claimed|test|user" ], events)
 
@@ -57,7 +57,7 @@ let ``the owner claims an operator-created account with its sync key and keeps e
         let! me = getWithKey app.Client (Some key) "/api/me"
         Assert.Equal(HttpStatusCode.OK, me.StatusCode)
         use later = app.NewBrowser()
-        let! again = signInWith later "owner-discord"
+        let! again = signInWith later "owner-sub"
         Assert.Equal("/account", again.Path)
     }
 

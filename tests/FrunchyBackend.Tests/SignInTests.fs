@@ -134,3 +134,36 @@ let ``signed-in navbar shows the display name, account and sign out`` () =
         Assert.Contains("href=\"/account\"", page.Html)
         Assert.Contains("action=\"/signout\"", page.Html)
     }
+
+/// Feature 014: Discord sign-in is gone. Even with every provider the build knows enabled (and a
+/// leftover Discord section in someone's configuration), the page offers no Discord and the route is a 404.
+[<Fact>]
+let ``there is no Discord sign-in, even with every provider enabled`` () =
+    task {
+        let! db = newDatabase ()
+
+        use! app =
+            createAppWith
+                db
+                [ "Frunchy:Auth:Providers:Google:Enabled", "true"
+                  "Frunchy:Auth:Providers:Google:ClientId", "id"
+                  "Frunchy:Auth:Providers:Google:ClientSecret", "secret"
+                  "Frunchy:Auth:Providers:Umbral:Enabled", "true"
+                  "Frunchy:Auth:Providers:Umbral:Authority", "https://umbral.example"
+                  "Frunchy:Auth:Providers:Umbral:ClientId", "id"
+                  "Frunchy:Auth:Providers:Umbral:ClientSecret", "secret"
+                  "Frunchy:Auth:Providers:Discord:Enabled", "true"
+                  "Frunchy:Auth:Providers:Discord:ClientId", "id"
+                  "Frunchy:Auth:Providers:Discord:ClientSecret", "secret" ]
+                ignore
+
+        use browser = app.NewBrowser()
+        let! page = browser.Get "/signin"
+        Assert.Equal(HttpStatusCode.OK, page.Status)
+        Assert.Contains("data-provider=\"google\"", page.Html)
+        Assert.Contains("data-provider=\"umbral\"", page.Html)
+        Assert.DoesNotContain("discord", page.Html.ToLowerInvariant())
+
+        let! response = app.Client.GetAsync "/signin/discord"
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode)
+    }

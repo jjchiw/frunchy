@@ -25,7 +25,7 @@ let private settings name enabled clientId secret =
 
 [<Fact>]
 let ``an enabled provider without its secret is rejected with the named setting`` () =
-    match validate [ settings "Google" true "id" ""; settings "Discord" false "" "" ] with
+    match validate [ settings "Google" true "id" ""; settings "Umbral" false "" "" ] with
     | Error message ->
         Assert.Equal(
             "Provider 'Google' is enabled but Frunchy:Auth:Providers:Google:ClientSecret is missing (set it with dotnet user-secrets or an environment variable)",
@@ -35,13 +35,13 @@ let ``an enabled provider without its secret is rejected with the named setting`
 
 [<Fact>]
 let ``an enabled provider without its client id names ClientId`` () =
-    match validate [ settings "Discord" true "" "secret" ] with
-    | Error message -> Assert.Contains("Frunchy:Auth:Providers:Discord:ClientId is missing", message)
+    match validate [ settings "Umbral" true "" "secret" ] with
+    | Error message -> Assert.Contains("Frunchy:Auth:Providers:Umbral:ClientId is missing", message)
     | Ok() -> failwith "expected an error"
 
 [<Fact>]
 let ``disabled providers and complete providers are fine`` () =
-    Assert.Equal(Ok(), validate [ settings "Google" false "" ""; settings "Discord" true "id" "secret" ])
+    Assert.Equal(Ok(), validate [ settings "Google" false "" ""; settings "Umbral" true "id" "secret" ])
 
 [<Fact>]
 let ``the site refuses to start with an enabled provider missing credentials`` () =
@@ -99,28 +99,28 @@ let ``a rotated provider credential is used without a restart`` () =
         use! app =
             PostgresFixture.createAppWith
                 db
-                [ "Frunchy:Auth:Providers:Discord:Enabled", "true"
-                  "Frunchy:Auth:Providers:Discord:ClientId", "first-client-id"
-                  "Frunchy:Auth:Providers:Discord:ClientSecret", "first-secret" ]
+                [ "Frunchy:Auth:Providers:Google:Enabled", "true"
+                  "Frunchy:Auth:Providers:Google:ClientId", "first-client-id"
+                  "Frunchy:Auth:Providers:Google:ClientSecret", "first-secret" ]
                 ignore
 
-        let clientIdSentToDiscord () =
+        let clientIdSentToGoogle () =
             task {
-                let! response = app.Client.GetAsync "/signin/discord"
+                let! response = app.Client.GetAsync "/signin/google"
                 Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
                 let location = response.Headers.Location
-                Assert.Equal("discord.com", location.Host)
+                Assert.Equal("accounts.google.com", location.Host)
                 return HttpUtility.ParseQueryString(location.Query)["client_id"]
             }
 
-        let! before = clientIdSentToDiscord ()
+        let! before = clientIdSentToGoogle ()
         Assert.Equal("first-client-id", before)
 
         let config = app.Services.GetRequiredService<IConfiguration>() :?> IConfigurationRoot
-        config["Frunchy:Auth:Providers:Discord:ClientId"] <- "rotated-client-id"
+        config["Frunchy:Auth:Providers:Google:ClientId"] <- "rotated-client-id"
         config.Reload()
 
-        let! after = clientIdSentToDiscord ()
+        let! after = clientIdSentToGoogle ()
         Assert.Equal("rotated-client-id", after)
     }
 
@@ -134,13 +134,13 @@ let ``a failed provider round trip shows the sign-in page, not an exception`` ()
         use! app =
             PostgresFixture.createAppWith
                 db
-                [ "Frunchy:Auth:Providers:Discord:Enabled", "true"
-                  "Frunchy:Auth:Providers:Discord:ClientId", "id"
-                  "Frunchy:Auth:Providers:Discord:ClientSecret", "secret" ]
+                [ "Frunchy:Auth:Providers:Google:Enabled", "true"
+                  "Frunchy:Auth:Providers:Google:ClientId", "id"
+                  "Frunchy:Auth:Providers:Google:ClientSecret", "secret" ]
                 ignore
 
         // Starting sign-in sets the correlation cookie: SameSite=Lax, not Secure over http
-        let! start = app.Client.GetAsync "/signin/discord"
+        let! start = app.Client.GetAsync "/signin/google"
         Assert.Equal(HttpStatusCode.Redirect, start.StatusCode)
 
         let correlation =
@@ -150,7 +150,7 @@ let ``a failed provider round trip shows the sign-in page, not an exception`` ()
         Assert.DoesNotContain("secure", correlation.ToLowerInvariant())
 
         // A callback the handler can't correlate (here: a state it never issued)
-        let! callback = app.Client.GetAsync "/signin-discord?code=abc&state=not-ours"
+        let! callback = app.Client.GetAsync "/signin-google?code=abc&state=not-ours"
         Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode)
         Assert.Equal("/signin?error=failed", string callback.Headers.Location)
     }

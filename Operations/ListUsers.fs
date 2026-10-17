@@ -11,7 +11,7 @@ type UserRow =
       Bound: bool
       Imports: int64
       LastSyncAt: DateTime option
-      /// Linked sign-in providers (feature 002), e.g. ["discord"; "google"]
+      /// Linked sign-in providers (feature 002), e.g. ["google"; "umbral"]
       Providers: string list }
 
 let listUsers (db: DbConfig) : Task<UserRow list> =

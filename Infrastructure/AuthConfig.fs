@@ -12,7 +12,7 @@ type ProviderSettings =
       ClientSecret: string }
 
 /// Providers this build knows how to register
-let known = [ "Google"; "Discord"; "Umbral" ]
+let known = [ "Google"; "Umbral" ]
 
 let read (config: IConfiguration) : ProviderSettings list =
     [ for name in known ->
@@ -55,7 +55,7 @@ let validateAuthority (name: string) (authority: string) : Result<unit, string> 
         Error
             $"Provider '{name}' is enabled but Frunchy:Auth:Providers:{name}:Authority is not an https URL (plain http is accepted only on localhost): '{authority}'"
 
-/// A sign-in provider registered with the app (Google, Discord, Umbral; the tests add "test")
+/// A sign-in provider registered with the app (Google, Umbral; the tests add "test")
 type FrunchyProvider =
     { /// Route key: /signin/{Name}
       Name: string
