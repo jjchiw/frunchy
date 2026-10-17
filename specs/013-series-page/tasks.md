@@ -77,15 +77,15 @@ Use the `oxpecker` skill for views and `impeccable` for UI.
 
 ## Phase 5: Polish
 
-- [ ] T011 [P] Add the series page to the every-page design-system check with its hooks · tests/FrunchyBackend.Tests/DesignSystemTests.fs
-- [ ] T012 [P] Docs:
+- [x] T011 [P] Add the series page to the every-page design-system check with its hooks · tests/FrunchyBackend.Tests/DesignSystemTests.fs
+- [x] T012 [P] Docs:
   - **CLAUDE.md**: the route, the links and the username rule.
   - **FRONTEND.md**: the page.
   - **README.md**: roadmap 013 and the tree line.
   - **docs/fediverse.md**: the series profile URL is `/anime/{seriesId}`; the username ending rule is done; Megáfono 003 and 004 are on its main.
 
   · CLAUDE.md, FRONTEND.md, README.md, docs/fediverse.md
-- [ ] T013 Run an impeccable audit of the series page (a multi-season series with a dub, a long series, the not-enough state), the changed chart row and the episode and anime headers, at 1280 and 360, en and es. Then run the full `dotnet test` and append the validation log · specs/013-series-page/quickstart.md
+- [x] T013 Run an impeccable audit of the series page (a multi-season series with a dub, a long series, the not-enough state), the changed chart row and the episode and anime headers, at 1280 and 360, en and es. Then run the full `dotnet test` and append the validation log · specs/013-series-page/quickstart.md
 
 ## Dependencies
 

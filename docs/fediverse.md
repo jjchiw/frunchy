@@ -1,6 +1,6 @@
 # Frunchy on the fediverse: episode comments and following
 
-Status: design note, 2026-10-10. Nothing here is built. Each step below becomes its own spec-kit feature.
+Status: design note, 2026-10-10, updated 2026-10-17. Of this, only the pieces named below as done are built (feature 009's local comments, feature 013's series page and username rule). Each step below becomes its own spec-kit feature.
 
 Frunchy joins the fediverse through **Megáfono** (`../../Megafono`), a self-hosted ActivityPub sidecar.
 Frunchy keeps its users, data and pages, and contains no ActivityPub code. Megáfono owns the protocol:
@@ -112,21 +112,21 @@ it; GoToSocial doesn't, so its users paste the post id or the series handle.
   removals use `DELETE /internal/objects/{objectId}`, which sends a Tombstone and takes the comment out
   of the replies collection. Copies already on other servers may stay.
 - **Ids.** Ids match `^[A-Za-z0-9_-]{1,64}$` and are never reused. Series use `series-{crSeriesId}`.
-  A Group lookup sends `type: "Group"`, `locked: false`, and the series page as `profileUrl`.
+  A Group lookup sends `type: "Group"`, `locked: false`, and the series page as `profileUrl`, which is
+  `/anime/{seriesId}` (built in feature 013, 2026-10-17).
 - **Handles.** Megáfono allows lowercase letters, digits and underscore, up to 30 characters, so
   series need a short handle, e.g. `frieren`, decided in Frunchy's spec and kept apart from usernames.
   Megáfono's handle fix (its commit 980a3cb, on its main since 2026-10-15 with 001 and 002, merge
   43fc4c5) allows `-` inside a handle but not at either end,
-  because Mastodon refuses a remote username ending in `-`. Frunchy usernames
-  (`^[a-z0-9][a-z0-9_-]{2,29}$`) can end in a dash today. Plan: before federation, tighten the rule
-  so the last character is a letter, digit or `_`. Existing users with a trailing dash (none in the
-  local database as of 2026-10-10) are asked to rename. Their actor id is `users.id`, so a rename
-  keeps their identity, and nobody has federated yet, so there's no handle change to announce.
-- **Blocks.** A separate Megáfono task. Frunchy doesn't announce series accounts widely until it
-  lands, and until then hiding a comment hides it only on Frunchy.
+  because Mastodon refuses a remote username ending in `-`. **Done for new names** (feature 013,
+  2026-10-17): sign-up and `user-create` use `Username.tryCreateNew`, `^[a-z0-9][a-z0-9_-]{1,28}[a-z0-9_]$`,
+  so the last character is a letter, digit or `_`. Existing names keep working (lookups use the old rule,
+  `^[a-z0-9][a-z0-9_-]{2,29}$`) and none with a trailing dash exist locally (checked 2026-10-10). If one
+  ever does, it is asked to rename: its actor id is `users.id`, so a rename keeps the identity.
+- **Blocks.** Built in Megáfono 004 (below). Frunchy doesn't announce series accounts widely until it
+  is wired in, and until then hiding a comment hides it only on Frunchy.
 - **Megáfono's next features** (as of 2026-10-15), both before series accounts are announced: actor
-  deletion (`DELETE /internal/actors/{id}`, which Frunchy's `/account/delete` will call), then
-  per-actor and per-instance blocks. Megáfono sends their contracts once they're specced.
+  deletion, then per-actor and per-instance blocks. Both are now built (below).
 
 **Megáfono 002 is implemented** (2026-10-10) and on Megáfono's main since 2026-10-15 (merge 43fc4c5).
 It was verified against GoToSocial 0.22.2 and Mastodon 4.7.3. What a Frunchy integration should know:
@@ -139,6 +139,21 @@ It was verified against GoToSocial 0.22.2 and Mastodon 4.7.3. What a Frunchy int
 - **References:** the contracts are in `specs/002-replies-threads/contracts/` and the "Replies and
   threads" section of `docs/operating.md`, in the Megáfono repo. `samples/SampleApp/Megafono.fs` shows
   the basic calls in about 70 lines.
+
+**Megáfono 003 and 004 are implemented** and on Megáfono's main (ba58955) as of 2026-10-17.
+
+- **Actor deletion (003).** `DELETE /internal/actors/{id}` answers 202, and repeating it answers the
+  same. A 404 means it is done, and the actor then answers 410 gone and is never revived. Frunchy's
+  `/account/delete` will call it.
+- **Blocks (004).**
+  - A user manages their own with `POST|GET|DELETE /internal/actors/{id}/blocks`, taking `{actor}` or
+    `{domain}`. An operator blocks an instance with `/internal/blocks`.
+  - A new block answers 201 and a repeat 200.
+  - Following and remote-actor lookups answer 409 `blocked` for a blocked actor or domain.
+  - `follow.removed` now carries `follow.direction`, including `outbound`.
+- **Not built yet:** the feed of posts from followed accounts (Megáfono item 6).
+- **Open, the owner's decision:** how Frunchy runs Megáfono (its public repo and image, maybe through
+  Aspire).
 
 ## Decisions taken
 
@@ -171,6 +186,8 @@ It was verified against GoToSocial 0.22.2 and Mastodon 4.7.3. What a Frunchy int
 1. **Frunchy: the episode page and local comments**, with spoilers and operator moderation. It works
    without the fediverse and fixes the data model first. **Done** (feature 009, 2026-10-15); the table
    shape is in `specs/009-episode-comments/data-model.md`.
-2. **Megáfono: replies**, meaning items 1 to 5 above, in its own session.
-3. **Frunchy: the Megáfono integration.** User accounts, series accounts with episode threads, and
-   comments both ways. Then following remote accounts and a feed, once Megáfono item 6 exists.
+2. **Megáfono: replies**, meaning items 1 to 5 above, in its own session. **Done** (Megáfono 002 to 004,
+   the last two being actor deletion and blocks; on its main as of 2026-10-17).
+3. **Frunchy: the Megáfono integration** (feature 014, next). User accounts, series accounts with episode
+   threads, comments both ways, account deletion and blocks. Following remote accounts and a feed come
+   later, once Megáfono item 6 exists.

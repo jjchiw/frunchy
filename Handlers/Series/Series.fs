@@ -182,7 +182,7 @@ let private seasonCard (t: Texts) (seriesId: string) (s: SeasonBlock) =
 
         if known > collapseAbove then
             details(class' = "group").data("season-collapsed", "") {
-                summary(class' = "min-h-6 cursor-pointer py-1 text-label-md text-on-surface-variant hover:text-on-surface") {
+                summary(class' = "cursor-pointer py-3 text-label-md text-on-surface-variant hover:text-on-surface") {
                     t.SeriesKnownEpisodes known
                 }
 

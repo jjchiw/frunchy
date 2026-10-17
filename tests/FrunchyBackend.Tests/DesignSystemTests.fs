@@ -341,5 +341,56 @@ let ``the chart pages are on the design system and keep their test hooks`` () =
         let! all = anonymous.Get "/charts/all"
         problems.AddRange(pageProblems "charts (all time)" all.Html (common "all"))
 
+        // Feature 013: the row's title links to the series page, "Your history" only for a viewer who watched it
+        problems.AddRange(pageProblems "charts (row links)" week.Html [ "data-series-page-link"; "href=\"/anime/DSA00001\"" ])
+
+        Assert.True(problems.Count = 0, String.Join(Environment.NewLine, problems))
+    }
+
+/// Feature 013: the public series page (a sample series with a dub and MyAnimeList entries, a season over 30
+/// known episodes, the 404)
+[<Fact>]
+let ``the series page is on the design system and keeps its test hooks`` () =
+    task {
+        use! app = newApp ()
+        let! key = TestHelpers.createUser app.Db "animenerd"
+        let! _ = TestHelpers.submitAccepted app key (load2026Sample ())
+        let! _ = TestHelpers.processAll app.Db
+        MalFixtures.routeSampleCatalog app.Mal
+        let! _ = MalFixtures.enrichAll app
+
+        // a long season of 31 synthetic episodes in a series of its own
+        do!
+            Db.execute
+                app.Db
+                """INSERT INTO cr_series (id, title, slug, source_at) VALUES ('DSLONG01', 'Long Show', 'long-show', now());
+                   INSERT INTO cr_seasons (id, series_id, season_number, title, audio_locale, source_at)
+                     VALUES ('DSLONGS1', 'DSLONG01', 1, 'Long Show', 'ja-JP', now());
+                   INSERT INTO cr_episodes (id, series_id, season_id, series_title, title, episode_number, duration_ms)
+                     SELECT 'DSLONGE' || n, 'DSLONG01', 'DSLONGS1', 'Long Show', 'Episode ' || n, n, 1440000
+                     FROM generate_series(1, 31) AS n"""
+
+        // the series of the dubbed season: several seasons, a dub and matched entries, one episode with a comment
+        let! dubbed = Db.scalar<string> app.Db "SELECT series_id FROM cr_seasons WHERE id = 'GRK5CNJ14'" []
+        let! episode = Db.scalar<string> app.Db $"SELECT id FROM cr_episodes WHERE series_id = '{dubbed}' AND duration_ms IS NOT NULL ORDER BY id LIMIT 1" []
+        use! commenter = AuthHelpers.signedUp app "sub-series-commenter" "seriescommenter"
+        let! _ = EpisodeHelpers.postComment commenter dubbed episode "worth a look" false
+
+        let problems = ResizeArray<string>()
+        let anonymous = app.NewBrowser()
+        let seriesHooks = [ "data-series-page=\""; "data-series-title"; "data-season="; "data-known="; "data-episode=\""; "data-comments=\""; "data-cr-series-link" ]
+
+        let! page = anonymous.Get $"/anime/{dubbed}"
+        Assert.Equal(Net.HttpStatusCode.OK, page.Status)
+        problems.AddRange(pageProblems "series page" page.Html (seriesHooks @ [ "data-audio="; "data-dub"; "data-mal=\""; "data-mal-link"; "data-mal-compact" ]))
+
+        let! long = anonymous.Get "/anime/DSLONG01"
+        Assert.Equal(Net.HttpStatusCode.OK, long.Status)
+        problems.AddRange(pageProblems "series page (long season)" long.Html (seriesHooks @ [ "data-season-collapsed" ]))
+
+        let! missing = anonymous.Get "/anime/NOTHING1"
+        Assert.Equal(Net.HttpStatusCode.NotFound, missing.Status)
+        problems.AddRange(pageProblems "series page (404)" missing.Html [ "href=\"/\"" ])
+
         Assert.True(problems.Count = 0, String.Join(Environment.NewLine, problems))
     }

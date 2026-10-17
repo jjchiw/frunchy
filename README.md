@@ -34,6 +34,7 @@ Handlers/
 │   ├── Users/Anime.fs               GET  /u/{username}/anime/{seriesId}  one series (feature 006)
 │   ├── Users/Compare.fs             GET  /u/{username}/compare  taste compatibility, signed in (feature 011)
 ├── Charts/Charts.fs             GET  /charts, /charts/season, /charts/all  what Frunchy is watching (feature 012)
+├── Series/Series.fs             GET  /anime/{seriesId}                     public series page (feature 013)
 ├── Review/MalReview.fs          GET  /review/mal[/manual], POST /review/mal/{set,none,retry,auto}  operators only (feature 007)
 ├── Review/Operators.fs          GET  /review/operators, POST /review/operators/{add,remove}  root operator only (feature 008)
 ├── Episodes/                    GET  /anime/{seriesId}/episode/{episodeId}, /comments/{id}/edit, POST comments, edit, delete, hide, unhide  (feature 009)
@@ -296,6 +297,7 @@ Features are built through spec-kit (`specs/###-name/`), in this order:
 | 010 | **Night Broadcast design system**: the whole site restyled (warm dark surfaces, amber for you, rose for others, Bricolage Grotesque / Figtree / IBM Plex Mono), same token names, shared with the extension through a new contract | Implemented ([spec](specs/010-night-broadcast/night-broadcast.spec.md)); the extension follows in its own session |
 | 011 | **Taste compatibility**: a signed-in viewer sees how their taste matches someone else's, as a level in words (never a percentage), on a card on that dashboard and on `/u/{username}/compare` (genre shares side by side, shared series, shared studios); both need 15 fully watched episodes | Implemented ([spec](specs/011-taste-compatibility/taste-compatibility.spec.md)) |
 | 012 | **Charts and trends**: the most-watched series this week, this season and of all time (`/charts`), ranked by people, with movement and an 8-week trend on the week chart, and "Watched by N people on Frunchy" on anime and episode pages; nothing shows below `Frunchy:Charts:MinPeople` people (default 3) | Implemented ([spec](specs/012-charts-trends/charts-trends.spec.md)) |
+| 013 | **Series page**: a public page per series (`/anime/{seriesId}`) with its seasons, MyAnimeList details, known episodes with their comment counts and "Watched by N people"; chart rows, the episode page and the anime page link to it; new usernames can no longer end in a dash (Mastodon refuses them) | Implemented ([spec](specs/013-series-page/series-page.spec.md)) |
 
 
 ## Key Design Decisions
