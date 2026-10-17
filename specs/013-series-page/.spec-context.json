@@ -2,8 +2,8 @@
   "workflow": "speckit",
   "specName": "Public Series Page",
   "branch": "013-series-page",
-  "currentStep": "tasks",
-  "status": "ready-to-implement",
+  "currentStep": "implement",
+  "status": "implemented",
   "history": [
     {
       "step": "specify",
@@ -18,6 +18,13 @@
       "kind": "start",
       "by": "extension",
       "at": "2026-10-17T20:10:02.316Z"
+    },
+    {
+      "step": "implement",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-17T21:17:54.083Z"
     }
   ],
   "telemetryInstanceId": "41204aa1-eb3b-4f7c-97ed-95d5bce89470"
