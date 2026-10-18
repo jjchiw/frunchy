@@ -156,7 +156,7 @@ let ``a deleted user is 404 by handle and by id`` () =
         let! before, _ = lookup app "/megafono/actors?handle=animenerd"
         Assert.Equal(HttpStatusCode.OK, before)
 
-        let! deleted = AccountActions.deleteUser app.Db id
+        let! deleted = AccountActions.deleteUser app.Db false id
         Assert.True deleted.IsSome
 
         let! byHandle, _ = lookup app "/megafono/actors?handle=animenerd"

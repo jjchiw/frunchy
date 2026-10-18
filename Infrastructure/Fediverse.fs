@@ -195,6 +195,71 @@ let enqueue (connection: NpgsqlConnection) (tx: NpgsqlTransaction) (kind: string
         ()
     }
 
+/// Whether federation is on (the outbox is only written then)
+let isEnabled (settings: Federation.FederationSettings) =
+    match settings with
+    | Federation.Enabled _ -> true
+    | Federation.Disabled -> false
+
+/// Can this user's comments federate: their username has to fit Megáfono's handle rule (accounts older than the
+/// no-trailing-dash rule may not). Read inside the transaction of the change.
+let private authorCanFederate (connection: NpgsqlConnection) (tx: NpgsqlTransaction) (userId: Guid) : Task<bool> =
+    task {
+        use cmd = new NpgsqlCommand("SELECT username FROM users WHERE id = @id", connection, tx)
+        cmd.Parameters.AddWithValue("id", userId) |> ignore
+
+        match! cmd.ExecuteScalarAsync() with
+        | :? string as username -> return isValidHandle username
+        | _ -> return false
+    }
+
+/// Queue what publishing a new comment takes, in the comment's transaction: the group's thread when it has no row
+/// yet (the row is made here, without an object id until the worker publishes it), then the comment. Nothing for an
+/// author who can't federate.
+let enqueueNewComment
+    (connection: NpgsqlConnection)
+    (tx: NpgsqlTransaction)
+    (authorId: Guid)
+    (seriesId: string)
+    (episodeId: string)
+    (groupKey: string)
+    (commentId: string)
+    : Task<unit> =
+    task {
+        match! authorCanFederate connection tx authorId with
+        | false -> ()
+        | true ->
+            use thread =
+                new NpgsqlCommand(
+                    """
+                    INSERT INTO episode_threads (group_key, series_id, cr_episode_id)
+                    VALUES (@group_key, @series_id, @episode_id)
+                    ON CONFLICT (group_key) DO NOTHING
+                    RETURNING group_key
+                    """,
+                    connection,
+                    tx
+                )
+
+            thread.Parameters.AddWithValue("group_key", groupKey) |> ignore
+            thread.Parameters.AddWithValue("series_id", seriesId) |> ignore
+            thread.Parameters.AddWithValue("episode_id", episodeId) |> ignore
+
+            match! thread.ExecuteScalarAsync() with
+            | :? string -> do! enqueue connection tx "ensure_thread" groupKey
+            | _ -> ()
+
+            do! enqueue connection tx "publish_comment" commentId
+    }
+
+/// Queue an edit or a delete of a comment, in the change's transaction (nothing for an author who can't federate)
+let enqueueCommentChange (connection: NpgsqlConnection) (tx: NpgsqlTransaction) (authorId: Guid) (kind: string) (commentId: string) : Task<unit> =
+    task {
+        match! authorCanFederate connection tx authorId with
+        | true -> do! enqueue connection tx kind commentId
+        | false -> ()
+    }
+
 /// The advisory lock that serialises handle creation, so two series can't pick the same one and a sign-up can't
 /// take a username a series is taking (research R4)
 [<Literal>]

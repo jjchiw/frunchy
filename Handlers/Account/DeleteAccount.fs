@@ -108,7 +108,7 @@ let submit: EndpointHandler =
 
             match! usernameOf db userId with
             | Some username when typed = username ->
-                let! _ = AccountActions.deleteUser db userId
+                let! _ = AccountActions.deleteUser db (Fediverse.isEnabled (ctx.GetService<Federation.FederationSettings>())) userId
                 do! WebAuth.signOut ctx
                 return! WebAuth.redirectTo ctx "/?deleted=1"
             | Some username ->

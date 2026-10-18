@@ -36,7 +36,7 @@ let private build (settings: (string * string) list) =
         builder.WebHost.UseTestServer() |> ignore
 
         builder.Configuration.AddInMemoryCollection(
-            dict ([ "ConnectionStrings:Database", "Host=unused"; Program.WorkerEnabledKey, "false"; Program.EnrichmentWorkerEnabledKey, "false" ] @ settings)
+            dict ([ "ConnectionStrings:Database", "Host=unused"; Program.WorkerEnabledKey, "false"; Program.EnrichmentWorkerEnabledKey, "false"; Program.FediverseWorkerEnabledKey, "false" ] @ settings)
         )
         |> ignore)
 

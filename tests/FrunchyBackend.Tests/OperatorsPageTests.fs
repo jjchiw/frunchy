@@ -317,13 +317,13 @@ let ``deleting an operator's account removes the grant; deleting the root's keep
         Assert.Equal(2L, count)
 
         let! opr = AccountActions.tryUserIdByUsername env.App.Db "opr"
-        let! deleted = AccountActions.deleteUser env.App.Db opr.Value
+        let! deleted = AccountActions.deleteUser env.App.Db false opr.Value
         Assert.True deleted.IsSome
         let! rows = Db.dump env.App.Db "SELECT u.username FROM operators o JOIN users u ON u.id = o.user_id"
         Assert.Equal<string list>([ "newbie" ], rows)
 
         let! boss = AccountActions.tryUserIdByUsername env.App.Db "boss"
-        let! _ = AccountActions.deleteUser env.App.Db boss.Value
+        let! _ = AccountActions.deleteUser env.App.Db false boss.Value
         let! kept = Db.dump env.App.Db "SELECT (added_by IS NULL)::text FROM operators"
         Assert.Equal<string list>([ "true" ], kept)
     }

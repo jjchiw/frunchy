@@ -9,22 +9,22 @@ type Deleted =
       WatchEvents: int64 }
 
 /// Delete the user and everything they own, raw submissions included (FR-019, constitution I exception)
-let deleteUser (db: DbConfig) (rawUsername: string) : Task<Deleted option> =
+let deleteUser (db: DbConfig) (federated: bool) (rawUsername: string) : Task<Deleted option> =
     task {
         match! AccountActions.tryUserIdByUsername db rawUsername with
         | Some userId ->
-            match! AccountActions.deleteUser db userId with
+            match! AccountActions.deleteUser db federated userId with
             | Some(imports, watchEvents) -> return Some { Imports = imports; WatchEvents = watchEvents }
             | None -> return None
         | None -> return None
     }
 
 /// `user-delete <username> --yes`
-let run (db: DbConfig) (args: string list) : Task<int> =
+let run (db: DbConfig) (federated: bool) (args: string list) : Task<int> =
     task {
         match args with
         | [ username; "--yes" ] ->
-            match! deleteUser db username with
+            match! deleteUser db federated username with
             | Some deleted ->
                 printfn
                     "Deleted user '%s' with %d import(s) and %d watch event(s). This can't be undone."

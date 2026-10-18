@@ -13,7 +13,7 @@ open FrunchyBackend.Infrastructure.Database
 // Data access
 // ---------------------------------------------------------------------------
 
-let private save (db: DbConfig) (userId: Guid) (displayName: string) : Task<unit> =
+let private save (db: DbConfig) (federated: bool) (userId: Guid) (displayName: string) : Task<unit> =
     task {
         use connection = getConnection db
         do! connection.OpenAsync()
@@ -23,6 +23,11 @@ let private save (db: DbConfig) (userId: Guid) (displayName: string) : Task<unit
         cmd.Parameters.AddWithValue("id", userId) |> ignore
         let! _ = cmd.ExecuteNonQueryAsync()
         do! SecurityEvents.record connection tx userId SecurityEventType.DisplayNameChanged None Actor.User
+
+        // Megáfono looks the profile up again (feature 015): same transaction as the change
+        if federated then
+            do! Fediverse.enqueue connection tx "refresh_profile" (string userId)
+
         do! tx.CommitAsync()
     }
 
@@ -39,7 +44,8 @@ let handler: EndpointHandler =
             if displayName.Length < 1 || displayName.Length > 60 then
                 return! WebAuth.redirectTo ctx "/account?msg=display-name-invalid"
             else
-                do! save (ctx.GetService<DbConfig>()) userId displayName
+                let federated = Fediverse.isEnabled (ctx.GetService<Federation.FederationSettings>())
+                do! save (ctx.GetService<DbConfig>()) federated userId displayName
                 return! WebAuth.redirectTo ctx "/account?msg=display-name-saved"
         })
 

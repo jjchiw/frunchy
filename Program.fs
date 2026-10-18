@@ -37,6 +37,10 @@ let WorkerEnabledKey = "Frunchy:ImportWorkerEnabled"
 [<Literal>]
 let EnrichmentWorkerEnabledKey = "Frunchy:EnrichmentWorkerEnabled"
 
+/// Set to false (the integration tests do) to run without the fediverse outbox worker; it also needs federation on
+[<Literal>]
+let FediverseWorkerEnabledKey = "Frunchy:FediverseWorkerEnabled"
+
 // One vertical slice per endpoint, see Handlers/
 let endpoints =
     [ Handlers.Home.endpoint
@@ -407,7 +411,11 @@ let configureServices (config: IConfiguration) (services: IServiceCollection) =
 
         // Feature 015: the "megafono" HTTP client exists only when federation is on
         match settings with
-        | Federation.Enabled values -> MegafonoClient.register values services |> ignore
+        | Federation.Enabled values ->
+            MegafonoClient.register values services |> ignore
+
+            if config.GetValue<bool>(FediverseWorkerEnabledKey, true) then
+                services.AddHostedService<Workers.FediverseOutbox.FediverseOutboxService>() |> ignore
         | Federation.Disabled -> ()
 
     configureAuth config services
@@ -496,6 +504,8 @@ type CliEnv =
       Http: Net.Http.IHttpClientFactory
       Mal: MalClient.MalSettings
       Clock: TimeProvider
+      /// Federation is on: deleting a user then queues the deletion of their fediverse actor (feature 015)
+      Federated: bool
       /// `Frunchy:RootOperator`: the commands refuse to add or remove it
       RootOperator: string option }
 
@@ -508,7 +518,7 @@ let cliCommands: Map<string, CliEnv -> string list -> Task<int>> =
           "user-regenerate-key", dbOnly Operations.RegenerateKey.run
           "user-reset-binding", dbOnly Operations.ResetBinding.run
           "user-rebuild", dbOnly Operations.RebuildUser.run
-          "user-delete", dbOnly Operations.DeleteUser.run
+          "user-delete", (fun env args -> Operations.DeleteUser.run env.Db env.Federated args)
           "user-list", dbOnly Operations.ListUsers.run
           "invite-create", dbOnly Operations.InviteCreate.run
           "invite-list", dbOnly Operations.InviteList.run
@@ -539,6 +549,10 @@ let private runCli (command: string) (rest: string list) : int =
           Http = provider.GetRequiredService<Net.Http.IHttpClientFactory>()
           Mal = MalClient.readSettings config
           Clock = TimeProvider.System
+          Federated =
+            (match Federation.read config with
+             | Ok settings -> Fediverse.isEnabled settings
+             | Error message -> raise (InvalidOperationException message))
           RootOperator = WebAuth.rootOperator config }
 
     task {

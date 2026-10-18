@@ -78,6 +78,7 @@
     <Compile Include="SeriesLinkTests.fs" />
     <Compile Include="FediverseRulesTests.fs" />
     <Compile Include="MegafonoActorsTests.fs" />
+    <Compile Include="FediverseOutboxTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -149,14 +149,15 @@ let private loadOwn (connection: NpgsqlConnection) (id: string) (userId: Guid) :
     }
 
 /// Change the text and the flag, only when something changed (a no-op leaves `edited_at` alone). Audience and
-/// reply are never touched.
+/// reply are never touched. True when the comment changed.
 let private update
     (connection: NpgsqlConnection)
+    (tx: NpgsqlTransaction)
     (id: string)
     (userId: Guid)
     (content: string)
     (summary: string option)
-    : Task<unit> =
+    : Task<bool> =
     task {
         use cmd =
             new NpgsqlCommand(
@@ -167,7 +168,8 @@ let private update
                   AND (content IS DISTINCT FROM @content OR summary IS DISTINCT FROM @summary
                        OR sensitive IS DISTINCT FROM @sensitive)
                 """,
-                connection
+                connection,
+                tx
             )
 
         cmd.Parameters.AddWithValue("id", id) |> ignore
@@ -180,8 +182,8 @@ let private update
         |> ignore
 
         cmd.Parameters.AddWithValue("sensitive", summary.IsSome) |> ignore
-        let! _ = cmd.ExecuteNonQueryAsync()
-        ()
+        let! changed = cmd.ExecuteNonQueryAsync()
+        return changed > 0
     }
 
 // ---------------------------------------------------------------------------
@@ -264,7 +266,14 @@ let postHandler (id: string) : EndpointHandler =
                     elif own.Sensitive && own.Summary.IsSome then own.Summary
                     else Some(CommentRules.spoilerSummary t own.SeasonDisplay own.SeasonNumber own.Number own.Label)
 
-                do! update connection id userId content summary
+                // With federation on, the edit and its update_comment are one transaction (the outbox)
+                use tx = connection.BeginTransaction()
+                let! changed = update connection tx id userId content summary
+
+                if changed && Fediverse.isEnabled (ctx.GetService<Federation.FederationSettings>()) then
+                    do! Fediverse.enqueueCommentChange connection tx userId "update_comment" id
+
+                do! tx.CommitAsync()
                 return! WebAuth.redirectTo ctx $"{episodePage own}#comment-{id}"
         })
 

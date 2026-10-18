@@ -151,7 +151,7 @@ let ``a user deleted elsewhere is signed out on the next request`` () =
     task {
         use! app = newApp ()
         use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
-        let! _ = FrunchyBackend.Operations.DeleteUser.deleteUser app.Db "animenerd"
+        let! _ = FrunchyBackend.Operations.DeleteUser.deleteUser app.Db false "animenerd"
         let! response = browser.GetRaw "/account"
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
         Assert.StartsWith("/signin", string response.Headers.Location)

@@ -535,7 +535,8 @@ let private insertComment
                 ON CONFLICT (id) DO NOTHING
                 RETURNING id
                 """,
-                connection
+                connection,
+                tx
             )
 
         cmd.Parameters.AddWithValue("id", id) |> ignore
@@ -661,7 +662,16 @@ let createHandler (seriesId: string) (episodeId: string) : EndpointHandler =
                                 else
                                     None
 
-                            let! inserted = insertComment connection id model.Id userId content summary
+                            // With federation on, the comment and what publishing it takes are one transaction (the outbox)
+                            let federated = Fediverse.isEnabled (ctx.GetService<Federation.FederationSettings>())
+                            let! groupKey = if federated then Fediverse.episodeGroupKey connection model.Id else Task.FromResult ""
+                            use tx = connection.BeginTransaction()
+                            let! inserted = insertComment connection tx id model.Id userId content summary
+
+                            if inserted && federated then
+                                do! Fediverse.enqueueNewComment connection tx userId model.SeriesId model.Id groupKey id
+
+                            do! tx.CommitAsync()
                             let! mine = if inserted then Task.FromResult true else isOwnOnEpisode connection id userId model.Id
 
                             if mine then

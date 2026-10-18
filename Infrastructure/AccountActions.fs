@@ -56,8 +56,10 @@ let resetBinding (db: DbConfig) (userId: Guid) (actor: Actor) : Task<unit> =
 
 /// Delete the user and everything they own (raw submissions included; constitution I exception).
 /// Locks the user's imports first so a running worker finishes and nothing reappears.
+/// With federation on (`federated`), a `delete_actor` item for the user joins the transaction (Megáfono then deletes
+/// the actor on the fediverse); the web and the CLI both pass it.
 /// Returns (imports, watch events) removed, or None when the user doesn't exist.
-let deleteUser (db: DbConfig) (userId: Guid) : Task<(int64 * int64) option> =
+let deleteUser (db: DbConfig) (federated: bool) (userId: Guid) : Task<(int64 * int64) option> =
     task {
         use connection = getConnection db
         do! connection.OpenAsync()
@@ -92,6 +94,10 @@ let deleteUser (db: DbConfig) (userId: Guid) : Task<(int64 * int64) option> =
             use delete = new NpgsqlCommand("DELETE FROM users WHERE id = @id", connection, tx)
             delete.Parameters.AddWithValue("id", userId) |> ignore
             let! _ = delete.ExecuteNonQueryAsync()
+
+            if federated then
+                do! Fediverse.enqueue connection tx "delete_actor" (string userId)
+
             do! tx.CommitAsync()
             return Some removed
         | _ -> return None

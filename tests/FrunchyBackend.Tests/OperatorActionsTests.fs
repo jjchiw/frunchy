@@ -33,7 +33,7 @@ let private cli (app: TestApp) (root: string option) (command: string) (args: st
           Http = httpFactory app
           Mal = MalClient.readSettings (ServiceProviderServiceExtensions.GetRequiredService<IConfiguration>(app.Services))
           Clock = TimeProvider.System
-          RootOperator = root }
+          Federated = false; RootOperator = root }
 
     Program.cliCommands[command] env args
 

@@ -95,7 +95,8 @@ let createAppWith (db: DbConfig) (extraConfig: (string * string) list) (customiz
                     dict (
                         [ "ConnectionStrings:Database", db.connectionString
                           Program.WorkerEnabledKey, "false"
-                          Program.EnrichmentWorkerEnabledKey, "false" ]
+                          Program.EnrichmentWorkerEnabledKey, "false"
+                          Program.FediverseWorkerEnabledKey, "false" ]
                         @ FakeMal.fastSettings
                         @ extraConfig
                     )

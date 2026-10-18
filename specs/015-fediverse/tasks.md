@@ -41,7 +41,7 @@ suite and the AppHost.
 
 ## Phase 2: Comments out (US2, US4 out, US5)
 
-- [ ] T007 [US2] `FediverseOutboxTests`, driving `FediverseOutbox.processNext` directly:
+- [x] T007 [US2] `FediverseOutboxTests`, driving `FediverseOutbox.processNext` directly:
   - **First comment on a group**: the thread is published (series actor, key, content, URL), then the reply (user actor, key, `inReplyTo` = the thread's URL, summary/sensitive, URL), and both object ids are stored.
   - **Second comment**: only a reply.
   - **The dub group** shares the thread.
@@ -58,7 +58,7 @@ suite and the AppHost.
   - **No secret** appears in `last_error`.
 
   · tests/FrunchyBackend.Tests/FediverseOutboxTests.fs
-- [ ] T008 [US2] `Workers/FediverseOutbox.fs` (research R5) and the enqueue calls:
+- [x] T008 [US2] `Workers/FediverseOutbox.fs` (research R5) and the enqueue calls:
   - in comment create, edit and delete (the comment's transaction);
   - in account deletion (`AccountActions.deleteUser`, shared with the CLI);
   - in the display-name change.
