@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: "Taste compatibility, Last.fm's 'taste-o-meter' for anime: on someone's profile, how much your anime overlaps with theirs, the series you share, the genres in common and what's in their history that isn't in yours. Built from data Frunchy already has (two watch histories, MyAnimeList genres and studios), in the Night Broadcast look. Pitches: https://claude.ai/artifact/D8QVV7NJaTvGogvBJBB2yV (directions A and B, with C's headline sentence)."
+**Input**: "Taste compatibility, Last.fm's 'taste-o-meter' for anime: on someone's profile, how much your anime overlaps with theirs, the series you share, the genres in common and what's in their history that isn't in yours. Built from data Frunchy already has (two watch histories, MyAnimeList genres and studios), in the Night Broadcast look. Pitches: `design/pitches/taste-compatibility/` (directions A and B, with C's headline sentence)."
 
 ## Clarifications
 

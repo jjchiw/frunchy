@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>You and Mika on a phone</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0f131c}
+a{color:#4cd7f6}a:hover{color:#acedff}
+</style>
+</helmet>
+<div style="width: 390px; min-height: 2140px; box-sizing: border-box; background: #0f131c; color: #dfe2ee; font-family: 'Plus Jakarta Sans', system-ui, sans-serif">
+  <header style="border-bottom: 1px solid rgba(255,255,255,0.06); padding: 8px 16px; display: flex; align-items: center; justify-content: space-between">
+    <a href="#" style="font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: #dfe2ee; text-decoration: none">frunchy</a>
+    <nav style="display: flex; gap: 4px" aria-label="Account">
+      <a href="#" style="font-size: 13px; font-weight: 600; color: #bcc9cd; text-decoration: none; padding: 13px 10px">Account</a>
+      <button type="button" style="font: inherit; font-size: 13px; font-weight: 600; color: #bcc9cd; background: none; border: 0; padding: 13px 10px">Sign out</button>
+    </nav>
+  </header>
+
+  <main style="padding: 24px 16px 48px; display: flex; flex-direction: column; gap: 32px">
+    <a href="Main.dc.html" style="font-size: 13px; font-weight: 600; text-decoration: none; padding: 12px 0">Back to Mika's dashboard</a>
+
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h1 style="margin: 0; font-size: 32px; line-height: 40px; font-weight: 800; letter-spacing: -0.02em">High compatibility</h1>
+      <div role="img" aria-label="4 of 5" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px">
+        <span style="height: 8px; border-radius: 9999px; background: #4cd7f6"></span>
+        <span style="height: 8px; border-radius: 9999px; background: #4cd7f6"></span>
+        <span style="height: 8px; border-radius: 9999px; background: #4cd7f6"></span>
+        <span style="height: 8px; border-radius: 9999px; background: #4cd7f6"></span>
+        <span style="height: 8px; border-radius: 9999px; background: #31353e"></span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+        <div style="background: #181c24; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13px; font-weight: 600; color: #4cd7f6">You</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #bcc9cd">@jjchiw · 69 series</span>
+        </div>
+        <div style="background: #181c24; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 2px">
+          <span style="font-size: 13px; font-weight: 600; color: #c0c1ff">Mika</span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #bcc9cd">@mika · 55 series</span>
+        </div>
+      </div>
+      <p style="margin: 0; font-size: 14px; color: #bcc9cd">14 series in common.</p>
+    </section>
+
+    <section aria-labelledby="m-genres" style="background: #181c24; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px">
+      <h2 id="m-genres" style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 600">Where your time goes</h2>
+      <sc-for list="{{genres}}" as="g" hint-placeholder-count="5">
+        <div style="display: flex; flex-direction: column; gap: 6px">
+          <span style="font-size: 14px; font-weight: 600">{{g.name}}</span>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="flex: 1; height: 8px; border-radius: 9999px; background: #262a33; display: flex"><span style="height: 8px; border-radius: 9999px; background: #4cd7f6; width: {{g.youW}}"></span></span>
+            <span style="width: 36px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums">{{g.you}}%</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="flex: 1; height: 8px; border-radius: 9999px; background: #262a33; display: flex"><span style="height: 8px; border-radius: 9999px; background: #c0c1ff; width: {{g.themW}}"></span></span>
+            <span style="width: 36px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums">{{g.them}}%</span>
+          </div>
+        </div>
+      </sc-for>
+      <p style="margin: 0; font-size: 12px; color: #869397">Cyan is you, violet is Mika. Based on 93% and 91% of your minutes.</p>
+    </section>
+
+    <section aria-labelledby="m-both" style="display: flex; flex-direction: column; gap: 12px">
+      <h2 id="m-both" style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 600">Series you've both watched</h2>
+      <sc-for list="{{both}}" as="s" hint-placeholder-count="4">
+        <a href="#" style="background: #181c24; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 12px; display: flex; gap: 12px; text-decoration: none; color: #dfe2ee">
+          <span style="width: 44px; height: 66px; border-radius: 6px; background: #262a33; flex: none"></span>
+          <span style="display: flex; flex-direction: column; gap: 4px; min-width: 0">
+            <span style="font-size: 14px; font-weight: 600">{{s.title}}</span>
+            <span style="font-size: 13px; color: #bcc9cd">You {{s.you}} · Mika {{s.them}}</span>
+          </span>
+        </a>
+      </sc-for>
+      <a href="#" style="font-size: 13px; font-weight: 600; text-decoration: none; padding: 12px 0">Show all 14</a>
+    </section>
+
+    <section aria-labelledby="m-theirs" style="display: flex; flex-direction: column; gap: 12px">
+      <h2 id="m-theirs" style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 600">In Mika's history, not yours</h2>
+      <div style="display: flex; gap: 12px; overflow-x: auto; padding-bottom: 4px">
+        <sc-for list="{{theirs}}" as="s" hint-placeholder-count="4">
+          <a href="#" style="flex: none; width: 140px; display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: #dfe2ee">
+            <span style="aspect-ratio: 2 / 3; border-radius: 8px; background: #262a33"></span>
+            <span style="font-size: 13px; font-weight: 600">{{s.title}}</span>
+            <span style="font-size: 12px; color: #bcc9cd">{{s.meta}}</span>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":2140}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const bar = (n) => (n * 3) + '%';
+    return {
+      genres: [['Romance', 28, 31], ['Action', 24, 22], ['Fantasy', 15, 19], ['Comedy', 12, 9], ['Sports', 7, 0]]
+        .map(([name, you, them]) => ({ name, you, them, youW: bar(you), themW: bar(them) })),
+      both: [
+        { title: "Frieren: Beyond Journey's End", you: '28/28', them: '28/28' },
+        { title: 'Jujutsu Kaisen', you: '47/47', them: '24/47' },
+        { title: 'Engage Kiss', you: '13/13', them: '13/13' },
+        { title: 'Spy x Family', you: '37/37', them: '25/37' }
+      ],
+      theirs: [
+        { title: 'Kaguya-sama: Love Is War', meta: '8.4 · Romance' },
+        { title: 'Vinland Saga', meta: '8.8 · Action' },
+        { title: 'Horimiya', meta: '8.2 · Romance' },
+        { title: 'Mushoku Tensei', meta: '8.4 · Fantasy' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

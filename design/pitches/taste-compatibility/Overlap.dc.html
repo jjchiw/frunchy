@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Only you, both, only Mika</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0f131c}
+a{color:#4cd7f6}a:hover{color:#acedff}
+</style>
+</helmet>
+<div style="min-height: 100%; background: #0f131c; color: #dfe2ee; font-family: 'Plus Jakarta Sans', system-ui, sans-serif">
+  <header style="border-bottom: 1px solid rgba(255,255,255,0.06)">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap">
+      <a href="#" style="font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: #dfe2ee; text-decoration: none">frunchy</a>
+      <nav style="display: flex; align-items: center; gap: 8px" aria-label="Account">
+        <a href="#" style="font-size: 13px; font-weight: 600; color: #bcc9cd; text-decoration: none; padding: 12px">jjchiw</a>
+        <a href="#" style="font-size: 13px; font-weight: 600; color: #bcc9cd; text-decoration: none; padding: 12px">Account</a>
+        <button type="button" style="font: inherit; font-size: 13px; font-weight: 600; color: #bcc9cd; background: none; border: 0; padding: 12px; cursor: pointer">Sign out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width: 1120px; margin: 0 auto; padding: 48px 24px 64px; display: flex; flex-direction: column; gap: 40px">
+    <section style="display: flex; flex-direction: column; gap: 12px; max-width: 760px">
+      <h1 style="margin: 0; font-size: 48px; line-height: 56px; font-weight: 800; letter-spacing: -0.03em">You and Mika share 14 series and a soft spot for Romance.</h1>
+      <p style="margin: 0; font-size: 16px; line-height: 24px; color: #bcc9cd">Counted from both watch histories. A series counts once you've watched any of it.</p>
+    </section>
+
+    <section aria-label="Series by who watched them" style="display: grid; grid-template-columns: 5fr 2fr 4fr; gap: 16px; align-items: stretch">
+      <div style="background: #181c24; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; min-width: 0">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+          <h2 style="margin: 0; font-size: 13px; font-weight: 600; color: #4cd7f6">Only you</h2>
+          <span style="font-size: 32px; line-height: 36px; font-weight: 800">55</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px">
+          <sc-for list="{{five}}" as="p" hint-placeholder-count="5">
+            <span style="aspect-ratio: 2 / 3; border-radius: 6px; background: #262a33"></span>
+          </sc-for>
+        </div>
+        <a href="#" style="font-size: 13px; font-weight: 600; text-decoration: none">See all 55</a>
+      </div>
+
+      <div style="background: #1c2028; border: 1px solid rgba(76,215,246,0.35); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; min-width: 0">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+          <h2 style="margin: 0; font-size: 13px; font-weight: 600; color: #dfe2ee">Both</h2>
+          <span style="font-size: 32px; line-height: 36px; font-weight: 800; color: #4cd7f6">14</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+          <sc-for list="{{two}}" as="p" hint-placeholder-count="2">
+            <span style="aspect-ratio: 2 / 3; border-radius: 6px; background: #31353e"></span>
+          </sc-for>
+        </div>
+        <a href="#" style="font-size: 13px; font-weight: 600; text-decoration: none">See all 14</a>
+      </div>
+
+      <div style="background: #181c24; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 16px; min-width: 0">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+          <h2 style="margin: 0; font-size: 13px; font-weight: 600; color: #c0c1ff">Only Mika</h2>
+          <span style="font-size: 32px; line-height: 36px; font-weight: 800">41</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+          <sc-for list="{{four}}" as="p" hint-placeholder-count="4">
+            <span style="aspect-ratio: 2 / 3; border-radius: 6px; background: #262a33"></span>
+          </sc-for>
+        </div>
+        <a href="#" style="font-size: 13px; font-weight: 600; text-decoration: none">See all 41</a>
+      </div>
+    </section>
+
+    <section aria-labelledby="meet" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+      <h2 id="meet" style="grid-column: 1 / -1; margin: 0; font-size: 20px; line-height: 28px; font-weight: 600">Where your taste meets</h2>
+      <sc-for list="{{meets}}" as="m" hint-placeholder-count="3">
+        <div style="background: #181c24; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+          <span style="font-size: 20px; line-height: 28px; font-weight: 600">{{m.name}}</span>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <div style="display: flex; align-items: center; gap: 10px">
+              <span style="width: 40px; font-size: 13px; color: #bcc9cd">You</span>
+              <span style="flex: 1; height: 8px; border-radius: 9999px; background: #262a33; display: flex"><span style="height: 8px; border-radius: 9999px; background: #4cd7f6; width: {{m.youW}}"></span></span>
+              <span style="width: 40px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums">{{m.you}}%</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px">
+              <span style="width: 40px; font-size: 13px; color: #bcc9cd">Mika</span>
+              <span style="flex: 1; height: 8px; border-radius: 9999px; background: #262a33; display: flex"><span style="height: 8px; border-radius: 9999px; background: #c0c1ff; width: {{m.themW}}"></span></span>
+              <span style="width: 40px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums">{{m.them}}%</span>
+            </div>
+          </div>
+          <span style="font-size: 13px; color: #bcc9cd">Shared favourite: {{m.top}}</span>
+        </div>
+      </sc-for>
+    </section>
+
+    <section aria-labelledby="next" style="background: #181c24; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 24px 32px; display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap">
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <h2 id="next" style="margin: 0; font-size: 20px; line-height: 28px; font-weight: 600">Start one of Mika's next</h2>
+        <p style="margin: 0; font-size: 14px; color: #bcc9cd">Vinland Saga is Mika's highest-scored series in a genre you both watch most.</p>
+      </div>
+      <a href="#" style="font-size: 14px; font-weight: 700; color: #003640; background: #4cd7f6; text-decoration: none; padding: 12px 20px; border-radius: 9999px">Watch on Crunchyroll</a>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1320}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const bar = (n) => (n * 3) + '%';
+    return {
+      five: [1, 2, 3, 4, 5], two: [1, 2], four: [1, 2, 3, 4],
+      meets: [
+        { name: 'Romance', you: 28, them: 31, top: 'Engage Kiss' },
+        { name: 'Action', you: 24, them: 22, top: 'Jujutsu Kaisen' },
+        { name: 'Fantasy', you: 15, them: 19, top: "Frieren: Beyond Journey's End" }
+      ].map((m) => ({ ...m, youW: bar(m.you), themW: bar(m.them) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Neo-Scrobble, sharpened: identity</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#4cd7f6}a:hover{color:#acedff}
+</style>
+</helmet>
+<div style="width: 1280px; height: 960px; box-sizing: border-box; padding: 64px; background: #0f131c; color: #dfe2ee; font-family: 'Plus Jakarta Sans', sans-serif; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 56px">
+  <div style="display: flex; flex-direction: column; gap: 32px">
+    <div style="display: flex; align-items: center; gap: 14px">
+      <span style="width: 52px; height: 52px; border-radius: 14px; background: #4cd7f6; color: #003640; font-weight: 800; font-size: 28px; display: flex; align-items: center; justify-content: center">F</span>
+      <span style="font-weight: 800; font-size: 44px; letter-spacing: -0.03em">frunchy</span>
+    </div>
+    <p style="margin: 0; font-size: 20px; line-height: 30px; color: #bcc9cd; max-width: 470px">Keep what works today, the dark surfaces, cyan and Plus Jakarta Sans, and give it one strong idea: <b style="color: #dfe2ee">every number is the hero</b>. Pink stops being decoration and becomes the "other people" colour.</p>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 14px; font-weight: 700">Palette: same tokens, clearer jobs</span>
+      <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px">
+        <sc-for list="{{palette}}" as="c" hint-placeholder-count="5">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="height: 72px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: {{c.hex}}"></span>
+            <span style="font-size: 13px; font-weight: 700">{{c.name}}</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #bcc9cd">{{c.hex}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 14px; font-weight: 700">Charts: one hue per person, steps of lightness per rank</span>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; align-items: center; gap: 12px"><span style="width: 90px; font-size: 14px">Action</span><span style="height: 14px; width: 300px; border-radius: 4px; background: #4cd7f6"></span></div>
+        <div style="display: flex; align-items: center; gap: 12px"><span style="width: 90px; font-size: 14px">Adventure</span><span style="height: 14px; width: 230px; border-radius: 4px; background: #06b6d4"></span></div>
+        <div style="display: flex; align-items: center; gap: 12px"><span style="width: 90px; font-size: 14px">Romance</span><span style="height: 14px; width: 260px; border-radius: 4px; background: #ffb0cd"></span></div>
+      </div>
+    </div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 28px">
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-weight: 800; font-size: 96px; line-height: 92px; letter-spacing: -0.05em">1,284</span>
+      <span style="font-size: 14px; font-weight: 700">Plus Jakarta Sans 800 at 96px for the one figure each page is about</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-weight: 700; font-size: 30px; line-height: 36px; letter-spacing: -0.02em">Frieren: Beyond Journey's End</span>
+      <span style="font-size: 16px; line-height: 24px; color: #bcc9cd">No new fonts. The change is in scale: fewer sizes, bigger jumps between them.</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <span style="font-size: 14px; font-weight: 700">Components</span>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
+        <a href="#" style="font-weight: 700; font-size: 15px; padding: 13px 22px; background: #4cd7f6; color: #003640; text-decoration: none; border-radius: 12px">Watch on Crunchyroll</a>
+        <a href="#" style="font-weight: 700; font-size: 15px; padding: 12px 20px; border: 1px solid rgba(255,255,255,0.14); color: #dfe2ee; text-decoration: none; border-radius: 12px">Anime DNA</a>
+        <span style="font-weight: 700; font-size: 12px; padding: 5px 10px; background: rgba(255,176,205,0.14); color: #ffb0cd; border-radius: 9999px">Spoiler</span>
+        <span style="font-weight: 700; font-size: 12px; padding: 5px 10px; background: rgba(192,193,255,0.14); color: #c0c1ff; border-radius: 9999px">Dub · English</span>
+      </div>
+      <div style="border-radius: 16px; padding: 18px; background: #181c24; border: 1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 8px">
+        <span style="font-size: 14px; color: #bcc9cd"><b style="color: #dfe2ee">Mika</b> <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">@mika</span> · 2 h ago</span>
+        <span style="font-size: 15px; line-height: 22px">The bell scene got me. Madhouse at its best.</span>
+      </div>
+    </div>
+    <p style="margin: 0; font-size: 14px; line-height: 21px; color: #bcc9cd; background: #181c24; border-radius: 12px; padding: 12px 14px">Lowest cost: same tokens, so the extension and DesignSystemTests stay as they are. Risk: it stays close to many dark dashboards.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { palette: [
+      { name: 'Surface', hex: '#0f131c' }, { name: 'Card', hex: '#181c24' }, { name: 'You', hex: '#4cd7f6' },
+      { name: 'Others', hex: '#ffb0cd' }, { name: 'Tags', hex: '#c0c1ff' }
+    ] };
+  }
+}
+</script>
+</body>
+</html>

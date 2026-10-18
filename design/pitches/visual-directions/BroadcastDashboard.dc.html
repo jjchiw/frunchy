@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Night Broadcast dashboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&amp;family=Figtree:wght@400;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#13111a}
+a{color:#ffb547}a:hover{color:#ffd08a}
+</style>
+</helmet>
+<div style="min-height: 100%; background: #13111a; color: #f1ece4; font-family: Figtree, sans-serif">
+  <header>
+    <div style="max-width: 1120px; margin: 0 auto; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap">
+      <a href="#" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #f1ece4"><span style="width: 32px; height: 32px; border-radius: 9999px; background: #ffb547; color: #13111a; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 19px; display: flex; align-items: center; justify-content: center">f</span><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 24px; letter-spacing: -0.03em">frunchy</span></a>
+      <nav style="display: flex; gap: 4px" aria-label="Account"><a href="#" style="padding: 12px; font-weight: 600; font-size: 14px; color: #d8d1c6; text-decoration: none">jjchiw</a><a href="#" style="padding: 12px; font-weight: 600; font-size: 14px; color: #d8d1c6; text-decoration: none">Account</a><button type="button" style="font: inherit; font-weight: 600; font-size: 14px; background: none; border: 0; padding: 12px; color: #d8d1c6">Sign out</button></nav>
+    </div>
+  </header>
+  <main style="max-width: 1120px; margin: 0 auto; padding: 24px 24px 64px; display: flex; flex-direction: column; gap: 32px">
+    <section style="border-radius: 28px; padding: 36px; background: #1e1a27; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end">
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; color: #ff9cc4">NOW SHOWING · @jjchiw</span>
+        <h1 style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 56px; line-height: 60px; letter-spacing: -0.03em">JJ's watch history</h1>
+        <span style="font-size: 15px; color: #d8d1c6">Last sync 2 h ago</span>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap"><a href="#" style="font-weight: 700; padding: 13px 22px; background: #ffb547; color: #13111a; text-decoration: none; border-radius: 9999px">Anime DNA</a><a href="#" style="font-weight: 700; padding: 12px 20px; border: 1px solid rgba(241,236,228,0.24); color: #f1ece4; text-decoration: none; border-radius: 9999px">2026 in review</a></div>
+    </section>
+    <section aria-label="Totals" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+      <div style="border-radius: 20px; padding: 22px; background: #1e1a27; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; color: #d8d1c6">Episodes watched</span><span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 44px; letter-spacing: -0.03em">1,284</span></div>
+      <div style="border-radius: 20px; padding: 22px; background: #1e1a27; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; color: #d8d1c6">Time watched</span><span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 44px; letter-spacing: -0.03em; color: #ffb547">486:12</span></div>
+      <div style="border-radius: 20px; padding: 22px; background: #1e1a27; display: flex; flex-direction: column; gap: 6px"><span style="font-size: 14px; color: #d8d1c6">Series</span><span style="font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 44px; letter-spacing: -0.03em">69</span></div>
+    </section>
+    <section aria-labelledby="recent" style="display: flex; flex-direction: column; gap: 16px">
+      <h2 id="recent" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 26px; letter-spacing: -0.02em">Recently watched</h2>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">
+        <sc-for list="{{recent}}" as="r" hint-placeholder-count="4">
+          <a href="#" style="border-radius: 20px; background: #1e1a27; overflow: hidden; display: flex; flex-direction: column; text-decoration: none; color: #f1ece4; min-width: 0">
+            <span style="aspect-ratio: 16 / 9; background: #2a2435; display: flex; align-items: flex-end"><span style="height: 4px; background: #ffb547; width: {{r.pct}}"></span></span>
+            <span style="padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px"><span style="font-weight: 700; font-size: 15px; line-height: 20px">{{r.series}}</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #b9b1a5">{{r.meta}}</span></span>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+    <section aria-labelledby="genres" style="border-radius: 28px; padding: 32px; background: #1e1a27; display: flex; flex-direction: column; gap: 14px">
+      <h2 id="genres" style="margin: 0; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 26px; letter-spacing: -0.02em">Top genres</h2>
+      <sc-for list="{{genres}}" as="g" hint-placeholder-count="5">
+        <div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) 56px; gap: 14px; align-items: center"><span style="font-size: 15px">{{g.name}}</span><span style="height: 12px; border-radius: 9999px; background: #2a2435; display: flex"><span style="height: 12px; border-radius: 9999px; background: #ffb547; width: {{g.w}}"></span></span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 14px; text-align: right">{{g.pct}}</span></div>
+      </sc-for>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      recent: [
+        { series: "Frieren: Beyond Journey's End", meta: 'EP 28 · 24:00 · 2H AGO', pct: '100%' },
+        { series: 'Jujutsu Kaisen', meta: 'EP 47 · 23:40 · YESTERDAY', pct: '100%' },
+        { series: 'One Piece', meta: 'EP 1110 · 14:52 / 24:00', pct: '62%' },
+        { series: 'Engage Kiss', meta: 'EP 13 · 24:00 · LAST WEEK', pct: '100%' }
+      ],
+      genres: [['Action', 31], ['Adventure', 24], ['Fantasy', 18], ['Romance', 14], ['Comedy', 13]]
+        .map(([name, n]) => ({ name, pct: n + '%', w: (n * 3) + '%' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

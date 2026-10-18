@@ -34,9 +34,9 @@ Frunchy backend: the shared design system moves to "Night Broadcast" (backend fe
   define, except `--font-family`, must match the contract's value.
 - Until you land this, that test fails where both repositories sit side by side. That's expected.
 
-**The visual reference** is row 2 of the pitch canvas,
-https://claude.ai/artifact/Jzm6navcFrNnQ8TSNwcESK. It's private to the owner, so ask them for
-screenshots if you can't open it.
+**The visual reference** is row 2 of the pitch canvas, kept in the backend repository as
+`design/pitches/visual-directions/` (the `Broadcast*` boards; the canvas link is gone, see
+`design/pitches/README.md`). Ask the owner for screenshots if you need them.
 
 Please send back:
 - whether the contract works for the popup at 380×600 (contrast and sizes);

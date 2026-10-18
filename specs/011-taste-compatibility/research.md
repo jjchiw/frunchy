@@ -81,7 +81,7 @@ page after a warm-up, against 1 s.
 ## R7. Look
 
 - **Design system**: Night Broadcast, through `impeccable` shape → build → audit, with the pitch
-  layout from https://claude.ai/artifact/D8QVV7NJaTvGogvBJBB2yV (A and B).
+  layout from the pitches kept in `design/pitches/taste-compatibility/` (A and B).
 - **Colours**: the viewer's bars and figures are amber (`primary`), the other person's rose
   (`secondary`), and genres and studios lilac pills (`tertiary`).
 - **Genre bars**: solid fills, and the two people sit on two rows per genre (works at 360px). The
