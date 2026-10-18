@@ -12,6 +12,7 @@ open System
 open System.IO
 open Aspire.Hosting
 open Aspire.Hosting.ApplicationModel
+open Microsoft.Extensions.Configuration
 
 /// What the developer runs when the master key is missing or malformed. The value is never printed.
 let private masterKeyHelp =
@@ -63,9 +64,19 @@ let main args =
 
     checkMasterKey builder.Configuration["Parameters:megafono-master-key"]
 
-    // Megafono: built from a checkout by default, or a published image when an image tag is configured
-    let imageTag = builder.Configuration["Megafono:ImageTag"]
-    let useImage = not (String.IsNullOrWhiteSpace imageTag)
+    // Megafono: the published images at a pinned tag (Megafono:ImageTag, never "latest"), or built from a local
+    // checkout when Megafono:BuildFromSource is true (to try an unreleased Megafono)
+    let buildFromSource = builder.Configuration.GetValue<bool>("Megafono:BuildFromSource", false)
+
+    let imageTag =
+        match builder.Configuration["Megafono:ImageTag"] with
+        | null -> ""
+        | tag -> tag.Trim()
+
+    if not buildFromSource && (imageTag = "" || imageTag = "latest") then
+        failwith "Set Megafono:ImageTag to a pinned Megafono release (e.g. 0.1.0, never latest), or Megafono:BuildFromSource to true."
+
+    let useImage = not buildFromSource
 
     let sourcePath =
         match builder.Configuration["Megafono:SourcePath"] with
@@ -76,7 +87,7 @@ let main args =
 
     if not useImage && not (File.Exists(Path.Combine(sourcePath, "deploy", "Dockerfile.megafono"))) then
         failwithf
-            "Megafono's source was not found at %s. Check it out there, or set Megafono:SourcePath (AppHost/appsettings.json or user secrets), or set Megafono:ImageTag to use the published image."
+            "Megafono's source was not found at %s. Check it out there, or set Megafono:SourcePath (AppHost/appsettings.json or user secrets), or turn Megafono:BuildFromSource off to use the published images."
             sourcePath
 
     // Postgres: one server, one database per app

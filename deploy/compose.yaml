@@ -74,7 +74,7 @@ services:
 
   megafono:
     profiles: [federation]
-    image: ghcr.io/cosmic-chimps/megafono:${MEGAFONO_VERSION:-0.1.1} # pinned, change it deliberately
+    image: ghcr.io/cosmic-chimps/megafono:${MEGAFONO_VERSION:-0.1.0} # pinned, change it deliberately
     restart: unless-stopped
     environment:
       Megafono__Domain: ${DOMAIN:?set DOMAIN} # permanent: actor ids are https://{domain}/ap/actors/{id}
@@ -98,7 +98,7 @@ services:
 
   gateway:
     profiles: [federation]
-    image: ghcr.io/cosmic-chimps/megafono-gateway:${MEGAFONO_VERSION:-0.1.1} # pinned with megafono
+    image: ghcr.io/cosmic-chimps/megafono-gateway:${MEGAFONO_VERSION:-0.1.0} # pinned with megafono
     restart: unless-stopped
     environment:
       ReverseProxy__Clusters__megafono__Destinations__primary__Address: http://megafono:8080

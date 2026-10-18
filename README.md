@@ -161,7 +161,7 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 ### Prerequisites
 - .NET SDK 10
 - Docker running (Aspire starts Postgres and Megáfono in containers, the tests use Testcontainers)
-- To run the whole platform: a checkout of Megáfono (the fediverse service, a separate repo) at `../../Megafono` relative to this repo's root, or set `Megafono:SourcePath`, or set `Megafono:ImageTag` to use a published image
+- To run the whole platform: nothing more. The AppHost pulls Megáfono (the fediverse service, a separate repo) as the published images `ghcr.io/cosmic-chimps/megafono` and `megafono-gateway`, pinned by `Megafono:ImageTag` (`0.1.0`). To try an unreleased Megáfono, set `Megafono:BuildFromSource` to `true` and `Megafono:SourcePath` to a checkout (default `../../Megafono`)
 - To run Frunchy alone: PostgreSQL 14+ (locally it runs in Docker: container `postgres-postgres-1`)
 
 ### Run the platform with Aspire (feature 014)
@@ -249,7 +249,7 @@ No Aspire, no Megáfono: Frunchy is a complete web app without federation (`Frun
 
 ### Self-hosting with Docker Compose
 
-`Dockerfile` builds Frunchy; `deploy/compose.yaml` runs it with Postgres. Federation is an optional profile that adds Megáfono and its gateway (pinned `0.1.1`):
+`Dockerfile` builds Frunchy; `deploy/compose.yaml` runs it with Postgres. Federation is an optional profile that adds Megáfono and its gateway (pinned `0.1.0`):
 
 ```bash
 cp deploy/.env.example deploy/.env      # fill it in: every variable has its generation command

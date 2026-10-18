@@ -111,3 +111,11 @@ docker compose -f deploy/compose.yaml --env-file deploy/.env.example --profile f
 
   Megafono's internal `/health` answered `{"database":"ok","status":"ok"}`.
 - **Stopped**: Ctrl+C (SIGINT) stopped every container.
+
+**2026-10-18, published images.** Megafono's images are on GHCR (`ghcr.io/cosmic-chimps/megafono:0.1.0`,
+`megafono-gateway:0.1.0`, amd64 and arm64, pulled without login). The AppHost now uses them by default
+(`Megafono:ImageTag` = `0.1.0`; it refuses an empty tag or `latest`). Building from a checkout is opt-in with
+`Megafono:BuildFromSource=true`, so `Megafono:SourcePath` is no longer needed for a normal run. Rerun: every
+container came up from the images in about 25 seconds, and the probes answered as in the first run, including
+WebFinger 200 for the user from feature 015's check (the Postgres data volume persisted). The self-host compose
+pins `MEGAFONO_VERSION=0.1.0` too.

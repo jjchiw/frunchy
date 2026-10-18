@@ -38,5 +38,5 @@
 - **Profiles**: none gives `postgres` and `frunchy`; `federation` adds `megafono` and `gateway`.
 - **Published ports**: without a profile, Frunchy's; with `federation`, the gateway's only. 8081 is
   never published.
-- **Images**: `ghcr.io/cosmic-chimps/megafono:0.1.1` and `megafono-gateway:0.1.1` (pinned);
+- **Images**: `ghcr.io/cosmic-chimps/megafono:0.1.0` and `megafono-gateway:0.1.0` (pinned);
   Frunchy is built from `./Dockerfile`.
