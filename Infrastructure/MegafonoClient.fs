@@ -82,9 +82,23 @@ let private orNull (value: string option) =
 
 let private escape (segment: string) = Uri.EscapeDataString segment
 
-/// One call: any answer (even 4xx and 5xx) comes back as a result; only a transport failure has `Status = 0`
-let private send (client: HttpClient) (method': HttpMethod) (path: string) (body: obj option) (key: string option) : Task<MegafonoResult> =
+/// Reads a page makes while the visitor waits get a shorter deadline than the client's 10 s
+let private pageReadTimeout = TimeSpan.FromSeconds 3.0
+
+/// One call: any answer (even 4xx and 5xx) comes back as a result; only a transport failure has `Status = 0`.
+/// `timeout`, when given, ends the call sooner than the client's own timeout (as `timeout`).
+let private sendWithin
+    (timeout: TimeSpan option)
+    (client: HttpClient)
+    (method': HttpMethod)
+    (path: string)
+    (body: obj option)
+    (key: string option)
+    : Task<MegafonoResult> =
     task {
+        use deadline = new System.Threading.CancellationTokenSource()
+        timeout |> Option.iter (fun t -> deadline.CancelAfter t)
+
         try
             use request = new HttpRequestMessage(method', Uri(path, UriKind.Relative))
             key |> Option.iter (fun k -> request.Headers.Add("Idempotency-Key", k))
@@ -92,8 +106,8 @@ let private send (client: HttpClient) (method': HttpMethod) (path: string) (body
             body
             |> Option.iter (fun b -> request.Content <- new StringContent(JsonSerializer.Serialize b, Encoding.UTF8, "application/json"))
 
-            use! response = client.SendAsync request
-            let! text = response.Content.ReadAsStringAsync()
+            use! response = client.SendAsync(request, deadline.Token)
+            let! text = response.Content.ReadAsStringAsync(deadline.Token)
             let status = int response.StatusCode
 
             if status >= 200 && status < 300 then
@@ -107,6 +121,8 @@ let private send (client: HttpClient) (method': HttpMethod) (path: string) (body
         | :? HttpRequestException as ex ->
             return { Status = 0; Body = ""; ErrorCode = Some "unreachable"; ErrorMessage = Some(ex.GetType().Name) }
     }
+
+let private send client method' path body key = sendWithin None client method' path body key
 
 /// Publish a Note from an actor (`POST /internal/actors/{id}/objects`). The same key always gives the same object:
 /// 201 the first time, 200 on a repeat. Read the answer with `publishedOf`.
@@ -239,7 +255,7 @@ let blockNoticeKey (isAdd: bool) (result: MegafonoResult) : string =
 
 /// User blocks (synchronous, from the account page): `GET/POST/DELETE /internal/actors/{id}/blocks`
 let listBlocks (client: HttpClient) (userId: string) =
-    send client HttpMethod.Get $"/internal/actors/{escape userId}/blocks" None None
+    sendWithin (Some pageReadTimeout) client HttpMethod.Get $"/internal/actors/{escape userId}/blocks" None None
 
 let addBlock (client: HttpClient) (userId: string) (target: BlockTarget) =
     send client HttpMethod.Post $"/internal/actors/{escape userId}/blocks" (Some(targetBody target)) None
@@ -249,7 +265,7 @@ let removeBlock (client: HttpClient) (userId: string) (target: BlockTarget) =
 
 /// Instance blocks (operators): `GET/POST/DELETE /internal/blocks`
 let listInstanceBlocks (client: HttpClient) =
-    send client HttpMethod.Get "/internal/blocks" None None
+    sendWithin (Some pageReadTimeout) client HttpMethod.Get "/internal/blocks" None None
 
 let addInstanceBlock (client: HttpClient) (target: BlockTarget) =
     send client HttpMethod.Post "/internal/blocks" (Some(targetBody target)) None

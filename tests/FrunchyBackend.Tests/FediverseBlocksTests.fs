@@ -303,6 +303,20 @@ let ``when Megafono can't list the blocks the page still loads, with a plain lin
     }
 
 [<Fact>]
+let ``a Megafono that hangs doesn't hold the account page for long`` () =
+    task {
+        use! env = newEnv ()
+        // far longer than the page's 3 s deadline for reading the blocks
+        env.App.Megafono.Route("GET /internal/actors/*/blocks", [ Delay(TimeSpan.FromSeconds 20.0, Status 200) ])
+        let watch = Diagnostics.Stopwatch.StartNew()
+        let! page = env.Alice.Get "/account"
+        watch.Stop()
+        Assert.Equal(HttpStatusCode.OK, page.Status)
+        Assert.Contains("data-block-load-failed", page.Html)
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds 8.0, $"the account page took {watch.Elapsed}")
+    }
+
+[<Fact>]
 let ``the section and its routes exist only with federation on`` () =
     task {
         use! env = newEnvWith false
