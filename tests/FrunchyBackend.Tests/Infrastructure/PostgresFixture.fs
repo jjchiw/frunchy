@@ -11,6 +11,7 @@ open Microsoft.Extensions.Configuration
 open Npgsql
 open Testcontainers.PostgreSql
 open FrunchyBackend
+open FrunchyBackend.Infrastructure
 open FrunchyBackend.Infrastructure.Database
 
 /// One PostgreSQL container for the whole test run (Testcontainers' reaper removes it afterwards)
@@ -57,13 +58,16 @@ let newEmptyDatabase () : Task<DbConfig> =
 
 /// The real app (Program.buildApp) on an in-process TestServer, background worker disabled,
 /// with the fake `test` sign-in provider registered (feature 002)
-type TestApp(app: WebApplication, client: HttpClient, db: DbConfig, mal: FakeMal.FakeMalHandler) =
+type TestApp(app: WebApplication, client: HttpClient, db: DbConfig, mal: FakeMal.FakeMalHandler, megafono: FakeMegafono.FakeMegafonoHandler) =
     member _.Client = client
     member _.Db = db
     member _.Services = app.Services
 
     /// The stand-in for MyAnimeList's API this app talks to (feature 003); nothing is routed until a test says so
     member _.Mal = mal
+
+    /// The stand-in for Megáfono's internal API (feature 015); in use only when the app runs with federation on
+    member _.Megafono = megafono
 
     /// A fresh browser (own cookie jar) speaking the given language
     member _.NewBrowser(?language: string) =
@@ -78,6 +82,10 @@ type TestApp(app: WebApplication, client: HttpClient, db: DbConfig, mal: FakeMal
 let createAppWith (db: DbConfig) (extraConfig: (string * string) list) (customize: WebApplicationBuilder -> unit) : Task<TestApp> =
     task {
         let mal = new FakeMal.FakeMalHandler()
+        let megafono = new FakeMegafono.FakeMegafonoHandler()
+
+        let federated =
+            extraConfig |> List.exists (fun (key, value) -> key = Federation.EnabledKey && value = "true")
 
         let app =
             Program.buildApp Array.empty (fun builder ->
@@ -95,20 +103,36 @@ let createAppWith (db: DbConfig) (extraConfig: (string * string) list) (customiz
                 |> ignore
 
                 FakeMal.useHandler mal builder.Services
+                if federated then FakeMegafono.useHandler megafono builder.Services
                 FakeProvider.register builder
                 customize builder)
 
         do! app.StartAsync()
-        return new TestApp(app, app.GetTestClient(), db, mal)
+        return new TestApp(app, app.GetTestClient(), db, mal, megafono)
     }
 
 let createApp (db: DbConfig) : Task<TestApp> = createAppWith db [] ignore
+
+/// The app with federation on (feature 015): domain `frunchy.test`, the test token and webhook secret
+/// (`FakeMegafono.Token`, `FakeMegafono.WebhookSecret`), and `app.Megafono` standing in for Megáfono. The
+/// outbox worker, when it exists, stays off like the other workers: tests drive it directly.
+let createFederatedAppWith (db: DbConfig) (extraConfig: (string * string) list) (customize: WebApplicationBuilder -> unit) : Task<TestApp> =
+    createAppWith db (FakeMegafono.federationSettings @ extraConfig) customize
+
+let createFederatedApp (db: DbConfig) : Task<TestApp> = createFederatedAppWith db [] ignore
 
 /// Fresh database + app in one call
 let newApp () : Task<TestApp> =
     task {
         let! db = newDatabase ()
         return! createApp db
+    }
+
+/// Fresh database + federated app in one call
+let newFederatedApp () : Task<TestApp> =
+    task {
+        let! db = newDatabase ()
+        return! createFederatedApp db
     }
 
 module Db =

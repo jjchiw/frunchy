@@ -393,7 +393,13 @@ let configureServices (config: IConfiguration) (services: IServiceCollection) =
     // Feature 014: the federation switch, checked at startup like the providers' credentials
     match Federation.read config with
     | Error message -> raise (InvalidOperationException message)
-    | Ok settings -> services.AddSingleton<Federation.FederationSettings>(settings) |> ignore
+    | Ok settings ->
+        services.AddSingleton<Federation.FederationSettings>(settings) |> ignore
+
+        // Feature 015: the "megafono" HTTP client exists only when federation is on
+        match settings with
+        | Federation.Enabled values -> MegafonoClient.register values services |> ignore
+        | Federation.Disabled -> ()
 
     configureAuth config services
     services.AddRouting().AddOxpecker() |> ignore

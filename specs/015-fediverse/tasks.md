@@ -10,8 +10,8 @@ suite and the AppHost.
 
 ## Phase 1: Foundation and accounts (US1)
 
-- [ ] T001 Schema: the 5 tables and the index from data-model.md in `initializeSchema`, documented in `SCHEMA.md`. The schema-equality test from 014 compares against the old bootstrap, so update it (the new tables are expected differences; adjust the old-bootstrap copy or the comparison so it still proves the 014 tables unchanged) · Infrastructure/Database.fs, SCHEMA.md, tests/FrunchyBackend.Tests/SchemaBootstrapTests.fs
-- [ ] T002 [P] `FediverseRulesTests` (unit):
+- [x] T001 Schema: the 5 tables and the index from data-model.md in `initializeSchema`, documented in `SCHEMA.md`. The schema-equality test from 014 compares against the old bootstrap, so update it (the new tables are expected differences; adjust the old-bootstrap copy or the comparison so it still proves the 014 tables unchanged) · Infrastructure/Database.fs, SCHEMA.md, tests/FrunchyBackend.Tests/SchemaBootstrapTests.fs
+- [x] T002 [P] `FediverseRulesTests` (unit):
   - **Signature**: valid, wrong secret, tampered body, 301 s old, future-skewed, missing parts.
   - **Series handles**: long slugs, punctuation, empty, collisions with numeric suffixes still within 30.
   - **`htmlToText`**: paragraphs, `br`, entities, scripts as text, nested tags.
@@ -19,7 +19,7 @@ suite and the AppHost.
   - **`commentHtml`**: escaping and line breaks.
 
   · tests/FrunchyBackend.Tests/FediverseRulesTests.fs
-- [ ] T003 `Infrastructure/Fediverse.fs`:
+- [x] T003 `Infrastructure/Fediverse.fs`:
   - the pure rules (research R2, R4, R7);
   - `actorUrl`;
   - `episodeGroupKey` (reuse 009's group rule);
@@ -27,7 +27,7 @@ suite and the AppHost.
   - `enqueue connection tx kind subject`.
 
   Make T002 pass · Infrastructure/Fediverse.fs
-- [ ] T004 `Infrastructure/MegafonoClient.fs` (research R1) and `tests/.../Infrastructure/FakeMegafono.fs` (research R9). Register the named client in Program.fs only when federation is on. Tests swap the primary handler as FakeMal does · Infrastructure/MegafonoClient.fs, Program.fs, tests/FrunchyBackend.Tests/Infrastructure/FakeMegafono.fs
+- [x] T004 `Infrastructure/MegafonoClient.fs` (research R1) and `tests/.../Infrastructure/FakeMegafono.fs` (research R9). Register the named client in Program.fs only when federation is on. Tests swap the primary handler as FakeMal does · Infrastructure/MegafonoClient.fs, Program.fs, tests/FrunchyBackend.Tests/Infrastructure/FakeMegafono.fs
 - [ ] T005 [US1] `MegafonoActorsTests`:
   - a user by handle and by id, every field;
   - a series by handle and by `series-` id, with the handle created lazily and stable;

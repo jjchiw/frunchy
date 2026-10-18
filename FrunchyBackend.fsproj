@@ -18,6 +18,8 @@
     <Compile Include="Infrastructure/Auth.fs" />
     <Compile Include="Infrastructure/AuthConfig.fs" />
     <Compile Include="Infrastructure/Federation.fs" />
+    <Compile Include="Infrastructure/Fediverse.fs" />
+    <Compile Include="Infrastructure/MegafonoClient.fs" />
     <Compile Include="Infrastructure/SecurityEvents.fs" />
     <Compile Include="Infrastructure/AccountActions.fs" />
     <Compile Include="Infrastructure/OperatorActions.fs" />

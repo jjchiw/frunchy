@@ -310,6 +310,18 @@ let private indexesQuery =
     ORDER BY 1
     """
 
+/// The tables feature 015 added after the old bootstrap was frozen; the comparison with the old bootstrap leaves
+/// them out (their DDL is covered by the clean-bootstrap tests below), so it still proves the older tables unchanged
+let private fediverseTables =
+    [ "series_handles"; "episode_threads"; "remote_actors"; "megafono_events"; "fediverse_outbox" ]
+
+/// Every catalog line starts with its table name and a bar
+let private belongsToFediverse (line: string) =
+    fediverseTables |> List.exists (fun table -> line.StartsWith(table + "|"))
+
+let private withoutFediverse (lines: string list) =
+    lines |> List.filter (belongsToFediverse >> not)
+
 /// Columns, constraints and indexes of a database, each as a sorted list of text lines
 let private catalogOf (db: DbConfig) =
     task {
@@ -335,9 +347,12 @@ let ``the clean bootstrap builds the schema the old bootstrap built`` () =
         Assert.True(oldConstraints.Length > 30, $"only {oldConstraints.Length} constraints found")
         Assert.True(oldIndexes.Length > 15, $"only {oldIndexes.Length} indexes found")
 
-        Assert.Equal<string list>(oldColumns, newColumns)
-        Assert.Equal<string list>(oldConstraints, newConstraints)
-        Assert.Equal<string list>(oldIndexes, newIndexes)
+        Assert.Equal<string list>(oldColumns, withoutFediverse newColumns)
+        Assert.Equal<string list>(oldConstraints, withoutFediverse newConstraints)
+        Assert.Equal<string list>(oldIndexes, withoutFediverse newIndexes)
+
+        // And the five new tables really are there (so the filter above removed something)
+        Assert.True((newColumns |> List.filter belongsToFediverse |> List.length) = 29)
     }
 
 [<Fact>]
