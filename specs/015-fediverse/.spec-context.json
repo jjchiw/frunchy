@@ -2,8 +2,8 @@
   "workflow": "speckit",
   "specName": "Fediverse Integration",
   "branch": "015-fediverse",
-  "currentStep": "specify",
-  "status": "specified",
+  "currentStep": "tasks",
+  "status": "ready-to-implement",
   "history": [
     {
       "step": "specify",
@@ -11,6 +11,14 @@
       "kind": "start",
       "by": "extension",
       "at": "2026-10-18T00:02:41.541Z"
+    },
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-18T00:05:02.195Z"
     }
-  ]
+  ],
+  "telemetryInstanceId": "9c0aebdd-915a-4bdd-91a9-1de18466cf80"
 }
