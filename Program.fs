@@ -76,6 +76,15 @@ let endpoints =
       yield! Handlers.Account.Logins.endpoint
       yield! Handlers.Account.DeleteAccount.endpoint ]
 
+/// Feature 015: Megáfono's app contract (actor lookup, and later the webhook receiver) exists only with federation
+/// on; with it off those routes are absent and answer the plain 404
+let federationEndpoints (settings: Federation.FederationSettings) =
+    match settings with
+    | Federation.Enabled _ -> [ yield! Handlers.Megafono.Actors.endpoint ]
+    | Federation.Disabled -> []
+
+let private allEndpoints (settings: Federation.FederationSettings) = endpoints @ federationEndpoints settings
+
 let private isApi (ctx: HttpContext) =
     ctx.Request.Path.StartsWithSegments(PathString "/api")
 
@@ -453,7 +462,7 @@ let configureApp (app: WebApplication) =
         .UseRateLimiter()
         .UseAntiforgery()
         .Use(errorHandler)
-        .UseOxpecker(endpoints)
+        .UseOxpecker(allEndpoints (app.Services.GetRequiredService<Federation.FederationSettings>()))
         .Run(notFoundHandler)
 
 /// Bella Baxter (our own secrets manager, dogfooded): when Bella credentials are present, from

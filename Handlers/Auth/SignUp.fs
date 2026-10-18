@@ -116,6 +116,21 @@ let private createAccount (db: DbConfig) (identity: ProviderIdentity) (inviteCod
         let userId = Guid.NewGuid()
 
         try
+            // Feature 015: a username equal to a series' fediverse handle is taken. The lock is the one handle
+            // creation takes, so a handle can't be created for it between this check and the insert.
+            use lock = new NpgsqlCommand("SELECT pg_advisory_xact_lock(@key)", connection, tx)
+            lock.Parameters.AddWithValue("key", Fediverse.HandleLockKey) |> ignore
+            let! _ = lock.ExecuteNonQueryAsync()
+
+            use handleTaken = new NpgsqlCommand("SELECT 1 FROM series_handles WHERE handle = @username", connection, tx)
+            handleTaken.Parameters.AddWithValue("username", username) |> ignore
+            let! seriesHandle = handleTaken.ExecuteScalarAsync()
+
+            if not (isNull seriesHandle) then
+                do! tx.RollbackAsync()
+                return Error UsernameNotFree
+            else
+
             use insertUser =
                 new NpgsqlCommand("INSERT INTO users (id, username, display_name) VALUES (@id, @username, @display_name)", connection, tx)
 

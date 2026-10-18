@@ -28,7 +28,7 @@ suite and the AppHost.
 
   Make T002 pass · Infrastructure/Fediverse.fs
 - [x] T004 `Infrastructure/MegafonoClient.fs` (research R1) and `tests/.../Infrastructure/FakeMegafono.fs` (research R9). Register the named client in Program.fs only when federation is on. Tests swap the primary handler as FakeMal does · Infrastructure/MegafonoClient.fs, Program.fs, tests/FrunchyBackend.Tests/Infrastructure/FakeMegafono.fs
-- [ ] T005 [US1] `MegafonoActorsTests`:
+- [x] T005 [US1] `MegafonoActorsTests`:
   - a user by handle and by id, every field;
   - a series by handle and by `series-` id, with the handle created lazily and stable;
   - unknown, deleted and trailing-dash usernames → 404;
@@ -37,7 +37,7 @@ suite and the AppHost.
   - sign-up refuses a username equal to a series handle.
 
   · tests/FrunchyBackend.Tests/MegafonoActorsTests.fs
-- [ ] T006 [US1] `Handlers/Megafono/Actors.fs` and the sign-up refusal. Endpoints only when federation is on · Handlers/Megafono/Actors.fs, Handlers/Auth/SignUp.fs, Program.fs
+- [x] T006 [US1] `Handlers/Megafono/Actors.fs` and the sign-up refusal. Endpoints only when federation is on · Handlers/Megafono/Actors.fs, Handlers/Auth/SignUp.fs, Program.fs
 
 ## Phase 2: Comments out (US2, US4 out, US5)
 
