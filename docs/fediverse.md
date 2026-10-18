@@ -1,6 +1,6 @@
 # Frunchy on the fediverse: episode comments and following
 
-Status: design note, 2026-10-10, updated 2026-10-17. Of this, only the pieces named below as done are built (feature 009's local comments, feature 013's series page and username rule, feature 014's platform). Each step below becomes its own spec-kit feature.
+Status: design note, 2026-10-10, updated 2026-10-18. Of this, only the pieces named below as done are built (feature 009's local comments, feature 013's series page and username rule, feature 014's platform, the first half of feature 015's integration). Each step below becomes its own spec-kit feature.
 
 Frunchy joins the fediverse through **Megáfono** (`../../Megafono`), a self-hosted ActivityPub sidecar.
 Frunchy keeps its users, data and pages, and contains no ActivityPub code. Megáfono owns the protocol:
@@ -208,6 +208,16 @@ The ground for the integration is in place, with no federation code yet:
 2. **Megáfono: replies**, meaning items 1 to 5 above, in its own session. **Done** (Megáfono 002 to 004,
    the last two being actor deletion and blocks; on its main as of 2026-10-17).
 3. **Frunchy: the platform** (feature 014). **Done**: the AppHost, the federation switch, the compose file.
-4. **Frunchy: the Megáfono integration** (feature 015, next). User accounts, series accounts with episode
-   threads, comments both ways, account deletion and blocks. Following remote accounts and a feed come
-   later, once Megáfono item 6 exists.
+4. **Frunchy: the Megáfono integration** (feature 015). **First half done** (2026-10-18): user and series
+   accounts (`/megafono/actors`), episode threads, comments both ways with edits and deletes, account
+   deletion, display-name refresh, blocks (a user's own on `/account`, the instance's on
+   `/review/fediverse`), the handle lines and actor links on the dashboard and series pages, and the
+   `fediverse-status` and `series-handle` commands. Everything outbound goes through a Postgres outbox and
+   a worker; blocks are synchronous.
+5. **Next: following and a feed**, once Megáfono item 6 exists (inbound posts from followed accounts as a
+   webhook): follow remote accounts from Frunchy, follower and following lists, and a feed.
+
+**Known gap.** A comment whose thread was refused permanently (for example Megáfono answering 400 or 410
+for the thread) is never published, and its `publish_comment` item waits for the thread and retries every
+hour forever. Nothing is lost and the comment stays visible on Frunchy, but the queue keeps one such item
+until an operator looks (`fediverse-status` shows it as the oldest waiting item with its error).

@@ -233,7 +233,9 @@ let private blocksSection (ctx: HttpContext) (t: Texts) (msg: string) (listing: 
         p(class' = "max-w-prose text-body-md text-on-surface-variant") { t.BlocksIntro }
         Blocks.notice t msg
         Blocks.addForm ctx t "/account/blocks/add"
-        Blocks.list ctx t "blocks" "/account/blocks/remove" t.BlocksEmpty t.BlocksLoadFailed listing
+        div(class' = "border-t border-outline-variant/40 pt-5") {
+            Blocks.list ctx t "blocks" "/account/blocks/remove" t.BlocksEmpty t.BlocksLoadFailed listing
+        }
     }
     |> accountSection "blocks" Theme.Block t.BlocksTitle
 

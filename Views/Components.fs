@@ -252,7 +252,8 @@ let copyLink (t: Texts) (address: string) =
 /// "Follow on the fediverse: @handle@domain" with a copy button (feature 015, FR-003). `handle` is the full
 /// `@name@domain`; it is also the value of `data-fediverse-handle`, the test hook.
 let fediverseHandleLine (t: Texts) (handle: string) =
-    p(class' = "flex flex-wrap items-center gap-x-2 gap-y-1 text-body-md text-on-surface-variant").data("fediverse-handle", handle) {
+    // a div, not a p: the copy widget is a div, and a p can't hold one (the parser would end the p before it)
+    div(class' = "flex flex-wrap items-center gap-x-2 gap-y-1 text-body-md text-on-surface-variant").data("fediverse-handle", handle) {
         icon Theme.AlternateEmail
         span() { t.FediverseFollowLabel + ":" }
         span(class' = "fr-mono font-semibold text-on-surface [overflow-wrap:anywhere]") { handle }

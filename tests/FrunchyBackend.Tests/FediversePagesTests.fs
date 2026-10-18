@@ -46,7 +46,8 @@ let private activityPub (url: string) = $"<{url}>; rel=\"alternate\"; type=\"app
 
 /// The text of the handle line (`data-fediverse-handle`), tags stripped
 let private handleLine (html: string) =
-    let m = Regex.Match(html, "<p\\b[^>]*data-fediverse-handle=\"([^\"]*)\"[^>]*>(.*?)</p>", RegexOptions.Singleline)
+    // the line is a div holding the label, the handle and the copy widget (a p couldn't hold the widget's div)
+    let m = Regex.Match(html, "<div\\b[^>]*data-fediverse-handle=\"([^\"]*)\"[^>]*>(.*?)<div\\b[^>]*data-copy-handle", RegexOptions.Singleline)
     if m.Success then Some(m.Groups[1].Value, Regex.Replace(m.Groups[2].Value, "<[^>]*>", " ")) else None
 
 // ---------------------------------------------------------------------------

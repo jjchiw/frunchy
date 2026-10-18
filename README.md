@@ -192,6 +192,23 @@ ConnectionStrings__Database="Host=localhost;Port=<port>;Username=postgres;Passwo
   dotnet run -- user-create animenerd "AnimeNerd"
 ```
 
+### Federation under Aspire (feature 015)
+
+With the platform running (`dotnet run --project AppHost`, federation on, domain `frunchy.test`), Frunchy is on the fediverse through Megáfono. Check it step by step:
+
+1. **Accounts.** Create a user (`dotnet run -- user-create animenerd "AnimeNerd"` against the AppHost's database) and ask the gateway for it: `curl "https://frunchy.test/.well-known/webfinger?resource=acct:animenerd@frunchy.test"` (resolve `frunchy.test` to the gateway, or send a `Host` header). A series answers the same way by its handle, which is made the first time its page is shown (`/anime/{seriesId}` shows it as "Follow on the fediverse") or set with `series-handle`.
+2. **A comment becomes a thread and a reply.** Sign in, comment on an episode page, then look at the queue with `fediverse-status`: a thread and the comment are sent within seconds (the worker polls every 5 seconds and retries with backoff when Megáfono is down). Megáfono's database then holds the series' thread post and the user's reply to it, and the episode page carries the thread as its ActivityPub alternate link.
+3. **Replies in.** A reply to the thread from another server reaches `POST /megafono/webhooks` and shows on the episode page with its author's handle and server; content warnings become spoilers. Remote peers need Megáfono's dev-fediverse kit, which doesn't exist yet.
+4. **Blocks.** `/account` lists the blocks of the signed-in user with a form to add one (a handle, an actor address or a server name); operators manage instance blocks on `/review/fediverse`.
+
+Switch it off with `Frunchy:Federation:Enabled=false`: the routes, the worker and every handle line disappear and the site works as before.
+
+### Settings added by feature 015
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Frunchy:FediverseWorkerEnabled` | `true` | Runs the outbox worker (only with federation on). The tests turn it off and drive it directly |
+
 ### Run Frunchy alone (federation off)
 
 No Aspire, no Megáfono: Frunchy is a complete web app without federation (`Frunchy:Federation:Enabled` is `false` by default).
@@ -279,6 +296,7 @@ Without the profile you get Frunchy and Postgres, and Frunchy listens on `127.0.
   `user-reset-binding <username>`, `user-rebuild <username>`, `user-delete <username> --yes`, `user-list`.
 - **Invites** (feature 002): `invite-create [--days N]`, `invite-list`, `invite-revoke <id>`.
 - **Operators** (feature 008): `operator-add <username>`, `operator-remove <username>`, `operator-list`. They work without a root configured, so they are the way back in if the root can't sign in.
+- **Fediverse** (feature 015): `fediverse-status` (federation settings without secrets, outbox counts by state and kind, the oldest waiting item; always exit 0), `series-handle <seriesId> <handle>` (set a series handle until its thread is published; exit 0 set, 1 usage or a handle that breaks the rule, 2 unknown series, 3 already federated, 4 taken by another series or a user).
 - **MyAnimeList enrichment** (feature 003): `mal-status`, `mal-list [--status S] [--limit N]`,
   `mal-show <crSeriesId>`, `mal-set <crSeasonId> <malId>`, `mal-none <crSeasonId>`,
   `mal-retry <crSeasonId | crSeriesId>`, `mal-auto <crSeasonId>` (feature 007: back to automatic), `mal-rebuild` (no requests).
@@ -348,6 +366,7 @@ Features are built through spec-kit (`specs/###-name/`), in this order:
 | 012 | **Charts and trends**: the most-watched series this week, this season and of all time (`/charts`), ranked by people, with movement and an 8-week trend on the week chart, and "Watched by N people on Frunchy" on anime and episode pages; nothing shows below `Frunchy:Charts:MinPeople` people (default 3) | Implemented ([spec](specs/012-charts-trends/charts-trends.spec.md)) |
 | 013 | **Series page**: a public page per series (`/anime/{seriesId}`) with its seasons, MyAnimeList details, known episodes with their comment counts and "Watched by N people"; chart rows, the episode page and the anime page link to it; new usernames can no longer end in a dash (Mastodon refuses them) | Implemented ([spec](specs/013-series-page/series-page.spec.md)) |
 | 014 | **Aspire platform reset**: an F# Aspire AppHost runs Postgres, Megáfono, its gateway and Frunchy on one domain; a federation switch (off by default) with validated Megáfono settings; forwarded headers only from trusted proxies; Discord removed; a clean schema bootstrap; a Dockerfile and a compose file with an optional federation profile | Implemented ([spec](specs/014-aspire-platform/aspire-platform.spec.md)) |
+| 015 | **Fediverse integration**: users are `@username@domain` and series are `@series-handle@domain` on the fediverse; each episode gets a thread post from its series; comments go both ways (a Frunchy comment is a reply, a Mastodon reply shows on the episode page, edits and deletes follow); deleting an account deletes its actor; users block accounts and servers from `/account`, operators from `/review/fediverse`; a Postgres outbox and a worker talk to Megáfono; `fediverse-status` and `series-handle` commands | Implemented ([spec](specs/015-fediverse/fediverse.spec.md)); following and a feed wait for Megáfono's feed feature |
 
 
 ## Key Design Decisions
