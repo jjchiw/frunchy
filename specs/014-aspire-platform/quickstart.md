@@ -126,3 +126,9 @@ published. The gateway's host port is pinned to 5300 (`Gateway:Port`) and Umbral
 redirect URI `http://localhost:5300/signin-umbral` can be registered once. Frunchy's Umbral provider turns on when
 the user secrets `Parameters:umbral-client-id` and `Parameters:umbral-client-secret` are set; the steps are in the
 README. `deploy/compose.yaml` gained an optional `umbral` profile.
+
+Run under the AppHost the same day (`Umbral:SourcePath` pointed at the checkout through user secrets, since the
+relative default doesn't resolve from a worktree): the `umbral` image built from source and the container came up
+healthy, `/healthz` answered `ok`, discovery gave issuer `http://localhost:5380/`, the site answered 200 on
+`http://localhost:5300`, and with no client credentials the AppHost printed the five setup steps and no secret.
+A full sign-in round trip waits for the one-time app registration.
