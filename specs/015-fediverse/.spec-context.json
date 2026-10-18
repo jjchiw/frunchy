@@ -1,0 +1,16 @@
+{
+  "workflow": "speckit",
+  "specName": "Fediverse Integration",
+  "branch": "015-fediverse",
+  "currentStep": "specify",
+  "status": "specified",
+  "history": [
+    {
+      "step": "specify",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-18T00:02:41.541Z"
+    }
+  ]
+}
