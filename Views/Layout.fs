@@ -101,6 +101,12 @@ let private headLinks (ctx: HttpContext) : HeadLink list =
 let addHeadLink (ctx: HttpContext) (link: HeadLink) =
     ctx.Items[HeadLinksKey] <- headLinks ctx @ [ link ]
 
+/// Advertise the ActivityPub representation of what this page is about (feature 015, FR-003, FR-009): the
+/// `<link rel="alternate" type="application/activity+json">` in the head, and the same as a `Link` response header
+let advertiseActivityPub (ctx: HttpContext) (href: string) =
+    addHeadLink ctx { Rel = "alternate"; Type = Some "application/activity+json"; Href = href }
+    ctx.Response.Headers["Link"] <- $"<{href}>; rel=\"alternate\"; type=\"application/activity+json\""
+
 /// Base HTML layout on the design system (Views/Theme.fs), in the request's language
 let page (ctx: HttpContext) (t: Texts) (titleText: string) (content: HtmlElement) =
     html(lang = t.Lang, class' = "bg-surface") {

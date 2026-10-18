@@ -62,7 +62,9 @@ type DashboardModel =
       SyncInProgress: bool
       Figures: Figures option // None when nothing resolved has been watched yet
       TopGenres: TopGenres option // None when no fully watched episode is in a matched season
-      Recent: RecentEpisode list }
+      Recent: RecentEpisode list
+      /// `@username@domain` with federation on (feature 015); None otherwise, and for a username that can't federate
+      FediverseHandle: string option }
 
 let private timeElement = Layout.timeElement
 
@@ -243,6 +245,10 @@ let private header (ctx: HttpContext) (t: Texts) (m: DashboardModel) =
                     }
                 | [] -> Fragment()
             }
+
+            match m.FediverseHandle with
+            | Some handle -> fediverseHandleLine t handle
+            | None -> Fragment()
         }
 
         div(class' = "flex shrink-0 flex-wrap items-start gap-2") {
@@ -576,7 +582,8 @@ let private tryLoad (db: DbConfig) (username: string) : Task<DashboardModel opti
                       SyncInProgress = inProgress
                       Figures = figures
                       TopGenres = topGenres
-                      Recent = recent }
+                      Recent = recent
+                      FediverseHandle = None }
     }
 
 // ---------------------------------------------------------------------------
@@ -604,6 +611,15 @@ let handler (rawUsername: string) : EndpointHandler =
                             return Some c
                         }
                     | _ -> Task.FromResult None
+
+                // With federation on (and a username that can federate): the handle line, and the actor as the
+                // page's ActivityPub alternate (feature 015, FR-003)
+                let m =
+                    match ctx.GetService<Federation.FederationSettings>() with
+                    | Federation.Enabled values when Fediverse.isValidHandle m.Username ->
+                        Layout.advertiseActivityPub ctx (Fediverse.actorUrl values.Domain (string m.UserId))
+                        { m with FediverseHandle = Some $"@{m.Username}@{values.Domain}" }
+                    | _ -> m
 
                 return! ctx.WriteHtmlView(view ctx t m compat)
             | None ->

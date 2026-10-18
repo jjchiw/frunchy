@@ -702,9 +702,7 @@ let handler (seriesId: string) (episodeId: string) : EndpointHandler =
                         let! groupKey = Fediverse.episodeGroupKey connection model.Id
 
                         match! threadUrl connection groupKey with
-                        | Some url ->
-                            Layout.addHeadLink ctx { Rel = "alternate"; Type = Some "application/activity+json"; Href = url }
-                            ctx.Response.Headers["Link"] <- $"<{url}>; rel=\"alternate\"; type=\"application/activity+json\""
+                        | Some url -> Layout.advertiseActivityPub ctx url
                         | None -> ()
 
                     return! ctx.WriteHtmlView(view ctx t (WebAuth.currentUserId ctx) people model comments (freshForm true "" None))

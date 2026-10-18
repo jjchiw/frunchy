@@ -425,6 +425,8 @@ let ``changing the display name sends a profile refresh`` () =
         let! response = alice.PostForm("/account", "/account/display-name", [ "displayName", "Alice Cooper" ])
         Assert.Equal(HttpStatusCode.Found, response.StatusCode)
 
+        // loading the account page (for the form's token) listed the user's blocks: not what is under test
+        app.Megafono.Clear()
         let! _ = drainOutbox app
         Assert.Equal<string list>([ $"PUT /internal/actors/{id}" ], app.Megafono.Requests |> List.map _.Key)
         let! rows = outbox app

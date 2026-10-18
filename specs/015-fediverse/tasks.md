@@ -99,7 +99,7 @@ suite and the AppHost.
   - **Wiring**: security event types `fediverse_block_added` and `fediverse_block_removed`; a limiter (`account-write` for users, `review-write` for operators).
 
   · Handlers/Account/Blocks.fs, Handlers/Account/AccountPage.fs, Handlers/Review/FediverseBlocks.fs, Domains/Identity.fs, Program.fs
-- [ ] T014 [US1] `FediversePagesTests`:
+- [x] T014 [US1] `FediversePagesTests`:
   - dashboard and series page: the handle line, copy button, alternate link and `Link` header;
   - episode page: the thread's alternate link and `Link` header once a thread exists;
   - none of these with federation off.

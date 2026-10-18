@@ -47,7 +47,9 @@ type SeriesPage =
       Poster: Charts.Poster option
       People: int option
       PeopleWeek: int option
-      Seasons: SeasonBlock list }
+      Seasons: SeasonBlock list
+      /// `@series-handle@domain` with federation on (feature 015); None otherwise
+      FediverseHandle: string option }
 
 // ---------------------------------------------------------------------------
 // View (contracts/series-page.md)
@@ -96,6 +98,10 @@ let private header (t: Texts) (page: SeriesPage) =
                         | Some n -> activityLine "people-week" (t.SeriesWatchedWeek n) n
                         | None -> Fragment()
                     }
+
+                match page.FediverseHandle with
+                | Some handle -> fediverseHandleLine t handle
+                | None -> Fragment()
             }
         }
     }
@@ -422,6 +428,18 @@ let handler (rawSeriesId: string) : EndpointHandler =
                     let! people = Charts.seriesPeople db rawSeriesId minimum
                     let! week = Charts.seriesPeopleSince db rawSeriesId (now.AddDays -7.0) minimum
 
+                    // With federation on, the series' own account: its handle (made now when it has none) on the page,
+                    // and its actor as the page's ActivityPub alternate (feature 015, FR-003)
+                    let! fediverseHandle =
+                        task {
+                            match ctx.GetService<Federation.FederationSettings>() with
+                            | Federation.Enabled values ->
+                                let! handle = Fediverse.ensureSeriesHandle connection rawSeriesId
+                                Layout.advertiseActivityPub ctx (Fediverse.actorUrl values.Domain $"series-{rawSeriesId}")
+                                return Some $"@{handle}@{values.Domain}"
+                            | Federation.Disabled -> return None
+                        }
+
                     let page =
                         { SeriesId = rawSeriesId
                           Title = titleOf rawSeriesId rows
@@ -429,7 +447,8 @@ let handler (rawSeriesId: string) : EndpointHandler =
                           Poster = poster
                           People = people
                           PeopleWeek = week
-                          Seasons = toSeasons rows }
+                          Seasons = toSeasons rows
+                          FediverseHandle = fediverseHandle }
 
                     return! ctx.WriteHtmlView(view ctx t page)
         }

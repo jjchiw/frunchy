@@ -58,6 +58,11 @@ type Texts =
       CopyLink: string
       LinkCopied: string
       CopyLinkFallback: string
+      // The fediverse handle line (feature 015)
+      FediverseFollowLabel: string
+      CopyHandle: string
+      HandleCopied: string
+      CopyHandleFallback: string
       DnaWatchTime: string
       DnaDaysOfLife: decimal -> string
       DnaCoverageTile: string
@@ -484,6 +489,10 @@ let en =
       CopyLink = "Copy link"
       LinkCopied = "Link copied"
       CopyLinkFallback = "Copy this address"
+      FediverseFollowLabel = "Follow on the fediverse"
+      CopyHandle = "Copy handle"
+      HandleCopied = "Handle copied"
+      CopyHandleFallback = "Copy this handle"
       DnaWatchTime = "Watch time"
       DnaDaysOfLife = fun d -> $"""{d.ToString("N1", CultureInfo.GetCultureInfo "en")} days of life"""
       DnaCoverageTile = "MyAnimeList coverage"
@@ -1018,6 +1027,10 @@ let es =
       CopyLink = "Copiar enlace"
       LinkCopied = "Enlace copiado"
       CopyLinkFallback = "Copia esta dirección"
+      FediverseFollowLabel = "Seguir en el fediverso"
+      CopyHandle = "Copiar identificador"
+      HandleCopied = "Identificador copiado"
+      CopyHandleFallback = "Copia este identificador"
       DnaWatchTime = "Tiempo visto"
       DnaDaysOfLife = fun d -> $"""{d.ToString("N1", CultureInfo.GetCultureInfo "es")} días de vida"""
       DnaCoverageTile = "Cobertura de MyAnimeList"
