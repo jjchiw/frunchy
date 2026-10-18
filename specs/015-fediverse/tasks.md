@@ -114,7 +114,7 @@ suite and the AppHost.
   - **design/BRIEF.md** §5.5: the handle now built.
 
   · Views/Texts.fs, docs
-- [ ] T017 Run the full `dotnet test`, then the manual AppHost check (SC-006): WebFinger for a user and a series through the gateway; a comment shows up as thread plus reply in Megáfono's database. Append the validation log · specs/015-fediverse/quickstart.md
+- [x] T017 Run the full `dotnet test`, then the manual AppHost check (SC-006): WebFinger for a user and a series through the gateway; a comment shows up as thread plus reply in Megáfono's database. Append the validation log · specs/015-fediverse/quickstart.md
 
 ## Dependencies
 
