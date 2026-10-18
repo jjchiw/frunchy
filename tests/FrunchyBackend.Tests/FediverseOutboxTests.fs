@@ -266,7 +266,7 @@ let ``a 503 twice then a 201: the waits grow and nothing is sent twice`` () =
     }
 
 [<Fact>]
-let ``a comment edited before it is published goes out once, with the latest text`` () =
+let ``a comment edited before it is published goes out once, with the latest text, and no update`` () =
     task {
         use! app = federatedSample ()
         let! ep = numberedEpisode app.Db
@@ -276,21 +276,35 @@ let ``a comment edited before it is published goes out once, with the latest tex
         let! response = edit alice id "Final text" false
         Assert.Equal(HttpStatusCode.Found, response.StatusCode)
 
+        // the pending, unclaimed publish will read the latest text: no update is queued
         let! queued = outbox app
-        Assert.Equal<string list>([ "ensure_thread|pending|0|-"; "publish_comment|pending|0|-"; "update_comment|pending|0|-" ], queued)
+        Assert.Equal<string list>([ "ensure_thread|pending|0|-"; "publish_comment|pending|0|-" ], queued)
 
         let! _ = drainOutbox app
 
         let replies = publishes app |> List.filter (fun r -> not (r.Path.Contains "series-"))
         Assert.Equal(1, replies.Length)
         Assert.Equal("<p>Final text</p>", text (objectOf replies[0]) "content")
-        // the publish read the latest text, so the object never carried the draft; the queued update then finds the
-        // stored object and repeats the same text (harmless: it is never an older text)
-        let puts = app.Megafono.RequestsTo "PUT /internal/objects/*"
-        Assert.All(puts, fun r -> Assert.Equal("<p>Final text</p>", text r.Json "content"))
-        Assert.Equal(1, app.Megafono.Count "POST /internal/actors/*/objects" - 1)
+        Assert.Equal(0, app.Megafono.Count "PUT /internal/objects/*")
         let! rows = outbox app
-        Assert.Equal<string list>([ "ensure_thread|done|0|-"; "publish_comment|done|0|-"; "update_comment|done|0|-" ], rows)
+        Assert.Equal<string list>([ "ensure_thread|done|0|-"; "publish_comment|done|0|-" ], rows)
+    }
+
+[<Fact>]
+let ``an edit while the publish is claimed still queues its update`` () =
+    task {
+        use! app = federatedSample ()
+        let! ep = numberedEpisode app.Db
+        use! alice = signedUp app "sub-a" "alice"
+        let! _ = postComment alice ep.Series ep.Episode "First draft" false
+        let! id = commentId app "First draft"
+
+        // the publish is in flight (claimed, not yet done) when the edit arrives
+        do! Db.execute app.Db $"UPDATE fediverse_outbox SET claimed_at = now() WHERE kind = 'publish_comment' AND subject = '{id}'"
+
+        let! _ = edit alice id "Final text" false
+        let! queued = outbox app
+        Assert.Equal<string list>([ "ensure_thread|pending|0|-"; "publish_comment|pending|0|-"; "update_comment|pending|0|-" ], queued)
     }
 
 [<Fact>]

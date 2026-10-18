@@ -252,12 +252,42 @@ let enqueueNewComment
             do! enqueue connection tx "publish_comment" commentId
     }
 
-/// Queue an edit or a delete of a comment, in the change's transaction (nothing for an author who can't federate)
+/// Whether a publish of this comment is still waiting and unclaimed: it will read the latest text when it runs,
+/// so an edit needs no update of its own
+let private publishNotYetClaimed (connection: NpgsqlConnection) (tx: NpgsqlTransaction) (commentId: string) : Task<bool> =
+    task {
+        use cmd =
+            new NpgsqlCommand(
+                """
+                SELECT EXISTS (SELECT 1 FROM fediverse_outbox
+                               WHERE kind = 'publish_comment' AND subject = @subject
+                                 AND state = 'pending' AND claimed_at IS NULL)
+                """,
+                connection,
+                tx
+            )
+
+        cmd.Parameters.AddWithValue("subject", commentId) |> ignore
+        let! found = cmd.ExecuteScalarAsync()
+        return unbox<bool> found
+    }
+
+/// Queue an edit or a delete of a comment, in the change's transaction (nothing for an author who can't federate).
+/// An edit queues nothing while the comment's publish is still pending and unclaimed (it sends the latest text);
+/// once the publish is claimed or done, the update is queued as usual.
 let enqueueCommentChange (connection: NpgsqlConnection) (tx: NpgsqlTransaction) (authorId: Guid) (kind: string) (commentId: string) : Task<unit> =
     task {
         match! authorCanFederate connection tx authorId with
-        | true -> do! enqueue connection tx kind commentId
         | false -> ()
+        | true ->
+            let! covered =
+                if kind = "update_comment" then
+                    publishNotYetClaimed connection tx commentId
+                else
+                    Task.FromResult false
+
+            if not covered then
+                do! enqueue connection tx kind commentId
     }
 
 /// The advisory lock that serialises handle creation, so two series can't pick the same one and a sign-up can't
