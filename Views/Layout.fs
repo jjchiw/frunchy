@@ -85,6 +85,22 @@ let timeElement (t: Texts) (mode: string) (instant: System.DateTime) =
         utc.ToString("d MMM yyyy, HH:mm", t.Culture) + " UTC"
     }
 
+/// A `<link>` a slice wants in the page's head (feature 015: the alternate ActivityPub representation)
+type HeadLink = { Rel: string; Type: string option; Href: string }
+
+/// The `ctx.Items` key `page` reads its extra head links from, so slices don't change the page signature
+[<Literal>]
+let HeadLinksKey = "frunchy.headLinks"
+
+let private headLinks (ctx: HttpContext) : HeadLink list =
+    match ctx.Items.TryGetValue HeadLinksKey with
+    | true, (:? (HeadLink list) as links) -> links
+    | _ -> []
+
+/// Ask the page rendered later in this request to carry one more `<link>` in its head
+let addHeadLink (ctx: HttpContext) (link: HeadLink) =
+    ctx.Items[HeadLinksKey] <- headLinks ctx @ [ link ]
+
 /// Base HTML layout on the design system (Views/Theme.fs), in the request's language
 let page (ctx: HttpContext) (t: Texts) (titleText: string) (content: HtmlElement) =
     html(lang = t.Lang, class' = "bg-surface") {
@@ -95,6 +111,12 @@ let page (ctx: HttpContext) (t: Texts) (titleText: string) (content: HtmlElement
             meta(name = "theme-color", content = "#13111a")
             title() { $"{titleText} | {t.SiteName}" }
             link(rel = "icon", href = Theme.faviconHref).attr("type", "image/svg+xml")
+
+            for extra in headLinks ctx do
+                match extra.Type with
+                | Some mediaType -> link(rel = extra.Rel, href = extra.Href).attr("type", mediaType)
+                | None -> link(rel = extra.Rel, href = extra.Href)
+
             link(rel = "preconnect", href = "https://fonts.googleapis.com")
             link(rel = "preconnect", href = "https://fonts.gstatic.com").attr("crossorigin", "")
 

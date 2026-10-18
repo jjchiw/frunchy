@@ -64,7 +64,7 @@ suite and the AppHost.
   - in the display-name change.
 
   Register the worker (enabled with federation on and `Frunchy:FediverseWorkerEnabled`, which the tests turn off, as for the other workers) · Workers/FediverseOutbox.fs, Handlers/Episodes/*.fs, Infrastructure/AccountActions.fs, Handlers/Account/DisplayName.fs, Program.fs
-- [ ] T009 [US2] Add the episode thread's alternate link and `Link` header to the episode page, with a layout hook for head links (research R8). Tests go in `FediversePagesTests` (T014) · Views/Layout.fs, Handlers/Episodes/Episode.fs
+- [x] T009 [US2] Add the episode thread's alternate link and `Link` header to the episode page, with a layout hook for head links (research R8). Tests go in `FediversePagesTests` (T014) · Views/Layout.fs, Handlers/Episodes/Episode.fs
 
 ## Phase 3: Replies in (US3, US4 in)
 

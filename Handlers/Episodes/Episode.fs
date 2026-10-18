@@ -517,9 +517,21 @@ let private loadThread (connection: NpgsqlConnection) (episodeIds: string list) 
         return List.ofSeq rows
     }
 
+/// The fediverse object URL of the group's thread, once Megáfono has published it (feature 015)
+let private threadUrl (connection: NpgsqlConnection) (groupKey: string) : Task<string option> =
+    task {
+        use cmd = new NpgsqlCommand("SELECT object_url FROM episode_threads WHERE group_key = @group_key", connection)
+        cmd.Parameters.AddWithValue("group_key", groupKey) |> ignore
+
+        match! cmd.ExecuteScalarAsync() with
+        | :? string as url -> return Some url
+        | _ -> return None
+    }
+
 /// Insert a comment; false when the id already exists (nothing is written then)
 let private insertComment
     (connection: NpgsqlConnection)
+    (tx: NpgsqlTransaction)
     (id: string)
     (episodeId: string)
     (authorId: Guid)
@@ -613,6 +625,17 @@ let handler (seriesId: string) (episodeId: string) : EndpointHandler =
                     let! group = loadGroup connection model.Id
                     let! comments = loadThread connection group
                     let! people = Charts.episodePeople (ctx.GetService<DbConfig>()) group (Charts.minPeople (ctx.GetService<IConfiguration>()))
+
+                    // With federation on, a published thread is advertised as the page's ActivityPub alternate (research R8)
+                    if Fediverse.isEnabled (ctx.GetService<Federation.FederationSettings>()) then
+                        let! groupKey = Fediverse.episodeGroupKey connection model.Id
+
+                        match! threadUrl connection groupKey with
+                        | Some url ->
+                            Layout.addHeadLink ctx { Rel = "alternate"; Type = Some "application/activity+json"; Href = url }
+                            ctx.Response.Headers["Link"] <- $"<{url}>; rel=\"alternate\"; type=\"application/activity+json\""
+                        | None -> ()
+
                     return! ctx.WriteHtmlView(view ctx t (WebAuth.currentUserId ctx) people model comments (freshForm true "" None))
         }
 
