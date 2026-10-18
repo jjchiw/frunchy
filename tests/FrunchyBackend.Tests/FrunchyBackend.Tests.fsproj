@@ -79,6 +79,8 @@
     <Compile Include="FediverseRulesTests.fs" />
     <Compile Include="MegafonoActorsTests.fs" />
     <Compile Include="FediverseOutboxTests.fs" />
+    <Compile Include="MegafonoWebhooksTests.fs" />
+    <Compile Include="RemoteCommentsTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

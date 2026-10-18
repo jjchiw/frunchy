@@ -56,6 +56,7 @@
     <Compile Include="Handlers/Episodes/DeleteComment.fs" />
     <Compile Include="Handlers/Episodes/HideComment.fs" />
     <Compile Include="Handlers/Megafono/Actors.fs" />
+    <Compile Include="Handlers/Megafono/Webhooks.fs" />
     <Compile Include="Handlers/Auth/SignIn.fs" />
     <Compile Include="Handlers/Auth/Complete.fs" />
     <Compile Include="Handlers/Auth/SignUp.fs" />

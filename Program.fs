@@ -80,11 +80,13 @@ let endpoints =
       yield! Handlers.Account.Logins.endpoint
       yield! Handlers.Account.DeleteAccount.endpoint ]
 
-/// Feature 015: Megáfono's app contract (actor lookup, and later the webhook receiver) exists only with federation
+/// Feature 015: Megáfono's app contract (actor lookup and the webhook receiver) exists only with federation
 /// on; with it off those routes are absent and answer the plain 404
 let federationEndpoints (settings: Federation.FederationSettings) =
     match settings with
-    | Federation.Enabled _ -> [ yield! Handlers.Megafono.Actors.endpoint ]
+    | Federation.Enabled _ ->
+        [ yield! Handlers.Megafono.Actors.endpoint
+          yield! Handlers.Megafono.Webhooks.endpoint ]
     | Federation.Disabled -> []
 
 let private allEndpoints (settings: Federation.FederationSettings) = endpoints @ federationEndpoints settings

@@ -68,7 +68,7 @@ suite and the AppHost.
 
 ## Phase 3: Replies in (US3, US4 in)
 
-- [ ] T010 [US3] `MegafonoWebhooksTests` and `RemoteCommentsTests`, using bodies signed with the test secret:
+- [x] T010 [US3] `MegafonoWebhooksTests` and `RemoteCommentsTests`, using bodies signed with the test secret:
   - **`reply.received`**: shows on the episode page (author name and `@user@host` link with `rel`/`target`, time, text from HTML, spoiler from `summary`/`sensitive`), and `remote_actors` is upserted.
   - **Repeats**: the same event id → 204, unchanged.
   - **Auth**: a bad or old signature or a bad token → 401, nothing stored.
@@ -81,7 +81,7 @@ suite and the AppHost.
   - **Malformed requests**: not JSON → 400; over 1 MB → 413.
 
   · tests/FrunchyBackend.Tests/MegafonoWebhooksTests.fs, RemoteCommentsTests.fs
-- [ ] T011 [US3] `Handlers/Megafono/Webhooks.fs` (research R6) and remote comments in the episode thread's query and view (research R7, R8). Remote comments get the moderation controls, not the author ones · Handlers/Megafono/Webhooks.fs, Handlers/Episodes/Episode.fs, Program.fs
+- [x] T011 [US3] `Handlers/Megafono/Webhooks.fs` (research R6) and remote comments in the episode thread's query and view (research R7, R8). Remote comments get the moderation controls, not the author ones · Handlers/Megafono/Webhooks.fs, Handlers/Episodes/Episode.fs, Program.fs
 
 ## Phase 4: Discovery, blocks, operations (US1 pages, US6)
 

@@ -221,7 +221,7 @@ let private byId (db: DbConfig) (domain: string) (id: string) : Task<Actor optio
 // ---------------------------------------------------------------------------
 
 /// `Authorization: Bearer {token}` against the configured token, in constant time over the UTF-8 bytes
-let private authorized (token: string) (ctx: HttpContext) =
+let authorized (token: string) (ctx: HttpContext) =
     let given = Encoding.UTF8.GetBytes(string ctx.Request.Headers.Authorization)
     let expected = Encoding.UTF8.GetBytes $"Bearer {token}"
     token <> "" && CryptographicOperations.FixedTimeEquals(given, expected)
