@@ -83,6 +83,7 @@
     <Compile Include="RemoteCommentsTests.fs" />
     <Compile Include="FediverseBlocksTests.fs" />
     <Compile Include="FediversePagesTests.fs" />
+    <Compile Include="FediverseOperationsTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

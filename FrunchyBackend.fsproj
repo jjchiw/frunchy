@@ -94,6 +94,8 @@
     <Compile Include="Operations/OperatorAdd.fs" />
     <Compile Include="Operations/OperatorRemove.fs" />
     <Compile Include="Operations/OperatorList.fs" />
+    <Compile Include="Operations/FediverseStatus.fs" />
+    <Compile Include="Operations/SeriesHandle.fs" />
     <Compile Include="Workers/ImportProcessor.fs" />
     <Compile Include="Workers/FediverseOutbox.fs" />
     <Compile Include="Program.fs" />

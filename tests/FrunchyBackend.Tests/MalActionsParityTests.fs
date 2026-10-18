@@ -43,7 +43,7 @@ let private cli (app: TestApp) (command: string) (args: string list) : Task<int>
           Http = httpFactory app
           Mal = malSettings app
           Clock = TimeProvider.System
-          Federated = false; RootOperator = None }
+          Federated = false; Federation = FrunchyBackend.Infrastructure.Federation.Disabled; RootOperator = None }
 
     Program.cliCommands[command] env args
 

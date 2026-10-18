@@ -105,7 +105,7 @@ suite and the AppHost.
   - none of these with federation off.
 
   Implement the handle lines in Dashboard.fs and Series.fs · tests/FrunchyBackend.Tests/FediversePagesTests.fs, Handlers/Users/Dashboard.fs, Handlers/Series/Series.fs
-- [ ] T015 CLI `fediverse-status` and `series-handle` (FR-017), with tests in the CLI test style · Operations/FediverseStatus.fs, Operations/SeriesHandle.fs, Program.fs
+- [x] T015 CLI `fediverse-status` and `series-handle` (FR-017), with tests in the CLI test style · Operations/FediverseStatus.fs, Operations/SeriesHandle.fs, Program.fs
 - [ ] T016 Texts (en and es) for everything added. Design: impeccable audit of the remote comment, the handle lines and the block pages. Docs:
   - **CLAUDE.md**: routes, outbox, settings, CLI.
   - **README.md**: roadmap 015, the federation walk-through under Aspire.

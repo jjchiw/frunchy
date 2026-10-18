@@ -511,6 +511,8 @@ type CliEnv =
       Clock: TimeProvider
       /// Federation is on: deleting a user then queues the deletion of their fediverse actor (feature 015)
       Federated: bool
+      /// The federation settings, for `fediverse-status` (never printed with their secrets)
+      Federation: Federation.FederationSettings
       /// `Frunchy:RootOperator`: the commands refuse to add or remove it
       RootOperator: string option }
 
@@ -538,7 +540,10 @@ let cliCommands: Map<string, CliEnv -> string list -> Task<int>> =
           "mal-auto", dbOnly Operations.MalAuto.run
           "operator-add", (fun env args -> Operations.OperatorAdd.run env.Db env.RootOperator args)
           "operator-remove", (fun env args -> Operations.OperatorRemove.run env.Db env.RootOperator args)
-          "operator-list", (fun env args -> Operations.OperatorList.run env.Db env.RootOperator args) ]
+          "operator-list", (fun env args -> Operations.OperatorList.run env.Db env.RootOperator args)
+          // Feature 015
+          "fediverse-status", (fun env args -> Operations.FediverseStatus.run env.Db env.Federation args)
+          "series-handle", dbOnly Operations.SeriesHandle.run ]
 
 let private runCli (command: string) (rest: string list) : int =
     // Same configuration sources as the web app (appsettings, environment, user secrets, Bella)
@@ -549,15 +554,18 @@ let private runCli (command: string) (rest: string list) : int =
     MalClient.register config services |> ignore
     use provider = services.BuildServiceProvider()
 
+    let federation =
+        match Federation.read config with
+        | Ok settings -> settings
+        | Error message -> raise (InvalidOperationException message)
+
     let env =
         { Db = db
           Http = provider.GetRequiredService<Net.Http.IHttpClientFactory>()
           Mal = MalClient.readSettings config
           Clock = TimeProvider.System
-          Federated =
-            (match Federation.read config with
-             | Ok settings -> Fediverse.isEnabled settings
-             | Error message -> raise (InvalidOperationException message))
+          Federated = Fediverse.isEnabled federation
+          Federation = federation
           RootOperator = WebAuth.rootOperator config }
 
     task {

@@ -359,3 +359,87 @@ let ensureSeriesHandle (connection: NpgsqlConnection) (seriesId: string) : Task<
                 do! tx.CommitAsync()
                 return handle
     }
+
+/// What `setSeriesHandle` came to
+type SetHandleResult =
+    /// The series now has this handle
+    | HandleSet
+    /// It already had exactly this handle
+    | HandleUnchanged
+    | UnknownSeries
+    /// The series' thread has been published, so remote servers may know its handle: it stays as it is
+    | AlreadyFederated
+    /// Another series handle or a username is the same
+    | HandleTaken
+
+/// Set a series' handle by hand (the `series-handle` command; FR-002), until the series account has federated: its
+/// thread has no `object_id` yet. One transaction under the same advisory lock as `ensureSeriesHandle` and sign-up, so it
+/// can't race either. The caller has checked the handle rule (`isValidHandle`).
+let setSeriesHandle (connection: NpgsqlConnection) (seriesId: string) (handle: string) : Task<SetHandleResult> =
+    task {
+        use tx = connection.BeginTransaction()
+
+        use lock = new NpgsqlCommand("SELECT pg_advisory_xact_lock(@key)", connection, tx)
+        lock.Parameters.AddWithValue("key", HandleLockKey) |> ignore
+        let! _ = lock.ExecuteNonQueryAsync()
+
+        use known = new NpgsqlCommand("SELECT EXISTS (SELECT 1 FROM cr_series WHERE id = @series_id)", connection, tx)
+        known.Parameters.AddWithValue("series_id", seriesId) |> ignore
+        let! exists = known.ExecuteScalarAsync()
+
+        if not (unbox<bool> exists) then
+            return UnknownSeries
+        else
+            use current = new NpgsqlCommand("SELECT handle FROM series_handles WHERE series_id = @series_id", connection, tx)
+            current.Parameters.AddWithValue("series_id", seriesId) |> ignore
+            let! currentHandle = current.ExecuteScalarAsync()
+
+            match currentHandle with
+            | :? string as existing when existing = handle -> return HandleUnchanged
+            | _ ->
+                use federated =
+                    new NpgsqlCommand(
+                        "SELECT EXISTS (SELECT 1 FROM episode_threads WHERE series_id = @series_id AND object_id IS NOT NULL)",
+                        connection,
+                        tx
+                    )
+
+                federated.Parameters.AddWithValue("series_id", seriesId) |> ignore
+                let! published = federated.ExecuteScalarAsync()
+
+                if unbox<bool> published then
+                    return AlreadyFederated
+                else
+                    use taken =
+                        new NpgsqlCommand(
+                            """
+                            SELECT EXISTS (SELECT 1 FROM series_handles WHERE handle = @handle AND series_id <> @series_id)
+                                OR EXISTS (SELECT 1 FROM users WHERE username = @handle)
+                            """,
+                            connection,
+                            tx
+                        )
+
+                    taken.Parameters.AddWithValue("handle", handle) |> ignore
+                    taken.Parameters.AddWithValue("series_id", seriesId) |> ignore
+                    let! clash = taken.ExecuteScalarAsync()
+
+                    if unbox<bool> clash then
+                        return HandleTaken
+                    else
+                        use upsert =
+                            new NpgsqlCommand(
+                                """
+                                INSERT INTO series_handles (series_id, handle) VALUES (@series_id, @handle)
+                                ON CONFLICT (series_id) DO UPDATE SET handle = EXCLUDED.handle
+                                """,
+                                connection,
+                                tx
+                            )
+
+                        upsert.Parameters.AddWithValue("series_id", seriesId) |> ignore
+                        upsert.Parameters.AddWithValue("handle", handle) |> ignore
+                        let! _ = upsert.ExecuteNonQueryAsync()
+                        do! tx.CommitAsync()
+                        return HandleSet
+    }

@@ -226,7 +226,7 @@ let ``the web and the CLI leave the same rows`` () =
               Http = httpFactory cli.App
               Mal = MalClient.readSettings (Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>(cli.App.Services))
               Clock = TimeProvider.System
-              Federated = false; RootOperator = None }
+              Federated = false; Federation = FrunchyBackend.Infrastructure.Federation.Disabled; RootOperator = None }
 
         let! _ = post web "/review/mal/set" [ "season", slimeSeason; "mal", "37430" ]
         let! _ = post web "/review/mal/none" [ "season", "GR19CPDWM" ]
