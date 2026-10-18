@@ -165,6 +165,49 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 - Optional, to sign in with Umbral (our own OpenID Connect provider, a separate repo) under the AppHost: a checkout of Umbral at `../../Umbral` (or `Umbral:SourcePath`). No image is published yet, so the AppHost builds it from its `Dockerfile`; without the checkout the AppHost warns and runs without Umbral
 - To run Frunchy alone: PostgreSQL 14+ (locally it runs in Docker: container `postgres-postgres-1`)
 
+### Run it locally (start here)
+
+From the repo root:
+
+```bash
+bella sdk run -- aspire run
+```
+
+That's the whole platform: Postgres, Megáfono and its gateway, Umbral (if checked out) and Frunchy, with Frunchy reading its secrets from Bella. `Ctrl+C` stops everything; the data stays in Docker volumes.
+
+**Which command?**
+
+| Command | What you get |
+|---|---|
+| `bella sdk run -- aspire run` | **Use this one.** The Bella CLI hands its credentials (not the secrets) to the AppHost; Frunchy inherits them and fetches its own secrets from Bella (project `frunchy`, environment `development`, chosen by the gitignored `.bella` file in the repo root): Google, the MyAnimeList client id, `Frunchy:RootOperator`, and any provider settings. They are re-read every minute without a restart. |
+| `aspire run` (or `dotnet run --project AppHost`) | Everything runs, but Frunchy only sees `appsettings.json` and its user secrets: no Google sign-in and no MyAnimeList enrichment unless they are in user secrets. |
+| `bella run -- aspire run` | Don't. It copies **every** Bella secret as an environment variable into the AppHost and every process it starts, frozen until a restart. It works, but there is no reason to spread them further. |
+
+Bella values reach Frunchy only. The containers (Postgres, Megáfono, the gateway, Umbral) get just what the AppHost gives them. Variables the AppHost sets on Frunchy (the database, the Megáfono settings, Umbral once registered) win over Bella.
+
+**First time only:**
+1. Docker running, and `bella login` once (`bella whoami` shows who you are).
+2. The Megáfono master key (base64 of 32 bytes; keep a copy):
+   ```bash
+   dotnet user-secrets set "Parameters:megafono-master-key" "$(openssl rand -base64 32)" --project AppHost
+   ```
+3. Optional, for Umbral: a checkout at `../../Umbral`. When working from a git worktree that relative path points somewhere else, so set the absolute one: `dotnet user-secrets set "Umbral:SourcePath" "/path/to/Umbral" --project AppHost`. Registering Frunchy in Umbral is a one-time manual step, [below](#run-the-platform-with-aspire-feature-014).
+
+**Where things are** (`aspire run` prints the dashboard link with its login token):
+
+| What | URL |
+|---|---|
+| The site (through the gateway, as in production) | http://localhost:5300 |
+| Frunchy directly (the extension's dev URL) | http://localhost:5099 |
+| Aspire dashboard (logs, resources, connection strings) | http://localhost:15180 |
+| Umbral and its admin (`/admin`) | http://localhost:5380 |
+
+**Getting in.** Sign-up is invite-only. Make an invite against the AppHost's database (copy the `frunchydb` connection string from the dashboard: resource `pg`, database `frunchydb`), then sign in at http://localhost:5300/signin with a configured provider; a new identity lands on the sign-up page, which asks for the code:
+```bash
+ConnectionStrings__Database="<connection string from the dashboard>" dotnet run -- invite-create
+```
+A provider's redirect URI under the AppHost is the gateway's: `http://localhost:5300/signin-google` and `http://localhost:5300/signin-umbral` (Frunchy alone uses 5099). If Bella's `development` environment holds Umbral settings from running Umbral by itself (authority `http://localhost:5173`), they stay in effect under the AppHost until the AppHost's own Umbral is registered as described below.
+
 ### Run the platform with Aspire (feature 014)
 
 `AppHost/` is an F# [Aspire](https://aspire.dev) AppHost that starts Postgres (databases `frunchydb` and `megafono`), Megáfono, its gateway and Frunchy, with the shared secrets wired in. Aspire is only the development orchestrator: production is the compose file below.
@@ -174,9 +217,9 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
    dotnet user-secrets set "Parameters:megafono-master-key" "$(openssl rand -base64 32)" --project AppHost
    ```
    The token and webhook secret between Frunchy and Megáfono are generated and persisted in the same user secrets. `Parameters:domain` defaults to `frunchy.test`.
-2. **Run** (`aspire run` also works):
+2. **Run** (see [Run it locally](#run-it-locally-start-here) for why `bella sdk run`; plain `aspire run` or `dotnet run --project AppHost` run without Bella):
    ```bash
-   dotnet run --project AppHost
+   bella sdk run -- aspire run
    ```
    The Aspire dashboard lists `pg`, both databases, `megafono`, `gateway` and `frunchy`. The **gateway** is the one public entrance on a single domain: Megáfono's routes (`/.well-known/webfinger`, `/.well-known/nodeinfo`, `/nodeinfo/*`, `/ap/*`, `/inbox`) go to Megáfono and everything else to Frunchy. Megáfono's internal API (port 8081) is reachable only by Frunchy.
 3. **The domain is permanent once you federate**: actor ids are `https://{domain}/ap/actors/{users.id}` and changing the domain later orphans every follower.

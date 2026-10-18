@@ -15,7 +15,7 @@ dotnet build
 dotnet test                                        # from the root (FrunchyBackend.slnx); needs Docker (Testcontainers)
 dotnet test --filter-class "*DashboardTests*"      # one test class (Microsoft.Testing.Platform filters)
 dotnet run --launch-profile http                   # http://localhost:5099, the dev URL the extension uses (federation off)
-dotnet run --project AppHost                       # feature 014: Postgres + Megafono + gateway + Frunchy (needs Docker and the master key; Megafono comes as pinned images)
+bella sdk run -- aspire run                        # the usual local run (README "Run it locally"): the whole platform, Frunchy inheriting the Bella credentials; plain `aspire run` / `dotnet run --project AppHost` run without Bella
 dotnet build AppHost/Frunchy.AppHost.fsproj        # the AppHost alone; it is in the slnx, so the root build compiles it too (no Docker needed to build)
 dotnet run -- user-create <username> "<Name>"      # operator CLI; prints the sync key once
 ```
