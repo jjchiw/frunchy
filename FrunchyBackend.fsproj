@@ -21,6 +21,7 @@
     <Compile Include="Infrastructure/Fediverse.fs" />
     <Compile Include="Infrastructure/MegafonoClient.fs" />
     <Compile Include="Infrastructure/SecurityEvents.fs" />
+    <Compile Include="Infrastructure/BlockActions.fs" />
     <Compile Include="Infrastructure/AccountActions.fs" />
     <Compile Include="Infrastructure/OperatorActions.fs" />
     <Compile Include="Infrastructure/WebAuth.fs" />
@@ -37,6 +38,7 @@
     <Compile Include="Infrastructure/CommentRules.fs" />
     <Compile Include="Views/Theme.fs" />
     <Compile Include="Views/Components.fs" />
+    <Compile Include="Views/Blocks.fs" />
     <Compile Include="Views/Layout.fs" />
     <Compile Include="Handlers/Home.fs" />
     <Compile Include="Handlers/Api/CreateImport.fs" />
@@ -51,6 +53,7 @@
     <Compile Include="Handlers/Series/Series.fs" />
     <Compile Include="Handlers/Review/MalReview.fs" />
     <Compile Include="Handlers/Review/Operators.fs" />
+    <Compile Include="Handlers/Review/FediverseBlocks.fs" />
     <Compile Include="Handlers/Episodes/Episode.fs" />
     <Compile Include="Handlers/Episodes/EditComment.fs" />
     <Compile Include="Handlers/Episodes/DeleteComment.fs" />
@@ -66,6 +69,7 @@
     <Compile Include="Handlers/Account/AccountPage.fs" />
     <Compile Include="Handlers/Account/SyncKey.fs" />
     <Compile Include="Handlers/Account/DisplayName.fs" />
+    <Compile Include="Handlers/Account/Blocks.fs" />
     <Compile Include="Handlers/Account/ResetBinding.fs" />
     <Compile Include="Handlers/Account/Logins.fs" />
     <Compile Include="Handlers/Account/DeleteAccount.fs" />

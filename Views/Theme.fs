@@ -181,6 +181,7 @@ let componentCss =
 type Icon =
     | ArrowBack
     | ArrowForward
+    | Block
     | CalendarMonth
     | CheckCircle
     | ContentCopy
@@ -213,6 +214,7 @@ type Icon =
         match this with
         | ArrowBack -> "arrow_back"
         | ArrowForward -> "arrow_forward"
+        | Block -> "block"
         | CalendarMonth -> "calendar_month"
         | CheckCircle -> "check_circle"
         | ContentCopy -> "content_copy"

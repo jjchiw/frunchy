@@ -85,7 +85,7 @@ suite and the AppHost.
 
 ## Phase 4: Discovery, blocks, operations (US1 pages, US6)
 
-- [ ] T012 [US6] `FediverseBlocksTests`:
+- [x] T012 [US6] `FediverseBlocksTests`:
   - **User blocks**: list, add by handle, by URL and by domain, and remove.
   - **Megáfono's errors**: 400, 404, 409 `blocked` and 502 each show their plain message and change nothing.
   - **Security events**: one per change.
@@ -93,7 +93,7 @@ suite and the AppHost.
   - **Instance blocks** on `/review/fediverse` for operators; the plain 404 on every route and verb for others; never a 429 for outsiders.
 
   · tests/FrunchyBackend.Tests/FediverseBlocksTests.fs
-- [ ] T013 [US6] Build the blocks UI:
+- [x] T013 [US6] Build the blocks UI:
   - **Account section**: `Handlers/Account/Blocks.fs` with its POST routes, rendered in `AccountPage.fs`.
   - **Operator page**: `Handlers/Review/FediverseBlocks.fs`.
   - **Wiring**: security event types `fediverse_block_added` and `fediverse_block_removed`; a limiter (`account-write` for users, `review-write` for operators).

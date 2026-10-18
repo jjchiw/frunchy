@@ -192,6 +192,51 @@ let blocksOf (result: MegafonoResult) : BlockItem list =
         with _ ->
             []
 
+let private hostPattern =
+    System.Text.RegularExpressions.Regex(
+        @"\A[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\z",
+        System.Text.RegularExpressions.RegexOptions.CultureInvariant
+    )
+
+/// What a person typed in the block field, read by its shape (feature 015, FR-015):
+/// - an `https://` address is an actor URL (anything else with a scheme is refused);
+/// - something with an `@` is a handle, `@user@host` or `user@host`, sent as `@user@host`;
+/// - anything else must be a host name, a whole server.
+/// None when it is none of these, so no call is made.
+let parseBlockTarget (raw: string) : BlockTarget option =
+    let value = if isNull raw then "" else raw.Trim()
+
+    if value = "" || value.Length > 2048 || value |> Seq.exists Char.IsWhiteSpace then
+        None
+    elif value.Contains "://" then
+        match Uri.TryCreate(value, UriKind.Absolute) with
+        | true, uri when uri.Scheme = Uri.UriSchemeHttps && uri.Host <> "" && uri.AbsolutePath.Length > 1 -> Some(Actor value)
+        | _ -> None
+    elif value.Contains '@' then
+        match value.TrimStart('@').Split '@' with
+        | [| user; host |] when user <> "" && hostPattern.IsMatch(host.ToLowerInvariant()) && not (user.Contains '/') ->
+            Some(Actor $"@{user}@{host.ToLowerInvariant()}")
+        | _ -> None
+    else
+        let host = value.TrimEnd('.').ToLowerInvariant()
+        if hostPattern.IsMatch host then Some(Domain host) else None
+
+/// The notice key a block call comes to: the change it made, or why it didn't (`block-added`, `block-removed`,
+/// `block-already`, `block-not-found`, `block-not-blocked`, `block-blocked`, `block-unreachable`, `block-invalid`,
+/// `block-error`). Success is 201 on add and 204 on remove.
+let blockNoticeKey (isAdd: bool) (result: MegafonoResult) : string =
+    match isAdd, result.Status with
+    | true, 201 -> "block-added"
+    | true, 200 -> "block-already"
+    | false, 204 -> "block-removed"
+    | true, 404 -> "block-not-found"
+    | false, 404 -> "block-not-blocked"
+    | _, 409 when result.ErrorCode = Some "blocked" -> "block-blocked"
+    | _, 400 -> "block-invalid"
+    | _, 502
+    | _, 0 -> "block-unreachable"
+    | _ -> "block-error"
+
 /// User blocks (synchronous, from the account page): `GET/POST/DELETE /internal/actors/{id}/blocks`
 let listBlocks (client: HttpClient) (userId: string) =
     send client HttpMethod.Get $"/internal/actors/{escape userId}/blocks" None None
