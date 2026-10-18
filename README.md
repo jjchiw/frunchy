@@ -162,6 +162,7 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 - .NET SDK 10
 - Docker running (Aspire starts Postgres and Megáfono in containers, the tests use Testcontainers)
 - To run the whole platform: nothing more. The AppHost pulls Megáfono (the fediverse service, a separate repo) as the published images `ghcr.io/cosmic-chimps/megafono` and `megafono-gateway`, pinned by `Megafono:ImageTag` (`0.1.0`). To try an unreleased Megáfono, set `Megafono:BuildFromSource` to `true` and `Megafono:SourcePath` to a checkout (default `../../Megafono`)
+- Optional, to sign in with Umbral (our own OpenID Connect provider, a separate repo) under the AppHost: a checkout of Umbral at `../../Umbral` (or `Umbral:SourcePath`). No image is published yet, so the AppHost builds it from its `Dockerfile`; without the checkout the AppHost warns and runs without Umbral
 - To run Frunchy alone: PostgreSQL 14+ (locally it runs in Docker: container `postgres-postgres-1`)
 
 ### Run the platform with Aspire (feature 014)
@@ -179,6 +180,21 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
    ```
    The Aspire dashboard lists `pg`, both databases, `megafono`, `gateway` and `frunchy`. The **gateway** is the one public entrance on a single domain: Megáfono's routes (`/.well-known/webfinger`, `/.well-known/nodeinfo`, `/nodeinfo/*`, `/ap/*`, `/inbox`) go to Megáfono and everything else to Frunchy. Megáfono's internal API (port 8081) is reachable only by Frunchy.
 3. **The domain is permanent once you federate**: actor ids are `https://{domain}/ap/actors/{users.id}` and changing the domain later orphans every follower.
+
+**Fixed ports.** The site (the gateway) is always `http://localhost:5300` (`Gateway:Port`) and Umbral `http://localhost:5380` (`Umbral:Port`). They are pinned because sign-in redirect URIs are registered once and must not move. Open the site on 5300, not on Frunchy's own port.
+
+**Sign in with Umbral (optional).** With `Umbral:Enabled` (default `true` in `AppHost/appsettings.json`) and a checkout at `Umbral:SourcePath` (default `../../Umbral`), the AppHost builds and starts Umbral with its dev settings (plain http on `localhost`, a volume `umbral-data`). Frunchy's Umbral sign-in stays off until Frunchy is registered in Umbral, which cannot be automated (the client id and secret are generated in its admin). Once per `umbral-data` volume (wiping the volume means doing it again):
+1. Claim Umbral: `docker exec <umbral container> /app/Umbral reset-credential` prints a credential for `http://localhost:5380/admin`, or use the setup token from Umbral's log at `/admin/setup`.
+2. Under Connectors, enable the **fake connector**. It is dev only: it exists because the AppHost sets `UMBRAL__ALLOW_FAKE_CONNECTOR`, and it signs anyone in without a real identity.
+3. Apps, Create app, **Web application**, redirect URI exactly `http://localhost:5300/signin-umbral`. Copy the client id and secret.
+4. Store them and restart the AppHost:
+   ```bash
+   dotnet user-secrets set "Parameters:umbral-client-id" "<client id>" --project AppHost
+   dotnet user-secrets set "Parameters:umbral-client-secret" "<client secret>" --project AppHost
+   ```
+   Frunchy then starts with the Umbral provider on (authority `http://localhost:5380`) and waits for Umbral. Until both are set the AppHost prints these steps and leaves the provider off. Google can still be configured through Bella or user secrets as before.
+
+In production (`deploy/compose.yaml`) Umbral is the optional `umbral` profile, built from `UMBRAL_CONTEXT` until an image is published; see `deploy/.env.example`.
 
 **One-time wipe.** The schema bootstrap now assumes an empty database, and the AppHost uses its own volume (`frunchy-pg`), so nothing from before carries over. If you ran an older version against `postgres-postgres-1`, drop its old databases (dev data, not real history):
 ```bash

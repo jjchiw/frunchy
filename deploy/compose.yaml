@@ -8,6 +8,9 @@
 #     `COMPOSE_PROFILES=federation` AND `FRUNCHY_FEDERATION_ENABLED=true` in .env (compose cannot derive one from
 #     the other). If Frunchy is told to federate without Megafono's settings it refuses to start, naming the key.
 #
+# The optional `umbral` profile adds Umbral, our OpenID Connect provider (a separate repo), as a sign-in option
+# next to Google. Frunchy reaches it through UMBRAL_* below (set UMBRAL_ENABLED=true once the app is registered).
+#
 # Nothing here terminates TLS: put a TLS proxy (Caddy, Traefik, nginx) in front of the one published port and send
 # it the whole domain. Every setting comes from the environment; deploy/.env.example documents each one.
 
@@ -113,6 +116,28 @@ services:
         ipv4_address: 172.30.0.10 # fixed, so Megafono and Frunchy can trust the forwarded headers it sets
     depends_on: [megafono, frunchy]
 
+  # --- umbral profile -------------------------------------------------------------------------------------------
+
+  umbral:
+    profiles: [umbral]
+    # No image is published yet, so it is built from a checkout (UMBRAL_CONTEXT). Once released, replace `build`
+    # with `image: ghcr.io/<owner>/umbral:X.Y.Z` (pinned).
+    build:
+      context: ${UMBRAL_CONTEXT:-../../Umbral}
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # The address people type in the browser: https only (http is accepted for localhost in Development only)
+      UMBRAL__PUBLIC_ORIGIN: ${UMBRAL__PUBLIC_ORIGIN:?set UMBRAL__PUBLIC_ORIGIN, e.g. https://auth.example.com}
+      # The TLS proxy in front of Umbral, as Umbral sees it (the bridge address for a proxy on this host)
+      UMBRAL__TRUSTED_PROXIES: ${UMBRAL__TRUSTED_PROXIES:-172.30.0.1}
+    ports:
+      - "127.0.0.1:${UMBRAL_PORT:-8100}:8080" # loopback only: point your TLS proxy for the Umbral domain here
+    volumes:
+      - umbral-data:/data # operator credential, apps, connectors and signing keys: back it up
+    # The image carries its own HEALTHCHECK (/app/Umbral healthcheck); no curl or wget is needed.
+    networks: [edge]
+
 networks:
   edge: # frunchy, gateway, megafono (federation port); outbound traffic leaves from here
     ipam:
@@ -127,3 +152,4 @@ networks:
 volumes:
   postgres-data: {}
   frunchy-keys: {}
+  umbral-data: {}
