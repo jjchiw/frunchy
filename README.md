@@ -221,6 +221,10 @@ ConnectionStrings__Database="<connection string from the dashboard>" dotnet run 
 ```
 A provider's redirect URI under the AppHost is the gateway's: `http://localhost:5300/signin-google` and `http://localhost:5300/signin-umbral` (Frunchy alone uses 5099). If Bella's `development` environment holds Umbral settings from running Umbral by itself (authority `http://localhost:5173`), they stay in effect under the AppHost until the AppHost's own Umbral is registered as described below.
 
+### Deploy to Caravana
+
+The same AppHost deploys Frunchy and its Postgres to [Caravana](https://github.com/Cosmic-Chimps/caravana) with `aspire deploy` (publish mode builds a smaller graph than `aspire run`; federation stays off). The parameters, the registry login and the one-time Caravana and Umbral setup are in [docs/deploy-caravana.md](docs/deploy-caravana.md).
+
 ### Run the platform with Aspire (feature 014)
 
 `AppHost/` is an F# [Aspire](https://aspire.dev) AppHost that starts Postgres (databases `frunchydb` and `megafono`), Megáfono, its gateway and Frunchy, with the shared secrets wired in. Aspire is only the development orchestrator: production is the compose file below.

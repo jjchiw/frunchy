@@ -1,6 +1,11 @@
 /// Feature 014: the local platform. One command starts Postgres (frunchydb and megafono), Megafono, its
 /// gateway and Frunchy, with the shared secrets wired in. See specs/014-aspire-platform/ (research R1-R3,
-/// contracts/settings.md). Aspire is a dev orchestrator only: production is deploy/compose.yaml.
+/// contracts/settings.md).
+///
+/// Feature 018: the same AppHost is also the Caravana deploy. `aspire deploy` runs in publish mode, which builds
+/// a different, smaller graph (Frunchy and Postgres, federation off) and publishes it with
+/// CosmicChimps.Aspire.Hosting.Caravana; `aspire run` keeps the local platform. deploy/compose.yaml stays the
+/// self-hosted alternative.
 ///
 /// Aspire's F# support is partial: no Projects.* classes, so Frunchy is added by path, and
 /// FSharp.Aspire.Hosting.AppHost supplies the WithReference/WaitFor overloads F# lacks (no covariance).
@@ -13,6 +18,7 @@ open System.IO
 open Aspire.Hosting
 open Aspire.Hosting.ApplicationModel
 open Microsoft.Extensions.Configuration
+open CosmicChimps.Aspire.Hosting.Caravana
 
 /// What the developer runs when the master key is missing or malformed. The value is never printed.
 let private masterKeyHelp =
@@ -54,13 +60,91 @@ let private generated () =
     // 32 letters and digits, no symbols: the values travel in headers and environment variables
     GenerateParameterDefault(MinLength = 32, Special = false) :> ParameterDefault
 
-[<EntryPoint>]
-let main args =
-    let builder = DistributedApplication.CreateBuilder(args)
+/// Production, phase 1 (feature 018): `aspire deploy` publishes Frunchy and its Postgres to Caravana as one app.
+/// Federation is off (Megafono, its gateway and its database are not added) and Umbral is its own Caravana app,
+/// so only "frunchy" and "pg" exist here. Every runtime value is an Aspire parameter (prompted when missing,
+/// secret where marked): no Bella credentials reach the container.
+let private publishGraph (builder: IDistributedApplicationBuilder) (repoRoot: string) =
+    // Where to deploy: the Caravana console, a deploy token and the registry `aspire deploy` pushes to.
+    // The push uses the ambient `docker login`; Caravana pulls from the same registry.
+    let caravanaUrl = builder.AddParameter("caravana-url")
+    let caravanaToken = builder.AddParameter("caravana-token", secret = true)
+    let registryEndpoint = builder.AddParameter("registry-endpoint")
+    let registryRepository = builder.AddParameter("registry-repository")
 
-    // Frunchy's repository root: AppHost/ sits directly under it
-    let repoRoot = Path.GetFullPath(Path.Combine(__SOURCE_DIRECTORY__, ".."))
+    // What the app needs at runtime. The database password is not the dev "pg-password", and the encryption key
+    // (base64 of 32 bytes) encrypts the data protection keys stored in Postgres: losing it signs everyone out.
+    let frunchyDomain = builder.AddParameter("frunchy-domain")
+    let dbPassword = builder.AddParameter("db-password", secret = true)
+    let dataProtectionKey = builder.AddParameter("data-protection-key", secret = true)
+    let umbralAuthority = builder.AddParameter("umbral-authority")
+    let umbralClientId = builder.AddParameter("umbral-client-id")
+    let umbralClientSecret = builder.AddParameter("umbral-client-secret", secret = true)
+    let malClientId = builder.AddParameter("mal-client-id", secret = true)
+    let rootOperator = builder.AddParameter("root-operator")
 
+    // The project and environment are plain settings, not parameters: they are not secret and rarely change.
+    let setting (key: string) (fallback: string) =
+        match builder.Configuration[key] with
+        | null
+        | "" -> fallback
+        | value -> value.Trim()
+
+    let project = setting "Caravana:Project" "frunchy"
+    let environment = setting "Caravana:Environment" "production"
+
+    builder.AddContainerRegistry("registry", registryEndpoint, registryRepository) |> ignore
+
+    // The resource is named "caravana" because "frunchy" is the project's name (resource names are unique); the
+    // app's name in Caravana is still "frunchy".
+    let caravana =
+        builder.PublishToCaravana(
+            "caravana",
+            fun s ->
+                s.AppName <- CaravanaValue.FromLiteral "frunchy"
+                s.Url <- caravanaUrl.AsCaravanaValue()
+                s.Token <- caravanaToken.AsCaravanaValue()
+                s.Project <- CaravanaValue.FromLiteral project
+                s.Environment <- CaravanaValue.FromLiteral environment
+        )
+
+    // Postgres: in publish mode Aspire does not create databases from AddDatabase, so the image creates
+    // POSTGRES_DB on its first start (an existing volume keeps its databases), and Caravana's backup dumps
+    // exactly that database. AddDatabase stays for the connection string.
+    let pg =
+        builder
+            .AddPostgres("pg", password = dbPassword)
+            .WithDataVolume("frunchy-pg")
+            .WithEnvironment("POSTGRES_DB", "frunchydb")
+            .WithCaravanaHealthCheck(caravana)
+            .WithCaravanaBackup(caravana, CaravanaBackupEngine.Postgres, schedule = "0 3 * * *", keep = 14)
+            .WithCaravanaMemory(caravana, 256, 512)
+
+    let db = pg.AddDatabase("frunchydb")
+
+    // Frunchy behind Caravana's Traefik (10.99.0.1 on installer-made hosts, the address its forwarded headers come
+    // from). The connection string holds the database password: the publisher moves it into Caravana secrets.
+    // Federation is left off (its default) until Megafono joins the app.
+    builder
+        .AddProject("frunchy", Path.Combine(repoRoot, "FrunchyBackend.fsproj"))
+        .WithExternalHttpEndpoints()
+        .WithEnvironment("ConnectionStrings__Database", db.Resource.ConnectionStringExpression)
+        .WithEnvironment("Frunchy__DataProtection__EncryptionKey", dataProtectionKey)
+        .WithEnvironment("Frunchy__TrustedProxies", "10.99.0.1")
+        .WithEnvironment("Frunchy__Auth__Providers__Umbral__Enabled", "true")
+        .WithEnvironment("Frunchy__Auth__Providers__Umbral__Authority", umbralAuthority)
+        .WithEnvironment("Frunchy__Auth__Providers__Umbral__ClientId", umbralClientId)
+        .WithEnvironment("Frunchy__Auth__Providers__Umbral__ClientSecret", umbralClientSecret)
+        .WithEnvironment("Frunchy__Mal__ClientId", malClientId)
+        .WithEnvironment("Frunchy__RootOperator", rootOperator)
+        .WithCaravanaDomain(caravana, frunchyDomain)
+        .WithCaravanaHealthCheck(caravana, "/healthz")
+        .WithCaravanaMemory(caravana, 256, 768)
+        .WaitFor(db)
+    |> ignore
+
+/// The local platform (feature 014), unchanged: what `aspire run` and `dotnet run --project AppHost` start.
+let private runGraph (builder: IDistributedApplicationBuilder) (repoRoot: string) =
     // Parameters (user secrets "Parameters:<name>"); the two shared secrets are generated once and persisted
     let token = builder.AddParameter("megafono-token", generated (), secret = true, persist = true)
     let webhookSecret = builder.AddParameter("megafono-webhook-secret", generated (), secret = true, persist = true)
@@ -237,6 +321,19 @@ let main args =
             |> ignore
         else
             printfn "%s" (umbralHint umbralPort gatewayPort)
+
+[<EntryPoint>]
+let main args =
+    let builder = DistributedApplication.CreateBuilder(args)
+
+    // Frunchy's repository root: AppHost/ sits directly under it
+    let repoRoot = Path.GetFullPath(Path.Combine(__SOURCE_DIRECTORY__, ".."))
+
+    // `aspire deploy` and `aspire publish` run in publish mode; everything else is the local platform
+    if builder.ExecutionContext.IsPublishMode then
+        publishGraph builder repoRoot
+    else
+        runGraph builder repoRoot
 
     builder.Build().Run()
     0

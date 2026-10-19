@@ -1,4 +1,83 @@
-# Releasing to Caravana with Bella Baxter (backlog)
+# Deploying to Caravana
+
+## Deploying with `aspire deploy` (feature 018)
+
+The AppHost (`AppHost/AppHost.fs`) has two graphs. `aspire run` builds the local platform. `aspire deploy` runs in
+publish mode and builds `publishGraph`: **frunchy** and **pg** (Postgres 18 with the `frunchy-pg` volume), published
+as one Caravana app with the NuGet package `CosmicChimps.Aspire.Hosting.Caravana`. Federation is off (Megafono, its
+gateway and its database are not in this graph) and Umbral is its own Caravana app. It builds the Frunchy image,
+pushes it to the registry, sends the app to Caravana, waits until it is healthy and prints Caravana's warnings.
+The image is linux/amd64 whatever machine builds it (`ContainerRuntimeIdentifier` in `FrunchyBackend.fsproj`,
+read only by container publishing).
+
+### Parameters
+
+Aspire prompts for any that is missing. Secret ones are marked.
+
+| Parameter | Secret | What |
+|---|---|---|
+| `caravana-url` | no | The Caravana console, `https://...`, no trailing slash |
+| `caravana-token` | yes | An API token (`cvat_...`) |
+| `registry-endpoint` | no | Where the image is pushed, e.g. `ghcr.io` |
+| `registry-repository` | no | The owner or namespace, e.g. `jjchiw` |
+| `frunchy-domain` | no | Frunchy's public host, no scheme. Never the Caravana console's domain |
+| `db-password` | yes | Postgres password (not the dev `pg-password`) |
+| `data-protection-key` | yes | Base64 of 32 bytes (`openssl rand -base64 32`); encrypts the data protection keys in Postgres |
+| `umbral-authority` | no | `https://` URL of the production Umbral |
+| `umbral-client-id` | no | Frunchy's app in Umbral |
+| `umbral-client-secret` | yes | Same |
+| `mal-client-id` | yes | The MyAnimeList client id |
+| `root-operator` | no | The username of the root operator |
+
+Two plain settings, in `AppHost/appsettings.json`: `Caravana:Project` (`frunchy`) and `Caravana:Environment`
+(`production`).
+
+Where to set them:
+- **A local deploy**: AppHost user secrets, `dotnet user-secrets set "Parameters:caravana-token" "..." --project AppHost`
+  (or answer the prompts).
+- **From Bella**: a Bella environment holding the values as `Parameters__<name>` keys (`Parameters__caravana-token`,
+  `Parameters__db-password`, ...), then `bella run -- aspire deploy`.
+- **CI**: the same `Parameters__<name>` environment variables.
+
+Keep `data-protection-key` and `db-password` in Bella. Losing the key signs everyone out (the sessions' keys are in the
+database, encrypted with it, and the dump alone can't forge a session). Losing the password means no way to reach the
+data. Caravana's backups do not include secrets.
+
+### Before the first deploy
+
+1. `docker login ghcr.io` (the push uses the ambient login).
+2. **GHCR package visibility**: Caravana pulls the image from the same registry. Make the `frunchy` package public
+   (free, irreversible) or add `read:packages` credentials in Caravana under Settings > Registries. A private package
+   with no credentials makes the rollout die at its 10-minute deadline.
+3. With a **deploy token** (scoped to one app), create the project `frunchy` and the environment `production` in
+   Caravana first: it can't create them. A full token creates them.
+4. Set the **backup destination** in Caravana (Settings > Backup destination); without it the deploy is refused
+   (Postgres is backed up nightly at 03:00 UTC, 14 kept).
+5. **Umbral in production**: register Frunchy as an app in the production Umbral with the redirect URI
+   `https://<frunchy-domain>/signin-umbral`, and put its client id and secret in `umbral-client-id` and
+   `umbral-client-secret`.
+6. The Caravana host is linux/amd64. Once the image is pushed, check it: `docker buildx imagetools inspect <image>:<tag>`
+   must list `linux/amd64` (an arm64 image fails there with "exec format error" and the deploy reverts).
+
+Then `aspire deploy`. Run it again and the same app is updated (the AppHost is the source of truth: what you change in
+the console for things the AppHost describes is replaced on the next deploy).
+
+### Pitfalls
+
+- `POSTGRES_DB=frunchydb` applies only while the data volume is empty (the image creates the database on first start).
+  On an existing volume, create it once on the pg copy: `psql -U postgres -c 'create database frunchydb'`.
+- The Frunchy image must be reachable by Caravana (step 2 above).
+- `Frunchy__TrustedProxies` is `10.99.0.1`, Traefik's address on installer-made hosts.
+- To see what would be sent without deploying: `aspire publish -o <dir>` writes `docker-compose.yaml` and `.env` and
+  contacts nothing. The domain, health checks, backup and memory are not in that file: the publisher sends them in the
+  request.
+
+---
+
+# Releasing to Caravana with Bella Baxter (backlog, superseded by `aspire deploy`)
+
+The sections below are the earlier plan, kept as history: a hand-written `deploy/caravana-app.json` plus
+`caravana-action`. `aspire deploy` replaces both; `release.yml` is unchanged for now.
 
 How Umbral deploys a release to Caravana, shared by the Umbral session on 2026-10-19 so Frunchy can do the
 same. It is live in Umbral: `.github/workflows/release.yml` (the `deploy` job) and `deploy/caravana-app.json` in

@@ -6,6 +6,9 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);tests/**;AppHost/**</DefaultItemExcludes>
     <!-- Provider credentials live in `dotnet user-secrets` (outside the repo) or the environment -->
     <UserSecretsId>frunchy-backend</UserSecretsId>
+    <!-- The Caravana host is linux/amd64 and `aspire deploy` builds the image on whatever machine runs it (an arm64
+         Mac gives an image that fails there with "exec format error"). Only container publishing reads this. -->
+    <ContainerRuntimeIdentifier>linux-x64</ContainerRuntimeIdentifier>
   </PropertyGroup>
 
   <ItemGroup>
