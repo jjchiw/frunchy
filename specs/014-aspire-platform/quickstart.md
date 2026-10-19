@@ -121,8 +121,8 @@ WebFinger 200 for the user from feature 015's check (the Postgres data volume pe
 pins `MEGAFONO_VERSION=0.1.0` too.
 
 **2026-10-18, Umbral.** The AppHost can now run Umbral (our OpenID Connect provider, a separate repo) as
-resource `umbral`, from the published image `ghcr.io/cosmic-chimps/umbral` at `Umbral:ImageTag` (`0.1.1`;
-`Umbral:BuildFromSource=true` builds the checkout at `Umbral:SourcePath`, default `../../Umbral`, instead). The gateway's host port is pinned to 5300 (`Gateway:Port`) and Umbral's to 5380 (`Umbral:Port`), so the
+resource `umbral`, built from the checkout at `Umbral:SourcePath` (default `../../Umbral`) until an image is
+published. The gateway's host port is pinned to 5300 (`Gateway:Port`) and Umbral's to 5380 (`Umbral:Port`), so the
 redirect URI `http://localhost:5300/signin-umbral` can be registered once. Frunchy's Umbral provider turns on when
 the user secrets `Parameters:umbral-client-id` and `Parameters:umbral-client-secret` are set; the steps are in the
 README. `deploy/compose.yaml` gained an optional `umbral` profile.
@@ -132,3 +132,9 @@ relative default doesn't resolve from a worktree): the `umbral` image built from
 healthy, `/healthz` answered `ok`, discovery gave issuer `http://localhost:5380/`, the site answered 200 on
 `http://localhost:5300`, and with no client credentials the AppHost printed the five setup steps and no secret.
 A full sign-in round trip waits for the one-time app registration.
+
+**2026-10-19, Umbral's image.** Umbral publishes `ghcr.io/cosmic-chimps/umbral` (multi-arch), so the AppHost now
+pulls it at `Umbral:ImageTag` (`0.1.1`; empty or `latest` refused) and the compose `umbral` profile pins
+`UMBRAL_VERSION=0.1.1`; `Umbral:BuildFromSource=true` builds the checkout at `Umbral:SourcePath` instead. Run under
+the AppHost: the `umbral` container ran `ghcr.io/cosmic-chimps/umbral:0.1.1` and turned healthy within 16 seconds,
+`/healthz` answered `ok`, and discovery gave issuer `http://localhost:5380/`.
