@@ -58,6 +58,11 @@ type Texts =
       CopyLink: string
       LinkCopied: string
       CopyLinkFallback: string
+      // The fediverse handle line (feature 015)
+      FediverseFollowLabel: string
+      CopyHandle: string
+      HandleCopied: string
+      CopyHandleFallback: string
       DnaWatchTime: string
       DnaDaysOfLife: decimal -> string
       DnaCoverageTile: string
@@ -301,6 +306,27 @@ type Texts =
       OperatorStatus: string
       OperatorsAccountLink: string
 
+      // Fediverse blocks (feature 015): the account page's section and the operator page
+      BlocksTitle: string
+      BlocksIntro: string
+      BlocksAddLabel: string
+      BlocksAddHint: string
+      BlocksAddButton: string
+      BlocksEmpty: string
+      BlockKindAccount: string
+      BlockKindServer: string
+      BlocksRemoveButton: string
+      BlocksRemoveLabel: string -> string
+      BlocksLoadFailed: string
+      /// The notice for a `msg` key (block-added, block-already, block-removed, block-not-found, block-not-blocked,
+      /// block-blocked, block-unreachable, block-invalid, block-error)
+      BlockNotice: string -> string
+      InstanceBlocksTitle: string
+      InstanceBlocksIntro: string
+      InstanceBlocksEmpty: string
+      InstanceBlocksLoadFailed: string
+      ReviewFediverseLink: string
+
       // Episode page and comments (feature 009)
       /// Page title from the series title and the episode label
       EpisodePageTitle: string -> string -> string
@@ -410,7 +436,7 @@ let en =
     { Lang = "en"
       Culture = CultureInfo.GetCultureInfo "en"
       SiteName = "Frunchy"
-      Footer = "Frunchy, a Last.fm for anime"
+      Footer = "Frunchy, anime stats you can share"
 
       HomeTitle = "Home"
       HomeHeadline = "Your anime identity, in numbers"
@@ -463,6 +489,10 @@ let en =
       CopyLink = "Copy link"
       LinkCopied = "Link copied"
       CopyLinkFallback = "Copy this address"
+      FediverseFollowLabel = "Follow on the fediverse"
+      CopyHandle = "Copy handle"
+      HandleCopied = "Handle copied"
+      CopyHandleFallback = "Copy this handle"
       DnaWatchTime = "Watch time"
       DnaDaysOfLife = fun d -> $"""{d.ToString("N1", CultureInfo.GetCultureInfo "en")} days of life"""
       DnaCoverageTile = "MyAnimeList coverage"
@@ -607,6 +637,8 @@ let en =
             | "operator_removed" -> "Operator removed"
             | "comment_hidden" -> "Comment hidden"
             | "comment_unhidden" -> "Comment shown again"
+            | "fediverse_block_added" -> "Fediverse block added"
+            | "fediverse_block_removed" -> "Fediverse block removed"
             | other -> other
       ByOperator = "by the operator"
 
@@ -777,6 +809,37 @@ let en =
       OperatorStatus = "You're an operator."
       OperatorsAccountLink = "Manage operators"
 
+      BlocksTitle = "Fediverse blocks"
+      BlocksIntro = "An account or server you block can't follow you, and nothing you post from Frunchy is delivered to it."
+      BlocksAddLabel = "Account or server"
+      BlocksAddHint = "A handle like @name@mastodon.social, an account's web address, or a server name like mastodon.social."
+      BlocksAddButton = "Block"
+      BlocksEmpty = "You haven't blocked anyone."
+      BlockKindAccount = "Account"
+      BlockKindServer = "Server"
+      BlocksRemoveButton = "Unblock"
+      BlocksRemoveLabel = fun target -> $"Unblock {target}"
+      BlocksLoadFailed = "We can't load your blocks right now. Try again in a minute."
+      BlockNotice =
+        fun key ->
+            match key with
+            | "block-added" -> "Blocked."
+            | "block-already" -> "That block was already in place. Nothing changed."
+            | "block-removed" -> "Unblocked."
+            | "block-not-found" -> "We couldn't find that account or server. Check the address and try again. Nothing changed."
+            | "block-not-blocked" -> "That wasn't blocked any more. Nothing changed."
+            | "block-blocked" -> "This site blocks that server, so its accounts can't be looked up. Nothing changed."
+            | "block-unreachable" -> "We couldn't reach that server just now. Try again in a minute. Nothing changed."
+            | "block-invalid" ->
+                "That isn't an account or server we can block. Use a handle like @name@mastodon.social, an account's web address, or a server name. Nothing changed."
+            | "block-error" -> "Something went wrong on our side. Nothing changed. Try again in a minute."
+            | other -> other
+      InstanceBlocksTitle = "Instance blocks"
+      InstanceBlocksIntro = "A block here covers everyone on Frunchy. Follows between any user and that account or server end, and nothing is delivered to it."
+      InstanceBlocksEmpty = "No instance blocks."
+      InstanceBlocksLoadFailed = "We can't load the instance blocks right now. Try again in a minute."
+      ReviewFediverseLink = "Manage fediverse blocks"
+
       EpisodePageTitle = fun series label -> $"{series}, {label}"
       EpisodeWatchOnCrunchyroll = "Watch on Crunchyroll"
       EpisodeSeriesOnCrunchyroll = "Series on Crunchyroll"
@@ -911,7 +974,7 @@ let es =
     { Lang = "es"
       Culture = CultureInfo.GetCultureInfo "es"
       SiteName = "Frunchy"
-      Footer = "Frunchy, el Last.fm del anime"
+      Footer = "Frunchy, estadísticas de anime para compartir"
 
       HomeTitle = "Inicio"
       HomeHeadline = "Tu identidad anime, en números"
@@ -964,6 +1027,10 @@ let es =
       CopyLink = "Copiar enlace"
       LinkCopied = "Enlace copiado"
       CopyLinkFallback = "Copia esta dirección"
+      FediverseFollowLabel = "Seguir en el fediverso"
+      CopyHandle = "Copiar identificador"
+      HandleCopied = "Identificador copiado"
+      CopyHandleFallback = "Copia este identificador"
       DnaWatchTime = "Tiempo visto"
       DnaDaysOfLife = fun d -> $"""{d.ToString("N1", CultureInfo.GetCultureInfo "es")} días de vida"""
       DnaCoverageTile = "Cobertura de MyAnimeList"
@@ -1108,6 +1175,8 @@ let es =
             | "operator_removed" -> "Operador quitado"
             | "comment_hidden" -> "Comentario oculto"
             | "comment_unhidden" -> "Comentario mostrado de nuevo"
+            | "fediverse_block_added" -> "Bloqueo del fediverso añadido"
+            | "fediverse_block_removed" -> "Bloqueo del fediverso quitado"
             | other -> other
       ByOperator = "por el operador"
 
@@ -1277,6 +1346,37 @@ let es =
             | other -> other
       OperatorStatus = "Eres operador."
       OperatorsAccountLink = "Gestionar operadores"
+
+      BlocksTitle = "Bloqueos en el fediverso"
+      BlocksIntro = "Una cuenta o un servidor que bloqueas no puede seguirte, y nada de lo que publiques desde Frunchy se le entrega."
+      BlocksAddLabel = "Cuenta o servidor"
+      BlocksAddHint = "Un identificador como @nombre@mastodon.social, la dirección web de una cuenta o el nombre de un servidor como mastodon.social."
+      BlocksAddButton = "Bloquear"
+      BlocksEmpty = "No has bloqueado a nadie."
+      BlockKindAccount = "Cuenta"
+      BlockKindServer = "Servidor"
+      BlocksRemoveButton = "Desbloquear"
+      BlocksRemoveLabel = fun target -> $"Desbloquear {target}"
+      BlocksLoadFailed = "No podemos cargar tus bloqueos ahora mismo. Inténtalo en un minuto."
+      BlockNotice =
+        fun key ->
+            match key with
+            | "block-added" -> "Bloqueado."
+            | "block-already" -> "Ese bloqueo ya estaba puesto. No se cambió nada."
+            | "block-removed" -> "Desbloqueado."
+            | "block-not-found" -> "No encontramos esa cuenta o ese servidor. Revisa la dirección e inténtalo de nuevo. No se cambió nada."
+            | "block-not-blocked" -> "Ese bloqueo ya no existía. No se cambió nada."
+            | "block-blocked" -> "Este sitio bloquea ese servidor, así que no se pueden buscar sus cuentas. No se cambió nada."
+            | "block-unreachable" -> "No pudimos conectar con ese servidor ahora mismo. Inténtalo en un minuto. No se cambió nada."
+            | "block-invalid" ->
+                "Eso no es una cuenta ni un servidor que se pueda bloquear. Usa un identificador como @nombre@mastodon.social, la dirección web de una cuenta o el nombre de un servidor. No se cambió nada."
+            | "block-error" -> "Algo falló por nuestra parte. No se cambió nada. Inténtalo en un minuto."
+            | other -> other
+      InstanceBlocksTitle = "Bloqueos del sitio"
+      InstanceBlocksIntro = "Un bloqueo aquí vale para todo Frunchy. Terminan los seguimientos entre cualquier usuario y esa cuenta o servidor, y no se le entrega nada."
+      InstanceBlocksEmpty = "No hay bloqueos del sitio."
+      InstanceBlocksLoadFailed = "No podemos cargar los bloqueos del sitio ahora mismo. Inténtalo en un minuto."
+      ReviewFediverseLink = "Gestionar bloqueos del fediverso"
 
       EpisodePageTitle = fun series label -> $"{series}, {label}"
       EpisodeWatchOnCrunchyroll = "Ver en Crunchyroll"

@@ -4,6 +4,7 @@ open System
 open System.Net.Http
 open System.Text.Json
 open System.Threading.Tasks
+open Microsoft.Extensions.DependencyInjection
 open FrunchyBackend.Infrastructure.Database
 open FrunchyBackend.Operations
 open FrunchyBackend.Tests.Fixtures
@@ -56,6 +57,33 @@ let processAll (db: DbConfig) : Task<int> =
 
         return processed
     }
+
+/// Run the fediverse outbox worker (feature 015) as of `now` until nothing is due; returns how many items it processed.
+/// The test app's worker stays off, so tests drive it here against `app.Megafono`.
+let drainOutboxAt (app: TestApp) (now: DateTimeOffset) : Task<int> =
+    task {
+        let services = app.Services
+        let client = services.GetRequiredService<IHttpClientFactory>().CreateClient "megafono"
+
+        let values =
+            match services.GetRequiredService<FrunchyBackend.Infrastructure.Federation.FederationSettings>() with
+            | FrunchyBackend.Infrastructure.Federation.Enabled values -> values
+            | FrunchyBackend.Infrastructure.Federation.Disabled -> failwith "federation is off in this app"
+
+        let mutable processed = 0
+        let mutable more = true
+
+        while more && processed < 1000 do
+            let! worked = FrunchyBackend.Workers.FediverseOutbox.processNext app.Db client values now
+            more <- worked
+            if worked then processed <- processed + 1
+
+        return processed
+    }
+
+/// `drainOutboxAt` at the present, with a few seconds of margin for the database's clock
+let drainOutbox (app: TestApp) : Task<int> =
+    drainOutboxAt app (DateTimeOffset.UtcNow.AddSeconds 5.0)
 
 /// Rows that must stay untouched by a rejected submission
 let snapshot (db: DbConfig) : Task<int64 * int64 * string list> =

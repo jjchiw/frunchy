@@ -52,14 +52,25 @@ type EpisodeModel =
       Dub: bool
       Mal: MalBlock option }
 
+/// A fediverse author of a remote comment (feature 015)
+type RemoteAuthor =
+    { /// `@user@host`
+      Handle: string
+      Name: string
+      /// Only an https URL
+      ProfileUrl: string option }
+
+type Author =
+    | Local of id: Guid * username: string * displayName: string
+    | Remote of RemoteAuthor
+
 /// One comment of the thread
 type Comment =
     { Id: string
       /// The episode it was written on (a dub's page also shows its original's comments)
       EpisodeId: string
-      AuthorId: Guid
-      Username: string
-      DisplayName: string
+      Author: Author
+      /// Text: a remote comment's HTML is already turned into plain text
       Content: string
       Summary: string option
       Sensitive: bool
@@ -250,28 +261,67 @@ let private controls (ctx: HttpContext) (t: Texts) (isAuthor: bool) (isOperator:
                 }
     }
 
+/// The author line of a comment: a local author links to their page; a remote one shows the name and `@user@host`,
+/// linking to the profile (new tab, `nofollow ugc`) only when it has an https URL
+let private authorLine (author: Author) =
+    match author with
+    | Local(_, username, displayName) ->
+        (a(href = $"/u/{username}", class' = "text-body-md font-semibold text-on-surface [overflow-wrap:anywhere] hover:underline") {
+            displayName
+        })
+        :> HtmlElement
+    | Remote remote ->
+        let names () =
+            Fragment() {
+                span(class' = "text-body-md font-semibold text-on-surface [overflow-wrap:anywhere]") { remote.Name }
+                span(class' = "ml-2 text-label-md font-normal text-on-surface-variant [overflow-wrap:anywhere]") { remote.Handle }
+            }
+
+        match remote.ProfileUrl with
+        | Some url ->
+            (a(href = url, target = "_blank", class' = "min-w-0 hover:underline")
+                .attr("rel", "noopener nofollow ugc")
+                .data("remote-author", "") {
+                names ()
+            })
+            :> HtmlElement
+        | None -> (span(class' = "min-w-0").data("remote-author", "") { names () }) :> HtmlElement
+
 /// One comment. `viewer` is the signed-in user: the author gets edit and delete, operators hide and unhide. A hidden
-/// comment is a placeholder for everyone but operators (the author included, who can still edit and delete it).
+/// comment is a placeholder for everyone but operators (the author included, who can still edit and delete it). A
+/// remote comment (feature 015) has no author controls: only operators can act on it.
 let private commentView (ctx: HttpContext) (t: Texts) (viewer: Guid option) (c: Comment) =
-    let isAuthor = (viewer = Some c.AuthorId)
+    let isAuthor =
+        match c.Author with
+        | Local(id, _, _) -> viewer = Some id
+        | Remote _ -> false
+
     let isOperator = WebAuth.isOperator ctx
     let showBody = not c.Hidden || isOperator
 
     let body =
         p(class' = "whitespace-pre-line text-body-md text-on-surface [overflow-wrap:anywhere]") { c.Content }
 
+    let authorKey =
+        match c.Author with
+        | Local(_, username, _) -> username
+        | Remote remote -> remote.Handle
+
     let el =
         li(id = $"comment-{c.Id}", class' = "space-y-2 py-4 first:pt-0 last:pb-0")
             .data("comment", c.Id)
-            .data("author", c.Username)
+            .data("author", authorKey)
             .data("episode", c.EpisodeId)
             .data("created", isoUtc c.CreatedAt)
 
+    let el =
+        match c.Author with
+        | Remote _ -> el.data("remote", "")
+        | Local _ -> el
+
     (if c.Hidden then el.data("hidden", "") else el) {
         div(class' = "flex flex-wrap items-baseline gap-x-3 gap-y-0.5") {
-            a(href = $"/u/{c.Username}", class' = "text-body-md font-semibold text-on-surface [overflow-wrap:anywhere] hover:underline") {
-                c.DisplayName
-            }
+            authorLine c.Author
 
             span(class' = "text-label-md font-normal text-on-surface-variant") { Layout.timeElement t "relative" c.CreatedAt }
 
@@ -477,7 +527,8 @@ let private loadGroup (connection: NpgsqlConnection) (episodeId: string) : Task<
         return List.ofSeq ids
     }
 
-/// The comments shown under the given episodes (the page's group), oldest first
+/// The comments shown under the given episodes (the page's group), oldest first: local ones and, once Megáfono has
+/// delivered any, remote ones (feature 015), public and unlisted only
 let private loadThread (connection: NpgsqlConnection) (episodeIds: string list) : Task<Comment list> =
     task {
         use cmd =
@@ -485,9 +536,11 @@ let private loadThread (connection: NpgsqlConnection) (episodeIds: string list) 
                 """
                 SELECT c.id, c.cr_episode_id, c.author_user_id, u.username, u.display_name,
                        c.content, c.summary, c.sensitive, c.created_at, c.edited_at,
-                       c.hidden_at IS NOT NULL
+                       c.hidden_at IS NOT NULL,
+                       c.format, c.remote_actor, ra.handle, ra.name, ra.profile_url
                 FROM comments c
-                JOIN users u ON u.id = c.author_user_id
+                LEFT JOIN users u ON u.id = c.author_user_id
+                LEFT JOIN remote_actors ra ON ra.id = c.remote_actor
                 WHERE c.cr_episode_id = ANY(@episode_ids)
                   AND c.deleted_at IS NULL AND c.audience IN ('public', 'unlisted')
                 ORDER BY c.created_at, c.id
@@ -499,17 +552,35 @@ let private loadThread (connection: NpgsqlConnection) (episodeIds: string list) 
 
         use! r = cmd.ExecuteReaderAsync()
         let rows = ResizeArray()
+        let text (i: int) = if r.IsDBNull i then None else Some(r.GetString i)
 
         while r.Read() do
+            let summary = text 6
+            let remote = not (r.IsDBNull 12)
+
+            // A remote comment is HTML: it is turned into plain text here and only ever shown escaped (research R7).
+            // A content warning without the flag still hides the text.
+            let content = if r.GetString 11 = "html" then Fediverse.htmlToText (r.GetString 5) else r.GetString 5
+            let sensitive = r.GetBoolean 7 || (remote && summary.IsSome)
+
+            let author =
+                if remote then
+                    let actorId = r.GetString 12
+
+                    Remote
+                        { Handle = defaultArg (text 13) actorId
+                          Name = defaultArg (text 14) (defaultArg (text 13) actorId)
+                          ProfileUrl = text 15 |> Option.filter (fun url -> url.StartsWith("https://", StringComparison.Ordinal)) }
+                else
+                    Local(r.GetGuid 2, r.GetString 3, r.GetString 4)
+
             rows.Add
                 { Id = r.GetString 0
                   EpisodeId = r.GetString 1
-                  AuthorId = r.GetGuid 2
-                  Username = r.GetString 3
-                  DisplayName = r.GetString 4
-                  Content = r.GetString 5
-                  Summary = (if r.IsDBNull 6 then None else Some(r.GetString 6))
-                  Sensitive = r.GetBoolean 7
+                  Author = author
+                  Content = content
+                  Summary = summary
+                  Sensitive = sensitive
                   CreatedAt = r.GetDateTime 8
                   EditedAt = (if r.IsDBNull 9 then None else Some(r.GetDateTime 9))
                   Hidden = r.GetBoolean 10 }
@@ -517,9 +588,21 @@ let private loadThread (connection: NpgsqlConnection) (episodeIds: string list) 
         return List.ofSeq rows
     }
 
+/// The fediverse object URL of the group's thread, once Megáfono has published it (feature 015)
+let private threadUrl (connection: NpgsqlConnection) (groupKey: string) : Task<string option> =
+    task {
+        use cmd = new NpgsqlCommand("SELECT object_url FROM episode_threads WHERE group_key = @group_key", connection)
+        cmd.Parameters.AddWithValue("group_key", groupKey) |> ignore
+
+        match! cmd.ExecuteScalarAsync() with
+        | :? string as url -> return Some url
+        | _ -> return None
+    }
+
 /// Insert a comment; false when the id already exists (nothing is written then)
 let private insertComment
     (connection: NpgsqlConnection)
+    (tx: NpgsqlTransaction)
     (id: string)
     (episodeId: string)
     (authorId: Guid)
@@ -535,7 +618,8 @@ let private insertComment
                 ON CONFLICT (id) DO NOTHING
                 RETURNING id
                 """,
-                connection
+                connection,
+                tx
             )
 
         cmd.Parameters.AddWithValue("id", id) |> ignore
@@ -612,6 +696,15 @@ let handler (seriesId: string) (episodeId: string) : EndpointHandler =
                     let! group = loadGroup connection model.Id
                     let! comments = loadThread connection group
                     let! people = Charts.episodePeople (ctx.GetService<DbConfig>()) group (Charts.minPeople (ctx.GetService<IConfiguration>()))
+
+                    // With federation on, a published thread is advertised as the page's ActivityPub alternate (research R8)
+                    if Fediverse.isEnabled (ctx.GetService<Federation.FederationSettings>()) then
+                        let! groupKey = Fediverse.episodeGroupKey connection model.Id
+
+                        match! threadUrl connection groupKey with
+                        | Some url -> Layout.advertiseActivityPub ctx url
+                        | None -> ()
+
                     return! ctx.WriteHtmlView(view ctx t (WebAuth.currentUserId ctx) people model comments (freshForm true "" None))
         }
 
@@ -661,7 +754,16 @@ let createHandler (seriesId: string) (episodeId: string) : EndpointHandler =
                                 else
                                     None
 
-                            let! inserted = insertComment connection id model.Id userId content summary
+                            // With federation on, the comment and what publishing it takes are one transaction (the outbox)
+                            let federated = Fediverse.isEnabled (ctx.GetService<Federation.FederationSettings>())
+                            let! groupKey = if federated then Fediverse.episodeGroupKey connection model.Id else Task.FromResult ""
+                            use tx = connection.BeginTransaction()
+                            let! inserted = insertComment connection tx id model.Id userId content summary
+
+                            if inserted && federated then
+                                do! Fediverse.enqueueNewComment connection tx userId model.SeriesId model.Id groupKey id
+
+                            do! tx.CommitAsync()
                             let! mine = if inserted then Task.FromResult true else isOwnOnEpisode connection id userId model.Id
 
                             if mine then

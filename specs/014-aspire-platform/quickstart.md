@@ -111,3 +111,24 @@ docker compose -f deploy/compose.yaml --env-file deploy/.env.example --profile f
 
   Megafono's internal `/health` answered `{"database":"ok","status":"ok"}`.
 - **Stopped**: Ctrl+C (SIGINT) stopped every container.
+
+**2026-10-18, published images.** Megafono's images are on GHCR (`ghcr.io/cosmic-chimps/megafono:0.1.0`,
+`megafono-gateway:0.1.0`, amd64 and arm64, pulled without login). The AppHost now uses them by default
+(`Megafono:ImageTag` = `0.1.0`; it refuses an empty tag or `latest`). Building from a checkout is opt-in with
+`Megafono:BuildFromSource=true`, so `Megafono:SourcePath` is no longer needed for a normal run. Rerun: every
+container came up from the images in about 25 seconds, and the probes answered as in the first run, including
+WebFinger 200 for the user from feature 015's check (the Postgres data volume persisted). The self-host compose
+pins `MEGAFONO_VERSION=0.1.0` too.
+
+**2026-10-18, Umbral.** The AppHost can now run Umbral (our OpenID Connect provider, a separate repo) as
+resource `umbral`, built from the checkout at `Umbral:SourcePath` (default `../../Umbral`) until an image is
+published. The gateway's host port is pinned to 5300 (`Gateway:Port`) and Umbral's to 5380 (`Umbral:Port`), so the
+redirect URI `http://localhost:5300/signin-umbral` can be registered once. Frunchy's Umbral provider turns on when
+the user secrets `Parameters:umbral-client-id` and `Parameters:umbral-client-secret` are set; the steps are in the
+README. `deploy/compose.yaml` gained an optional `umbral` profile.
+
+Run under the AppHost the same day (`Umbral:SourcePath` pointed at the checkout through user secrets, since the
+relative default doesn't resolve from a worktree): the `umbral` image built from source and the container came up
+healthy, `/healthz` answered `ok`, discovery gave issuer `http://localhost:5380/`, the site answered 200 on
+`http://localhost:5300`, and with no client credentials the AppHost printed the five setup steps and no secret.
+A full sign-in round trip waits for the one-time app registration.

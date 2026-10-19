@@ -108,7 +108,7 @@ let ``deleting a user removes all of their data and nothing else`` () =
         let! _, bStatsBefore, _ = dashboardSummary app "userb"
         let! bPagesBefore = Db.dump app.Db "SELECT md5(body::text) FROM cr_import_pages p JOIN cr_imports i ON i.id = p.import_id JOIN users u ON u.id = i.user_id WHERE u.username = 'userb' ORDER BY 1"
 
-        let! deleted = DeleteUser.deleteUser app.Db "usera"
+        let! deleted = DeleteUser.deleteUser app.Db false "usera"
         Assert.Equal(Some { DeleteUser.Imports = 1L; DeleteUser.WatchEvents = 400L }, deleted)
 
         for table in [ "users"; "cr_imports"; "watch_events" ] do
@@ -138,7 +138,7 @@ let ``a deleted user's pending import is never processed`` () =
         use! app = newApp ()
         let! key = createUser app.Db "usera"
         let! _ = submitAccepted app key (load2022Envelope ())
-        let! _ = DeleteUser.deleteUser app.Db "usera"
+        let! _ = DeleteUser.deleteUser app.Db false "usera"
         let! processed = processAll app.Db
         let! events = Db.count app.Db "watch_events"
         let! imports = Db.count app.Db "cr_imports"
@@ -153,7 +153,7 @@ let ``deleting frees the history owner and the username`` () =
         use! app = newApp ()
         let! key = createUser app.Db "usera"
         let! _ = submitAccepted app key (load2022Envelope ())
-        let! _ = DeleteUser.deleteUser app.Db "usera"
+        let! _ = DeleteUser.deleteUser app.Db false "usera"
         let! again = createUser app.Db "usera"
         let! _ = submitAccepted app again (load2022Envelope ())
         ()
@@ -166,13 +166,13 @@ let ``cli exit codes`` () =
         let! created = CreateUser.run db [ "animenerd"; "AnimeNerd" ]
         let! taken = CreateUser.run db [ "AnimeNerd"; "Other" ]
         let! invalid = CreateUser.run db [ "a b"; "X" ]
-        let! refuse = DeleteUser.run db [ "animenerd" ]
+        let! refuse = DeleteUser.run db false [ "animenerd" ]
         let! stillThere = Db.count db "users"
         let! unknownRegen = RegenerateKey.run db [ "nobody" ]
         let! unknownReset = ResetBinding.run db [ "nobody" ]
         let! unknownRebuild = RebuildUser.run db [ "nobody" ]
-        let! unknownDelete = DeleteUser.run db [ "nobody"; "--yes" ]
-        let! deleted = DeleteUser.run db [ "animenerd"; "--yes" ]
+        let! unknownDelete = DeleteUser.run db false [ "nobody"; "--yes" ]
+        let! deleted = DeleteUser.run db false [ "animenerd"; "--yes" ]
         let! gone = Db.count db "users"
         Assert.Equal(0, created)
         Assert.Equal(3, taken)

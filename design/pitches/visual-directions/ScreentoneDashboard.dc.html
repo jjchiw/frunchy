@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Screentone dashboard</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#eef0ea}
+a{color:#16181d}a:hover{color:#c4261c}
+</style>
+</helmet>
+<div style="min-height: 100%; background: #eef0ea; color: #16181d; font-family: 'Atkinson Hyperlegible', sans-serif">
+  <header style="border-bottom: 3px solid #16181d">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap">
+      <a href="#" style="display: flex; align-items: center; gap: 10px; text-decoration: none"><span style="width: 32px; height: 32px; background: #d8352a; border-radius: 4px; color: #eef0ea; font-family: Archivo, sans-serif; font-weight: 900; font-stretch: 75%; font-size: 20px; display: flex; align-items: center; justify-content: center">F</span><span style="font-family: Archivo, sans-serif; font-weight: 900; font-stretch: 75%; font-size: 24px; text-transform: uppercase">Frunchy</span></a>
+      <nav style="display: flex; gap: 4px" aria-label="Account"><a href="#" style="padding: 12px; font-weight: 700; font-size: 14px; text-decoration: none">jjchiw</a><a href="#" style="padding: 12px; font-weight: 700; font-size: 14px; text-decoration: none">Account</a><button type="button" style="font: inherit; font-weight: 700; font-size: 14px; background: none; border: 0; padding: 12px; color: #16181d">Sign out</button></nav>
+    </div>
+  </header>
+  <main style="max-width: 1120px; margin: 0 auto; padding: 40px 24px 64px; display: flex; flex-direction: column; gap: 40px">
+    <section style="display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap">
+      <div><h1 style="margin: 0; font-family: Archivo, sans-serif; font-weight: 900; font-stretch: 70%; font-size: 72px; line-height: 72px; text-transform: uppercase">JJ</h1><p style="margin: 6px 0 0; font-family: 'JetBrains Mono', monospace; font-size: 14px">@jjchiw · last sync 2 h ago</p></div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap"><a href="#" style="font-weight: 700; padding: 11px 18px; border: 2px solid #16181d; border-radius: 4px; text-decoration: none">Anime DNA</a><a href="#" style="font-weight: 700; padding: 11px 18px; border: 2px solid #16181d; border-radius: 4px; text-decoration: none">2026 in review</a></div>
+    </section>
+    <section aria-label="Totals" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 3px solid #16181d; border-bottom: 3px solid #16181d">
+      <div style="padding: 20px 0; display: flex; flex-direction: column; gap: 4px"><span style="font-weight: 700; font-size: 14px">Episodes watched</span><span style="font-family: Archivo, sans-serif; font-weight: 900; font-stretch: 70%; font-size: 64px; line-height: 64px">1,284</span></div>
+      <div style="padding: 20px 24px; border-left: 1.5px solid #16181d; display: flex; flex-direction: column; gap: 4px"><span style="font-weight: 700; font-size: 14px">Hours</span><span style="font-family: Archivo, sans-serif; font-weight: 900; font-stretch: 70%; font-size: 64px; line-height: 64px">486.2</span></div>
+      <div style="padding: 20px 24px; border-left: 1.5px solid #16181d; display: flex; flex-direction: column; gap: 4px"><span style="font-weight: 700; font-size: 14px">Series</span><span style="font-family: Archivo, sans-serif; font-weight: 900; font-stretch: 70%; font-size: 64px; line-height: 64px; color: #d8352a">69</span></div>
+    </section>
+    <section aria-labelledby="recent" style="display: flex; flex-direction: column; gap: 16px">
+      <h2 id="recent" style="margin: 0; font-family: Archivo, sans-serif; font-weight: 800; font-stretch: 85%; font-size: 28px">Recently watched</h2>
+      <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px">
+        <sc-for list="{{recent}}" as="r" hint-placeholder-count="4">
+          <a href="#" style="display: flex; flex-direction: column; gap: 10px; text-decoration: none; min-width: 0">
+            <span style="aspect-ratio: 16 / 9; border: 2px solid #16181d; border-radius: 4px; background-color: #e1e4dc; background-image: radial-gradient(#b9bdb3 1px, transparent 1.2px); background-size: 5px 5px; display: flex; align-items: flex-end"><span style="height: 6px; background: #d8352a; width: {{r.pct}}"></span></span>
+            <span style="font-weight: 700; font-size: 15px; line-height: 20px">{{r.series}}</span>
+            <span style="font-size: 14px">{{r.meta}}</span>
+          </a>
+        </sc-for>
+      </div>
+    </section>
+    <section aria-labelledby="genres" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 40px">
+      <div style="display: flex; flex-direction: column; gap: 14px">
+        <h2 id="genres" style="margin: 0; font-family: Archivo, sans-serif; font-weight: 800; font-stretch: 85%; font-size: 28px">Top genres</h2>
+        <sc-for list="{{genres}}" as="g" hint-placeholder-count="5">
+          <div style="display: grid; grid-template-columns: 100px minmax(0, 1fr) 48px; gap: 12px; align-items: center"><span style="font-size: 15px">{{g.name}}</span><span style="height: 18px; border: 1.5px solid #16181d; background-color: #eef0ea; background-image: radial-gradient(#16181d 1.2px, transparent 1.4px); background-size: 6px 6px; width: {{g.w}}"></span><span style="font-weight: 700; font-size: 15px; text-align: right">{{g.pct}}</span></div>
+        </sc-for>
+      </div>
+      <div style="border: 2px solid #16181d; border-radius: 6px; background: #ffffff; padding: 24px; box-shadow: 6px 6px 0 #16181d; display: flex; flex-direction: column; gap: 10px; align-self: start">
+        <span style="font-weight: 700; font-size: 14px">Most watched this year</span>
+        <span style="font-family: Archivo, sans-serif; font-weight: 900; font-stretch: 75%; font-size: 40px; line-height: 42px; text-transform: uppercase">One Piece</span>
+        <span style="font-size: 15px">212 episodes · 74 hours · Toei Animation</span>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      recent: [
+        { series: "Frieren: Beyond Journey's End", meta: 'Ep. 28 · 24 min · 2 h ago', pct: '100%' },
+        { series: 'Jujutsu Kaisen', meta: 'Ep. 47 · 23 min · yesterday', pct: '100%' },
+        { series: 'One Piece', meta: 'Ep. 1110 · 24 min · 2 days ago', pct: '62%' },
+        { series: 'Engage Kiss', meta: 'Ep. 13 · 24 min · last week', pct: '100%' }
+      ],
+      genres: [['Action', 31], ['Adventure', 24], ['Fantasy', 18], ['Romance', 14], ['Comedy', 13]]
+        .map(([name, n]) => ({ name, pct: n + '%', w: (n * 3) + '%' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

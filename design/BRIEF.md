@@ -186,8 +186,12 @@ The copy below is the site's real copy; keep it or propose better wording.
 > Spoilers are hidden behind a "Show spoiler" toggle with the author's warning text. A comment box
 > for signed-in users, with a "Contains spoilers" checkbox. Variants: no comments yet, a long thread,
 > a hidden comment ("Hidden by an operator"), signed out (a sign-in prompt instead of the box),
-> Spanish, 360px. Later, the page also shows the fediverse handle of the series account
-> (`@frieren@frunchy.example`) with a copy button, so people can follow it from Mastodon.
+> Spanish, 360px. The handle line is built (feature 015), on the series page and on
+> dashboards rather than on this page: "Follow on the fediverse: `@frieren@frunchy.example`" in mono with
+> a "Copy handle" button, shown only when federation is on. Remote comments are built too: the author's
+> name and `@user@server` link to their profile (a new tab), the text is plain, and a content warning
+> becomes the spoiler toggle. The account page has a "Fediverse blocks" section, and operators have an
+> "Instance blocks" page.
 
 ## 6. Browser extension
 

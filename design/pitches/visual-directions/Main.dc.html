@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Screentone identity</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&amp;family=Atkinson+Hyperlegible:wght@400;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#16181d}a:hover{color:#c4261c}
+</style>
+</helmet>
+<div style="width: 1280px; height: 960px; box-sizing: border-box; padding: 64px; background: #eef0ea; color: #16181d; font-family: 'Atkinson Hyperlegible', sans-serif; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 56px">
+  <div style="display: flex; flex-direction: column; gap: 32px">
+    <div style="display: flex; align-items: center; gap: 16px">
+      <span style="width: 56px; height: 56px; background: #d8352a; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #eef0ea; font-family: Archivo, sans-serif; font-weight: 900; font-size: 34px; font-stretch: 75%">F</span>
+      <span style="font-family: Archivo, sans-serif; font-weight: 900; font-size: 44px; font-stretch: 75%; letter-spacing: -0.01em; text-transform: uppercase">Frunchy</span>
+    </div>
+    <p style="margin: 0; font-size: 20px; line-height: 30px; max-width: 460px">Your watch history, printed like a manga volume: black ink on paper, one red stamp, and halftone dots wherever a figure needs texture.</p>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 14px; font-weight: 700">Palette</span>
+      <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px">
+        <sc-for list="{{palette}}" as="c" hint-placeholder-count="5">
+          <div style="display: flex; flex-direction: column; gap: 6px">
+            <span style="height: 72px; border-radius: 6px; border: 1.5px solid #16181d; background: {{c.hex}}"></span>
+            <span style="font-size: 13px; font-weight: 700">{{c.name}}</span>
+            <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">{{c.hex}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 10px">
+      <span style="font-size: 14px; font-weight: 700">Figures get halftone, never gradients</span>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <div style="display: flex; align-items: center; gap: 12px"><span style="width: 90px; font-size: 14px">Romance</span><span style="height: 18px; width: 300px; border: 1.5px solid #16181d; background-color: #eef0ea; background-image: radial-gradient(#16181d 1.4px, transparent 1.6px); background-size: 6px 6px"></span></div>
+        <div style="display: flex; align-items: center; gap: 12px"><span style="width: 90px; font-size: 14px">Action</span><span style="height: 18px; width: 240px; border: 1.5px solid #16181d; background-color: #eef0ea; background-image: radial-gradient(#16181d 1.1px, transparent 1.3px); background-size: 6px 6px"></span></div>
+        <div style="display: flex; align-items: center; gap: 12px"><span style="width: 90px; font-size: 14px">Fantasy</span><span style="height: 18px; width: 150px; border: 1.5px solid #16181d; background-color: #eef0ea; background-image: radial-gradient(#16181d 0.8px, transparent 1px); background-size: 6px 6px"></span></div>
+      </div>
+    </div>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 28px">
+    <div style="display: flex; flex-direction: column; gap: 8px; border-top: 3px solid #16181d; padding-top: 16px">
+      <span style="font-family: Archivo, sans-serif; font-weight: 900; font-stretch: 70%; font-size: 72px; line-height: 72px; text-transform: uppercase">1,284</span>
+      <span style="font-size: 14px; font-weight: 700">Archivo Condensed Black for figures and titles</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 6px">
+      <span style="font-family: Archivo, sans-serif; font-weight: 800; font-stretch: 85%; font-size: 30px; line-height: 34px">Frieren: Beyond Journey's End</span>
+      <span style="font-size: 16px; line-height: 24px">Atkinson Hyperlegible for reading: built for legibility, so comments and long titles stay easy at 14px.</span>
+      <span style="font-family: 'JetBrains Mono', monospace; font-size: 14px">@jjchiw · keys, handles and URLs</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <span style="font-size: 14px; font-weight: 700">Components</span>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
+        <a href="#" style="font-weight: 700; font-size: 15px; padding: 13px 20px; background: #16181d; color: #eef0ea; text-decoration: none; border-radius: 4px">Watch on Crunchyroll</a>
+        <a href="#" style="font-weight: 700; font-size: 15px; padding: 11px 18px; border: 2px solid #16181d; color: #16181d; text-decoration: none; border-radius: 4px">Anime DNA</a>
+        <span style="font-weight: 700; font-size: 13px; padding: 5px 10px; background: #d8352a; color: #ffffff; border-radius: 2px; transform: rotate(-2deg)">Spoiler</span>
+        <span style="font-weight: 700; font-size: 13px; padding: 5px 10px; border: 1.5px solid #16181d; border-radius: 9999px">Dub · English</span>
+      </div>
+      <div style="border: 2px solid #16181d; border-radius: 6px; padding: 16px; background: #ffffff; display: flex; flex-direction: column; gap: 8px; box-shadow: 4px 4px 0 #16181d">
+        <span style="font-size: 14px"><b>Mika</b> <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px">@mika</span> · 2 h ago</span>
+        <span style="font-size: 15px; line-height: 22px">The bell scene got me. Madhouse at its best.</span>
+      </div>
+    </div>
+    <p style="margin: 0; font-size: 14px; line-height: 21px; border-left: 0; padding: 12px 14px; background: #e1e4dc">Risk: a light theme breaks the extension's shared tokens, so the extension would need the same rework. Thumbnails need a thin ink frame to sit on paper.</p>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { palette: [
+      { name: 'Paper', hex: '#eef0ea' }, { name: 'Ink', hex: '#16181d' }, { name: 'Hanko red', hex: '#d8352a' },
+      { name: 'Tone', hex: '#e1e4dc' }, { name: 'Sheet', hex: '#ffffff' }
+    ] };
+  }
+}
+</script>
+</body>
+</html>

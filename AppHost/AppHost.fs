@@ -12,6 +12,7 @@ open System
 open System.IO
 open Aspire.Hosting
 open Aspire.Hosting.ApplicationModel
+open Microsoft.Extensions.Configuration
 
 /// What the developer runs when the master key is missing or malformed. The value is never printed.
 let private masterKeyHelp =
@@ -33,6 +34,18 @@ let private checkMasterKey (value: string) =
 
         if not ok then
             failwithf "Parameter megafono-master-key must be the base64 of exactly 32 bytes. %s" masterKeyHelp
+
+/// What the developer does to turn Umbral sign-in on. Never contains a secret value.
+let private umbralHint (umbralPort: int) (gatewayPort: int) =
+    String.concat
+        Environment.NewLine
+        [ "Umbral is running at http://localhost:" + string umbralPort + " but Frunchy's Umbral sign-in is off (no client credentials yet). To turn it on, once per umbral-data volume:"
+          "  1. Claim it: docker exec <umbral container> /app/Umbral reset-credential   (or use the setup token from its log at /admin/setup)"
+          "  2. In the admin, Connectors: enable the fake connector (dev only)."
+          "  3. Apps > Create app > Web application, redirect URI exactly http://localhost:" + string gatewayPort + "/signin-umbral"
+          "  4. dotnet user-secrets set \"Parameters:umbral-client-id\" \"<client id>\" --project AppHost"
+          "     dotnet user-secrets set \"Parameters:umbral-client-secret\" \"<client secret>\" --project AppHost"
+          "  5. Restart the AppHost." ]
 
 /// Private ranges: how the gateway and the containers reach Megafono and Frunchy in dev
 let private privateRanges = "10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
@@ -63,9 +76,19 @@ let main args =
 
     checkMasterKey builder.Configuration["Parameters:megafono-master-key"]
 
-    // Megafono: built from a checkout by default, or a published image when an image tag is configured
-    let imageTag = builder.Configuration["Megafono:ImageTag"]
-    let useImage = not (String.IsNullOrWhiteSpace imageTag)
+    // Megafono: the published images at a pinned tag (Megafono:ImageTag, never "latest"), or built from a local
+    // checkout when Megafono:BuildFromSource is true (to try an unreleased Megafono)
+    let buildFromSource = builder.Configuration.GetValue<bool>("Megafono:BuildFromSource", false)
+
+    let imageTag =
+        match builder.Configuration["Megafono:ImageTag"] with
+        | null -> ""
+        | tag -> tag.Trim()
+
+    if not buildFromSource && (imageTag = "" || imageTag = "latest") then
+        failwith "Set Megafono:ImageTag to a pinned Megafono release (e.g. 0.1.0, never latest), or Megafono:BuildFromSource to true."
+
+    let useImage = not buildFromSource
 
     let sourcePath =
         match builder.Configuration["Megafono:SourcePath"] with
@@ -76,8 +99,41 @@ let main args =
 
     if not useImage && not (File.Exists(Path.Combine(sourcePath, "deploy", "Dockerfile.megafono"))) then
         failwithf
-            "Megafono's source was not found at %s. Check it out there, or set Megafono:SourcePath (AppHost/appsettings.json or user secrets), or set Megafono:ImageTag to use the published image."
+            "Megafono's source was not found at %s. Check it out there, or set Megafono:SourcePath (AppHost/appsettings.json or user secrets), or turn Megafono:BuildFromSource off to use the published images."
             sourcePath
+
+    // Umbral (optional): our own OpenID Connect provider, built from a local checkout until an image is published.
+    // A missing checkout skips Umbral with a warning: Frunchy still runs (Google may be set up through Bella).
+    let umbralEnabled = builder.Configuration.GetValue<bool>("Umbral:Enabled", false)
+
+    let umbralPort =
+        match builder.Configuration.GetValue<int>("Umbral:Port", 5380) with
+        | 0 -> 5380
+        | port -> port
+
+    let gatewayPort =
+        match builder.Configuration.GetValue<int>("Gateway:Port", 5300) with
+        | 0 -> 5300
+        | port -> port
+
+    let umbralSourcePath =
+        match builder.Configuration["Umbral:SourcePath"] with
+        | null
+        | "" -> "../../Umbral"
+        | path -> path
+        |> fun path -> Path.GetFullPath(path, repoRoot)
+
+    let umbralAvailable =
+        if not umbralEnabled then
+            false
+        elif File.Exists(Path.Combine(umbralSourcePath, "Dockerfile")) then
+            true
+        else
+            eprintfn
+                "WARNING: Umbral is skipped: no Dockerfile at %s. Check Umbral out there, or set Umbral:SourcePath (AppHost/appsettings.json or user secrets), or set Umbral:Enabled to false to silence this."
+                umbralSourcePath
+
+            false
 
     // Postgres: one server, one database per app
     let pg = builder.AddPostgres("pg").WithDataVolume("frunchy-pg")
@@ -121,7 +177,8 @@ let main args =
 
     let gateway =
         gatewayBuilder
-            .WithHttpEndpoint(targetPort = 8080, name = "http")
+            // The host port is pinned so the redirect URI registered once in Umbral (/signin-umbral) stays valid
+            .WithHttpEndpoint(port = gatewayPort, targetPort = 8080, name = "http")
             .WithExternalHttpEndpoints()
             .WithEnvironment(
                 "ReverseProxy__Clusters__megafono__Destinations__primary__Address",
@@ -145,6 +202,41 @@ let main args =
         .WithEnvironment("Frunchy__TrustedProxies", $"127.0.0.1,::1,{privateRanges}")
         .WaitFor(frunchyDb)
     |> ignore
+
+    // Umbral: the container (dev settings: http on localhost, the fake connector) and, once the app is registered
+    // in its admin and the client credentials are in user secrets, Frunchy's Umbral provider. No secret is printed.
+    if umbralAvailable then
+        let umbral =
+            builder
+                .AddDockerfile("umbral", umbralSourcePath)
+                // The port is pinned and the origin is localhost (not 127.0.0.1): it is the issuer in every token
+                .WithHttpEndpoint(port = umbralPort, targetPort = 8080, name = "http")
+                .WithEnvironment("UMBRAL__PUBLIC_ORIGIN", $"http://localhost:{umbralPort}")
+                .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
+                .WithEnvironment("UMBRAL__INSECURE_ALLOW_HTTP", "true")
+                // Dev only: offers a "fake" connector in the admin. Umbral refuses a stored fake connector without it.
+                .WithEnvironment("UMBRAL__ALLOW_FAKE_CONNECTOR", "true")
+                // Operator credential, apps, connectors and signing keys: wiping it means claiming and registering again
+                .WithVolume("umbral-data", "/data")
+                .WithHttpHealthCheck(path = "/healthz")
+
+        let isSet (name: string) =
+            not (String.IsNullOrWhiteSpace builder.Configuration[$"Parameters:{name}"])
+
+        if isSet "umbral-client-id" && isSet "umbral-client-secret" then
+            // Added only now: an unresolved parameter would make Aspire prompt for it
+            let clientId = builder.AddParameter("umbral-client-id")
+            let clientSecret = builder.AddParameter("umbral-client-secret", secret = true)
+
+            frunchy
+                .WithEnvironment("Frunchy__Auth__Providers__Umbral__Enabled", "true")
+                .WithEnvironment("Frunchy__Auth__Providers__Umbral__Authority", $"http://localhost:{umbralPort}")
+                .WithEnvironment("Frunchy__Auth__Providers__Umbral__ClientId", clientId)
+                .WithEnvironment("Frunchy__Auth__Providers__Umbral__ClientSecret", clientSecret)
+                .WaitFor(umbral)
+            |> ignore
+        else
+            printfn "%s" (umbralHint umbralPort gatewayPort)
 
     builder.Build().Run()
     0

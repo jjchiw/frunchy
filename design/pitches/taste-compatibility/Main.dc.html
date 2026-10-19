@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Profile with compatibility card</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0f131c}
+a{color:#4cd7f6}a:hover{color:#acedff}
+</style>
+</helmet>
+<div style="min-height: 100%; background: #0f131c; color: #dfe2ee; font-family: 'Plus Jakarta Sans', system-ui, sans-serif">
+  <header style="border-bottom: 1px solid rgba(255,255,255,0.06)">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap">
+      <a href="#" style="font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: #dfe2ee; text-decoration: none">frunchy</a>
+      <nav style="display: flex; align-items: center; gap: 8px" aria-label="Account">
+        <a href="#" style="font-size: 13px; font-weight: 600; color: #bcc9cd; text-decoration: none; padding: 12px">jjchiw</a>
+        <a href="#" style="font-size: 13px; font-weight: 600; color: #bcc9cd; text-decoration: none; padding: 12px">Account</a>
+        <button type="button" style="font: inherit; font-size: 13px; font-weight: 600; color: #bcc9cd; background: none; border: 0; padding: 12px; cursor: pointer">Sign out</button>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width: 1120px; margin: 0 auto; padding: 40px 24px 64px; display: flex; flex-direction: column; gap: 32px">
+    <section style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap">
+      <div style="display: flex; flex-direction: column; gap: 6px">
+        <h1 style="margin: 0; font-size: 36px; line-height: 44px; font-weight: 700; letter-spacing: -0.02em">Mika</h1>
+        <p style="margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #bcc9cd">@mika · on Frunchy since March 2026</p>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap">
+        <a href="#" style="font-size: 13px; font-weight: 600; color: #dfe2ee; text-decoration: none; padding: 12px 16px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.12)">Anime DNA</a>
+        <a href="#" style="font-size: 13px; font-weight: 600; color: #dfe2ee; text-decoration: none; padding: 12px 16px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.12)">2026 in review</a>
+      </div>
+    </section>
+
+    <section aria-labelledby="you-and" style="background: #181c24; border: 1px solid rgba(76,215,246,0.35); border-radius: 16px; padding: 32px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px">
+      <div style="display: flex; flex-direction: column; gap: 20px; min-width: 0">
+        <h2 id="you-and" style="margin: 0; font-size: 24px; line-height: 32px; font-weight: 700; letter-spacing: -0.015em">You and Mika</h2>
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <p style="margin: 0; font-size: 32px; line-height: 36px; font-weight: 800; letter-spacing: -0.02em; color: #4cd7f6">High compatibility</p>
+          <div role="img" aria-label="4 of 5" style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; max-width: 320px">
+            <span style="height: 8px; border-radius: 9999px; background: #4cd7f6"></span>
+            <span style="height: 8px; border-radius: 9999px; background: #4cd7f6"></span>
+            <span style="height: 8px; border-radius: 9999px; background: #4cd7f6"></span>
+            <span style="height: 8px; border-radius: 9999px; background: #4cd7f6"></span>
+            <span style="height: 8px; border-radius: 9999px; background: #31353e"></span>
+          </div>
+        </div>
+        <p style="margin: 0; font-size: 16px; line-height: 24px; color: #bcc9cd">You've both watched 14 series. Most of your time goes to Romance and Action, and so does Mika's.</p>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap">
+          <span style="font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 9999px; background: rgba(76,215,246,0.12); color: #4cd7f6">Romance</span>
+          <span style="font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 9999px; background: rgba(76,215,246,0.12); color: #4cd7f6">Action</span>
+          <span style="font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 9999px; background: rgba(192,193,255,0.12); color: #c0c1ff">Studio MAPPA</span>
+        </div>
+        <a href="Compare.dc.html" style="align-self: flex-start; font-size: 14px; font-weight: 700; color: #003640; background: #4cd7f6; text-decoration: none; padding: 12px 20px; border-radius: 9999px">See how you compare</a>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+        <h3 style="margin: 0; font-size: 13px; font-weight: 600; color: #bcc9cd">Series you've both watched</h3>
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+          <sc-for list="{{shared}}" as="s" hint-placeholder-count="4">
+            <a href="#" style="display: flex; flex-direction: column; gap: 8px; text-decoration: none; color: #dfe2ee; min-width: 0">
+              <span style="aspect-ratio: 2 / 3; border-radius: 8px; background: #262a33; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: flex-end; padding: 8px; font-size: 11px; font-weight: 700; color: #869397">Poster</span>
+              <span style="font-size: 13px; font-weight: 600; line-height: 18px">{{s.title}}</span>
+            </a>
+          </sc-for>
+        </div>
+        <p style="margin: 0; font-size: 13px; color: #bcc9cd">and 10 more</p>
+      </div>
+    </section>
+
+    <section aria-label="Mika's figures" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+      <div style="background: #181c24; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 6px">
+        <span style="font-size: 13px; font-weight: 600; color: #bcc9cd">Episodes watched</span>
+        <span style="font-size: 32px; line-height: 36px; font-weight: 800">1,284</span>
+      </div>
+      <div style="background: #181c24; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 6px">
+        <span style="font-size: 13px; font-weight: 600; color: #bcc9cd">Hours</span>
+        <span style="font-size: 32px; line-height: 36px; font-weight: 800">486.2</span>
+      </div>
+      <div style="background: #181c24; border: 1px solid rgba(255,255,255,0.06); border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 6px">
+        <span style="font-size: 13px; font-weight: 600; color: #bcc9cd">Series</span>
+        <span style="font-size: 32px; line-height: 36px; font-weight: 800">55</span>
+      </div>
+    </section>
+
+    <p style="margin: 0; font-size: 14px; color: #869397">The rest of Mika's dashboard continues here unchanged: recently watched, top genres.</p>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      shared: [
+        { title: "Frieren: Beyond Journey's End" },
+        { title: 'Jujutsu Kaisen' },
+        { title: 'Engage Kiss' },
+        { title: 'Spy x Family' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

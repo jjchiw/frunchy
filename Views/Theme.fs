@@ -179,8 +179,10 @@ let componentCss =
 
 /// Material Symbols used by the views (Components.icon); the font is subset to exactly these
 type Icon =
+    | AlternateEmail
     | ArrowBack
     | ArrowForward
+    | Block
     | CalendarMonth
     | CheckCircle
     | ContentCopy
@@ -211,8 +213,10 @@ type Icon =
     /// The Material Symbols ligature
     member this.Name =
         match this with
+        | AlternateEmail -> "alternate_email"
         | ArrowBack -> "arrow_back"
         | ArrowForward -> "arrow_forward"
+        | Block -> "block"
         | CalendarMonth -> "calendar_month"
         | CheckCircle -> "check_circle"
         | ContentCopy -> "content_copy"

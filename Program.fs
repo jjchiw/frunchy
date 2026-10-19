@@ -37,6 +37,10 @@ let WorkerEnabledKey = "Frunchy:ImportWorkerEnabled"
 [<Literal>]
 let EnrichmentWorkerEnabledKey = "Frunchy:EnrichmentWorkerEnabled"
 
+/// Set to false (the integration tests do) to run without the fediverse outbox worker; it also needs federation on
+[<Literal>]
+let FediverseWorkerEnabledKey = "Frunchy:FediverseWorkerEnabled"
+
 // One vertical slice per endpoint, see Handlers/
 let endpoints =
     [ Handlers.Home.endpoint
@@ -75,6 +79,20 @@ let endpoints =
       Handlers.Account.ResetBinding.endpoint
       yield! Handlers.Account.Logins.endpoint
       yield! Handlers.Account.DeleteAccount.endpoint ]
+
+/// Feature 015: Megáfono's app contract (actor lookup and the webhook receiver) and the block pages exist only with
+/// federation on; with it off those routes are absent and answer the plain 404
+let federationEndpoints (settings: Federation.FederationSettings) =
+    match settings with
+    | Federation.Enabled _ ->
+        [ yield! Handlers.Megafono.Actors.endpoint
+          yield! Handlers.Megafono.Webhooks.endpoint
+          // Blocks: a user's own (account page) and the instance's (operators, 404 for everyone else)
+          yield! Handlers.Account.Blocks.endpoint
+          yield! Handlers.Review.FediverseBlocks.endpoint ]
+    | Federation.Disabled -> []
+
+let private allEndpoints (settings: Federation.FederationSettings) = endpoints @ federationEndpoints settings
 
 let private isApi (ctx: HttpContext) =
     ctx.Request.Path.StartsWithSegments(PathString "/api")
@@ -393,7 +411,17 @@ let configureServices (config: IConfiguration) (services: IServiceCollection) =
     // Feature 014: the federation switch, checked at startup like the providers' credentials
     match Federation.read config with
     | Error message -> raise (InvalidOperationException message)
-    | Ok settings -> services.AddSingleton<Federation.FederationSettings>(settings) |> ignore
+    | Ok settings ->
+        services.AddSingleton<Federation.FederationSettings>(settings) |> ignore
+
+        // Feature 015: the "megafono" HTTP client exists only when federation is on
+        match settings with
+        | Federation.Enabled values ->
+            MegafonoClient.register values services |> ignore
+
+            if config.GetValue<bool>(FediverseWorkerEnabledKey, true) then
+                services.AddHostedService<Workers.FediverseOutbox.FediverseOutboxService>() |> ignore
+        | Federation.Disabled -> ()
 
     configureAuth config services
     services.AddRouting().AddOxpecker() |> ignore
@@ -447,7 +475,7 @@ let configureApp (app: WebApplication) =
         .UseRateLimiter()
         .UseAntiforgery()
         .Use(errorHandler)
-        .UseOxpecker(endpoints)
+        .UseOxpecker(allEndpoints (app.Services.GetRequiredService<Federation.FederationSettings>()))
         .Run(notFoundHandler)
 
 /// Bella Baxter (our own secrets manager, dogfooded): when Bella credentials are present, from
@@ -481,6 +509,10 @@ type CliEnv =
       Http: Net.Http.IHttpClientFactory
       Mal: MalClient.MalSettings
       Clock: TimeProvider
+      /// Federation is on: deleting a user then queues the deletion of their fediverse actor (feature 015)
+      Federated: bool
+      /// The federation settings, for `fediverse-status` (never printed with their secrets)
+      Federation: Federation.FederationSettings
       /// `Frunchy:RootOperator`: the commands refuse to add or remove it
       RootOperator: string option }
 
@@ -493,7 +525,7 @@ let cliCommands: Map<string, CliEnv -> string list -> Task<int>> =
           "user-regenerate-key", dbOnly Operations.RegenerateKey.run
           "user-reset-binding", dbOnly Operations.ResetBinding.run
           "user-rebuild", dbOnly Operations.RebuildUser.run
-          "user-delete", dbOnly Operations.DeleteUser.run
+          "user-delete", (fun env args -> Operations.DeleteUser.run env.Db env.Federated args)
           "user-list", dbOnly Operations.ListUsers.run
           "invite-create", dbOnly Operations.InviteCreate.run
           "invite-list", dbOnly Operations.InviteList.run
@@ -508,7 +540,10 @@ let cliCommands: Map<string, CliEnv -> string list -> Task<int>> =
           "mal-auto", dbOnly Operations.MalAuto.run
           "operator-add", (fun env args -> Operations.OperatorAdd.run env.Db env.RootOperator args)
           "operator-remove", (fun env args -> Operations.OperatorRemove.run env.Db env.RootOperator args)
-          "operator-list", (fun env args -> Operations.OperatorList.run env.Db env.RootOperator args) ]
+          "operator-list", (fun env args -> Operations.OperatorList.run env.Db env.RootOperator args)
+          // Feature 015
+          "fediverse-status", (fun env args -> Operations.FediverseStatus.run env.Db env.Federation args)
+          "series-handle", dbOnly Operations.SeriesHandle.run ]
 
 let private runCli (command: string) (rest: string list) : int =
     // Same configuration sources as the web app (appsettings, environment, user secrets, Bella)
@@ -519,11 +554,18 @@ let private runCli (command: string) (rest: string list) : int =
     MalClient.register config services |> ignore
     use provider = services.BuildServiceProvider()
 
+    let federation =
+        match Federation.read config with
+        | Ok settings -> settings
+        | Error message -> raise (InvalidOperationException message)
+
     let env =
         { Db = db
           Http = provider.GetRequiredService<Net.Http.IHttpClientFactory>()
           Mal = MalClient.readSettings config
           Clock = TimeProvider.System
+          Federated = Fediverse.isEnabled federation
+          Federation = federation
           RootOperator = WebAuth.rootOperator config }
 
     task {

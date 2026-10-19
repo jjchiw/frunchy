@@ -45,9 +45,25 @@ belongs to at most one user.
 |---|---|---|
 | `user_identities` | `(provider, provider_user_id)` | a sign-in identity (`google`, `umbral`) belongs to exactly one user; same shape as ASP.NET Core Identity's user logins. Personal, cascades on user delete |
 | `invites` | `id`, unique `code_hash` | one-time sign-up codes (SHA-256 only), `expires_at` = created + 7 days, `revoked_at`, `used_at`, `used_by_user_id` (`ON DELETE SET NULL`, so an invite stays "used" after its account is deleted). Not personal data |
-| `security_events` | identity `id` | per-user account events (`signed_in`, `claimed`, `claim_refused`, `identity_linked`/`unlinked`, `sync_key_generated`, `binding_reset`, `reconfirmed`, `display_name_changed`, `account_created`, `operator_added`/`operator_removed`, `comment_hidden`/`comment_unhidden`) with `actor` user/operator. No IP or device data. Personal, cascades on user delete |
+| `security_events` | identity `id` | per-user account events (`signed_in`, `claimed`, `claim_refused`, `identity_linked`/`unlinked`, `sync_key_generated`, `binding_reset`, `reconfirmed`, `display_name_changed`, `account_created`, `operator_added`/`operator_removed`, `comment_hidden`/`comment_unhidden`, `fediverse_block_added`/`fediverse_block_removed`) with `actor` user/operator. No IP or device data. Personal, cascades on user delete |
 | `operators` | `user_id` | users the root operator (`Frunchy:RootOperator`) made operators (feature 008); the root itself is configuration only and never a row. `added_by` is the granting root (`ON DELETE SET NULL`, NULL when added from the terminal or when that account was deleted), `added_at`. Personal, cascades on user delete |
 | `comments` | `id` | episode comments (feature 009; the id is a 22-char base64url minted with the form), written on `cr_episodes(id)`. `author_user_id` is the local author (`ON DELETE CASCADE`, so account deletion removes the comments); `remote_actor` is NULL until the fediverse integration, and exactly one of the two is set. `content` + `format` (`text`; `html` later), `summary` + `sensitive` (the spoiler warning; NULL/false when not a spoiler), `audience` (local comments are limited to `public`/`unlisted` by a CHECK), `created_at`, `edited_at`. A deleted comment is a tombstone: `deleted_at` set, `content = ''`, `summary` NULL. `hidden_at`/`hidden_by` record an operator hide (`hidden_by` is `ON DELETE SET NULL`). `in_reply_to` and `object_id` stay empty until the integration. Index `(cr_episode_id, created_at)`. Personal, cascades on user delete |
+
+## Fediverse (feature 015)
+
+The design is in `specs/015-fediverse/data-model.md`. Frunchy integrates Megáfono (the ActivityPub
+sidecar); none of these tables is derived from imports, so there is nothing to rebuild.
+
+| Table | Key | Notes |
+|---|---|---|
+| `series_handles` | `series_id` | a series' fediverse handle (`^[a-z0-9_]([a-z0-9_-]{0,28}[a-z0-9_])?$`, UNIQUE), made once from the Crunchyroll slug and never changed automatically. Unique against usernames too, in code (sign-up refuses a username that is a series handle). Not personal |
+| `episode_threads` | `group_key` | one thread per episode group (the original season id `#` the episode number, or the episode id). `cr_episode_id` is the episode the thread was opened from (its page URL); `object_id`/`object_url` are NULL until Megáfono published it. Not personal |
+| `remote_actors` | `id` (actor URI) | remote authors of remote comments: `handle` (`@user@host`), `name`, `profile_url`, `icon_url`, `updated_at`. Not tied to a Frunchy user, so they stay when a local user is deleted |
+| `megafono_events` | `id` | the webhook event log: dedup and audit (`type`, `received_at`, `outcome`: applied, ignored, unknown_thread, stale) |
+| `fediverse_outbox` | identity `id` | the outbox. `kind` (`ensure_thread`, `publish_comment`, `update_comment`, `delete_comment`, `delete_actor`, `refresh_profile`), `subject` (group key, comment id or user id), `state` (`pending` or `done`), `attempts`, `next_attempt_at`, `claimed_at`, `last_error`, `done_at`. It holds no payloads (the worker reads the subject's current state) and no foreign keys, so a `delete_actor` item outlives its user. Partial index `(next_attempt_at, id) WHERE state = 'pending'` |
+
+Remote comments reuse `comments` (`remote_actor`, `format = 'html'`, `object_id`, `in_reply_to`,
+`audience`); a remote comment's id is `r-` plus 40 characters of the base64url SHA-256 of its object id.
 
 `users.sync_key_hash` and `users.sync_key_created_at` are **nullable**: a user who signed up on the
 website has no key until "Connect extension". Sessions aren't stored (encrypted cookies), and

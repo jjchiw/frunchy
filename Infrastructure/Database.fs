@@ -187,6 +187,61 @@ let private schema =
 
     CREATE INDEX IF NOT EXISTS ix_comments_episode ON comments (cr_episode_id, created_at);
 
+    -- Fediverse integration (feature 015): shared by every slice that talks to Megáfono.
+    -- A series' fediverse handle, set once
+    CREATE TABLE IF NOT EXISTS series_handles (
+        series_id  text PRIMARY KEY,
+        handle     text NOT NULL UNIQUE CHECK (handle ~ '^[a-z0-9_]([a-z0-9_-]{0,28}[a-z0-9_])?$'),
+        created_at timestamptz NOT NULL DEFAULT now()
+    );
+
+    -- One thread per episode group; object ids come back from Megáfono
+    CREATE TABLE IF NOT EXISTS episode_threads (
+        group_key     text PRIMARY KEY,
+        series_id     text NOT NULL,
+        cr_episode_id text NOT NULL REFERENCES cr_episodes(id),
+        object_id     text NULL UNIQUE,
+        object_url    text NULL,
+        created_at    timestamptz NOT NULL DEFAULT now()
+    );
+
+    -- Remote authors of remote comments
+    CREATE TABLE IF NOT EXISTS remote_actors (
+        id          text PRIMARY KEY,
+        handle      text NOT NULL,
+        name        text NOT NULL,
+        profile_url text NULL,
+        icon_url    text NULL,
+        updated_at  timestamptz NOT NULL DEFAULT now()
+    );
+
+    -- Webhook event log: dedup and audit
+    CREATE TABLE IF NOT EXISTS megafono_events (
+        id          text PRIMARY KEY,
+        type        text NOT NULL,
+        received_at timestamptz NOT NULL DEFAULT now(),
+        outcome     text NOT NULL
+    );
+
+    -- The outbox: every call Frunchy must make to Megáfono, written in the transaction of the change that needs it.
+    -- It holds no payloads: the worker reads the subject's current state when it runs. No foreign keys, on purpose
+    -- (a delete_actor item outlives its user).
+    CREATE TABLE IF NOT EXISTS fediverse_outbox (
+        id              bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        kind            text NOT NULL CHECK (kind IN ('ensure_thread', 'publish_comment', 'update_comment', 'delete_comment',
+                                                       'delete_actor', 'refresh_profile')),
+        subject         text NOT NULL,
+        state           text NOT NULL DEFAULT 'pending' CHECK (state IN ('pending', 'done')),
+        attempts        int NOT NULL DEFAULT 0,
+        next_attempt_at timestamptz NOT NULL DEFAULT now(),
+        claimed_at      timestamptz NULL,
+        last_error      text NULL,
+        created_at      timestamptz NOT NULL DEFAULT now(),
+        done_at         timestamptz NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS ix_fediverse_outbox_pending ON fediverse_outbox (next_attempt_at, id) WHERE state = 'pending';
+
     -- MyAnimeList enrichment (feature 003): shared catalog data, nothing references users.
     -- raw columns hold the provider's responses verbatim (source says which provider); everything
     -- else is re-derivable (mal-rebuild).

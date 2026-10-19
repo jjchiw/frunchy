@@ -188,7 +188,7 @@ let ``deleting a user leaves the MyAnimeList catalog and the matches`` () =
         let! _ = enrichAll app
         let! animeBefore = Db.count app.Db "mal_anime"
         let! matchesBefore = Db.count app.Db "cr_season_matches"
-        let! deleted = FrunchyBackend.Operations.DeleteUser.run app.Db [ "animenerd"; "--yes" ]
+        let! deleted = FrunchyBackend.Operations.DeleteUser.run app.Db false [ "animenerd"; "--yes" ]
         Assert.Equal(0, deleted)
         let! animeAfter = Db.count app.Db "mal_anime"
         let! matchesAfter = Db.count app.Db "cr_season_matches"

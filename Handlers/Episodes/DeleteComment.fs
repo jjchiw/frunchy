@@ -39,8 +39,9 @@ let private ownEpisodePage (connection: NpgsqlConnection) (id: string) (userId: 
             return None
     }
 
-/// The tombstone: the row stays (a later integration needs it), the content and the spoiler warning go
-let private tombstone (connection: NpgsqlConnection) (id: string) (userId: Guid) : Task<unit> =
+/// The tombstone: the row stays (a later integration needs it), the content and the spoiler warning go. True when
+/// this call deleted it.
+let private tombstone (connection: NpgsqlConnection) (tx: NpgsqlTransaction) (id: string) (userId: Guid) : Task<bool> =
     task {
         use cmd =
             new NpgsqlCommand(
@@ -49,13 +50,14 @@ let private tombstone (connection: NpgsqlConnection) (id: string) (userId: Guid)
                 SET deleted_at = now(), content = '', summary = NULL, sensitive = false
                 WHERE id = @id AND author_user_id = @me AND deleted_at IS NULL
                 """,
-                connection
+                connection,
+                tx
             )
 
         cmd.Parameters.AddWithValue("id", id) |> ignore
         cmd.Parameters.AddWithValue("me", userId) |> ignore
-        let! _ = cmd.ExecuteNonQueryAsync()
-        ()
+        let! deleted = cmd.ExecuteNonQueryAsync()
+        return deleted > 0
     }
 
 // ---------------------------------------------------------------------------
@@ -81,7 +83,14 @@ let handler (id: string) : EndpointHandler =
                 | None -> return! notFound ctx
                 | Some page ->
                     let! _ = WebAuth.readValidatedForm ctx
-                    do! tombstone connection id userId
+                    // With federation on, the delete and its delete_comment are one transaction (the outbox)
+                    use tx = connection.BeginTransaction()
+                    let! deleted = tombstone connection tx id userId
+
+                    if deleted && Fediverse.isEnabled (ctx.GetService<Federation.FederationSettings>()) then
+                        do! Fediverse.enqueueCommentChange connection tx userId "delete_comment" id
+
+                    do! tx.CommitAsync()
                     return! WebAuth.redirectTo ctx page
             | _ -> return! notFound ctx
         }

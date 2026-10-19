@@ -4,7 +4,8 @@ Design system of Frunchy since feature 010 (`specs/010-night-broadcast/`). It su
 [Neo-Scrobble Profile](../neo_scrobble_profile/DESIGN.md). Source of truth for the values is
 `Views/Theme.fs`, shared with the browser extension through the contract
 [`specs/010-night-broadcast/contracts/design-system.md`](../../specs/010-night-broadcast/contracts/design-system.md).
-Pitch canvas (row 2, the chosen direction): https://claude.ai/artifact/Jzm6navcFrNnQ8TSNwcESK
+Pitch (row 2, the chosen direction): `design/pitches/visual-directions/`, the `Broadcast*` boards. The
+original canvas is gone; `design/pitches/README.md` says how to view the boards.
 
 A dark, warm night palette: paper-coloured text on a violet-black page, amber for the person the
 screen is about, rose for other people.

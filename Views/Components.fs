@@ -215,32 +215,49 @@ let pageHeading (title: string) (lead: string option) =
         | None -> Fragment()
     }
 
-/// Copy a page's address (the dashboard and the DNA page). Falls back to a selectable field when the
-/// Clipboard API is unavailable. What starts hidden carries an inline display:none, which Alpine's
-/// x-show removes when it appears, so nothing flashes before Alpine loads.
-let copyLink (t: Texts) (address: string) =
+/// A copy button for a plain value: the button, a polite "copied" announcement, and a selectable field when the
+/// Clipboard API is unavailable. `hook` names the container (`data-{hook}`), `doneHook` the announcement. What starts
+/// hidden carries an inline display:none, which Alpine's x-show removes when it appears, so nothing flashes before
+/// Alpine loads.
+let copyValue (hook: string) (doneHook: string) (small: bool) (kind: ButtonKind) (value: string) (buttonText: string) (copied: string) (fallback: string) =
     div(class' = "flex flex-col items-start gap-2")
-        .data("copy-link", "")
+        .data(hook, "")
         .attr("x-data", "{ copied: false, failed: false }") {
-        button(type' = "button", class' = btn Secondary)
+        button(type' = "button", class' = (if small then btnSm kind else btn kind))
             .attr(
                 "x-on:click",
                 "navigator.clipboard ? navigator.clipboard.writeText($el.dataset.address).then(() => { copied = true; setTimeout(() => copied = false, 2000) }, () => failed = true) : failed = true"
             )
-            .data("address", address) {
+            .data("address", value) {
             icon ContentCopy
-            span().attr("x-show", "!copied") { t.CopyLink }
-            span().attr("x-show", "copied").attr("style", "display: none") { t.LinkCopied }
+            span().attr("x-show", "!copied") { buttonText }
+            span().attr("x-show", "copied").attr("style", "display: none") { copied }
         }
 
-        span(class' = "sr-only").attr("aria-live", "polite").data("copy-done", "") {
-            span().attr("x-show", "copied").attr("style", "display: none") { t.LinkCopied }
+        span(class' = "sr-only").attr("aria-live", "polite").data(doneHook, "") {
+            span().attr("x-show", "copied").attr("style", "display: none") { copied }
         }
 
         label(class' = "w-full").attr("x-show", "failed").attr("style", "display: none") {
-            span(class' = "fr-label") { t.CopyLinkFallback }
-            input(type' = "text", value = address, class' = "fr-input fr-mono").attr("readonly", "").attr("x-on:focus", "$el.select()")
+            span(class' = "fr-label") { fallback }
+            input(type' = "text", value = value, class' = "fr-input fr-mono").attr("readonly", "").attr("x-on:focus", "$el.select()")
         }
+    }
+
+/// Copy a page's address (the dashboard and the DNA page). Falls back to a selectable field when the Clipboard API
+/// is unavailable.
+let copyLink (t: Texts) (address: string) =
+    copyValue "copy-link" "copy-done" false Secondary address t.CopyLink t.LinkCopied t.CopyLinkFallback
+
+/// "Follow on the fediverse: @handle@domain" with a copy button (feature 015, FR-003). `handle` is the full
+/// `@name@domain`; it is also the value of `data-fediverse-handle`, the test hook.
+let fediverseHandleLine (t: Texts) (handle: string) =
+    // a div, not a p: the copy widget is a div, and a p can't hold one (the parser would end the p before it)
+    div(class' = "flex flex-wrap items-center gap-x-2 gap-y-1 text-body-md text-on-surface-variant").data("fediverse-handle", handle) {
+        icon Theme.AlternateEmail
+        span() { t.FediverseFollowLabel + ":" }
+        span(class' = "fr-mono font-semibold text-on-surface [overflow-wrap:anywhere]") { handle }
+        copyValue "copy-handle" "copy-handle-done" true Ghost handle t.CopyHandle t.HandleCopied t.CopyHandleFallback
     }
 
 // ---------------------------------------------------------------------------

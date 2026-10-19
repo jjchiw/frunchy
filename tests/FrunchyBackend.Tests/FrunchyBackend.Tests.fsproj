@@ -9,6 +9,7 @@
   <ItemGroup>
     <Compile Include="Infrastructure/FakeProvider.fs" />
     <Compile Include="Infrastructure/FakeMal.fs" />
+    <Compile Include="Infrastructure/FakeMegafono.fs" />
     <Compile Include="Infrastructure/Browser.fs" />
     <Compile Include="Infrastructure/PostgresFixture.fs" />
     <Compile Include="Infrastructure/Collections.fs" />
@@ -75,6 +76,14 @@
     <Compile Include="ChartsTests.fs" />
     <Compile Include="SeriesPageTests.fs" />
     <Compile Include="SeriesLinkTests.fs" />
+    <Compile Include="FediverseRulesTests.fs" />
+    <Compile Include="MegafonoActorsTests.fs" />
+    <Compile Include="FediverseOutboxTests.fs" />
+    <Compile Include="MegafonoWebhooksTests.fs" />
+    <Compile Include="RemoteCommentsTests.fs" />
+    <Compile Include="FediverseBlocksTests.fs" />
+    <Compile Include="FediversePagesTests.fs" />
+    <Compile Include="FediverseOperationsTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

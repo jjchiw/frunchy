@@ -1,6 +1,7 @@
 module FrunchyBackend.Handlers.Account.AccountPage
 
 open System
+open System.Net.Http
 open System.Threading.Tasks
 open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.DependencyInjection
@@ -55,7 +56,7 @@ let private notice (t: Texts) (msg: string) =
 
 /// One titled section of the stack; `hook` is its data-account value
 let private accountSection (hook: string) (i: Theme.Icon) (title: string) (content: HtmlElement) =
-    section(class' = "fr-card space-y-5").data("account", hook) {
+    section(class' = "fr-card space-y-5", id = hook).data("account", hook) {
         h2(class' = "flex items-center gap-2.5 text-headline-md text-on-surface") {
             span(class' = "text-primary") { icon i }
             title
@@ -225,6 +226,19 @@ let private syncs (t: Texts) (m: AccountModel) =
         }
     |> accountSection "syncs" Theme.Sync t.RecentSyncsTitle
 
+/// The user's fediverse blocks (federation on): the add form, then the list. A failed read says so in a plain line;
+/// the form stays, since adding may still work.
+let private blocksSection (ctx: HttpContext) (t: Texts) (msg: string) (listing: BlockActions.Listing) =
+    div(class' = "space-y-5") {
+        p(class' = "max-w-prose text-body-md text-on-surface-variant") { t.BlocksIntro }
+        Blocks.notice t msg
+        Blocks.addForm ctx t "/account/blocks/add"
+        div(class' = "border-t border-outline-variant/40 pt-5") {
+            Blocks.list ctx t "blocks" "/account/blocks/remove" t.BlocksEmpty t.BlocksLoadFailed listing
+        }
+    }
+    |> accountSection "blocks" Theme.Block t.BlocksTitle
+
 let private securityActivity (t: Texts) (providerName: string -> string) (m: AccountModel) =
     ul(class' = "divide-y divide-outline-variant/40") {
         for event in m.Events do
@@ -259,7 +273,19 @@ let private dangerZone (t: Texts) =
         }
     }
 
-let view (ctx: HttpContext) (t: Texts) (providers: AuthConfig.FrunchyProvider list) (msg: string) (isOperator: bool) (isRoot: bool) (m: AccountModel) =
+/// `federated`: federation is on (operators get the link to the instance blocks); `blocks`: the user's own blocks,
+/// only when they can federate (None otherwise, and no section)
+let view
+    (ctx: HttpContext)
+    (t: Texts)
+    (providers: AuthConfig.FrunchyProvider list)
+    (msg: string)
+    (isOperator: bool)
+    (isRoot: bool)
+    (federated: bool)
+    (blocks: BlockActions.Listing option)
+    (m: AccountModel)
+    =
     let providerName (name: string) =
         providers |> List.tryFind (fun p -> p.Name = name) |> Option.map _.DisplayName |> Option.defaultValue name
 
@@ -283,6 +309,12 @@ let view (ctx: HttpContext) (t: Texts) (providers: AuthConfig.FrunchyProvider li
                         t.ReviewAccountLink
                     }
 
+                    if federated then
+                        a(href = "/review/fediverse", class' = btn Secondary).data("fediverse-link", "") {
+                            icon Theme.Block
+                            t.ReviewFediverseLink
+                        }
+
                     if isRoot then
                         a(href = "/review/operators", class' = btn Secondary).data("operators-link", "") {
                             icon Theme.Shield
@@ -296,6 +328,11 @@ let view (ctx: HttpContext) (t: Texts) (providers: AuthConfig.FrunchyProvider li
         binding ctx t m
         identities ctx t providerName linkable m
         syncs t m
+
+        match blocks with
+        | Some listing -> blocksSection ctx t msg listing
+        | None -> Fragment()
+
         securityActivity t providerName m
         dangerZone t
     }
@@ -395,7 +432,24 @@ let handler: EndpointHandler =
             | Some model ->
                 let providers = ctx.RequestServices.GetServices<AuthConfig.FrunchyProvider>() |> List.ofSeq
                 let msg = ctx.TryGetQueryValue "msg" |> Option.defaultValue ""
-                return! ctx.WriteHtmlView(view ctx (Texts.current ()) providers msg (WebAuth.isOperator ctx) (WebAuth.isRoot ctx) model)
+                let federated = Fediverse.isEnabled (ctx.GetService<Federation.FederationSettings>())
+
+                // Federation on and a username that can federate: read the blocks now; a Megáfono that can't answer
+                // costs the section its list, never the page
+                let! blocks =
+                    if federated && Fediverse.isValidHandle model.Username then
+                        task {
+                            let client = ctx.GetService<IHttpClientFactory>().CreateClient MegafonoClient.ClientName
+                            let! listing = BlockActions.list client (BlockActions.User userId)
+                            return Some listing
+                        }
+                    else
+                        Task.FromResult None
+
+                return!
+                    ctx.WriteHtmlView(
+                        view ctx (Texts.current ()) providers msg (WebAuth.isOperator ctx) (WebAuth.isRoot ctx) federated blocks model
+                    )
             | None ->
                 do! WebAuth.signOut ctx
                 return! WebAuth.redirectTo ctx "/signin"

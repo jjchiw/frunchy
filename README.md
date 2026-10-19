@@ -4,7 +4,7 @@
 
 **Build the anime identity of the user independently of Crunchyroll.**
 
-A Last.fm-style platform for anime focused on automatic watch history, statistics, and community. The most valuable asset is the accumulated watch history - the anime DNA that no competitor can easily reconstruct once users start using the platform.
+A social stats platform for anime: automatic watch history, statistics, and community, open to the fediverse. The most valuable asset is the accumulated watch history - the anime DNA that no competitor can easily reconstruct once users start using the platform.
 
 ## Architecture
 
@@ -161,8 +161,52 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 ### Prerequisites
 - .NET SDK 10
 - Docker running (Aspire starts Postgres and Megáfono in containers, the tests use Testcontainers)
-- To run the whole platform: a checkout of Megáfono (the fediverse service, a separate repo) at `../../Megafono` relative to this repo's root, or set `Megafono:SourcePath`, or set `Megafono:ImageTag` to use a published image
+- To run the whole platform: nothing more. The AppHost pulls Megáfono (the fediverse service, a separate repo) as the published images `ghcr.io/cosmic-chimps/megafono` and `megafono-gateway`, pinned by `Megafono:ImageTag` (`0.1.0`). To try an unreleased Megáfono, set `Megafono:BuildFromSource` to `true` and `Megafono:SourcePath` to a checkout (default `../../Megafono`)
+- Optional, to sign in with Umbral (our own OpenID Connect provider, a separate repo) under the AppHost: a checkout of Umbral at `../../Umbral` (or `Umbral:SourcePath`). No image is published yet, so the AppHost builds it from its `Dockerfile`; without the checkout the AppHost warns and runs without Umbral
 - To run Frunchy alone: PostgreSQL 14+ (locally it runs in Docker: container `postgres-postgres-1`)
+
+### Run it locally (start here)
+
+From the repo root:
+
+```bash
+bella sdk run -- aspire run
+```
+
+That's the whole platform: Postgres, Megáfono and its gateway, Umbral (if checked out) and Frunchy, with Frunchy reading its secrets from Bella. `Ctrl+C` stops everything; the data stays in Docker volumes.
+
+**Which command?**
+
+| Command | What you get |
+|---|---|
+| `bella sdk run -- aspire run` | **Use this one.** The Bella CLI hands its credentials (not the secrets) to the AppHost; Frunchy inherits them and fetches its own secrets from Bella (project `frunchy`, environment `development`, chosen by the gitignored `.bella` file in the repo root): Google, the MyAnimeList client id, `Frunchy:RootOperator`, and any provider settings. They are re-read every minute without a restart. |
+| `aspire run` (or `dotnet run --project AppHost`) | Everything runs, but Frunchy only sees `appsettings.json` and its user secrets: no Google sign-in and no MyAnimeList enrichment unless they are in user secrets. |
+| `bella run -- aspire run` | Don't. It copies **every** Bella secret as an environment variable into the AppHost and every process it starts, frozen until a restart. It works, but there is no reason to spread them further. |
+
+Bella values reach Frunchy only. The containers (Postgres, Megáfono, the gateway, Umbral) get just what the AppHost gives them. Variables the AppHost sets on Frunchy (the database, the Megáfono settings, Umbral once registered) win over Bella.
+
+**First time only:**
+1. Docker running, and `bella login` once (`bella whoami` shows who you are).
+2. The Megáfono master key (base64 of 32 bytes; keep a copy):
+   ```bash
+   dotnet user-secrets set "Parameters:megafono-master-key" "$(openssl rand -base64 32)" --project AppHost
+   ```
+3. Optional, for Umbral: a checkout at `../../Umbral`. When working from a git worktree that relative path points somewhere else, so set the absolute one: `dotnet user-secrets set "Umbral:SourcePath" "/path/to/Umbral" --project AppHost`. Registering Frunchy in Umbral is a one-time manual step, [below](#run-the-platform-with-aspire-feature-014).
+
+**Where things are** (`aspire run` prints the dashboard link with its login token):
+
+| What | URL |
+|---|---|
+| The site (through the gateway, as in production) | http://localhost:5300 |
+| Frunchy directly (the extension's dev URL) | http://localhost:5099 |
+| Aspire dashboard (logs, resources, connection strings) | http://localhost:15180 |
+| Umbral and its admin (`/admin`) | http://localhost:5380 |
+
+**Getting in.** Sign-up is invite-only. Make an invite against the AppHost's database (copy the `frunchydb` connection string from the dashboard: resource `pg`, database `frunchydb`), then sign in at http://localhost:5300/signin with a configured provider; a new identity lands on the sign-up page, which asks for the code:
+```bash
+ConnectionStrings__Database="<connection string from the dashboard>" dotnet run -- invite-create
+```
+A provider's redirect URI under the AppHost is the gateway's: `http://localhost:5300/signin-google` and `http://localhost:5300/signin-umbral` (Frunchy alone uses 5099). If Bella's `development` environment holds Umbral settings from running Umbral by itself (authority `http://localhost:5173`), they stay in effect under the AppHost until the AppHost's own Umbral is registered as described below.
 
 ### Run the platform with Aspire (feature 014)
 
@@ -173,12 +217,27 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
    dotnet user-secrets set "Parameters:megafono-master-key" "$(openssl rand -base64 32)" --project AppHost
    ```
    The token and webhook secret between Frunchy and Megáfono are generated and persisted in the same user secrets. `Parameters:domain` defaults to `frunchy.test`.
-2. **Run** (`aspire run` also works):
+2. **Run** (see [Run it locally](#run-it-locally-start-here) for why `bella sdk run`; plain `aspire run` or `dotnet run --project AppHost` run without Bella):
    ```bash
-   dotnet run --project AppHost
+   bella sdk run -- aspire run
    ```
    The Aspire dashboard lists `pg`, both databases, `megafono`, `gateway` and `frunchy`. The **gateway** is the one public entrance on a single domain: Megáfono's routes (`/.well-known/webfinger`, `/.well-known/nodeinfo`, `/nodeinfo/*`, `/ap/*`, `/inbox`) go to Megáfono and everything else to Frunchy. Megáfono's internal API (port 8081) is reachable only by Frunchy.
 3. **The domain is permanent once you federate**: actor ids are `https://{domain}/ap/actors/{users.id}` and changing the domain later orphans every follower.
+
+**Fixed ports.** The site (the gateway) is always `http://localhost:5300` (`Gateway:Port`) and Umbral `http://localhost:5380` (`Umbral:Port`). They are pinned because sign-in redirect URIs are registered once and must not move. Open the site on 5300, not on Frunchy's own port.
+
+**Sign in with Umbral (optional).** With `Umbral:Enabled` (default `true` in `AppHost/appsettings.json`) and a checkout at `Umbral:SourcePath` (default `../../Umbral`), the AppHost builds and starts Umbral with its dev settings (plain http on `localhost`, a volume `umbral-data`). Frunchy's Umbral sign-in stays off until Frunchy is registered in Umbral, which cannot be automated (the client id and secret are generated in its admin). Once per `umbral-data` volume (wiping the volume means doing it again):
+1. Claim Umbral: `docker exec <umbral container> /app/Umbral reset-credential` prints a credential for `http://localhost:5380/admin`, or use the setup token from Umbral's log at `/admin/setup`.
+2. Under Connectors, enable the **fake connector**. It is dev only: it exists because the AppHost sets `UMBRAL__ALLOW_FAKE_CONNECTOR`, and it signs anyone in without a real identity.
+3. Apps, Create app, **Web application**, redirect URI exactly `http://localhost:5300/signin-umbral`. Copy the client id and secret.
+4. Store them and restart the AppHost:
+   ```bash
+   dotnet user-secrets set "Parameters:umbral-client-id" "<client id>" --project AppHost
+   dotnet user-secrets set "Parameters:umbral-client-secret" "<client secret>" --project AppHost
+   ```
+   Frunchy then starts with the Umbral provider on (authority `http://localhost:5380`) and waits for Umbral. Until both are set the AppHost prints these steps and leaves the provider off. Google can still be configured through Bella or user secrets as before.
+
+In production (`deploy/compose.yaml`) Umbral is the optional `umbral` profile, built from `UMBRAL_CONTEXT` until an image is published; see `deploy/.env.example`.
 
 **One-time wipe.** The schema bootstrap now assumes an empty database, and the AppHost uses its own volume (`frunchy-pg`), so nothing from before carries over. If you ran an older version against `postgres-postgres-1`, drop its old databases (dev data, not real history):
 ```bash
@@ -191,6 +250,23 @@ docker exec postgres-postgres-1 dropdb -U postgres megafono   # if it exists
 ConnectionStrings__Database="Host=localhost;Port=<port>;Username=postgres;Password=<password>;Database=frunchydb" \
   dotnet run -- user-create animenerd "AnimeNerd"
 ```
+
+### Federation under Aspire (feature 015)
+
+With the platform running (`dotnet run --project AppHost`, federation on, domain `frunchy.test`), Frunchy is on the fediverse through Megáfono. Check it step by step:
+
+1. **Accounts.** Create a user (`dotnet run -- user-create animenerd "AnimeNerd"` against the AppHost's database) and ask the gateway for it: `curl "https://frunchy.test/.well-known/webfinger?resource=acct:animenerd@frunchy.test"` (resolve `frunchy.test` to the gateway, or send a `Host` header). A series answers the same way by its handle, which is made the first time its page is shown (`/anime/{seriesId}` shows it as "Follow on the fediverse") or set with `series-handle`.
+2. **A comment becomes a thread and a reply.** Sign in, comment on an episode page, then look at the queue with `fediverse-status`: a thread and the comment are sent within seconds (the worker polls every 5 seconds and retries with backoff when Megáfono is down). Megáfono's database then holds the series' thread post and the user's reply to it, and the episode page carries the thread as its ActivityPub alternate link.
+3. **Replies in.** A reply to the thread from another server reaches `POST /megafono/webhooks` and shows on the episode page with its author's handle and server; content warnings become spoilers. Remote peers need Megáfono's dev-fediverse kit, which doesn't exist yet.
+4. **Blocks.** `/account` lists the blocks of the signed-in user with a form to add one (a handle, an actor address or a server name); operators manage instance blocks on `/review/fediverse`.
+
+Switch it off with `Frunchy:Federation:Enabled=false`: the routes, the worker and every handle line disappear and the site works as before.
+
+### Settings added by feature 015
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Frunchy:FediverseWorkerEnabled` | `true` | Runs the outbox worker (only with federation on). The tests turn it off and drive it directly |
 
 ### Run Frunchy alone (federation off)
 
@@ -232,7 +308,7 @@ No Aspire, no Megáfono: Frunchy is a complete web app without federation (`Frun
 
 ### Self-hosting with Docker Compose
 
-`Dockerfile` builds Frunchy; `deploy/compose.yaml` runs it with Postgres. Federation is an optional profile that adds Megáfono and its gateway (pinned `0.1.1`):
+`Dockerfile` builds Frunchy; `deploy/compose.yaml` runs it with Postgres. Federation is an optional profile that adds Megáfono and its gateway (pinned `0.1.0`):
 
 ```bash
 cp deploy/.env.example deploy/.env      # fill it in: every variable has its generation command
@@ -279,6 +355,7 @@ Without the profile you get Frunchy and Postgres, and Frunchy listens on `127.0.
   `user-reset-binding <username>`, `user-rebuild <username>`, `user-delete <username> --yes`, `user-list`.
 - **Invites** (feature 002): `invite-create [--days N]`, `invite-list`, `invite-revoke <id>`.
 - **Operators** (feature 008): `operator-add <username>`, `operator-remove <username>`, `operator-list`. They work without a root configured, so they are the way back in if the root can't sign in.
+- **Fediverse** (feature 015): `fediverse-status` (federation settings without secrets, outbox counts by state and kind, the oldest waiting item; always exit 0), `series-handle <seriesId> <handle>` (set a series handle until its thread is published; exit 0 set, 1 usage or a handle that breaks the rule, 2 unknown series, 3 already federated, 4 taken by another series or a user).
 - **MyAnimeList enrichment** (feature 003): `mal-status`, `mal-list [--status S] [--limit N]`,
   `mal-show <crSeriesId>`, `mal-set <crSeasonId> <malId>`, `mal-none <crSeasonId>`,
   `mal-retry <crSeasonId | crSeriesId>`, `mal-auto <crSeasonId>` (feature 007: back to automatic), `mal-rebuild` (no requests).
@@ -348,6 +425,16 @@ Features are built through spec-kit (`specs/###-name/`), in this order:
 | 012 | **Charts and trends**: the most-watched series this week, this season and of all time (`/charts`), ranked by people, with movement and an 8-week trend on the week chart, and "Watched by N people on Frunchy" on anime and episode pages; nothing shows below `Frunchy:Charts:MinPeople` people (default 3) | Implemented ([spec](specs/012-charts-trends/charts-trends.spec.md)) |
 | 013 | **Series page**: a public page per series (`/anime/{seriesId}`) with its seasons, MyAnimeList details, known episodes with their comment counts and "Watched by N people"; chart rows, the episode page and the anime page link to it; new usernames can no longer end in a dash (Mastodon refuses them) | Implemented ([spec](specs/013-series-page/series-page.spec.md)) |
 | 014 | **Aspire platform reset**: an F# Aspire AppHost runs Postgres, Megáfono, its gateway and Frunchy on one domain; a federation switch (off by default) with validated Megáfono settings; forwarded headers only from trusted proxies; Discord removed; a clean schema bootstrap; a Dockerfile and a compose file with an optional federation profile | Implemented ([spec](specs/014-aspire-platform/aspire-platform.spec.md)) |
+| 015 | **Fediverse integration**: users are `@username@domain` and series are `@series-handle@domain` on the fediverse; each episode gets a thread post from its series; comments go both ways (a Frunchy comment is a reply, a Mastodon reply shows on the episode page, edits and deletes follow); deleting an account deletes its actor; users block accounts and servers from `/account`, operators from `/review/fediverse`; a Postgres outbox and a worker talk to Megáfono; `fediverse-status` and `series-handle` commands | Implemented ([spec](specs/015-fediverse/fediverse.spec.md)); following and a feed wait for Megáfono's feed feature |
+| 016 | **Private profiles**: dashboards are private unless chosen otherwise. An instance setting picks the default for profiles (private or public); each owner can make their profile public, or share it through a secret link (a token that can be revoked and replaced) | Backlog: to try with friends first (see the notes below) |
+
+**Notes for 016 (private profiles)**, to settle in its spec:
+- **What "the profile" covers**: the dashboard and everything under `/u/{username}` (DNA, year in review, anime pages, compare). Today they are all public, and the home page says so ("Dashboards are public: anyone with the link…", `HomeProfilesNote` in `Views/Texts.fs`), so that copy changes too.
+- **Who sees a private profile**: its owner, anyone holding a valid share link and, perhaps, operators. Everyone else gets the plain 404, so a private profile doesn't reveal that it exists.
+- **Share links**: a random token stored only as a hash (like the sync key), shown once, revocable from `/account`. Open questions: one link or several, whether links expire, and whether a link opens only the dashboard or every page under it.
+- **Where a username shows up anyway**: comment authors on episode pages (whether the name still links), taste compatibility (whether a private profile can be compared, and whether it can compare), and charts (they stay as they are: they never name anyone).
+- **The fediverse (015)**: a federated user is `@username@domain` with a public actor. Decide whether a private profile is federated at all, and what its actor shows.
+- **The setting**: something like `Frunchy:Profiles:DefaultVisibility` (`private` by default). Decide what happens to existing users when an instance changes it: do they follow the new default, or keep their own choice once they have made one?
 
 
 ## Key Design Decisions

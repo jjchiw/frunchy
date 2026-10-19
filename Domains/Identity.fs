@@ -118,6 +118,8 @@ type SecurityEventType =
     | OperatorRemoved
     | CommentHidden
     | CommentUnhidden
+    | FediverseBlockAdded
+    | FediverseBlockRemoved
 
 module SecurityEventType =
     let toDb =
@@ -140,6 +142,8 @@ module SecurityEventType =
         | SecurityEventType.OperatorRemoved -> "operator_removed"
         | SecurityEventType.CommentHidden -> "comment_hidden"
         | SecurityEventType.CommentUnhidden -> "comment_unhidden"
+        | SecurityEventType.FediverseBlockAdded -> "fediverse_block_added"
+        | SecurityEventType.FediverseBlockRemoved -> "fediverse_block_removed"
 
     let all =
         [ SecurityEventType.AccountCreated; SecurityEventType.SignedIn; SecurityEventType.Claimed
@@ -147,6 +151,7 @@ module SecurityEventType =
           SecurityEventType.SyncKeyGenerated; SecurityEventType.BindingReset; SecurityEventType.Reconfirmed
           SecurityEventType.DisplayNameChanged; SecurityEventType.MalSet; SecurityEventType.MalNone
           SecurityEventType.MalRetry; SecurityEventType.MalAuto; SecurityEventType.OperatorAdded
-          SecurityEventType.OperatorRemoved; SecurityEventType.CommentHidden; SecurityEventType.CommentUnhidden ]
+          SecurityEventType.OperatorRemoved; SecurityEventType.CommentHidden; SecurityEventType.CommentUnhidden
+          SecurityEventType.FediverseBlockAdded; SecurityEventType.FediverseBlockRemoved ]
 
     let tryFromDb (value: string) = all |> List.tryFind (fun e -> toDb e = value)

@@ -50,7 +50,7 @@ Previous report (1.0.0, 2026-10-02): first ratification from the template.
 
 # Frunchy Constitution
 
-Frunchy is a "Last.fm for anime": automatic Crunchyroll watch history → statistics →
+Frunchy is a social stats platform for anime: automatic Crunchyroll watch history → statistics →
 "anime DNA" → (later) community. This constitution defines the non-negotiable engineering
 rules for building it.
 

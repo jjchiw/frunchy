@@ -55,7 +55,7 @@ let ``deleting a user removes their security events`` () =
         use! app = newApp ()
         let! _ = createUser app.Db "animenerd"
         let! _ = RegenerateKey.regenerateKey app.Db "animenerd"
-        let! _ = DeleteUser.deleteUser app.Db "animenerd"
+        let! _ = DeleteUser.deleteUser app.Db false "animenerd"
         let! remaining = Db.count app.Db "security_events"
         Assert.Equal(0L, remaining)
     }

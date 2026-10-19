@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: "Move the whole site from the Neo-Scrobble look to the 'Night Broadcast' direction chosen from the visual pitches (https://claude.ai/artifact/Jzm6navcFrNnQ8TSNwcESK, row 2): warm dark surfaces, amber and rose accents, Bricolage Grotesque titles, Figtree text, IBM Plex Mono figures. Restyle only, before taste compatibility is built on it. The browser extension shares the tokens and follows in its own session."
+**Input**: "Move the whole site from the Neo-Scrobble look to the 'Night Broadcast' direction chosen from the visual pitches (row 2; kept in `design/pitches/visual-directions/`): warm dark surfaces, amber and rose accents, Bricolage Grotesque titles, Figtree text, IBM Plex Mono figures. Restyle only, before taste compatibility is built on it. The browser extension shares the tokens and follows in its own session."
 
 ## Clarifications
 
@@ -120,6 +120,6 @@ The browser extension uses the same token names. This feature publishes the new 
 
 ## Verbatim Constraints
 
-- Direction: "Night Broadcast", row 2 of https://claude.ai/artifact/Jzm6navcFrNnQ8TSNwcESK
+- Direction: "Night Broadcast", row 2 of the visual-direction pitches (`design/pitches/visual-directions/`)
 - Fonts: Bricolage Grotesque (titles), Figtree (text), IBM Plex Mono (figures, usernames, keys, URLs)
 - Accents: amber `#ffb547` (primary), rose `#ff6fa8` (others, spoilers); surfaces from `#13111a`
