@@ -67,20 +67,20 @@ the image for both platforms and checks a restart under the AppHost.
 
 ## Phase 2: Delivery and docs (US1, US4, US5)
 
-- [ ] T009 `Dockerfile` (research R5, R6):
+- [x] T009 `Dockerfile` (research R5, R6):
   - build stage `FROM --platform=$BUILDPLATFORM …sdk:10.0`, with `ARG TARGETARCH` and `ARG VERSION=0.0.0-dev`;
   - restore and publish with `-a $TARGETARCH` and `/p:Version=$VERSION`;
   - final stage with no `RUN`: remove the `/keys` lines, keep `USER $APP_UID`, port 8080 and the entrypoint;
   - update the header comment.
 
   · Dockerfile
-- [ ] T010 [P] `.github/workflows/ci.yml` (research R7) · .github/workflows/ci.yml
-- [ ] T011 [P] `.github/workflows/release.yml` (research R7): test job via `workflow_call`, image job with
+- [x] T010 [P] `.github/workflows/ci.yml` (research R7) · .github/workflows/ci.yml
+- [x] T011 [P] `.github/workflows/release.yml` (research R7): test job via `workflow_call`, image job with
   outputs `image` and `digest`, written to the job summary too · .github/workflows/release.yml
-- [ ] T012 [P] Compose (research R8): Postgres 18 at `/var/lib/postgresql`, no keys volume or `KeysPath`, the
+- [x] T012 [P] Compose (research R8): Postgres 18 at `/var/lib/postgresql`, no keys volume or `KeysPath`, the
   required encryption key, `FRUNCHY_IMAGE`. Validate with `docker compose … config`, with and without
   `--profile federation`, using `.env.example` · deploy/compose.yaml, deploy/.env.example
-- [ ] T013 Docs:
+- [x] T013 Docs:
   - **README**: Getting Started gets the health check, the encryption key (Production needs it; back it up apart
     from the database; losing it signs everyone out) and "CI and releases"; the "Settings added" table; the
     roadmap row 016 "Deploy readiness", with private profiles renumbered to **017** (its row and notes).

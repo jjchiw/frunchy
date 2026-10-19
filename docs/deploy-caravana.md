@@ -2,7 +2,7 @@
 
 How Umbral deploys a release to Caravana, shared by the Umbral session on 2026-10-19 so Frunchy can do the
 same. It is live in Umbral: `.github/workflows/release.yml` (the `deploy` job) and `deploy/caravana-app.json` in
-https://github.com/Cosmic-Chimps/umbral. Frunchy has no `.github/` yet: no CI, no image, no release.
+https://github.com/Cosmic-Chimps/umbral. Frunchy has the first half since feature 016: `.github/workflows/ci.yml` (tests on every push) and `release.yml` (on a `v*` tag, the tests, then a two-architecture image on GHCR with `image` and `digest` outputs). The deploy job below is not added yet.
 
 ## The flow
 
@@ -133,11 +133,11 @@ Checked against Caravana's `internal/app` model and `api/openapi.yaml` (API 0.19
 - **The action**: with several services it needs `service: frunchy`, and replaces only that service's image;
   Postgres keeps its stored, digest-pinned image.
 - **Postgres 18** keeps its data under `/var/lib/postgresql` (versioned subdirectories): mount the volume there,
-  not at `…/data` (`deploy/compose.yaml` still uses 17-alpine and `…/data`).
+  not at `…/data` (`deploy/compose.yaml` does the same since feature 016).
 - Default memory is 256 MB reserved and 1024 MB max per service.
 
 Sample `deploy/caravana-app.json`, adapted to Frunchy's real keys (the caravana sample used `ConnectionStrings__Default`;
-Frunchy reads `ConnectionStrings__Database`). `__IMAGE__`, `__DOMAIN__` and `__DB_PASSWORD__` are filled by jq in CI:
+Frunchy reads `ConnectionStrings__Database`). `__IMAGE__`, `__DOMAIN__`, `__DB_PASSWORD__` and `__DATA_PROTECTION_KEY__` (base64 of 32 bytes, kept in Bella and backed up apart from the database) are filled by jq in CI:
 
 ```json
 {
@@ -148,9 +148,12 @@ Frunchy reads `ConnectionStrings__Database`). `__IMAGE__`, `__DOMAIN__` and `__D
       "image": "__IMAGE__",
       "ports": [{"name": "http", "containerPort": 8080}],
       "domains": [{"host": "__DOMAIN__", "port": "http"}],
-      "health": {"path": "/", "interval": "10s", "timeout": "2s"},
+      "health": {"path": "/healthz", "interval": "10s", "timeout": "2s"},
       "env": [{"name": "Frunchy__TrustedProxies", "value": "10.99.0.1"}],
-      "secrets": [{"name": "ConnectionStrings__Database", "value": "Host=postgres;Port=5432;Database=frunchydb;Username=frunchy;Password=__DB_PASSWORD__"}],
+      "secrets": [
+        {"name": "ConnectionStrings__Database", "value": "Host=postgres;Port=5432;Database=frunchydb;Username=frunchy;Password=__DB_PASSWORD__"},
+        {"name": "Frunchy__DataProtection__EncryptionKey", "value": "__DATA_PROTECTION_KEY__"}
+      ],
       "resources": {"memoryMB": 256, "memoryMaxMB": 768}
     },
     {
@@ -181,15 +184,17 @@ Frunchy reads `ConnectionStrings__Database`). `__IMAGE__`, `__DOMAIN__` and `__D
   path that works today. Caravana trusting GitHub OIDC directly isn't planned (suggested to the maintainer).
 
 Notes on Frunchy's services:
-- **Data protection keys in Postgres, not on a volume**: a service with a volume runs one copy and stops before it
-  starts, so every release would have a gap. With the keys in the database, frunchy has no volume, deploys
-  blue/green and the keys are in the nightly dump. Frunchy has no EF Core (`PersistKeysToDbContext` is out), so
-  this is a small `IXmlRepository` over Npgsql with a table in `initializeSchema`; today `Program.fs` only knows
-  `PersistKeysToFileSystem` (`Frunchy:DataProtection:KeysPath`).
+- **Data protection keys in Postgres, not on a volume** (done in feature 016): a service with a volume runs one
+  copy and stops before it starts, so every release would have a gap. With the keys in the database (table
+  `data_protection_keys`, an `IXmlRepository` over Npgsql), frunchy has no volume, deploys blue/green and the keys
+  are in the nightly dump. They are encrypted with `Frunchy__DataProtection__EncryptionKey`, which Production
+  requires: a `secrets` entry on frunchy, kept in Bella and backed up apart from the dump (the dump alone can't
+  forge a session; losing the key signs everyone out). `Frunchy:DataProtection:KeysPath` is retired.
 - **Bella at runtime**: `BELLA_BAXTER_API_KEY` (or the access token and private key) as a `secrets` entry on
   frunchy, never `env`. Caravana's own keyless Bella provider (its 027) is planned, not built.
-- **`/healthz`** before the first deploy: 200 over plain http on 8080, called on the copy's address with no Host
-  header of the domain and no https.
+- **`/healthz`** (done in feature 016): 200 over plain http on 8080, called on the copy's address with no Host
+  header of the domain and no https. It checks the database (1 second) and nothing else, so Megáfono being down
+  doesn't take the site off.
 - **Later, federation**: megafono has two ports and no domain, so its `health` must name the port; `Megafono__MasterKey`
   is a secret whose source copy stays in Bella (Caravana's backups don't include secrets); moving the domain from
   frunchy to the gateway is one Configure edit, deployed in one go.
@@ -197,10 +202,10 @@ Notes on Frunchy's services:
 ## What is different for Frunchy (to settle before building it)
 
 - **More than one service**: Frunchy and Postgres in one app (above); with federation on, Megáfono and the gateway
-  join it, and the backup question for Megáfono's database comes back. The health path `/` queries the database;
-  a dedicated `/healthz` may be better.
-- **No CI yet**: a test job needs Docker for Testcontainers (available on `ubuntu-latest`).
-- **Settings**: Frunchy's runtime secrets (Google, MyAnimeList, the Megáfono token and webhook secret, the master key)
+  join it, and the backup question for Megáfono's database comes back. The health path is `/healthz`.
+- **CI** (feature 016): `ci.yml` runs the tests (Docker for Testcontainers is on `ubuntu-latest`), and `release.yml`
+  pushes `ghcr.io/<owner>/frunchy:<version>` for amd64 and arm64. The deploy job waits for the publisher.
+- **Settings**: Frunchy's runtime secrets (Google, MyAnimeList, the data-protection encryption key, the Megáfono token and webhook secret, the master key)
   come from Bella at runtime, a different project/environment than the workflow's Caravana settings.
 - **Trusted proxies**: `Frunchy__TrustedProxies` would be `10.99.0.1` behind Caravana's Traefik.
-- **Data protection keys**: `Frunchy:DataProtection:KeysPath` on a volume, so sessions survive a redeploy.
+- **Data protection keys**: in Postgres, encrypted with the encryption key above, so sessions survive a redeploy with no volume.
