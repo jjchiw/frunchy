@@ -436,7 +436,7 @@ let en =
     { Lang = "en"
       Culture = CultureInfo.GetCultureInfo "en"
       SiteName = "Frunchy"
-      Footer = "Frunchy, a Last.fm for anime"
+      Footer = "Frunchy, anime stats you can share"
 
       HomeTitle = "Home"
       HomeHeadline = "Your anime identity, in numbers"
@@ -974,7 +974,7 @@ let es =
     { Lang = "es"
       Culture = CultureInfo.GetCultureInfo "es"
       SiteName = "Frunchy"
-      Footer = "Frunchy, el Last.fm del anime"
+      Footer = "Frunchy, estadísticas de anime para compartir"
 
       HomeTitle = "Inicio"
       HomeHeadline = "Tu identidad anime, en números"

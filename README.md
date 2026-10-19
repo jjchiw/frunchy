@@ -4,7 +4,7 @@
 
 **Build the anime identity of the user independently of Crunchyroll.**
 
-A Last.fm-style platform for anime focused on automatic watch history, statistics, and community. The most valuable asset is the accumulated watch history - the anime DNA that no competitor can easily reconstruct once users start using the platform.
+A social stats platform for anime: automatic watch history, statistics, and community, open to the fediverse. The most valuable asset is the accumulated watch history - the anime DNA that no competitor can easily reconstruct once users start using the platform.
 
 ## Architecture
 

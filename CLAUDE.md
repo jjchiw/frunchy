@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Frunchy is a "Last.fm for anime": it ingests a user's Crunchyroll watch history (sent by the sibling `../browser-extension` Svelte extension) and builds statistics, and later an "anime DNA" profile, from it. This repo is the F# backend, which also server-renders the web UI in English (default) or Spanish.
+Frunchy is a social stats site for anime: it ingests a user's Crunchyroll watch history (sent by the sibling `../browser-extension` Svelte extension) and builds statistics, and later an "anime DNA" profile, from it. This repo is the F# backend, which also server-renders the web UI in English (default) or Spanish.
 
 The guiding principle (see `README.md` and `.specify/memory/constitution.md`) is to keep it simple: **watch history is the core asset**, and the code deliberately avoids queues, event sourcing, CQRS, and frameworks like Wolverine/Hangfire until real usage justifies them. Don't add that kind of infrastructure unless asked. Features go through spec-kit (`specs/###-name/`: spec → plan → tasks → implement); feature 001 is in `specs/001-crunchyroll-history-import/`.
 
