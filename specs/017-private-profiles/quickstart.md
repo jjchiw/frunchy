@@ -27,4 +27,17 @@ dotnet test                                     # the whole suite
 
 ## Validation log
 
-(filled in at the end of implementation)
+Phase 1 (T009): full suite 710 total, 707 passed, 2 skipped.
+
+Phase 2 (T017), 2026-10-19:
+- `dotnet build`: succeeded, 0 warnings.
+- `dotnet test --project tests/FrunchyBackend.Tests` on `ProfileVisibilityTests`, `ShareLinkTests` and
+  `ProfileLinksTests`: 23 passed.
+- Full `dotnet test` from the root: 733 total, 731 passed, 0 failed, 2 skipped (the extension-token parity test,
+  which needs `../browser-extension`, and the opt-in MyAnimeList recording).
+- Steps 1 to 5 above are covered by tests on the real app (TestServer, Postgres Testcontainer): private by default,
+  create and open a link, replace, public and private again, comment authors. Step 6 is covered by
+  `ProfileVisibilityTests` (the choice outlives a default change on a second app over the same database) and
+  `PrivateProfileTests` (`user-list`).
+- **Not run by hand** under the AppHost: no browser or AppHost session was used, so the account page's look, the
+  radio styling and the copy button were not checked on screen.

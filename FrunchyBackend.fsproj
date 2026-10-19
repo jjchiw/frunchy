@@ -63,6 +63,7 @@
     <Compile Include="Handlers/Episodes/HideComment.fs" />
     <Compile Include="Handlers/Megafono/Actors.fs" />
     <Compile Include="Handlers/Megafono/Webhooks.fs" />
+    <Compile Include="Handlers/Share.fs" />
     <Compile Include="Handlers/Auth/SignIn.fs" />
     <Compile Include="Handlers/Auth/Complete.fs" />
     <Compile Include="Handlers/Auth/SignUp.fs" />
@@ -72,6 +73,8 @@
     <Compile Include="Handlers/Account/AccountPage.fs" />
     <Compile Include="Handlers/Account/SyncKey.fs" />
     <Compile Include="Handlers/Account/DisplayName.fs" />
+    <Compile Include="Handlers/Account/Visibility.fs" />
+    <Compile Include="Handlers/Account/ShareLink.fs" />
     <Compile Include="Handlers/Account/Blocks.fs" />
     <Compile Include="Handlers/Account/ResetBinding.fs" />
     <Compile Include="Handlers/Account/Logins.fs" />

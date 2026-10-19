@@ -61,7 +61,9 @@ type RemoteAuthor =
       ProfileUrl: string option }
 
 type Author =
-    | Local of id: Guid * username: string * displayName: string
+    /// `access` is what the profile rule needs to know about the author (feature 017): the name links to their page
+    /// only when the viewer can see it
+    | Local of id: Guid * username: string * displayName: string * access: Profiles.OwnerAccess
     | Remote of RemoteAuthor
 
 /// One comment of the thread
@@ -263,13 +265,21 @@ let private controls (ctx: HttpContext) (t: Texts) (isAuthor: bool) (isOperator:
 
 /// The author line of a comment: a local author links to their page; a remote one shows the name and `@user@host`,
 /// linking to the profile (new tab, `nofollow ugc`) only when it has an https URL
-let private authorLine (author: Author) =
+let private authorLine (viewer: Guid option) (grants: Profiles.Grant list) (author: Author) =
     match author with
-    | Local(_, username, displayName) ->
-        (a(href = $"/u/{username}", class' = "text-body-md font-semibold text-on-surface [overflow-wrap:anywhere] hover:underline") {
-            displayName
-        })
-        :> HtmlElement
+    | Local(_, username, displayName, access) ->
+        if Profiles.canView viewer grants access then
+            (a(href = $"/u/{username}", class' = "text-body-md font-semibold text-on-surface [overflow-wrap:anywhere] hover:underline")
+                .data("comment-author", "") {
+                displayName
+            })
+            :> HtmlElement
+        else
+            // a profile the viewer can't see is plain text (feature 017)
+            (span(class' = "text-body-md font-semibold text-on-surface [overflow-wrap:anywhere]").data("comment-author", "") {
+                displayName
+            })
+            :> HtmlElement
     | Remote remote ->
         let names () =
             Fragment() {
@@ -290,10 +300,10 @@ let private authorLine (author: Author) =
 /// One comment. `viewer` is the signed-in user: the author gets edit and delete, operators hide and unhide. A hidden
 /// comment is a placeholder for everyone but operators (the author included, who can still edit and delete it). A
 /// remote comment (feature 015) has no author controls: only operators can act on it.
-let private commentView (ctx: HttpContext) (t: Texts) (viewer: Guid option) (c: Comment) =
+let private commentView (ctx: HttpContext) (t: Texts) (viewer: Guid option) (grants: Profiles.Grant list) (c: Comment) =
     let isAuthor =
         match c.Author with
-        | Local(id, _, _) -> viewer = Some id
+        | Local(id, _, _, _) -> viewer = Some id
         | Remote _ -> false
 
     let isOperator = WebAuth.isOperator ctx
@@ -304,7 +314,7 @@ let private commentView (ctx: HttpContext) (t: Texts) (viewer: Guid option) (c: 
 
     let authorKey =
         match c.Author with
-        | Local(_, username, _) -> username
+        | Local(_, username, _, _) -> username
         | Remote remote -> remote.Handle
 
     let el =
@@ -321,7 +331,7 @@ let private commentView (ctx: HttpContext) (t: Texts) (viewer: Guid option) (c: 
 
     (if c.Hidden then el.data("hidden", "") else el) {
         div(class' = "flex flex-wrap items-baseline gap-x-3 gap-y-0.5") {
-            authorLine c.Author
+            authorLine viewer grants c.Author
 
             span(class' = "text-label-md font-normal text-on-surface-variant") { Layout.timeElement t "relative" c.CreatedAt }
 
@@ -401,9 +411,12 @@ let private thread (ctx: HttpContext) (t: Texts) (viewer: Guid option) (comments
     if comments.IsEmpty then
         (p(class' = "text-body-md text-on-surface-variant").data("thread-empty", "") { t.CommentsEmpty }) :> HtmlElement
     else
+        // the grant cookie is read once for the whole thread
+        let grants = Profiles.readGrants ctx
+
         (ol(class' = "divide-y divide-outline-variant/40") {
             for c in comments do
-                commentView ctx t viewer c
+                commentView ctx t viewer grants c
         })
         :> HtmlElement
 
@@ -529,7 +542,7 @@ let private loadGroup (connection: NpgsqlConnection) (episodeId: string) : Task<
 
 /// The comments shown under the given episodes (the page's group), oldest first: local ones and, once Megáfono has
 /// delivered any, remote ones (feature 015), public and unlisted only
-let private loadThread (connection: NpgsqlConnection) (episodeIds: string list) : Task<Comment list> =
+let private loadThread (connection: NpgsqlConnection) (settings: Profiles.ProfileSettings) (episodeIds: string list) : Task<Comment list> =
     task {
         use cmd =
             new NpgsqlCommand(
@@ -537,9 +550,11 @@ let private loadThread (connection: NpgsqlConnection) (episodeIds: string list) 
                 SELECT c.id, c.cr_episode_id, c.author_user_id, u.username, u.display_name,
                        c.content, c.summary, c.sensitive, c.created_at, c.edited_at,
                        c.hidden_at IS NOT NULL,
-                       c.format, c.remote_actor, ra.handle, ra.name, ra.profile_url
+                       c.format, c.remote_actor, ra.handle, ra.name, ra.profile_url,
+                       ps.visibility, ps.share_link_id
                 FROM comments c
                 LEFT JOIN users u ON u.id = c.author_user_id
+                LEFT JOIN profile_settings ps ON ps.user_id = c.author_user_id
                 LEFT JOIN remote_actors ra ON ra.id = c.remote_actor
                 WHERE c.cr_episode_id = ANY(@episode_ids)
                   AND c.deleted_at IS NULL AND c.audience IN ('public', 'unlisted')
@@ -572,7 +587,18 @@ let private loadThread (connection: NpgsqlConnection) (episodeIds: string list) 
                           Name = defaultArg (text 14) (defaultArg (text 13) actorId)
                           ProfileUrl = text 15 |> Option.filter (fun url -> url.StartsWith("https://", StringComparison.Ordinal)) }
                 else
-                    Local(r.GetGuid 2, r.GetString 3, r.GetString 4)
+                    let authorId = r.GetGuid 2
+                    let choice = if r.IsDBNull 16 then None else Profiles.Visibility.tryParse (r.GetString 16)
+
+                    Local(
+                        authorId,
+                        r.GetString 3,
+                        r.GetString 4,
+                        { UserId = authorId
+                          Choice = choice
+                          Visibility = Profiles.effective settings.DefaultVisibility choice
+                          LinkId = (if r.IsDBNull 17 then None else Some(r.GetGuid 17)) }
+                    )
 
             rows.Add
                 { Id = r.GetString 0
@@ -694,7 +720,7 @@ let handler (seriesId: string) (episodeId: string) : EndpointHandler =
                 | None -> return! notFound ctx t
                 | Some model ->
                     let! group = loadGroup connection model.Id
-                    let! comments = loadThread connection group
+                    let! comments = loadThread connection (ctx.GetService<Profiles.ProfileSettings>()) group
                     let! people = Charts.episodePeople (ctx.GetService<DbConfig>()) group (Charts.minPeople (ctx.GetService<IConfiguration>()))
 
                     // With federation on, a published thread is advertised as the page's ActivityPub alternate (research R8)
@@ -736,7 +762,7 @@ let createHandler (seriesId: string) (episodeId: string) : EndpointHandler =
                     let refuse (key: string) =
                         task {
                             let! group = loadGroup connection model.Id
-                            let! comments = loadThread connection group
+                            let! comments = loadThread connection (ctx.GetService<Profiles.ProfileSettings>()) group
                             let! people = Charts.episodePeople (ctx.GetService<DbConfig>()) group (Charts.minPeople (ctx.GetService<IConfiguration>()))
                             ctx.SetStatusCode 422
                             return! ctx.WriteHtmlView(view ctx t (Some userId) people model comments (freshForm spoiler typed (Some key)))

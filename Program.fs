@@ -77,6 +77,10 @@ let endpoints =
       Handlers.Account.AccountPage.endpoint
       yield! Handlers.Account.SyncKey.endpoint
       Handlers.Account.DisplayName.endpoint
+      // Feature 017: the visibility choice, share links, and opening a shared profile
+      Handlers.Account.Visibility.endpoint
+      yield! Handlers.Account.ShareLink.endpoint
+      Handlers.Share.endpoint
       Handlers.Account.ResetBinding.endpoint
       yield! Handlers.Account.Logins.endpoint
       yield! Handlers.Account.DeleteAccount.endpoint ]
@@ -339,6 +343,8 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
         perIp "signup" 10 (TimeSpan.FromMinutes 15.0)
         perIp "claim" 5 (TimeSpan.FromMinutes 15.0)
         perIp "account-write" 30 (TimeSpan.FromMinutes 1.0)
+        // Share links (feature 017): every /s/{token} request counts, valid or not
+        perIp "share" 30 (TimeSpan.FromMinutes 1.0)
         // Writing comments (feature 009): create, edit and delete share it
         perIp "comment-write" 10 (TimeSpan.FromMinutes 1.0)
         // Review actions (feature 007) count operators only: anyone else gets the handler's 404 and is

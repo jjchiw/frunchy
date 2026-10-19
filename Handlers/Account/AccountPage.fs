@@ -37,6 +37,11 @@ type AccountModel =
       Bound: bool
       Identities: Identity list
       Syncs: Sync list
+      /// Feature 017: the owner's own choice (None follows the instance default) and what it comes to
+      VisibilityChoice: Profiles.Visibility option
+      Visibility: Profiles.Visibility
+      /// When the current share link was made; None without a link
+      ShareLinkCreatedAt: DateTime option
       Events: SecurityEvents.SecurityEvent list }
 
 /// ?msg= notices after an action (error = true for refusals)
@@ -44,6 +49,9 @@ let private notice (t: Texts) (msg: string) =
     match msg with
     | "display-name-saved" -> Some(false, t.DisplayNameSaved)
     | "display-name-invalid" -> Some(true, t.DisplayNameInvalid)
+    | "visibility-saved" -> Some(false, t.VisibilitySaved)
+    | "visibility-invalid" -> Some(true, t.VisibilityInvalid)
+    | "share-link-revoked" -> Some(false, t.ShareLinkRevoked)
     | "binding-reset" -> Some(false, t.BindingResetDone)
     | "linked" -> Some(false, t.IdentityLinkedNotice)
     | "unlinked" -> Some(false, t.IdentityUnlinkedNotice)
@@ -141,6 +149,81 @@ let private profile (ctx: HttpContext) (t: Texts) (msg: string) (m: AccountModel
         )
     }
     |> accountSection "profile" Theme.Fingerprint t.AccountProfileTitle
+
+/// Feature 017: public or private, and the share link. `data-visibility`, `data-visibility-source` and
+/// `data-share-link-state` are the test hooks (contracts/visibility.md).
+let private visibilitySection (ctx: HttpContext) (t: Texts) (m: AccountModel) =
+    let isPublic = (m.Visibility = Profiles.Public)
+    let fromDefault = m.VisibilityChoice.IsNone
+
+    let option (value: Profiles.Visibility) (label': string) (help: string) =
+        label(class' = "flex cursor-pointer items-start gap-3 rounded border border-outline-variant p-4 has-[:checked]:border-primary") {
+            let radio =
+                input(type' = "radio", name = "visibility", value = Profiles.Visibility.toDb value, class' = "mt-1 h-4 w-4 accent-primary")
+
+            if m.Visibility = value then radio.attr("checked", "") else radio
+
+            span(class' = "space-y-0.5") {
+                span(class' = "block text-body-lg text-on-surface") { label' }
+                span(class' = "block text-body-md text-on-surface-variant") { help }
+            }
+        }
+
+    let hasLink = m.ShareLinkCreatedAt.IsSome
+
+    div(class' = "space-y-6") {
+        p(class' = "max-w-prose text-body-md text-on-surface-variant") { t.VisibilityIntro }
+
+        form(method = "post", action = "/account/visibility", class' = "space-y-4") {
+            ctx.GetAntiforgeryInput()
+
+            fieldset(class' = "space-y-3") {
+                legend(class' = "sr-only") { t.VisibilityTitle }
+                option Profiles.Public t.VisibilityPublicLabel t.VisibilityPublicHelp
+                option Profiles.Private t.VisibilityPrivateLabel t.VisibilityPrivateHelp
+            }
+
+            div(class' = "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between") {
+                p(class' = "text-body-md text-on-surface")
+                    .data("visibility", Profiles.Visibility.toDb m.Visibility)
+                    .data("visibility-source", (if fromDefault then "default" else "choice")) {
+                    t.VisibilityState isPublic fromDefault
+                }
+
+                button(type' = "submit", class' = btn Secondary + " shrink-0") { t.SaveButton }
+            }
+        }
+
+        div(class' = "space-y-4 border-t border-outline-variant/40 pt-6").data("share-link-state", (if hasLink then "active" else "none")) {
+            h3(class' = "text-headline-sm text-on-surface") { t.ShareLinkTitle }
+            p(class' = "max-w-prose text-body-md text-on-surface-variant") { t.ShareLinkIntro }
+
+            stateLine
+                hasLink
+                (match m.ShareLinkCreatedAt with
+                 | Some createdAt ->
+                     span() {
+                         t.ShareLinkActive
+                         " "
+                         t.ShareLinkCreatedLabel
+                         " "
+                         Layout.timeElement t "relative" createdAt
+                     }
+                 | None -> span() { t.ShareLinkNone })
+                (div(class' = "flex flex-wrap gap-2") {
+                    postButton
+                        ctx
+                        "/account/share-link"
+                        (btnSm (if hasLink then Secondary else Primary))
+                        Theme.Link
+                        (if hasLink then t.ShareLinkReplaceButton else t.ShareLinkCreateButton)
+
+                    if hasLink then
+                        postButton ctx "/account/share-link/revoke" (btnSm Ghost) Theme.LinkOff t.ShareLinkRevokeButton
+                })
+        }
+    }
+    |> accountSection "visibility" Theme.Lock t.VisibilityTitle
 
 let private extension (t: Texts) (m: AccountModel) =
     stateLine
@@ -324,6 +407,7 @@ let view
             }
 
         profile ctx t msg m
+        visibilitySection ctx t m
         extension t m
         binding ctx t m
         identities ctx t providerName linkable m
@@ -342,7 +426,7 @@ let view
 // Data access
 // ---------------------------------------------------------------------------
 
-let private load (db: DbConfig) (userId: Guid) : Task<AccountModel option> =
+let private load (db: DbConfig) (settings: Profiles.ProfileSettings) (userId: Guid) : Task<AccountModel option> =
     task {
         use connection = getConnection db
         do! connection.OpenAsync()
@@ -408,6 +492,23 @@ let private load (db: DbConfig) (userId: Guid) : Task<AccountModel option> =
                     return List.ofSeq rows
                 }
 
+            use settingsCmd =
+                new NpgsqlCommand("SELECT visibility, share_link_created_at FROM profile_settings WHERE user_id = @id", connection)
+
+            settingsCmd.Parameters.AddWithValue("id", userId) |> ignore
+
+            let! choice, linkCreatedAt =
+                task {
+                    use! r = settingsCmd.ExecuteReaderAsync()
+
+                    if r.Read() then
+                        return
+                            (if r.IsDBNull 0 then None else Profiles.Visibility.tryParse (r.GetString 0)),
+                            (if r.IsDBNull 1 then None else Some(r.GetDateTime 1))
+                    else
+                        return None, None
+                }
+
             let! events = SecurityEvents.recent db userId 20
 
             return
@@ -418,6 +519,9 @@ let private load (db: DbConfig) (userId: Guid) : Task<AccountModel option> =
                       Bound = bound
                       Identities = identities
                       Syncs = syncs
+                      VisibilityChoice = choice
+                      Visibility = Profiles.effective settings.DefaultVisibility choice
+                      ShareLinkCreatedAt = linkCreatedAt
                       Events = events }
     }
 
@@ -428,7 +532,7 @@ let private load (db: DbConfig) (userId: Guid) : Task<AccountModel option> =
 let handler: EndpointHandler =
     WebAuth.requireSignedIn (fun userId ctx ->
         task {
-            match! load (ctx.GetService<DbConfig>()) userId with
+            match! load (ctx.GetService<DbConfig>()) (ctx.GetService<Profiles.ProfileSettings>()) userId with
             | Some model ->
                 let providers = ctx.RequestServices.GetServices<AuthConfig.FrunchyProvider>() |> List.ofSeq
                 let msg = ctx.TryGetQueryValue "msg" |> Option.defaultValue ""

@@ -113,7 +113,7 @@ let ``the status filter narrows the list, and an empty filter says so`` () =
     }
 
 [<Fact>]
-let ``a row shows its users, fully watched episodes, watcher link and candidates`` () =
+let ``a row shows its users, fully watched episodes, series page link and candidates`` () =
     task {
         use! env = operatorEnv ()
         let! fully =
@@ -126,8 +126,10 @@ let ``a row shows its users, fully watched episodes, watcher link and candidates
         let row = rowOf page.Html slimeSeason
         Assert.Contains("data-users=\"1\"", row)
         Assert.Contains($"data-fully=\"{fully}\"", row)
-        Assert.Contains($"data-series-link=\"{slimeSeries}\"", row)
-        Assert.Contains($"href=\"/u/animenerd/anime/{slimeSeries}\"", row)
+        // the title goes to the public series page, never into anyone's history (feature 017)
+        Assert.Contains("data-series-page-link", row)
+        Assert.Contains($"href=\"/anime/{slimeSeries}\"", row)
+        Assert.DoesNotContain("/u/", row)
         Assert.Contains("data-candidate=\"37430\"", row)
         Assert.Contains("data-candidate=\"59000\"", row)
         Assert.Contains("That Time I Got Reincarnated as a Slime", row)
@@ -137,7 +139,7 @@ let ``a row shows its users, fully watched episodes, watcher link and candidates
         for action in [ "set"; "retry"; "none" ] do
             Assert.Contains($"data-action=\"{action}\"", row)
 
-        // a second user watching it makes two users, and the most recent watcher gets the link
+        // a second user watching it makes two users, and the link stays the series page
         let! _ = createUser env.App.Db "zed"
         let! _ =
             Db.scalar<int>
@@ -151,7 +153,8 @@ let ``a row shows its users, fully watched episodes, watcher link and candidates
         let! again = env.Boss.Get "/review/mal?status=ambiguous"
         let row = rowOf again.Html slimeSeason
         Assert.Contains("data-users=\"2\"", row)
-        Assert.Contains($"href=\"/u/zed/anime/{slimeSeries}\"", row)
+        Assert.Contains($"href=\"/anime/{slimeSeries}\"", row)
+        Assert.DoesNotContain("/u/", row)
     }
 
 // ---------------------------------------------------------------------------------------------

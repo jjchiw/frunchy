@@ -45,22 +45,22 @@
 
 ## Phase 2: Choosing, sharing, and everything that links (US2, US3, US4)
 
-- [ ] T010 `Handlers/Account/Visibility.fs` and the account section (research R6): the radios and the link state,
+- [x] T010 `Handlers/Account/Visibility.fs` and the account section (research R6): the radios and the link state,
   `?msg=` notices, en and es texts · Handlers/Account/Visibility.fs, Handlers/Account/AccountPage.fs, Views/Texts.fs
-- [ ] T011 `Handlers/Account/ShareLink.fs`: create or replace (renders the show-once page, following
+- [x] T011 `Handlers/Account/ShareLink.fs`: create or replace (renders the show-once page, following
   `Handlers/Account/SyncKey.fs`) and revoke · Handlers/Account/ShareLink.fs, Views/Texts.fs
-- [ ] T012 `Handlers/Share.fs` `GET /s/{token}` (research R4) and the `share` limiter (30 a minute per IP) in
+- [x] T012 `Handlers/Share.fs` `GET /s/{token}` (research R4) and the `share` limiter (30 a minute per IP) in
   `Program.fs` · Handlers/Share.fs, Program.fs
-- [ ] T013 Comments link only visible authors; the MyAnimeList review links to series pages (research R5)
+- [x] T013 Comments link only visible authors; the MyAnimeList review links to series pages (research R5)
   · Handlers/Episodes/Episode.fs, Handlers/Review/MalReview.fs
-- [ ] T014 [P] `ProfileVisibilityTests` (US2):
+- [x] T014 [P] `ProfileVisibilityTests` (US2):
   - choosing public opens the profile to strangers, and choosing private hides it;
   - the choice survives a default change (an app on the same database with the other default);
   - invalid value, missing antiforgery and signed-out posts change nothing;
   - the security events are recorded.
 
   · tests/FrunchyBackend.Tests/ProfileVisibilityTests.fs
-- [ ] T015 [P] `ShareLinkTests` (US3):
+- [x] T015 [P] `ShareLinkTests` (US3):
   - **Create and use**: create a link and read it from `data-share-link`. A fresh browser opening it gets a 303 to
     the dashboard, then 200 on the dashboard, DNA, a year and an anime page.
   - **Replace**: the old browser gets 404 and the new link works.
@@ -73,7 +73,7 @@
   - **Database**: only the hash is stored (the token string isn't in `profile_settings`); the events are recorded.
 
   · tests/FrunchyBackend.Tests/ShareLinkTests.fs
-- [ ] T016 [P] `ProfileLinksTests` (US4):
+- [x] T016 [P] `ProfileLinksTests` (US4):
   - **Comment authors**: a private author is plain text for a stranger and linked for the owner and for a link holder.
   - **Compare**: 404 on a hidden profile, and it works on a shared one.
   - **Card**: a private viewer sees the card on a public profile.
@@ -81,7 +81,7 @@
   - **Federation on**: a stranger gets 404 without the `Link` header; the owner's page still has it.
 
   · tests/FrunchyBackend.Tests/ProfileLinksTests.fs
-- [ ] T017 Docs: README (accounts paragraph, settings table, routes, roadmap row 017 implemented), CLAUDE.md
+- [x] T017 Docs: README (accounts paragraph, settings table, routes, roadmap row 017 implemented), CLAUDE.md
   (routes and the rule), SCHEMA.md (done in T001), the quickstart validation log. Commit "impl(017): visibility
   choice, share links, links follow the rule, docs".
 

@@ -435,7 +435,30 @@ type Texts =
       /// A link from a person's anime page to the series page
       SeriesPageLink: string
       /// "{n} comments", the accessible label of an episode's comment count
-      SeriesCommentsLabel: int -> string }
+      SeriesCommentsLabel: int -> string
+
+      // Profile visibility and share links (feature 017)
+      VisibilityTitle: string
+      VisibilityIntro: string
+      VisibilityPublicLabel: string
+      VisibilityPublicHelp: string
+      VisibilityPrivateLabel: string
+      VisibilityPrivateHelp: string
+      /// "Your profile is public." with where it comes from (true = the site's default, false = your choice)
+      VisibilityState: bool -> bool -> string
+      VisibilitySaved: string
+      VisibilityInvalid: string
+      ShareLinkTitle: string
+      ShareLinkIntro: string
+      ShareLinkNone: string
+      ShareLinkActive: string
+      ShareLinkCreatedLabel: string
+      ShareLinkCreateButton: string
+      ShareLinkReplaceButton: string
+      ShareLinkRevokeButton: string
+      ShareLinkRevoked: string
+      ShareLinkShownTitle: string
+      ShareLinkShownOnce: string }
 
 let en =
     { Lang = "en"
@@ -647,6 +670,10 @@ let en =
             | "comment_unhidden" -> "Comment shown again"
             | "fediverse_block_added" -> "Fediverse block added"
             | "fediverse_block_removed" -> "Fediverse block removed"
+            | "profile_visibility_changed" -> "Profile visibility changed"
+            | "share_link_created" -> "Share link created"
+            | "share_link_replaced" -> "Share link replaced"
+            | "share_link_revoked" -> "Share link turned off"
             | other -> other
       ByOperator = "by the operator"
 
@@ -976,7 +1003,31 @@ let en =
       SeriesKnownNote = "These are the episodes Frunchy knows from people's histories, not the full Crunchyroll list."
       ChartsYourHistory = "Your history"
       SeriesPageLink = "About this series"
-      SeriesCommentsLabel = fun n -> if n = 1 then "1 comment" else $"{n} comments" }
+      SeriesCommentsLabel = fun n -> if n = 1 then "1 comment" else $"{n} comments"
+
+      VisibilityTitle = "Profile visibility"
+      VisibilityIntro = "Your profile is your dashboard and every page under it: Anime DNA, years in review, anime pages and comparisons."
+      VisibilityPublicLabel = "Public"
+      VisibilityPublicHelp = "Anyone can see your profile."
+      VisibilityPrivateLabel = "Private"
+      VisibilityPrivateHelp = "Only you and people who open your share link can see it."
+      VisibilityState =
+        fun isPublic fromDefault ->
+            let state = if isPublic then "Your profile is public." else "Your profile is private."
+            state + (if fromDefault then " That is this site's default until you choose." else " You chose this.")
+      VisibilitySaved = "Visibility saved."
+      VisibilityInvalid = "Choose public or private."
+      ShareLinkTitle = "Share link"
+      ShareLinkIntro = "Anyone who opens your share link can see your whole profile, even while it is private. The link is shown only once, when you create it."
+      ShareLinkNone = "You have no share link."
+      ShareLinkActive = "A share link is active."
+      ShareLinkCreatedLabel = "Created"
+      ShareLinkCreateButton = "Create a share link"
+      ShareLinkReplaceButton = "Replace the link"
+      ShareLinkRevokeButton = "Turn off the link"
+      ShareLinkRevoked = "Share link turned off. Nobody can use it any more."
+      ShareLinkShownTitle = "Your share link"
+      ShareLinkShownOnce = "It's shown only once: Frunchy doesn't keep a copy. If you lose it, replace it with a new one. Replacing or turning off the link ends access for everyone who has it." }
 
 let es =
     { Lang = "es"
@@ -1188,6 +1239,10 @@ let es =
             | "comment_unhidden" -> "Comentario mostrado de nuevo"
             | "fediverse_block_added" -> "Bloqueo del fediverso añadido"
             | "fediverse_block_removed" -> "Bloqueo del fediverso quitado"
+            | "profile_visibility_changed" -> "Visibilidad del perfil cambiada"
+            | "share_link_created" -> "Enlace para compartir creado"
+            | "share_link_replaced" -> "Enlace para compartir reemplazado"
+            | "share_link_revoked" -> "Enlace para compartir desactivado"
             | other -> other
       ByOperator = "por el operador"
 
@@ -1521,7 +1576,31 @@ let es =
       SeriesKnownNote = "Son los episodios que Frunchy conoce por los historiales de la gente, no la lista completa de Crunchyroll."
       ChartsYourHistory = "Tu historial"
       SeriesPageLink = "Sobre esta serie"
-      SeriesCommentsLabel = fun n -> if n = 1 then "1 comentario" else $"{n} comentarios" }
+      SeriesCommentsLabel = fun n -> if n = 1 then "1 comentario" else $"{n} comentarios"
+
+      VisibilityTitle = "Visibilidad del perfil"
+      VisibilityIntro = "Tu perfil es tu panel y todas las páginas que cuelgan de él: ADN anime, resúmenes del año, páginas de anime y comparaciones."
+      VisibilityPublicLabel = "Público"
+      VisibilityPublicHelp = "Cualquiera puede ver tu perfil."
+      VisibilityPrivateLabel = "Privado"
+      VisibilityPrivateHelp = "Solo tú y quien abra tu enlace para compartir pueden verlo."
+      VisibilityState =
+        fun isPublic fromDefault ->
+            let state = if isPublic then "Tu perfil es público." else "Tu perfil es privado."
+            state + (if fromDefault then " Es lo predeterminado en este sitio hasta que elijas." else " Lo elegiste tú.")
+      VisibilitySaved = "Visibilidad guardada."
+      VisibilityInvalid = "Elige público o privado."
+      ShareLinkTitle = "Enlace para compartir"
+      ShareLinkIntro = "Quien abra tu enlace para compartir puede ver todo tu perfil, incluso mientras es privado. El enlace solo se muestra una vez, cuando lo creas."
+      ShareLinkNone = "No tienes ningún enlace para compartir."
+      ShareLinkActive = "Hay un enlace para compartir activo."
+      ShareLinkCreatedLabel = "Creado"
+      ShareLinkCreateButton = "Crear un enlace para compartir"
+      ShareLinkReplaceButton = "Reemplazar el enlace"
+      ShareLinkRevokeButton = "Desactivar el enlace"
+      ShareLinkRevoked = "Enlace para compartir desactivado. Nadie puede usarlo ya."
+      ShareLinkShownTitle = "Tu enlace para compartir"
+      ShareLinkShownOnce = "Solo se muestra una vez: Frunchy no guarda una copia. Si lo pierdes, reemplázalo por uno nuevo. Al reemplazar o desactivar el enlace, todas las personas que lo tengan pierden el acceso." }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =
