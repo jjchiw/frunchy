@@ -168,6 +168,32 @@ Frunchy reads `ConnectionStrings__Database`). `__IMAGE__`, `__DOMAIN__` and `__D
 }
 ```
 
+## PublishToCaravana (the caravana session, 2026-10-19)
+
+- **Planned, not built**: Caravana's feature 026 (Phase 2.75), modeled on CosmicChimps' `PublishToDokploy`, after
+  Phase 2.6 freezes the API at 1.0. The publisher is C# in CosmicChimps.Aspire; Caravana adds Aspire-style service
+  discovery env (`services__<name>__<endpoint>__0`) and fixtures of real Aspire compose output. The maintainer
+  decides when.
+- **Until then**: the hand-written `deploy/caravana-app.json` plus caravana-action. Moving to `aspire deploy` later
+  replaces that file and nothing else. The AppHost would also need production settings apart from its dev ones
+  (Umbral from source with the fake connector, Megáfono's private-address allowance, plain http).
+- **Keyless**: Caravana accepts only its own tokens (`cvat_…`). GitHub OIDC → Bella → the Caravana deploy token is the
+  path that works today. Caravana trusting GitHub OIDC directly isn't planned (suggested to the maintainer).
+
+Notes on Frunchy's services:
+- **Data protection keys in Postgres, not on a volume**: a service with a volume runs one copy and stops before it
+  starts, so every release would have a gap. With the keys in the database, frunchy has no volume, deploys
+  blue/green and the keys are in the nightly dump. Frunchy has no EF Core (`PersistKeysToDbContext` is out), so
+  this is a small `IXmlRepository` over Npgsql with a table in `initializeSchema`; today `Program.fs` only knows
+  `PersistKeysToFileSystem` (`Frunchy:DataProtection:KeysPath`).
+- **Bella at runtime**: `BELLA_BAXTER_API_KEY` (or the access token and private key) as a `secrets` entry on
+  frunchy, never `env`. Caravana's own keyless Bella provider (its 027) is planned, not built.
+- **`/healthz`** before the first deploy: 200 over plain http on 8080, called on the copy's address with no Host
+  header of the domain and no https.
+- **Later, federation**: megafono has two ports and no domain, so its `health` must name the port; `Megafono__MasterKey`
+  is a secret whose source copy stays in Bella (Caravana's backups don't include secrets); moving the domain from
+  frunchy to the gateway is one Configure edit, deployed in one go.
+
 ## What is different for Frunchy (to settle before building it)
 
 - **More than one service**: Frunchy and Postgres in one app (above); with federation on, Megáfono and the gateway
