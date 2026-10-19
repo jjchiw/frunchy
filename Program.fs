@@ -2,7 +2,6 @@ module FrunchyBackend.Program
 
 open System
 open System.Globalization
-open System.IO
 open System.Threading.RateLimiting
 open System.Threading.Tasks
 open Microsoft.AspNetCore.Antiforgery
@@ -43,7 +42,9 @@ let FediverseWorkerEnabledKey = "Frunchy:FediverseWorkerEnabled"
 
 // One vertical slice per endpoint, see Handlers/
 let endpoints =
-    [ Handlers.Home.endpoint
+    [ // Feature 016: the health check for Caravana (always mapped, federation or not)
+      Handlers.Health.endpoint
+      Handlers.Home.endpoint
       Handlers.Api.CreateImport.endpoint
       Handlers.Api.GetImportStatus.endpoint
       Handlers.Api.WhoAmI.endpoint
@@ -76,6 +77,10 @@ let endpoints =
       Handlers.Account.AccountPage.endpoint
       yield! Handlers.Account.SyncKey.endpoint
       Handlers.Account.DisplayName.endpoint
+      // Feature 017: the visibility choice, share links, and opening a shared profile
+      Handlers.Account.Visibility.endpoint
+      yield! Handlers.Account.ShareLink.endpoint
+      Handlers.Share.endpoint
       Handlers.Account.ResetBinding.endpoint
       yield! Handlers.Account.Logins.endpoint
       yield! Handlers.Account.DeleteAccount.endpoint ]
@@ -316,11 +321,6 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
 
     services.AddAntiforgery() |> ignore
 
-    match config["Frunchy:DataProtection:KeysPath"] with
-    | null
-    | "" -> ()
-    | path -> services.AddDataProtection().PersistKeysToFileSystem(DirectoryInfo path) |> ignore
-
     // Built-in rate limiting, fixed windows per client IP (research R8)
     services.AddRateLimiter(fun options ->
         let perIp (name: string) (permits: int) (window: TimeSpan) =
@@ -343,6 +343,8 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
         perIp "signup" 10 (TimeSpan.FromMinutes 15.0)
         perIp "claim" 5 (TimeSpan.FromMinutes 15.0)
         perIp "account-write" 30 (TimeSpan.FromMinutes 1.0)
+        // Share links (feature 017): every /s/{token} request counts, valid or not
+        perIp "share" 30 (TimeSpan.FromMinutes 1.0)
         // Writing comments (feature 009): create, edit and delete share it
         perIp "comment-write" 10 (TimeSpan.FromMinutes 1.0)
         // Review actions (feature 007) count operators only: anyone else gets the handler's 404 and is
@@ -423,6 +425,9 @@ let configureServices (config: IConfiguration) (services: IServiceCollection) =
                 services.AddHostedService<Workers.FediverseOutbox.FediverseOutboxService>() |> ignore
         | Federation.Disabled -> ()
 
+    // Feature 017: the instance default for profile visibility; an invalid value stops startup naming the key
+    services.AddSingleton<Profiles.ProfileSettings>(Profiles.read config) |> ignore
+
     configureAuth config services
     services.AddRouting().AddOxpecker() |> ignore
 
@@ -499,7 +504,19 @@ let buildApp (args: string array) (customize: WebApplicationBuilder -> unit) : W
     addBellaSecrets args builder.Configuration
     customize builder
     configureServices builder.Configuration builder.Services
+    // Feature 016: the data-protection keys live in Postgres, encrypted (needs the environment, so it isn't in configureServices)
+    DataProtectionStore.register builder.Environment builder.Configuration builder.Services
     let app = builder.Build()
+
+    match app.Configuration[DataProtectionStore.KeysPathSetting] with
+    | null
+    | "" -> ()
+    | _ ->
+        app.Logger.LogWarning(
+            "{Setting} is retired and ignored: the data-protection keys are always stored in Postgres.",
+            DataProtectionStore.KeysPathSetting
+        )
+
     configureApp app
     app
 
@@ -514,7 +531,9 @@ type CliEnv =
       /// The federation settings, for `fediverse-status` (never printed with their secrets)
       Federation: Federation.FederationSettings
       /// `Frunchy:RootOperator`: the commands refuse to add or remove it
-      RootOperator: string option }
+      RootOperator: string option
+      /// `Frunchy:Profiles:DefaultVisibility`, for the visibility column of `user-list` (feature 017)
+      Profiles: Profiles.ProfileSettings }
 
 let private dbOnly (run: DbConfig -> string list -> Task<int>) = fun (env: CliEnv) args -> run env.Db args
 
@@ -526,7 +545,7 @@ let cliCommands: Map<string, CliEnv -> string list -> Task<int>> =
           "user-reset-binding", dbOnly Operations.ResetBinding.run
           "user-rebuild", dbOnly Operations.RebuildUser.run
           "user-delete", (fun env args -> Operations.DeleteUser.run env.Db env.Federated args)
-          "user-list", dbOnly Operations.ListUsers.run
+          "user-list", (fun env args -> Operations.ListUsers.run env.Db env.Profiles args)
           "invite-create", dbOnly Operations.InviteCreate.run
           "invite-list", dbOnly Operations.InviteList.run
           "invite-revoke", dbOnly Operations.InviteRevoke.run
@@ -566,7 +585,8 @@ let private runCli (command: string) (rest: string list) : int =
           Clock = TimeProvider.System
           Federated = Fediverse.isEnabled federation
           Federation = federation
-          RootOperator = WebAuth.rootOperator config }
+          RootOperator = WebAuth.rootOperator config
+          Profiles = Profiles.read config }
 
     task {
         do! initializeSchema db
@@ -579,12 +599,31 @@ let main args =
     match List.ofArray args with
     | command :: rest when cliCommands.ContainsKey command -> runCli command rest
     | _ ->
-        let app = buildApp args ignore
+        // A startup failure (a missing setting, the database down) must end the process with a failure code: in a
+        // container the app is PID 1, where an unhandled exception prints and then hangs instead of exiting, so the
+        // orchestrator would never restart it
+        try
+            let app = buildApp args ignore
 
-        task {
-            do! initializeSchema (app.Services.GetRequiredService<DbConfig>())
-            do! app.RunAsync()
-        }
-        |> fun t -> t.GetAwaiter().GetResult()
+            // Feature 016: the release build stamps its version into the assembly (the image's VERSION build argument)
+            let version =
+                match
+                    Reflection.CustomAttributeExtensions.GetCustomAttribute<Reflection.AssemblyInformationalVersionAttribute>(
+                        Reflection.Assembly.GetEntryAssembly()
+                    )
+                with
+                | null -> "unknown"
+                | attribute -> attribute.InformationalVersion
 
-        0
+            app.Logger.LogInformation("Frunchy {Version} starting", version)
+
+            task {
+                do! initializeSchema (app.Services.GetRequiredService<DbConfig>())
+                do! app.RunAsync()
+            }
+            |> fun t -> t.GetAwaiter().GetResult()
+
+            0
+        with ex ->
+            eprintfn "Frunchy could not start: %O" ex
+            1

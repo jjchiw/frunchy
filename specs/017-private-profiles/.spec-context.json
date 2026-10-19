@@ -1,0 +1,16 @@
+{
+  "workflow": "speckit",
+  "specName": "Private Profiles",
+  "branch": "017-private-profiles",
+  "currentStep": "tasks",
+  "status": "tasked",
+  "history": [
+    {
+      "step": "tasks",
+      "substep": null,
+      "kind": "start",
+      "by": "extension",
+      "at": "2026-10-19T20:26:24.280Z"
+    }
+  ]
+}

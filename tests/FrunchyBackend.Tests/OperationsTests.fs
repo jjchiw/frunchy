@@ -191,7 +191,7 @@ let ``user-list shows binding and last sync`` () =
         let! key = createUser app.Db "bound"
         let! _ = createUser app.Db "unbound"
         let! _ = submitAccepted app key (load2022Envelope ())
-        let! rows = ListUsers.listUsers app.Db
+        let! rows = ListUsers.listUsers app.Db (FrunchyBackend.Infrastructure.Profiles.ProfileSettings(FrunchyBackend.Infrastructure.Profiles.Private))
 
         match rows with
         | [ b; u ] ->

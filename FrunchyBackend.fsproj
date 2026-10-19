@@ -13,6 +13,7 @@
     <Compile Include="Domains/Catalog.fs" />
     <Compile Include="Domains/Tracking.fs" />
     <Compile Include="Infrastructure/Database.fs" />
+    <Compile Include="Infrastructure/DataProtectionStore.fs" />
     <Compile Include="Infrastructure/CrunchyrollPage.fs" />
     <Compile Include="Infrastructure/ApiErrors.fs" />
     <Compile Include="Infrastructure/Auth.fs" />
@@ -25,6 +26,7 @@
     <Compile Include="Infrastructure/AccountActions.fs" />
     <Compile Include="Infrastructure/OperatorActions.fs" />
     <Compile Include="Infrastructure/WebAuth.fs" />
+    <Compile Include="Infrastructure/Profiles.fs" />
     <Compile Include="Infrastructure/MalModel.fs" />
     <Compile Include="Infrastructure/JikanModel.fs" />
     <Compile Include="Infrastructure/MalApiModel.fs" />
@@ -40,6 +42,7 @@
     <Compile Include="Views/Components.fs" />
     <Compile Include="Views/Blocks.fs" />
     <Compile Include="Views/Layout.fs" />
+    <Compile Include="Handlers/Health.fs" />
     <Compile Include="Handlers/Home.fs" />
     <Compile Include="Handlers/Api/CreateImport.fs" />
     <Compile Include="Handlers/Api/GetImportStatus.fs" />
@@ -60,6 +63,7 @@
     <Compile Include="Handlers/Episodes/HideComment.fs" />
     <Compile Include="Handlers/Megafono/Actors.fs" />
     <Compile Include="Handlers/Megafono/Webhooks.fs" />
+    <Compile Include="Handlers/Share.fs" />
     <Compile Include="Handlers/Auth/SignIn.fs" />
     <Compile Include="Handlers/Auth/Complete.fs" />
     <Compile Include="Handlers/Auth/SignUp.fs" />
@@ -69,6 +73,8 @@
     <Compile Include="Handlers/Account/AccountPage.fs" />
     <Compile Include="Handlers/Account/SyncKey.fs" />
     <Compile Include="Handlers/Account/DisplayName.fs" />
+    <Compile Include="Handlers/Account/Visibility.fs" />
+    <Compile Include="Handlers/Account/ShareLink.fs" />
     <Compile Include="Handlers/Account/Blocks.fs" />
     <Compile Include="Handlers/Account/ResetBinding.fs" />
     <Compile Include="Handlers/Account/Logins.fs" />

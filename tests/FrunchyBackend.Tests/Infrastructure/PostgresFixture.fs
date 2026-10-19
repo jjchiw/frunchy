@@ -78,6 +78,11 @@ type TestApp(app: WebApplication, client: HttpClient, db: DbConfig, mal: FakeMal
             client.Dispose()
             app.DisposeAsync()
 
+/// The data-protection encryption key every test app runs with (base64 of 32 bytes): test hosts run in the
+/// Production environment, which refuses to start without one (feature 016). A test passes "" to see that refusal.
+[<Literal>]
+let TestDataProtectionKey = "ZnJ1bmNoeS10ZXN0LWRhdGEtcHJvdGVjdGlvbi1rZXk="
+
 /// The app with extra configuration and an extra builder customization (e.g. a test clock)
 let createAppWith (db: DbConfig) (extraConfig: (string * string) list) (customize: WebApplicationBuilder -> unit) : Task<TestApp> =
     task {
@@ -96,7 +101,12 @@ let createAppWith (db: DbConfig) (extraConfig: (string * string) list) (customiz
                         [ "ConnectionStrings:Database", db.connectionString
                           Program.WorkerEnabledKey, "false"
                           Program.EnrichmentWorkerEnabledKey, "false"
-                          Program.FediverseWorkerEnabledKey, "false" ]
+                          Program.FediverseWorkerEnabledKey, "false"
+                          DataProtectionStore.EncryptionKeySetting, TestDataProtectionKey
+                          // Feature 017: the real default is private, but most tests open other users' profiles signed
+                          // out; they keep working on public ones. Tests of the rule pass "private" (or "" for the
+                          // app's own default) in extraConfig, which comes after this.
+                          Profiles.DefaultVisibilityKey, "public" ]
                         @ FakeMal.fastSettings
                         @ extraConfig
                     )

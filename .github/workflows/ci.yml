@@ -1,0 +1,36 @@
+# Feature 016: every push and pull request builds the whole solution (the app, the tests and the AppHost) and runs
+# every test. The tests start a Postgres Testcontainer, which the runner's Docker provides. The design-token parity
+# test skips itself when the browser extension isn't checked out next to this repo.
+# release.yml calls this workflow before it builds an image, so a tag never publishes untested code.
+name: CI
+
+on:
+  push:
+    branches: ["**"] # tags are left to release.yml, which runs these same tests itself
+  pull_request:
+  workflow_call:
+
+# A newer push to the same branch cancels the run in progress
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build
+        run: dotnet build
+
+      - name: Test
+        run: dotnet test --no-build

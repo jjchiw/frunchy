@@ -2,6 +2,7 @@ module FrunchyBackend.Views.Components
 
 open System.Globalization
 open Oxpecker.ViewEngine
+open FrunchyBackend.Infrastructure.Profiles
 open FrunchyBackend.Views.Theme
 open FrunchyBackend.Views.Texts
 
@@ -248,6 +249,26 @@ let copyValue (hook: string) (doneHook: string) (small: bool) (kind: ButtonKind)
 /// is unavailable.
 let copyLink (t: Texts) (address: string) =
     copyValue "copy-link" "copy-done" false Secondary address t.CopyLink t.LinkCopied t.CopyLinkFallback
+
+/// The owner's own private profile: only they can see it (feature 017). Replaces the page's copy-link block, since
+/// the address alone opens nothing for anyone else; the link leads to the visibility settings.
+let privateProfileNote (t: Texts) =
+    p(class' = "flex flex-wrap items-center gap-x-2 gap-y-1 text-body-md text-on-surface-variant").data("profile-private", "") {
+        icon Lock
+        span() { t.PrivateProfileNote }
+
+        a(href = "/account#visibility", class' = "font-semibold text-primary underline underline-offset-4") {
+            t.PrivateProfileLink
+        }
+    }
+
+/// The address block of a profile page: "copy link" when the profile is public, the private note for its owner, and
+/// nothing for a link holder (the address alone opens nothing for anyone else)
+let profileAddress (t: Texts) (access: PageAccess) (address: string) : HtmlElement =
+    match access with
+    | PublicPage -> copyLink t address
+    | OwnPrivatePage -> privateProfileNote t
+    | SharedPrivatePage -> Fragment()
 
 /// "Follow on the fediverse: @handle@domain" with a copy button (feature 015, FR-003). `handle` is the full
 /// `@name@domain`; it is also the value of `data-fediverse-handle`, the test hook.

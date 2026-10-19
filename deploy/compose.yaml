@@ -21,11 +21,15 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
-    image: ghcr.io/cosmic-chimps/frunchy
+    # `up --build` builds it from this checkout and tags it with this name.
+    # FRUNCHY_IMAGE can point at a pinned version, for example ghcr.io/jjchiw/frunchy:0.1.0.
+    image: ${FRUNCHY_IMAGE:-ghcr.io/jjchiw/frunchy}
     restart: unless-stopped
     environment:
       ConnectionStrings__Database: Host=postgres;Database=frunchydb;Username=frunchy;Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
-      Frunchy__DataProtection__KeysPath: /keys # sessions and forms survive a restart
+      # Encrypts the data-protection keys Frunchy stores in Postgres (sessions and forms survive restarts and
+      # releases). Required: back it up apart from the database; losing it signs everyone out.
+      Frunchy__DataProtection__EncryptionKey: ${FRUNCHY_DATA_PROTECTION_KEY:?set FRUNCHY_DATA_PROTECTION_KEY}
       Frunchy__RootOperator: ${FRUNCHY_ROOT_OPERATOR:-}
       Frunchy__Mal__ClientId: ${FRUNCHY_MAL_CLIENT_ID:-}
       Frunchy__Auth__Providers__Google__Enabled: ${GOOGLE_ENABLED:-false}
@@ -48,22 +52,20 @@ services:
       # Loopback only: your TLS proxy reaches it here. With the federation profile the proxy should point at the
       # gateway's port instead, and this one is only for local checks. Compose cannot drop a port by profile.
       - "127.0.0.1:${FRUNCHY_PORT:-8080}:8080"
-    volumes:
-      - frunchy-keys:/keys
     networks: [edge, internal]
     depends_on:
       postgres:
         condition: service_healthy
 
   postgres:
-    image: postgres:17-alpine
+    image: postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: frunchydb
       POSTGRES_USER: frunchy
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql # Postgres 18's layout: the data lives in a versioned folder under here
       # Runs once, when the volume is first created: adds the megafono database next to frunchydb
       - ./postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
@@ -151,5 +153,4 @@ networks:
 
 volumes:
   postgres-data: {}
-  frunchy-keys: {}
   umbral-data: {}

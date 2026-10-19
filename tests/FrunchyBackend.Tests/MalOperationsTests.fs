@@ -31,7 +31,7 @@ let private cli (app: TestApp) (command: string) (args: string list) : Task<int>
           Http = httpFactory app
           Mal = FrunchyBackend.Infrastructure.MalClient.readSettings (Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>(app.Services))
           Clock = TimeProvider.System
-          Federated = false; Federation = FrunchyBackend.Infrastructure.Federation.Disabled; RootOperator = None }
+          Federated = false; Federation = FrunchyBackend.Infrastructure.Federation.Disabled; RootOperator = None; Profiles = FrunchyBackend.Infrastructure.Profiles.ProfileSettings(FrunchyBackend.Infrastructure.Profiles.Private) }
 
     Program.cliCommands[command] env args
 
@@ -122,7 +122,7 @@ let ``mal-set without a MyAnimeList client id changes nothing and says why`` () 
               Http = httpFactory app
               Mal = { FrunchyBackend.Infrastructure.MalClient.readSettings (Microsoft.Extensions.Configuration.ConfigurationBuilder().Build()) with ClientId = None }
               Clock = TimeProvider.System
-              Federated = false; Federation = FrunchyBackend.Infrastructure.Federation.Disabled; RootOperator = None }
+              Federated = false; Federation = FrunchyBackend.Infrastructure.Federation.Disabled; RootOperator = None; Profiles = FrunchyBackend.Infrastructure.Profiles.ProfileSettings(FrunchyBackend.Infrastructure.Profiles.Private) }
 
         let! code = Program.cliCommands["mal-set"] env [ "GYK5CNZ9G"; "15" ]
         Assert.Equal(4, code)

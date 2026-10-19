@@ -29,6 +29,8 @@
     <Compile Include="OperationsTests.fs" />
     <Compile Include="AuthConfigTests.fs" />
     <Compile Include="FederationSettingsTests.fs" />
+    <Compile Include="HealthTests.fs" />
+    <Compile Include="DataProtectionTests.fs" />
     <Compile Include="ForwardedHeadersTests.fs" />
     <Compile Include="AccountActionsTests.fs" />
     <Compile Include="InviteOperationsTests.fs" />
@@ -84,6 +86,12 @@
     <Compile Include="FediverseBlocksTests.fs" />
     <Compile Include="FediversePagesTests.fs" />
     <Compile Include="FediverseOperationsTests.fs" />
+    <Compile Include="ProfileRulesTests.fs" />
+    <Compile Include="PrivateProfileTests.fs" />
+    <Compile Include="ProfileHelpers.fs" />
+    <Compile Include="ProfileVisibilityTests.fs" />
+    <Compile Include="ShareLinkTests.fs" />
+    <Compile Include="ProfileLinksTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

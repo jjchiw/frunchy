@@ -39,8 +39,6 @@ type OpenRow =
       Status: string
       Users: int
       Fully: int
-      /// The user with the most recent watch, for the series link
-      Watcher: string option
       Candidates: Candidate list }
 
 /// A season decided by hand
@@ -51,8 +49,7 @@ type ManualRow =
       SeasonTitle: string
       /// None = "not on MyAnimeList"
       Decision: (int * string) option
-      DecidedAt: DateTime option
-      Watcher: string option }
+      DecidedAt: DateTime option }
 
 /// What a page shows: the rows (at most `pageSize`) and how many matched in all
 type Listing<'Row> = { Rows: 'Row list; Total: int }
@@ -143,12 +140,11 @@ let private tabs (t: Texts) (tab: Tab) (statuses: string list) =
             }
     }
 
-let private seasonCell (t: Texts) (seriesId: string) (seriesTitle: string) (seasonTitle: string) (seasonId: string) (watcher: string option) =
+/// The series title links to the public series page, never into anyone's history (feature 017)
+let private seasonCell (t: Texts) (seriesId: string) (seriesTitle: string) (seasonTitle: string) (seasonId: string) =
     div(class' = "min-w-0 space-y-0.5") {
         p(class' = "text-body-md font-semibold text-on-surface [overflow-wrap:anywhere]") {
-            match watcher with
-            | Some username -> seriesLink username seriesId seriesTitle :> HtmlElement
-            | None -> span() { seriesTitle }
+            a(href = $"/anime/{seriesId}", class' = "fr-link").data("series-page-link", "") { seriesTitle }
         }
 
         p(class' = "text-body-md text-on-surface-variant [overflow-wrap:anywhere]") { if seasonTitle = "" then seasonId else seasonTitle }
@@ -227,7 +223,7 @@ let private openRowView (ctx: HttpContext) (t: Texts) (r: OpenRow) =
         .data("users", string r.Users)
         .data("fully", string r.Fully) {
         div(class' = rowGrid) {
-            seasonCell t r.SeriesId r.SeriesTitle r.SeasonTitle r.SeasonId r.Watcher
+            seasonCell t r.SeriesId r.SeriesTitle r.SeasonTitle r.SeasonId
             div() { pill (statusTone r.Status) (statusLabel t r.Status) }
             figureCell t.ReviewColUsers (span() { string r.Users })
             figureCell t.ReviewColFullyWatched (span() { string r.Fully })
@@ -307,7 +303,7 @@ let private manualRowView (ctx: HttpContext) (t: Texts) (r: ManualRow) =
         .data("review-season", r.SeasonId)
         .data("mal", (match r.Decision with Some(id, _) -> string id | None -> "none")) {
         div(class' = "grid gap-x-6 gap-y-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_11rem] md:items-start") {
-            seasonCell t r.SeriesId r.SeriesTitle r.SeasonTitle r.SeasonId r.Watcher
+            seasonCell t r.SeriesId r.SeriesTitle r.SeasonTitle r.SeasonId
 
             p(class' = "text-body-md text-on-surface [overflow-wrap:anywhere]") {
                 match r.Decision with
@@ -389,7 +385,6 @@ let private parseCandidates (json: string) : Candidate list =
             Type = text "type"
             Year = text "year" } ]
 
-let private optString (r: System.Data.Common.DbDataReader) (i: int) = if r.IsDBNull i then None else Some(r.GetString i)
 
 /// The seasons nobody has decided, in the CLI's order (requested first, then the latest watch);
 /// the total counts every one, not just the page
@@ -406,7 +401,7 @@ let private loadOpen (db: DbConfig) (statuses: string list) : Task<Listing<OpenR
                                 (SELECT min(e.series_title) FROM cr_episodes e WHERE e.series_id = se.series_id),
                                 se.series_id),
                        coalesce(se.title, ''), m.status, m.candidates::text,
-                       coalesce(w.users, 0), coalesce(w.fully, 0), w.watcher,
+                       coalesce(w.users, 0), coalesce(w.fully, 0),
                        count(*) OVER ()::int
                 FROM cr_season_matches m
                 JOIN cr_seasons se ON se.id = m.season_id
@@ -414,11 +409,9 @@ let private loadOpen (db: DbConfig) (statuses: string list) : Task<Listing<OpenR
                 LEFT JOIN LATERAL (
                     SELECT count(DISTINCT we.user_id)::int AS users,
                            (count(*) FILTER (WHERE we.fully_watched AND e.duration_ms IS NOT NULL))::int AS fully,
-                           max(we.watched_at) AS latest,
-                           (array_agg(u.username ORDER BY we.watched_at DESC))[1] AS watcher
+                           max(we.watched_at) AS latest
                     FROM cr_episodes e
                     JOIN watch_events we ON we.cr_episode_id = e.id
-                    JOIN users u ON u.id = we.user_id
                     WHERE e.season_id = m.season_id) w ON true
                 WHERE m.status = ANY(@statuses) AND m.method IS DISTINCT FROM 'manual'
                 ORDER BY (m.requested_at IS NULL), m.requested_at, w.latest DESC NULLS LAST, m.season_id
@@ -434,7 +427,7 @@ let private loadOpen (db: DbConfig) (statuses: string list) : Task<Listing<OpenR
         let mutable total = 0
 
         while r.Read() do
-            total <- r.GetInt32 9
+            total <- r.GetInt32 8
 
             rows.Add
                 { SeasonId = r.GetString 0
@@ -444,8 +437,7 @@ let private loadOpen (db: DbConfig) (statuses: string list) : Task<Listing<OpenR
                   Status = r.GetString 4
                   Candidates = if r.IsDBNull 5 then [] else parseCandidates (r.GetString 5)
                   Users = r.GetInt32 6
-                  Fully = r.GetInt32 7
-                  Watcher = optString r 8 }
+                  Fully = r.GetInt32 7 }
 
         return { Rows = List.ofSeq rows; Total = total }
     }
@@ -464,12 +456,6 @@ let private loadManual (db: DbConfig) : Task<Listing<ManualRow>> =
                                 (SELECT min(e.series_title) FROM cr_episodes e WHERE e.series_id = se.series_id),
                                 se.series_id),
                        coalesce(se.title, ''), m.mal_id, coalesce(a.title_english, a.title), m.decided_at,
-                       (SELECT u.username
-                        FROM cr_episodes e
-                        JOIN watch_events we ON we.cr_episode_id = e.id
-                        JOIN users u ON u.id = we.user_id
-                        WHERE e.season_id = m.season_id
-                        ORDER BY we.watched_at DESC LIMIT 1),
                        count(*) OVER ()::int
                 FROM cr_season_matches m
                 JOIN cr_seasons se ON se.id = m.season_id
@@ -488,7 +474,7 @@ let private loadManual (db: DbConfig) : Task<Listing<ManualRow>> =
         let mutable total = 0
 
         while r.Read() do
-            total <- r.GetInt32 8
+            total <- r.GetInt32 7
 
             rows.Add
                 { SeasonId = r.GetString 0
@@ -496,8 +482,7 @@ let private loadManual (db: DbConfig) : Task<Listing<ManualRow>> =
                   SeriesTitle = r.GetString 2
                   SeasonTitle = r.GetString 3
                   Decision = if r.IsDBNull 4 then None else Some(r.GetInt32 4, (if r.IsDBNull 5 then $"#{r.GetInt32 4}" else r.GetString 5))
-                  DecidedAt = if r.IsDBNull 6 then None else Some(r.GetDateTime 6)
-                  Watcher = optString r 7 }
+                  DecidedAt = if r.IsDBNull 6 then None else Some(r.GetDateTime 6) }
 
         return { Rows = List.ofSeq rows; Total = total }
     }

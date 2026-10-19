@@ -53,7 +53,11 @@ let private hero (ctx: HttpContext) (t: Texts) =
 
             p(class' = "flex max-w-prose items-start gap-2 text-body-md text-on-surface-variant") {
                 span(class' = "text-primary") { icon Theme.Info }
-                span() { t.HomeProfilesNote }
+                span() {
+                    match (ctx.GetService<Profiles.ProfileSettings>()).DefaultVisibility with
+                    | Profiles.Private -> t.HomeProfilesPrivateNote
+                    | Profiles.Public -> t.HomeProfilesPublicNote
+                }
             }
         }
 

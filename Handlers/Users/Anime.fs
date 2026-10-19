@@ -58,7 +58,9 @@ type AnimeModel =
       Hours: decimal
       FirstWatch: DateTime
       LatestWatch: DateTime
-      Seasons: SeasonRow list }
+      Seasons: SeasonRow list
+      /// What the page says about who can see it (feature 017)
+      Access: Profiles.PageAccess }
 
 // ---------------------------------------------------------------------------
 // View (contracts/anime-page.md)
@@ -109,7 +111,7 @@ let private header (ctx: HttpContext) (t: Texts) (people: int option) (m: AnimeM
                         }
                     | None -> Fragment()
 
-                    copyLink t address
+                    profileAddress t m.Access address
                 }
 
                 peopleLine t people
@@ -386,7 +388,7 @@ let private loadRows (connection: NpgsqlConnection) (userId: Guid) (seriesId: st
 
 /// The page's figures from the rows: the dashboard's rule restricted to the series (R3), seasons in the
 /// order the rows come in (R4), the poster by watch time (R2)
-let private toModel (username: string) (seriesId: string) (rows: Row list) : AnimeModel option =
+let private toModel (username: string) (seriesId: string) (access: Profiles.PageAccess) (rows: Row list) : AnimeModel option =
     match rows with
     | [] -> None
     | first :: _ ->
@@ -449,7 +451,8 @@ let private toModel (username: string) (seriesId: string) (rows: Row list) : Ani
               Hours = round1 (decimal (rows |> List.sumBy _.Ms) / 3_600_000m)
               FirstWatch = rows |> List.map _.Episode.WatchedAt |> List.min
               LatestWatch = rows |> List.map _.Episode.WatchedAt |> List.max
-              Seasons = (named @ other) |> List.map seasonRow }
+              Seasons = (named @ other) |> List.map seasonRow
+              Access = access }
 
 // ---------------------------------------------------------------------------
 // Handler (research R1)
@@ -482,13 +485,17 @@ let handler (rawUsername: string) (rawSeriesId: string) : EndpointHandler =
                 match! loadUser connection username with
                 | None -> return! notFound ctx t true
                 | Some(userId, _) ->
-                    let! rows = loadRows connection userId rawSeriesId
+                    // The visibility check (feature 017): hidden is the unknown-user 404, before any history query
+                    match! Profiles.gate ctx (ctx.GetService<DbConfig>()) userId with
+                    | None -> return! notFound ctx t true
+                    | Some access ->
+                        let! rows = loadRows connection userId rawSeriesId
 
-                    match toModel username rawSeriesId rows with
-                    | None -> return! notFound ctx t false
-                    | Some model ->
-                        let! people = Charts.seriesPeople (ctx.GetService<DbConfig>()) rawSeriesId (Charts.minPeople (ctx.GetService<IConfiguration>()))
-                        return! ctx.WriteHtmlView(view ctx t people model)
+                        match toModel username rawSeriesId access rows with
+                        | None -> return! notFound ctx t false
+                        | Some model ->
+                            let! people = Charts.seriesPeople (ctx.GetService<DbConfig>()) rawSeriesId (Charts.minPeople (ctx.GetService<IConfiguration>()))
+                            return! ctx.WriteHtmlView(view ctx t people model)
         }
 
 // ---------------------------------------------------------------------------

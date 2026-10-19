@@ -28,7 +28,7 @@ Each endpoint is a self-contained slice in `Handlers/`, laid out top to bottom a
 ```
 Handlers/
 ├── Home.fs                      GET  /
-├── Users/Dashboard.fs           GET  /u/{username}          public dashboard
+├── Users/Dashboard.fs           GET  /u/{username}          dashboard (private unless its owner makes it public or shares a link, feature 017)
 │   ├── Users/Dna.fs                 GET  /u/{username}/dna      Anime DNA (feature 004)
 │   ├── Users/Year.fs                GET  /u/{username}/year[/{year}]  year in review (feature 005)
 │   ├── Users/Anime.fs               GET  /u/{username}/anime/{seriesId}  one series (feature 006)
@@ -39,7 +39,9 @@ Handlers/
 ├── Review/Operators.fs          GET  /review/operators, POST /review/operators/{add,remove}  root operator only (feature 008)
 ├── Episodes/                    GET  /anime/{seriesId}/episode/{episodeId}, /comments/{id}/edit, POST comments, edit, delete, hide, unhide  (feature 009)
 ├── Auth/                        /signin, /signin/{provider}, /signin/complete, /signup, /claim, /signin/reconfirm, /signout
+├── Share.fs                     GET  /s/{token}             opens a shared profile (feature 017)
 ├── Account/                     /account, /account/key, /account/display-name, /account/binding/reset,
+│                                /account/visibility, /account/share-link[/revoke],
 │                                /account/link|unlink/{provider}, /account/delete   (signed-in owner only)
 └── Api/
     ├── CreateImport.fs          POST /api/imports           submit history pages
@@ -120,11 +122,13 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 
 ### HTML Pages
 - `GET /`: home, explains how to sync
-- `GET /u/{username}`: public dashboard (series, episodes, hours, days, recent episodes), English or Spanish
+- `GET /u/{username}`: the dashboard (series, episodes, hours, days, recent episodes), English or Spanish. Every page under `/u/{username}` is private by default (feature 017, see [Accounts](#accounts)): anyone but the owner, or someone who opened the owner's share link, gets the same 404 as for a username that doesn't exist
 - `GET /u/{username}/dna`: the Anime DNA (favourite studio, dominant decade, genres and formats by watch time, insignia anime, 90-day viewing pace, totals), from 15 fully watched episodes; every MyAnimeList figure states its coverage
 - `GET /u/{username}/year/{year}`: the year in review (hours, episodes, series, new versus continued, month by month, most watched series, genres, top 3 studios, formats, longest streak) for one UTC calendar year, with a picker of the years that have history; `/u/{username}/year` goes to the newest one
 - `GET /u/{username}/anime/{seriesId}`: one series as that person watched it (episodes, hours, first and latest watch, seasons with their MyAnimeList details, the episodes watched); every series title on the dashboard, DNA and year pages links to it
   from the browser's `Accept-Language`
+- `GET /s/{token}` (feature 017): opens a shared profile. A valid link sets a cookie that remembers the grant and redirects to `/u/{username}`; anything else gets the plain 404 page and no cookie. Limited to 30 a minute per IP.
+- `POST /account/visibility`, `POST /account/share-link` and `POST /account/share-link/revoke` (feature 017): the owner's choice of public or private, and creating, replacing and turning off the share link. Limited like the other account writes.
 - `GET /review/mal` and `/review/mal/manual`, with `POST /review/mal/set|none|retry|auto` (feature 007): operators review the MyAnimeList matches the matcher couldn't decide (pick a candidate, type an id or link, mark the season as not listed, ask for a retry) and send manual decisions back to automatic. Operators are the root operator (the username in `Frunchy:RootOperator`) plus the users the root added; everyone else, signed in or not, gets the plain 404 page. The account page says "You're an operator" and links to it for operators.
 - `GET /review/operators`, with `POST /review/operators/add|remove` (feature 008): the root operator makes existing users operators and takes them back, from the web. Everyone else, operators included, gets the plain 404 page. Changes need a sign-in within the last 10 minutes and are limited to 10 a minute; each one is a security event on the root's account and on the affected user's account. The account page links to it for the root.
 - `GET /anime/{seriesId}/episode/{episodeId}`, with `POST …/comments`, `GET/POST /comments/{id}/edit`, `POST /comments/{id}/delete` and `POST /comments/{id}/hide|unhide` (feature 009): the public page of one episode with its comment thread. Any signed-in user can comment (spoilers start ticked and stay closed until opened), edit and delete their own comments; operators hide and unhide any comment (hiding applies on Frunchy only). Comment writes are limited to 10 a minute per IP.
@@ -145,6 +149,15 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
   stops working), reset the Crunchyroll binding, link or unlink Google/Umbral (never the last one), see
   the last 10 syncs and the last 20 security events, and delete the account. A new key and deletion need
   a sign-in within the last 10 minutes; otherwise you re-confirm with your provider.
+- **Profiles are private by default** (feature 017). Every page under `/u/{username}` (dashboard, Anime DNA,
+  years in review, anime pages, compare) shows only to its owner, and to anyone else answers the same 404 as a
+  username that doesn't exist; operators get no exception. On `/account#visibility` the owner chooses **public**
+  or **private** (a choice that outlives any change of the instance default), and can create one **share link**
+  (`/s/{token}`): it is shown once, only its hash is stored, and whoever opens it can see the whole profile in
+  that browser until the owner replaces the link or turns it off. Instance operators set the default with
+  `Frunchy:Profiles:DefaultVisibility` (below). Comment authors link to their profile only for viewers who can
+  see it; charts and "Watched by N" counts never name anyone and are unchanged. See
+  [the spec](specs/017-private-profiles/private-profiles.spec.md).
 - The extension keeps using the sync key exactly as before (import contract v1.2).
 
 ## Tech Stack
@@ -306,16 +319,37 @@ No Aspire, no Megáfono: Frunchy is a complete web app without federation (`Frun
 | `Frunchy:Megafono:Token`, `Frunchy:Megafono:WebhookSecret` | | Bearer token and webhook HMAC key shared with Megáfono |
 | `Frunchy:TrustedProxies` | empty | Comma- or semicolon-separated IPs or CIDRs whose `X-Forwarded-For/-Proto/-Host` are believed; empty means none |
 
+### Setting added by feature 017
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Frunchy:Profiles:DefaultVisibility` | `private` | `private` or `public` (case-insensitive): what a profile is for users who never chose. Any other value stops startup naming the key. A user's own choice always outranks it |
+
+### Health check, keys and releases (feature 016)
+
+- **Health check**: `GET /healthz` answers `200 ok` while Frunchy can reach its database (one second at most) and `503 unavailable` otherwise, as plain text that is never cached, with no cookie and for any Host header. It never depends on Megáfono, MyAnimeList or a sign-in provider. Caravana and other orchestrators call it on the container's own address (port 8080 in the image).
+- **Encryption key** (`Frunchy:DataProtection:EncryptionKey`, base64 of 32 bytes: `openssl rand -base64 32`): the keys that protect session cookies and form tokens are stored in Postgres (`data_protection_keys`), so a restart, a release or a second copy keeps everyone signed in. This key encrypts them (AES-256-GCM), so a database backup alone can't forge a session. **The Production environment refuses to start without it**, and a value that isn't base64 of 32 bytes stops startup in every environment, naming the setting and never the value. Keep it in Bella and **back it up apart from the database**: losing it makes the stored keys unreadable and signs everyone out (nothing else is lost). Development, the AppHost and the tests run without it; the keys are then stored as plain XML. `Frunchy:DataProtection:KeysPath` is retired: setting it logs a warning and does nothing.
+- **CI and releases**: `.github/workflows/ci.yml` builds the solution and runs every test on each push and pull request. Pushing a tag `vX.Y.Z` runs `.github/workflows/release.yml`: the same tests, then an image for `linux/amd64` and `linux/arm64` pushed to `ghcr.io/<owner>/frunchy:X.Y.Z` (never `latest`: pin a version or its digest, which the run's summary lists). The version is stamped into the app and named in its startup log. The deploy itself waits for Caravana's publisher ([`docs/deploy-caravana.md`](docs/deploy-caravana.md)).
+
+### Settings added by feature 016
+
+| Key | Default | Meaning |
+|---|---|---|
+| `Frunchy:DataProtection:EncryptionKey` | | Base64 of 32 bytes; encrypts the stored data-protection keys. Required in Production |
+| `Frunchy:DataProtection:KeysPath` | | Retired: logs a warning and is ignored |
+
+Compose: `FRUNCHY_DATA_PROTECTION_KEY` (required) and `FRUNCHY_IMAGE` (default `ghcr.io/jjchiw/frunchy`).
+
 ### Self-hosting with Docker Compose
 
-`Dockerfile` builds Frunchy; `deploy/compose.yaml` runs it with Postgres. Federation is an optional profile that adds Megáfono and its gateway (pinned `0.1.0`):
+`Dockerfile` builds Frunchy; `deploy/compose.yaml` runs it with Postgres 18. Federation is an optional profile that adds Megáfono and its gateway (pinned `0.1.0`). `FRUNCHY_DATA_PROTECTION_KEY` is required (see above); there is no keys volume:
 
 ```bash
 cp deploy/.env.example deploy/.env      # fill it in: every variable has its generation command
 docker compose -f deploy/compose.yaml --env-file deploy/.env up -d --build
 ```
 
-Without the profile you get Frunchy and Postgres, and Frunchy listens on `127.0.0.1:${FRUNCHY_PORT}`. To federate, set `COMPOSE_PROFILES=federation` and `FRUNCHY_FEDERATION_ENABLED=true` together with `DOMAIN` and the Megáfono secrets; the gateway then listens on `127.0.0.1:${GATEWAY_PORT}` and is the entrance of the domain. Neither terminates TLS: put a TLS proxy in front. Megáfono's internal port 8081 is never published. **`DOMAIN` is permanent once you federate, and `MEGAFONO_MASTER_KEY` must be backed up apart from the database.**
+Without the profile you get Frunchy and Postgres, and Frunchy listens on `127.0.0.1:${FRUNCHY_PORT}`. To federate, set `COMPOSE_PROFILES=federation` and `FRUNCHY_FEDERATION_ENABLED=true` together with `DOMAIN` and the Megáfono secrets; the gateway then listens on `127.0.0.1:${GATEWAY_PORT}` and is the entrance of the domain. Neither terminates TLS: put a TLS proxy in front. Megáfono's internal port 8081 is never published. **`DOMAIN` is permanent once you federate, and `MEGAFONO_MASTER_KEY` and `FRUNCHY_DATA_PROTECTION_KEY` must be backed up apart from the database.**
 
 ### Sign-in providers (optional locally; the tests use a fake provider)
 
@@ -344,8 +378,8 @@ Without the profile you get Frunchy and Postgres, and Frunchy listens on `127.0.
      dotnet user-secrets set "Frunchy:Auth:Providers:Google:Enabled" "true"
      ```
    In production use Bella or environment variables (`Frunchy__Auth__Providers__Google__ClientSecret`) and
-   set `Frunchy:DataProtection:KeysPath` to a persistent directory so sessions survive restarts. The site
-   refuses to start if a provider is enabled without its credentials.
+   set the data-protection encryption key ([below](#health-check-keys-and-releases-feature-016)) so sessions survive
+   restarts. The site refuses to start if a provider is enabled without its credentials.
 3. `dotnet run --launch-profile http` (Development, so user secrets are loaded; the AppHost runs Frunchy in Development too) and open `/signin`.
 
 ### Operator commands
@@ -426,17 +460,12 @@ Features are built through spec-kit (`specs/###-name/`), in this order:
 | 013 | **Series page**: a public page per series (`/anime/{seriesId}`) with its seasons, MyAnimeList details, known episodes with their comment counts and "Watched by N people"; chart rows, the episode page and the anime page link to it; new usernames can no longer end in a dash (Mastodon refuses them) | Implemented ([spec](specs/013-series-page/series-page.spec.md)) |
 | 014 | **Aspire platform reset**: an F# Aspire AppHost runs Postgres, Megáfono, its gateway and Frunchy on one domain; a federation switch (off by default) with validated Megáfono settings; forwarded headers only from trusted proxies; Discord removed; a clean schema bootstrap; a Dockerfile and a compose file with an optional federation profile | Implemented ([spec](specs/014-aspire-platform/aspire-platform.spec.md)) |
 | 015 | **Fediverse integration**: users are `@username@domain` and series are `@series-handle@domain` on the fediverse; each episode gets a thread post from its series; comments go both ways (a Frunchy comment is a reply, a Mastodon reply shows on the episode page, edits and deletes follow); deleting an account deletes its actor; users block accounts and servers from `/account`, operators from `/review/fediverse`; a Postgres outbox and a worker talk to Megáfono; `fediverse-status` and `series-handle` commands | Implemented ([spec](specs/015-fediverse/fediverse.spec.md)); following and a feed wait for Megáfono's feed feature |
-| 016 | **Private profiles**: dashboards are private unless chosen otherwise. An instance setting picks the default for profiles (private or public); each owner can make their profile public, or share it through a secret link (a token that can be revoked and replaced) | Backlog: to try with friends first (see the notes below) |
+| 016 | **Deploy readiness**: tests on every push (GitHub Actions); `GET /healthz` for Caravana (the app and its database); the data-protection keys in Postgres, encrypted with a configured key, so releases and parallel copies keep everyone signed in; a `v*` tag publishes a two-architecture image on GHCR (never `latest`); the compose file moves to Postgres 18 with no keys volume | Implemented ([spec](specs/016-deploy-readiness/deploy-readiness.spec.md)); the deploy itself waits for Caravana's publisher |
+| 017 | **Private profiles**: every page under `/u/{username}` is private unless its owner chooses otherwise. `Frunchy:Profiles:DefaultVisibility` (default `private`) is what a profile is until its owner chooses; owners choose public or private on `/account` and can share a profile through one secret link (`/s/{token}`, shown once, stored only as a hash, replaced or turned off at will); strangers get the unknown-user 404; comment authors link only when the viewer can see them | Implemented ([spec](specs/017-private-profiles/private-profiles.spec.md)) |
 
-**Also in the backlog**: CI and releases. Tests on every push, and on a `v*` tag an image on GHCR deployed to Caravana with Bella Baxter, keyless and with no secrets in GitHub, the way Umbral does it. The recipe and what differs for Frunchy are in [`docs/deploy-caravana.md`](docs/deploy-caravana.md).
+**Also in the backlog**: deploying the released image to Caravana with Bella Baxter, keyless and with no secrets in GitHub, the way Umbral does it; it waits for Caravana's Aspire publisher (feature 016 built the tests, the health check, the keys and the image). The recipe and what differs for Frunchy are in [`docs/deploy-caravana.md`](docs/deploy-caravana.md).
 
-**Notes for 016 (private profiles)**, to settle in its spec:
-- **What "the profile" covers**: the dashboard and everything under `/u/{username}` (DNA, year in review, anime pages, compare). Today they are all public, and the home page says so ("Dashboards are public: anyone with the link…", `HomeProfilesNote` in `Views/Texts.fs`), so that copy changes too.
-- **Who sees a private profile**: its owner, anyone holding a valid share link and, perhaps, operators. Everyone else gets the plain 404, so a private profile doesn't reveal that it exists.
-- **Share links**: a random token stored only as a hash (like the sync key), shown once, revocable from `/account`. Open questions: one link or several, whether links expire, and whether a link opens only the dashboard or every page under it.
-- **Where a username shows up anyway**: comment authors on episode pages (whether the name still links), taste compatibility (whether a private profile can be compared, and whether it can compare), and charts (they stay as they are: they never name anyone).
-- **The fediverse (015)**: a federated user is `@username@domain` with a public actor. Decide whether a private profile is federated at all, and what its actor shows.
-- **The setting**: something like `Frunchy:Profiles:DefaultVisibility` (`private` by default). Decide what happens to existing users when an instance changes it: do they follow the new default, or keep their own choice once they have made one?
+The questions that were open for 017 (what a profile covers, who sees it, how share links work, comments, taste compatibility, the fediverse and the setting) are decided in its [spec](specs/017-private-profiles/private-profiles.spec.md).
 
 
 ## Key Design Decisions

@@ -242,6 +242,29 @@ let private schema =
 
     CREATE INDEX IF NOT EXISTS ix_fediverse_outbox_pending ON fediverse_outbox (next_attempt_at, id) WHERE state = 'pending';
 
+    -- Profile visibility and share link (feature 017): one row per user who chose a visibility or made a link.
+    -- No row means the instance default applies and there is no link. Only the link's hash is stored.
+    CREATE TABLE IF NOT EXISTS profile_settings (
+        user_id               uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        visibility            text NULL CHECK (visibility IN ('public', 'private')),
+        share_token_hash      text NULL UNIQUE,
+        share_link_id         uuid NULL,
+        share_link_created_at timestamptz NULL,
+        updated_at            timestamptz NOT NULL DEFAULT now(),
+        CHECK ((share_token_hash IS NULL) = (share_link_id IS NULL)
+               AND (share_link_id IS NULL) = (share_link_created_at IS NULL))
+    );
+
+    -- Instance data (feature 016): the ASP.NET Core data-protection keys behind sessions and form tokens.
+    -- Not personal, no user reference, never touched by user-delete; rows are only inserted. The key material in
+    -- xml is encrypted when Frunchy:DataProtection:EncryptionKey is set.
+    CREATE TABLE IF NOT EXISTS data_protection_keys (
+        id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        friendly_name text NOT NULL UNIQUE,
+        xml           text NOT NULL,
+        created_at    timestamptz NOT NULL DEFAULT now()
+    );
+
     -- MyAnimeList enrichment (feature 003): shared catalog data, nothing references users.
     -- raw columns hold the provider's responses verbatim (source says which provider); everything
     -- else is re-derivable (mal-rebuild).

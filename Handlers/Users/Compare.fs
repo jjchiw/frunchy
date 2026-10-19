@@ -323,13 +323,17 @@ let handler (rawUsername: string) : EndpointHandler =
 
                 match! tryFindUser db username with
                 | None -> return! notFound ctx t
-                | Some ownerId when ownerId = viewerId ->
-                    // Comparing yourself with yourself has nothing to say: back to your own dashboard
-                    ctx.Response.Redirect $"/u/{username}"
-                    return! Task.CompletedTask
                 | Some ownerId ->
-                    let! comparison = Compatibility.load db viewerId ownerId
-                    return! ctx.WriteHtmlView(view ctx t comparison)
+                    // Feature 017: a profile the viewer can't see is the unknown-user 404, before anything else
+                    match! Profiles.visibleTo ctx db ownerId with
+                    | false -> return! notFound ctx t
+                    | true when ownerId = viewerId ->
+                        // Comparing yourself with yourself has nothing to say: back to your own dashboard
+                        ctx.Response.Redirect $"/u/{username}"
+                        return! Task.CompletedTask
+                    | true ->
+                        let! comparison = Compatibility.load db viewerId ownerId
+                        return! ctx.WriteHtmlView(view ctx t comparison)
         })
 
 // ---------------------------------------------------------------------------
