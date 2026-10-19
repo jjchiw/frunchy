@@ -186,9 +186,19 @@ let private runGraph (builder: IDistributedApplicationBuilder) (repoRoot: string
             "Megafono's source was not found at %s. Check it out there, or set Megafono:SourcePath (AppHost/appsettings.json or user secrets), or turn Megafono:BuildFromSource off to use the published images."
             sourcePath
 
-    // Umbral (optional): our own OpenID Connect provider, built from a local checkout until an image is published.
-    // A missing checkout skips Umbral with a warning: Frunchy still runs (Google may be set up through Bella).
+    // Umbral (optional): our own OpenID Connect provider. Like Megafono: the published image at a pinned tag
+    // (Umbral:ImageTag, never "latest"), or built from a local checkout when Umbral:BuildFromSource is true.
+    // In source mode a missing checkout skips Umbral with a warning: Frunchy still runs (Google may be set up through Bella).
     let umbralEnabled = builder.Configuration.GetValue<bool>("Umbral:Enabled", false)
+    let umbralBuildFromSource = builder.Configuration.GetValue<bool>("Umbral:BuildFromSource", false)
+
+    let umbralImageTag =
+        match builder.Configuration["Umbral:ImageTag"] with
+        | null -> ""
+        | tag -> tag.Trim()
+
+    if umbralEnabled && not umbralBuildFromSource && (umbralImageTag = "" || umbralImageTag = "latest") then
+        failwith "Set Umbral:ImageTag to a pinned Umbral release (e.g. 0.1.1, never latest), or Umbral:BuildFromSource to true, or Umbral:Enabled to false."
 
     let umbralPort =
         match builder.Configuration.GetValue<int>("Umbral:Port", 5380) with
@@ -210,11 +220,13 @@ let private runGraph (builder: IDistributedApplicationBuilder) (repoRoot: string
     let umbralAvailable =
         if not umbralEnabled then
             false
+        elif not umbralBuildFromSource then
+            true
         elif File.Exists(Path.Combine(umbralSourcePath, "Dockerfile")) then
             true
         else
             eprintfn
-                "WARNING: Umbral is skipped: no Dockerfile at %s. Check Umbral out there, or set Umbral:SourcePath (AppHost/appsettings.json or user secrets), or set Umbral:Enabled to false to silence this."
+                "WARNING: Umbral is skipped: no Dockerfile at %s. Check Umbral out there, or set Umbral:SourcePath (AppHost/appsettings.json or user secrets), or turn Umbral:BuildFromSource off to use the published image, or set Umbral:Enabled to false to silence this."
                 umbralSourcePath
 
             false
@@ -290,9 +302,14 @@ let private runGraph (builder: IDistributedApplicationBuilder) (repoRoot: string
     // Umbral: the container (dev settings: http on localhost, the fake connector) and, once the app is registered
     // in its admin and the client credentials are in user secrets, Frunchy's Umbral provider. No secret is printed.
     if umbralAvailable then
+        let umbralBase =
+            if umbralBuildFromSource then
+                builder.AddDockerfile("umbral", umbralSourcePath)
+            else
+                builder.AddContainer("umbral", "ghcr.io/cosmic-chimps/umbral", umbralImageTag)
+
         let umbral =
-            builder
-                .AddDockerfile("umbral", umbralSourcePath)
+            umbralBase
                 // The port is pinned and the origin is localhost (not 127.0.0.1): it is the issuer in every token
                 .WithHttpEndpoint(port = umbralPort, targetPort = 8080, name = "http")
                 .WithEnvironment("UMBRAL__PUBLIC_ORIGIN", $"http://localhost:{umbralPort}")
