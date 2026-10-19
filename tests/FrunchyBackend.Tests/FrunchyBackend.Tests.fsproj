@@ -86,6 +86,8 @@
     <Compile Include="FediverseBlocksTests.fs" />
     <Compile Include="FediversePagesTests.fs" />
     <Compile Include="FediverseOperationsTests.fs" />
+    <Compile Include="ProfileRulesTests.fs" />
+    <Compile Include="PrivateProfileTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

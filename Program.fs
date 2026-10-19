@@ -419,6 +419,9 @@ let configureServices (config: IConfiguration) (services: IServiceCollection) =
                 services.AddHostedService<Workers.FediverseOutbox.FediverseOutboxService>() |> ignore
         | Federation.Disabled -> ()
 
+    // Feature 017: the instance default for profile visibility; an invalid value stops startup naming the key
+    services.AddSingleton<Profiles.ProfileSettings>(Profiles.read config) |> ignore
+
     configureAuth config services
     services.AddRouting().AddOxpecker() |> ignore
 
@@ -522,7 +525,9 @@ type CliEnv =
       /// The federation settings, for `fediverse-status` (never printed with their secrets)
       Federation: Federation.FederationSettings
       /// `Frunchy:RootOperator`: the commands refuse to add or remove it
-      RootOperator: string option }
+      RootOperator: string option
+      /// `Frunchy:Profiles:DefaultVisibility`, for the visibility column of `user-list` (feature 017)
+      Profiles: Profiles.ProfileSettings }
 
 let private dbOnly (run: DbConfig -> string list -> Task<int>) = fun (env: CliEnv) args -> run env.Db args
 
@@ -534,7 +539,7 @@ let cliCommands: Map<string, CliEnv -> string list -> Task<int>> =
           "user-reset-binding", dbOnly Operations.ResetBinding.run
           "user-rebuild", dbOnly Operations.RebuildUser.run
           "user-delete", (fun env args -> Operations.DeleteUser.run env.Db env.Federated args)
-          "user-list", dbOnly Operations.ListUsers.run
+          "user-list", (fun env args -> Operations.ListUsers.run env.Db env.Profiles args)
           "invite-create", dbOnly Operations.InviteCreate.run
           "invite-list", dbOnly Operations.InviteList.run
           "invite-revoke", dbOnly Operations.InviteRevoke.run
@@ -574,7 +579,8 @@ let private runCli (command: string) (rest: string list) : int =
           Clock = TimeProvider.System
           Federated = Fediverse.isEnabled federation
           Federation = federation
-          RootOperator = WebAuth.rootOperator config }
+          RootOperator = WebAuth.rootOperator config
+          Profiles = Profiles.read config }
 
     task {
         do! initializeSchema db

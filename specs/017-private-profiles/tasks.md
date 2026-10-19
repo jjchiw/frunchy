@@ -9,27 +9,27 @@
 
 ## Phase 1: The rule and private by default (US1)
 
-- [ ] T001 Schema: `profile_settings` per data-model.md in `initializeSchema`, documented in `SCHEMA.md`
+- [x] T001 Schema: `profile_settings` per data-model.md in `initializeSchema`, documented in `SCHEMA.md`
   (Accounts). Update `SchemaBootstrapTests` for the expected new table · Infrastructure/Database.fs, SCHEMA.md,
   tests/FrunchyBackend.Tests/SchemaBootstrapTests.fs
-- [ ] T002 `ShareToken` (generate, hash, shape check) next to `SyncKey` in `Domains/Identity.fs`, plus the four new
+- [x] T002 `ShareToken` (generate, hash, shape check) next to `SyncKey` in `Domains/Identity.fs`, plus the four new
   `SecurityEventType` cases with their `toDb` names (data-model.md) · Domains/Identity.fs
-- [ ] T003 `Infrastructure/Profiles.fs` (research R2, R4): `Visibility`, `parseDefault`, `ProfileSettings`
+- [x] T003 `Infrastructure/Profiles.fs` (research R2, R4): `Visibility`, `parseDefault`, `ProfileSettings`
   singleton, `effective`, `canView` (pure), `loadAccess`, the grant cookie (read, add, write), and `visibleTo`.
   Register the singleton in `Program.configureServices`; an invalid setting throws there naming the key
   · Infrastructure/Profiles.fs, FrunchyBackend.fsproj, Program.fs
-- [ ] T004 [P] `ProfileRulesTests` (unit): `canView` over public, private, owner, a matching grant, a grant with an old
+- [x] T004 [P] `ProfileRulesTests` (unit): `canView` over public, private, owner, a matching grant, a grant with an old
   link id, a grant for another user; `parseDefault` (missing, `PUBLIC`, ` private `, `friends`); and the grant
   cookie round trip with 21 grants, keeping the newest 20 · tests/FrunchyBackend.Tests/ProfileRulesTests.fs
-- [ ] T005 Fixture: `createAppWith` adds `Frunchy:Profiles:DefaultVisibility=public` before `extraConfig` (research R7),
+- [x] T005 Fixture: `createAppWith` adds `Frunchy:Profiles:DefaultVisibility=public` before `extraConfig` (research R7),
   with a comment saying why; the whole existing suite must still pass · tests/FrunchyBackend.Tests/Infrastructure/PostgresFixture.fs
-- [ ] T006 Apply the rule on every `/u/` route (research R5): dashboard, DNA, year (both routes), anime, compare (with
+- [x] T006 Apply the rule on every `/u/` route (research R5): dashboard, DNA, year (both routes), anime, compare (with
   the compare order). Hidden profiles get the same unknown-user 404. The owner's private pages show
   `Components.privateProfileNote` in place of the copy-link block. Add texts in en and es (`Views/Texts.fs`)
   · Handlers/Users/*.fs, Views/Components.fs, Views/Texts.fs
-- [ ] T007 Home note by default (two texts, en and es); `user-list` visibility column · Handlers/Home.fs,
+- [x] T007 Home note by default (two texts, en and es); `user-list` visibility column · Handlers/Home.fs,
   Views/Texts.fs, Operations/ListUsers.fs
-- [ ] T008 [P] `PrivateProfileTests`, with the default `private`:
+- [x] T008 [P] `PrivateProfileTests`, with the default `private`:
   - **Strangers**: each route (dashboard, DNA, `/year`, `/year/{y}`, an anime page, compare as another signed-in
     user) answers 404, signed out, as another user and as the root operator.
   - **Indistinguishable**: the body equals an unknown username's after removing per-request values.
@@ -41,7 +41,7 @@
   - **Home note**: follows the default.
 
   · tests/FrunchyBackend.Tests/PrivateProfileTests.fs
-- [ ] T009 Full suite; commit "impl(017): profiles follow a visibility rule, private by default".
+- [x] T009 Full suite; commit "impl(017): profiles follow a visibility rule, private by default".
 
 ## Phase 2: Choosing, sharing, and everything that links (US2, US3, US4)
 

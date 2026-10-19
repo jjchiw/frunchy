@@ -64,7 +64,9 @@ type DashboardModel =
       TopGenres: TopGenres option // None when no fully watched episode is in a matched season
       Recent: RecentEpisode list
       /// `@username@domain` with federation on (feature 015); None otherwise, and for a username that can't federate
-      FediverseHandle: string option }
+      FediverseHandle: string option
+      /// What the page says about who can see it (feature 017)
+      Access: Profiles.PageAccess }
 
 let private timeElement = Layout.timeElement
 
@@ -225,7 +227,11 @@ let private header (ctx: HttpContext) (t: Texts) (m: DashboardModel) =
 
     div(class' = "flex flex-col gap-6 md:flex-row md:items-end md:justify-between") {
         div(class' = "min-w-0 space-y-3 [overflow-wrap:anywhere]") {
-            pageHeading m.DisplayName (Some t.PublicProfileNote)
+            pageHeading
+                m.DisplayName
+                (match m.Access with
+                 | Profiles.PublicPage -> Some t.PublicProfileNote
+                 | _ -> None)
 
             p(class' = "flex flex-wrap items-center gap-x-1.5 gap-y-1 text-body-md text-on-surface-variant") {
                 icon Theme.Sync
@@ -262,7 +268,7 @@ let private header (ctx: HttpContext) (t: Texts) (m: DashboardModel) =
                 t.YearLink
             }
 
-            copyLink t address
+            profileAddress t m.Access address
         }
     }
 
@@ -395,7 +401,8 @@ let notFoundView (ctx: HttpContext) (t: Texts) =
 let private round1 (value: decimal) =
     Math.Round(value, 1, MidpointRounding.AwayFromZero)
 
-let private tryLoad (db: DbConfig) (username: string) : Task<DashboardModel option> =
+/// `gate` runs right after the user lookup, before any other query: None hides the profile (feature 017)
+let private tryLoad (db: DbConfig) (gate: Guid -> Task<Profiles.PageAccess option>) (username: string) : Task<DashboardModel option> =
     task {
         use connection = getConnection db
         do! connection.OpenAsync()
@@ -409,9 +416,19 @@ let private tryLoad (db: DbConfig) (username: string) : Task<DashboardModel opti
                 return if r.Read() then Some(r.GetGuid 0, r.GetString 1) else None
             }
 
-        match user with
+        // The visibility check, right after the lookup and before any history query
+        let! gated =
+            match user with
+            | Some(userId, displayName) ->
+                task {
+                    let! access = gate userId
+                    return access |> Option.map (fun a -> userId, displayName, a)
+                }
+            | None -> Task.FromResult None
+
+        match gated with
         | None -> return None
-        | Some(userId, displayName) ->
+        | Some(userId, displayName, access) ->
             use figuresCmd =
                 new NpgsqlCommand(
                     """
@@ -583,7 +600,8 @@ let private tryLoad (db: DbConfig) (username: string) : Task<DashboardModel opti
                       Figures = figures
                       TopGenres = topGenres
                       Recent = recent
-                      FediverseHandle = None }
+                      FediverseHandle = None
+                      Access = access }
     }
 
 // ---------------------------------------------------------------------------
@@ -597,7 +615,10 @@ let handler (rawUsername: string) : EndpointHandler =
 
             let! model =
                 match Username.tryCreate rawUsername with
-                | Some username -> tryLoad (ctx.GetService<DbConfig>()) username
+                | Some username ->
+                    let db = ctx.GetService<DbConfig>()
+                    // A hidden profile loads as no user at all: the unknown-user 404 below
+                    tryLoad db (Profiles.gate ctx db) username
                 | None -> Task.FromResult None
 
             match model with

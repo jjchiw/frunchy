@@ -33,7 +33,7 @@ let private cli (app: TestApp) (root: string option) (command: string) (args: st
           Http = httpFactory app
           Mal = MalClient.readSettings (ServiceProviderServiceExtensions.GetRequiredService<IConfiguration>(app.Services))
           Clock = TimeProvider.System
-          Federated = false; Federation = FrunchyBackend.Infrastructure.Federation.Disabled; RootOperator = root }
+          Federated = false; Federation = FrunchyBackend.Infrastructure.Federation.Disabled; RootOperator = root; Profiles = FrunchyBackend.Infrastructure.Profiles.ProfileSettings(FrunchyBackend.Infrastructure.Profiles.Private) }
 
     Program.cliCommands[command] env args
 

@@ -48,6 +48,24 @@ module SyncKey =
     let hash (key: string) =
         SHA256.HashData(Encoding.UTF8.GetBytes key) |> Convert.ToHexStringLower
 
+/// Secret in a profile share link (`/s/{token}`, feature 017). Only its SHA-256 hash is stored.
+module ShareToken =
+    let prefix = "frs_"
+
+    let private pattern = Regex("^frs_[A-Za-z0-9_-]{43}$", RegexOptions.Compiled)
+
+    /// "frs_" + base64url of 32 random bytes (43 chars)
+    let generate () =
+        let encoded = Convert.ToBase64String(RandomNumberGenerator.GetBytes 32)
+        prefix + encoded.TrimEnd('=').Replace('+', '-').Replace('/', '_')
+
+    /// True when the text has a token's shape; checked before any hash lookup
+    let isWellFormed (token: string) = not (isNull token) && pattern.IsMatch token
+
+    /// Lowercase hex SHA-256, the value persisted in profile_settings.share_token_hash
+    let hash (token: string) =
+        SHA256.HashData(Encoding.UTF8.GetBytes token) |> Convert.ToHexStringLower
+
 /// The Crunchyroll account (plus profile, when Crunchyroll needs it) a user's history comes from
 type HistoryOwner =
     { AccountId: string
@@ -120,6 +138,10 @@ type SecurityEventType =
     | CommentUnhidden
     | FediverseBlockAdded
     | FediverseBlockRemoved
+    | ProfileVisibilityChanged
+    | ShareLinkCreated
+    | ShareLinkReplaced
+    | ShareLinkRevoked
 
 module SecurityEventType =
     let toDb =
@@ -144,6 +166,10 @@ module SecurityEventType =
         | SecurityEventType.CommentUnhidden -> "comment_unhidden"
         | SecurityEventType.FediverseBlockAdded -> "fediverse_block_added"
         | SecurityEventType.FediverseBlockRemoved -> "fediverse_block_removed"
+        | SecurityEventType.ProfileVisibilityChanged -> "profile_visibility_changed"
+        | SecurityEventType.ShareLinkCreated -> "share_link_created"
+        | SecurityEventType.ShareLinkReplaced -> "share_link_replaced"
+        | SecurityEventType.ShareLinkRevoked -> "share_link_revoked"
 
     let all =
         [ SecurityEventType.AccountCreated; SecurityEventType.SignedIn; SecurityEventType.Claimed
@@ -152,6 +178,8 @@ module SecurityEventType =
           SecurityEventType.DisplayNameChanged; SecurityEventType.MalSet; SecurityEventType.MalNone
           SecurityEventType.MalRetry; SecurityEventType.MalAuto; SecurityEventType.OperatorAdded
           SecurityEventType.OperatorRemoved; SecurityEventType.CommentHidden; SecurityEventType.CommentUnhidden
-          SecurityEventType.FediverseBlockAdded; SecurityEventType.FediverseBlockRemoved ]
+          SecurityEventType.FediverseBlockAdded; SecurityEventType.FediverseBlockRemoved
+          SecurityEventType.ProfileVisibilityChanged; SecurityEventType.ShareLinkCreated
+          SecurityEventType.ShareLinkReplaced; SecurityEventType.ShareLinkRevoked ]
 
     let tryFromDb (value: string) = all |> List.tryFind (fun e -> toDb e = value)

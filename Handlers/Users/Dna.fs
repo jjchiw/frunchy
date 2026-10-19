@@ -8,6 +8,7 @@ open Npgsql
 open Oxpecker
 open Oxpecker.ViewEngine
 open FrunchyBackend.Domains.Identity
+open FrunchyBackend.Infrastructure
 open FrunchyBackend.Infrastructure.Database
 open FrunchyBackend.Views
 open FrunchyBackend.Views.Components
@@ -71,7 +72,9 @@ type DnaModel =
       DisplayName: string
       FullyWatched: int64
       /// None below minimumEpisodes (the page-level "not enough data yet")
-      Figures: Figures option }
+      Figures: Figures option
+      /// What the page says about who can see it (feature 017)
+      Access: Profiles.PageAccess }
 
 // ---------------------------------------------------------------------------
 // View (contracts/dna-page.md; design/frunchy_anime_dna_profile_u_username_dna, per design/REVIEW.md)
@@ -100,7 +103,7 @@ let private header (ctx: HttpContext) (t: Texts) (m: DnaModel) =
                 t.YearLink
             }
 
-            copyLink t address
+            profileAddress t m.Access address
         }
     }
 
@@ -374,7 +377,13 @@ let private round1 (value: decimal) =
 let private percent (part: int64) (whole: int64) =
     if whole = 0L then 0m else round1 (100m * decimal part / decimal whole)
 
-let private tryLoad (db: DbConfig) (username: string) (now: DateTimeOffset) : Task<DnaModel option> =
+/// `gate` runs right after the user lookup, before any other query: None hides the profile (feature 017)
+let private tryLoad
+    (db: DbConfig)
+    (gate: Guid -> Task<Profiles.PageAccess option>)
+    (username: string)
+    (now: DateTimeOffset)
+    : Task<DnaModel option> =
     task {
         use connection = getConnection db
         do! connection.OpenAsync()
@@ -388,9 +397,19 @@ let private tryLoad (db: DbConfig) (username: string) (now: DateTimeOffset) : Ta
                 return if r.Read() then Some(r.GetGuid 0, r.GetString 1) else None
             }
 
-        match user with
+        // The visibility check, right after the lookup and before any history query
+        let! gated =
+            match user with
+            | Some(userId, displayName) ->
+                task {
+                    let! access = gate userId
+                    return access |> Option.map (fun a -> userId, displayName, a)
+                }
+            | None -> Task.FromResult None
+
+        match gated with
         | None -> return None
-        | Some(userId, displayName) ->
+        | Some(userId, displayName, access) ->
             // One statement, one row shape: (kind, name, ms, n, x1, x2, x3, t1, t2, t3, t4, t5)
             use cmd =
                 new NpgsqlCommand(
@@ -589,6 +608,7 @@ let private tryLoad (db: DbConfig) (username: string) (now: DateTimeOffset) : Ta
                     { Username = username
                       DisplayName = displayName
                       FullyWatched = fullyWatched
+                      Access = access
                       Figures =
                         if fullyWatched < minimumEpisodes then
                             None
@@ -623,7 +643,10 @@ let handler (rawUsername: string) : EndpointHandler =
 
             let! model =
                 match Username.tryCreate rawUsername with
-                | Some username -> tryLoad (ctx.GetService<DbConfig>()) username now
+                | Some username ->
+                    let db = ctx.GetService<DbConfig>()
+                    // A hidden profile loads as no user at all: the unknown-user 404 below
+                    tryLoad db (Profiles.gate ctx db) username now
                 | None -> Task.FromResult None
 
             match model with

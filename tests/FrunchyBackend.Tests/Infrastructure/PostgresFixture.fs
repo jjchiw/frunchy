@@ -102,7 +102,11 @@ let createAppWith (db: DbConfig) (extraConfig: (string * string) list) (customiz
                           Program.WorkerEnabledKey, "false"
                           Program.EnrichmentWorkerEnabledKey, "false"
                           Program.FediverseWorkerEnabledKey, "false"
-                          DataProtectionStore.EncryptionKeySetting, TestDataProtectionKey ]
+                          DataProtectionStore.EncryptionKeySetting, TestDataProtectionKey
+                          // Feature 017: the real default is private, but most tests open other users' profiles signed
+                          // out; they keep working on public ones. Tests of the rule pass "private" (or "" for the
+                          // app's own default) in extraConfig, which comes after this.
+                          Profiles.DefaultVisibilityKey, "public" ]
                         @ FakeMal.fastSettings
                         @ extraConfig
                     )

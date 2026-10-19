@@ -8,6 +8,7 @@ open Npgsql
 open Oxpecker
 open Oxpecker.ViewEngine
 open FrunchyBackend.Domains.Identity
+open FrunchyBackend.Infrastructure
 open FrunchyBackend.Infrastructure.Database
 open FrunchyBackend.Views
 open FrunchyBackend.Views.Components
@@ -67,7 +68,9 @@ type YearModel =
       FirstFutureMonth: int option
       FullyWatched: int64
       /// None below minimumEpisodes (the page-level "not enough data yet")
-      Figures: Figures option }
+      Figures: Figures option
+      /// What the page says about who can see it (feature 017)
+      Access: Profiles.PageAccess }
 
 // ---------------------------------------------------------------------------
 // View (contracts/year-page.md)
@@ -110,7 +113,7 @@ let private header (ctx: HttpContext) (t: Texts) (m: YearModel) =
                     t.DnaLink
                 }
 
-                copyLink t address
+                profileAddress t m.Access address
             }
         }
 
@@ -336,28 +339,51 @@ let private percent (part: int64) (whole: int64) =
 
 type private User = { Id: Guid; DisplayName: string; Years: int list }
 
-let private loadUser (connection: NpgsqlConnection) (username: string) : Task<User option> =
+/// The user alone: the visibility check (feature 017) runs before any history query, so `Years` comes after it
+let private findUser (connection: NpgsqlConnection) (username: string) : Task<(Guid * string) option> =
+    task {
+        use cmd = new NpgsqlCommand("SELECT id, display_name FROM users WHERE username = @username", connection)
+        cmd.Parameters.AddWithValue("username", username) |> ignore
+        use! r = cmd.ExecuteReaderAsync()
+        return if r.Read() then Some(r.GetGuid 0, r.GetString 1) else None
+    }
+
+/// Years with history, newest first
+let private loadYears (connection: NpgsqlConnection) (userId: Guid) : Task<int list> =
     task {
         use cmd =
             new NpgsqlCommand(
                 """
-                SELECT u.id, u.display_name,
-                       array(SELECT DISTINCT extract(year FROM w.watched_at AT TIME ZONE 'UTC')::int
-                             FROM watch_events w JOIN cr_episodes e ON e.id = w.cr_episode_id
-                             WHERE w.user_id = u.id AND e.duration_ms IS NOT NULL
-                             ORDER BY 1 DESC)
-                FROM users u WHERE u.username = @username
+                SELECT DISTINCT extract(year FROM w.watched_at AT TIME ZONE 'UTC')::int
+                FROM watch_events w JOIN cr_episodes e ON e.id = w.cr_episode_id
+                WHERE w.user_id = @user_id AND e.duration_ms IS NOT NULL
+                ORDER BY 1 DESC
                 """,
                 connection
             )
 
-        cmd.Parameters.AddWithValue("username", username) |> ignore
+        cmd.Parameters.AddWithValue("user_id", userId) |> ignore
         use! r = cmd.ExecuteReaderAsync()
+        let years = ResizeArray<int>()
 
-        if r.Read() then
-            return Some { Id = r.GetGuid 0; DisplayName = r.GetString 1; Years = r.GetFieldValue<int[]> 2 |> List.ofArray }
-        else
-            return None
+        while r.Read() do
+            years.Add(r.GetInt32 0)
+
+        return List.ofSeq years
+    }
+
+/// The user, once the viewer is known to see their profile: None for an unknown username and for a hidden profile
+/// alike (the same 404), with no history query before the check
+let private loadUser (ctx: HttpContext) (connection: NpgsqlConnection) (username: string) : Task<(User * Profiles.PageAccess) option> =
+    task {
+        match! findUser connection username with
+        | None -> return None
+        | Some(id, displayName) ->
+            match! Profiles.gate ctx (ctx.GetService<DbConfig>()) id with
+            | None -> return None
+            | Some access ->
+                let! years = loadYears connection id
+                return Some({ Id = id; DisplayName = displayName; Years = years }, access)
     }
 
 let private loadYear (connection: NpgsqlConnection) (userId: Guid) (year: int) : Task<int64 * Figures option> =
@@ -595,9 +621,9 @@ let latest (rawUsername: string) : EndpointHandler =
                 use connection = getConnection (ctx.GetService<DbConfig>())
                 do! connection.OpenAsync()
 
-                match! loadUser connection username with
+                match! loadUser ctx connection username with
                 | None -> return! notFound ctx t true
-                | Some user ->
+                | Some(user, access) ->
                     let year = user.Years |> List.tryHead |> Option.defaultValue (currentYear ctx)
                     ctx.Response.Redirect $"/u/{username}/year/{year}"
                     return ()
@@ -621,9 +647,9 @@ let handler (rawUsername: string) (rawYear: string) : EndpointHandler =
                 use connection = getConnection (ctx.GetService<DbConfig>())
                 do! connection.OpenAsync()
 
-                match! loadUser connection username with
+                match! loadUser ctx connection username with
                 | None -> return! notFound ctx t true
-                | Some user ->
+                | Some(user, access) ->
                     match year with
                     | None -> return! notFound ctx t false
                     | Some y when y <> thisYear && not (List.contains y user.Years) ->
@@ -641,7 +667,8 @@ let handler (rawUsername: string) (rawYear: string) : EndpointHandler =
                                 (let today = ctx.GetService<TimeProvider>().GetUtcNow().UtcDateTime
                                  if y = today.Year && today.Month < 12 then Some(today.Month + 1) else None)
                               FullyWatched = fullyWatched
-                              Figures = figures }
+                              Figures = figures
+                              Access = access }
 
                         return! ctx.WriteHtmlView(view ctx t model)
         }

@@ -15,7 +15,9 @@ type Texts =
       HomeIntro: string
       HomeHowToSyncTitle: string
       HomeSteps: string list
-      HomeProfilesNote: string
+      /// Which of the two the home page shows follows `Frunchy:Profiles:DefaultVisibility` (feature 017)
+      HomeProfilesPrivateNote: string
+      HomeProfilesPublicNote: string
 
       NotFoundTitle: string
       NotFoundBody: string
@@ -25,6 +27,9 @@ type Texts =
 
       // Public dashboard (/u/{username})
       PublicProfileNote: string
+      /// The owner's own pages when the profile is private, with a link to the visibility settings (feature 017)
+      PrivateProfileNote: string
+      PrivateProfileLink: string
       LastSync: string
       NeverSynced: string
       NewestEpisode: string
@@ -445,8 +450,9 @@ let en =
       HomeSteps =
         [ "Install the Frunchy browser extension and paste your sync key in its options."
           "Open your watch history on crunchyroll.com."
-          "The extension sends it to Frunchy; your public dashboard updates in a moment." ]
-      HomeProfilesNote = "Dashboards are public: anyone with the link to a profile can see its numbers."
+          "The extension sends it to Frunchy; your dashboard updates in a moment." ]
+      HomeProfilesPrivateNote = "Profiles are private: only their owner, and the people they share a link with, can see them."
+      HomeProfilesPublicNote = "Profiles are public unless their owner makes them private: anyone with the link to a profile can see its numbers."
 
       NotFoundTitle = "Page not found"
       NotFoundBody = "There's nothing at this address."
@@ -455,6 +461,8 @@ let en =
       BackHome = "Back to home"
 
       PublicProfileNote = "This profile is public: anyone with the link can see these numbers."
+      PrivateProfileNote = "This profile is private: only you can see it."
+      PrivateProfileLink = "Share it or make it public"
       LastSync = "Last sync"
       NeverSynced = "Not synced yet"
       NewestEpisode = "Newest episode"
@@ -983,8 +991,9 @@ let es =
       HomeSteps =
         [ "Instala la extensión de Frunchy y pega tu clave de sincronización en sus opciones."
           "Abre tu historial en crunchyroll.com."
-          "La extensión lo envía a Frunchy y tu dashboard público se actualiza en unos instantes." ]
-      HomeProfilesNote = "Los dashboards son públicos: cualquiera con el enlace de un perfil puede ver sus números."
+          "La extensión lo envía a Frunchy y tu dashboard se actualiza en unos instantes." ]
+      HomeProfilesPrivateNote = "Los perfiles son privados: solo los ve su dueño y las personas con quienes comparte un enlace."
+      HomeProfilesPublicNote = "Los perfiles son públicos salvo que su dueño los haga privados: cualquiera con el enlace de un perfil puede ver sus números."
 
       NotFoundTitle = "Página no encontrada"
       NotFoundBody = "No hay nada en esta dirección."
@@ -993,6 +1002,8 @@ let es =
       BackHome = "Volver al inicio"
 
       PublicProfileNote = "Este perfil es público: cualquiera con el enlace puede ver estos números."
+      PrivateProfileNote = "Este perfil es privado: solo tú puedes verlo."
+      PrivateProfileLink = "Compártelo o hazlo público"
       LastSync = "Última sincronización"
       NeverSynced = "Aún sin sincronizar"
       NewestEpisode = "Último episodio"
