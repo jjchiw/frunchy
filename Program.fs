@@ -587,24 +587,31 @@ let main args =
     match List.ofArray args with
     | command :: rest when cliCommands.ContainsKey command -> runCli command rest
     | _ ->
-        let app = buildApp args ignore
+        // A startup failure (a missing setting, the database down) must end the process with a failure code: in a
+        // container the app is PID 1, where an unhandled exception prints and then hangs instead of exiting, so the
+        // orchestrator would never restart it
+        try
+            let app = buildApp args ignore
 
-        // Feature 016: the release build stamps its version into the assembly (the image's VERSION build argument)
-        let version =
-            match
-                Reflection.CustomAttributeExtensions.GetCustomAttribute<Reflection.AssemblyInformationalVersionAttribute>(
-                    Reflection.Assembly.GetEntryAssembly()
-                )
-            with
-            | null -> "unknown"
-            | attribute -> attribute.InformationalVersion
+            // Feature 016: the release build stamps its version into the assembly (the image's VERSION build argument)
+            let version =
+                match
+                    Reflection.CustomAttributeExtensions.GetCustomAttribute<Reflection.AssemblyInformationalVersionAttribute>(
+                        Reflection.Assembly.GetEntryAssembly()
+                    )
+                with
+                | null -> "unknown"
+                | attribute -> attribute.InformationalVersion
 
-        app.Logger.LogInformation("Frunchy {Version} starting", version)
+            app.Logger.LogInformation("Frunchy {Version} starting", version)
 
-        task {
-            do! initializeSchema (app.Services.GetRequiredService<DbConfig>())
-            do! app.RunAsync()
-        }
-        |> fun t -> t.GetAwaiter().GetResult()
+            task {
+                do! initializeSchema (app.Services.GetRequiredService<DbConfig>())
+                do! app.RunAsync()
+            }
+            |> fun t -> t.GetAwaiter().GetResult()
 
-        0
+            0
+        with ex ->
+            eprintfn "Frunchy could not start: %O" ex
+            1
