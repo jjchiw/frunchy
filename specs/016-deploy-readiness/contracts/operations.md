@@ -10,7 +10,7 @@
 - Plain http on the app's port (8080 in the image).
 - Any Host header, no cookies, no authentication, no redirect, no `Set-Cookie`, no rate limit.
 - Never depends on Megáfono, MyAnimeList or a sign-in provider.
-- Only `GET`: other verbs get the plain 404 like any unknown route.
+- Only `GET`: other verbs get routing's 405, as on every GET-only route.
 
 ## Settings
 

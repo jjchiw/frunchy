@@ -10,11 +10,11 @@ the image for both platforms and checks a restart under the AppHost.
 
 ## Phase 1: The app (US2, US3)
 
-- [ ] T001 Schema: `data_protection_keys` per data-model.md in `initializeSchema`, documented in `SCHEMA.md` (new
+- [x] T001 Schema: `data_protection_keys` per data-model.md in `initializeSchema`, documented in `SCHEMA.md` (new
   "Instance" data class: not personal, not cascaded, in the backup). Update `SchemaBootstrapTests` so the new
   table is an expected difference and the test still proves the earlier tables unchanged
   · Infrastructure/Database.fs, SCHEMA.md, tests/FrunchyBackend.Tests/SchemaBootstrapTests.fs
-- [ ] T002 `Infrastructure/DataProtectionStore.fs` (research R1–R3), placed after `Database.fs` in the fsproj:
+- [x] T002 `Infrastructure/DataProtectionStore.fs` (research R1–R3), placed after `Database.fs` in the fsproj:
   - `PostgresXmlRepository`;
   - `AesGcmXmlEncryptor` / `AesGcmXmlDecryptor`, with the `DataProtectionEncryptionKey` singleton;
   - `parseKey` (base64 of exactly 32 bytes; errors name `Frunchy:DataProtection:EncryptionKey` and never echo the value);
@@ -23,7 +23,7 @@ the image for both platforms and checks a restart under the AppHost.
 
   Literal SQL with parameters only (the `SqlGuardrailTests` must pass)
   · Infrastructure/DataProtectionStore.fs, FrunchyBackend.fsproj
-- [ ] T003 `Program.fs`:
+- [x] T003 `Program.fs`:
   - remove the `KeysPath` block from `configureServices`;
   - call `DataProtectionStore.register builder.Environment builder.Configuration builder.Services` in `buildApp`
     after `configureServices`;
@@ -32,10 +32,10 @@ the image for both platforms and checks a restart under the AppHost.
     before `RunAsync`.
 
   · Program.fs
-- [ ] T004 Test key: `PostgresFixture.createAppWith` adds `Frunchy:DataProtection:EncryptionKey` = a fixed
+- [x] T004 Test key: `PostgresFixture.createAppWith` adds `Frunchy:DataProtection:EncryptionKey` = a fixed
   base64-of-32-bytes test value (a named constant in the fixture), placed **before** `extraConfig` so a test can
   override it with `""`. The whole existing suite must still pass · tests/FrunchyBackend.Tests/Infrastructure/PostgresFixture.fs
-- [ ] T005 [P] `DataProtectionTests`:
+- [x] T005 [P] `DataProtectionTests`:
   - **Restart and copies**: two app instances on the same database. A session cookie from a sign-in on the first
     (`AuthHelpers.signedUp` or the test provider) opens `/account` on the second, and an antiforgery-protected
     form fetched from the first posts successfully on the second.
@@ -52,9 +52,9 @@ the image for both platforms and checks a restart under the AppHost.
   - **Retired setting**: with `KeysPath` set, the app starts and the keys are still in the table.
 
   · tests/FrunchyBackend.Tests/DataProtectionTests.fs
-- [ ] T006 `Handlers/Health.fs` (research R4): `GET /healthz`, mapped in `Program.endpoints` regardless of
+- [x] T006 `Handlers/Health.fs` (research R4): `GET /healthz`, mapped in `Program.endpoints` regardless of
   federation. First file in the Handlers section of the fsproj · Handlers/Health.fs, Program.fs, FrunchyBackend.fsproj
-- [ ] T007 [P] `HealthTests`:
+- [x] T007 [P] `HealthTests`:
   - **Up**: 200 `ok` with `text/plain; charset=utf-8` and `Cache-Control: no-store`, and no `Set-Cookie`.
   - **Same answer everywhere**: with Host `anything.example`, `Accept-Language: es`, and cookies of a signed-in user.
   - **Database unreachable**: an app whose connection string points at a closed port answers 503 `unavailable`
@@ -63,7 +63,7 @@ the image for both platforms and checks a restart under the AppHost.
   - **Other verbs**: `POST /healthz` gets the plain 404.
 
   · tests/FrunchyBackend.Tests/HealthTests.fs
-- [ ] T008 Run the full suite; commit "impl(016): data-protection keys in Postgres, encrypted; /healthz; version log".
+- [x] T008 Run the full suite; commit "impl(016): data-protection keys in Postgres, encrypted; /healthz; version log".
 
 ## Phase 2: Delivery and docs (US1, US4, US5)
 

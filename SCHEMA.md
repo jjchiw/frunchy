@@ -18,6 +18,7 @@ EXISTS`, no migration framework). Keep this document in sync with it. The design
 | **Personal, derived** | `watch_events`, `cr_import_entry_issues`, import counts | rebuildable from the raw pages (`user-rebuild`) |
 | **Identity** | `users` | the sync key is stored only as a SHA-256 hash |
 | **Shared catalog** | `cr_series`, `cr_seasons`, `cr_episodes` | public Crunchyroll metadata, shared by all users; never deleted |
+| **Instance** (feature 016) | `data_protection_keys` | the instance's own data-protection keys, not personal: no user reference, untouched by `user-delete`, part of the backup |
 | **Shared catalog, external** (feature 003) | `mal_anime`, `mal_searches` (raw), `mal_tags`, `mal_anime_tags`, `mal_relations`, `cr_season_matches` | MyAnimeList data (official API or Jikan); nothing references `users`, so user deletion never touches it |
 
 Everything personal hangs off `users` with `ON DELETE CASCADE`, so `user-delete` removes all of it.
@@ -68,6 +69,12 @@ Remote comments reuse `comments` (`remote_actor`, `format = 'html'`, `object_id`
 `users.sync_key_hash` and `users.sync_key_created_at` are **nullable**: a user who signed up on the
 website has no key until "Connect extension". Sessions aren't stored (encrypted cookies), and
 provider tokens, emails and avatars are never stored.
+
+## Instance (feature 016)
+
+| Table | Key | Notes |
+|---|---|---|
+| `data_protection_keys` | identity `id` | the ASP.NET Core data-protection keys that protect session cookies, sign-in round trips and form tokens, so a restart, a release or a second copy keeps everyone signed in. `friendly_name` (UNIQUE, the framework's `key-<guid>`; storing the same name again is ignored), `xml` (the key's XML; its secret is an `encryptedSecret`, AES-256-GCM, when `Frunchy:DataProtection:EncryptionKey` is set), `created_at`. Rows are only inserted: expired keys stay so older payloads can still be read. Not personal; losing the encryption key makes them unreadable and signs everyone out |
 
 ## Tracking
 

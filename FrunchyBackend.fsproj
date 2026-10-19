@@ -13,6 +13,7 @@
     <Compile Include="Domains/Catalog.fs" />
     <Compile Include="Domains/Tracking.fs" />
     <Compile Include="Infrastructure/Database.fs" />
+    <Compile Include="Infrastructure/DataProtectionStore.fs" />
     <Compile Include="Infrastructure/CrunchyrollPage.fs" />
     <Compile Include="Infrastructure/ApiErrors.fs" />
     <Compile Include="Infrastructure/Auth.fs" />
@@ -40,6 +41,7 @@
     <Compile Include="Views/Components.fs" />
     <Compile Include="Views/Blocks.fs" />
     <Compile Include="Views/Layout.fs" />
+    <Compile Include="Handlers/Health.fs" />
     <Compile Include="Handlers/Home.fs" />
     <Compile Include="Handlers/Api/CreateImport.fs" />
     <Compile Include="Handlers/Api/GetImportStatus.fs" />

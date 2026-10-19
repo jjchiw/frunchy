@@ -2,7 +2,6 @@ module FrunchyBackend.Program
 
 open System
 open System.Globalization
-open System.IO
 open System.Threading.RateLimiting
 open System.Threading.Tasks
 open Microsoft.AspNetCore.Antiforgery
@@ -43,7 +42,9 @@ let FediverseWorkerEnabledKey = "Frunchy:FediverseWorkerEnabled"
 
 // One vertical slice per endpoint, see Handlers/
 let endpoints =
-    [ Handlers.Home.endpoint
+    [ // Feature 016: the health check for Caravana (always mapped, federation or not)
+      Handlers.Health.endpoint
+      Handlers.Home.endpoint
       Handlers.Api.CreateImport.endpoint
       Handlers.Api.GetImportStatus.endpoint
       Handlers.Api.WhoAmI.endpoint
@@ -316,11 +317,6 @@ let configureAuth (config: IConfiguration) (services: IServiceCollection) =
 
     services.AddAntiforgery() |> ignore
 
-    match config["Frunchy:DataProtection:KeysPath"] with
-    | null
-    | "" -> ()
-    | path -> services.AddDataProtection().PersistKeysToFileSystem(DirectoryInfo path) |> ignore
-
     // Built-in rate limiting, fixed windows per client IP (research R8)
     services.AddRateLimiter(fun options ->
         let perIp (name: string) (permits: int) (window: TimeSpan) =
@@ -499,7 +495,19 @@ let buildApp (args: string array) (customize: WebApplicationBuilder -> unit) : W
     addBellaSecrets args builder.Configuration
     customize builder
     configureServices builder.Configuration builder.Services
+    // Feature 016: the data-protection keys live in Postgres, encrypted (needs the environment, so it isn't in configureServices)
+    DataProtectionStore.register builder.Environment builder.Configuration builder.Services
     let app = builder.Build()
+
+    match app.Configuration[DataProtectionStore.KeysPathSetting] with
+    | null
+    | "" -> ()
+    | _ ->
+        app.Logger.LogWarning(
+            "{Setting} is retired and ignored: the data-protection keys are always stored in Postgres.",
+            DataProtectionStore.KeysPathSetting
+        )
+
     configureApp app
     app
 
@@ -580,6 +588,18 @@ let main args =
     | command :: rest when cliCommands.ContainsKey command -> runCli command rest
     | _ ->
         let app = buildApp args ignore
+
+        // Feature 016: the release build stamps its version into the assembly (the image's VERSION build argument)
+        let version =
+            match
+                Reflection.CustomAttributeExtensions.GetCustomAttribute<Reflection.AssemblyInformationalVersionAttribute>(
+                    Reflection.Assembly.GetEntryAssembly()
+                )
+            with
+            | null -> "unknown"
+            | attribute -> attribute.InformationalVersion
+
+        app.Logger.LogInformation("Frunchy {Version} starting", version)
 
         task {
             do! initializeSchema (app.Services.GetRequiredService<DbConfig>())

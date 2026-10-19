@@ -29,6 +29,8 @@
     <Compile Include="OperationsTests.fs" />
     <Compile Include="AuthConfigTests.fs" />
     <Compile Include="FederationSettingsTests.fs" />
+    <Compile Include="HealthTests.fs" />
+    <Compile Include="DataProtectionTests.fs" />
     <Compile Include="ForwardedHeadersTests.fs" />
     <Compile Include="AccountActionsTests.fs" />
     <Compile Include="InviteOperationsTests.fs" />

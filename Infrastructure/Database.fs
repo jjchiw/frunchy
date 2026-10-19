@@ -242,6 +242,16 @@ let private schema =
 
     CREATE INDEX IF NOT EXISTS ix_fediverse_outbox_pending ON fediverse_outbox (next_attempt_at, id) WHERE state = 'pending';
 
+    -- Instance data (feature 016): the ASP.NET Core data-protection keys behind sessions and form tokens.
+    -- Not personal, no user reference, never touched by user-delete; rows are only inserted. The key material in
+    -- xml is encrypted when Frunchy:DataProtection:EncryptionKey is set.
+    CREATE TABLE IF NOT EXISTS data_protection_keys (
+        id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        friendly_name text NOT NULL UNIQUE,
+        xml           text NOT NULL,
+        created_at    timestamptz NOT NULL DEFAULT now()
+    );
+
     -- MyAnimeList enrichment (feature 003): shared catalog data, nothing references users.
     -- raw columns hold the provider's responses verbatim (source says which provider); everything
     -- else is re-derivable (mal-rebuild).
