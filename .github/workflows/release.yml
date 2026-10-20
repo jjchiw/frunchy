@@ -1,7 +1,19 @@
-# Feature 016: pushing a tag `vX.Y.Z` runs the tests, then builds Frunchy for linux/amd64 and linux/arm64 and pushes
-# ghcr.io/<repository owner>/frunchy:X.Y.Z. It never writes `latest`: deployments pin a version or a digest.
-# The `image` job's outputs (`image` and `digest`) are for the deploy job that comes with PublishToCaravana, which
-# runs the image as image@digest. Only GITHUB_TOKEN is used.
+# Features 016 and 018: pushing a tag `vX.Y.Z` runs the tests, then two flows.
+#   test -> image   the self-host image: ghcr.io/<repository owner>/frunchy:X.Y.Z for linux/amd64 and linux/arm64
+#                   (what deploy/compose.yaml pulls). It never writes `latest`: deployments pin a version or a digest.
+#   test -> deploy  Caravana: `aspire deploy` (the AppHost's publishGraph, CosmicChimps.Aspire.Hosting.Caravana) builds
+#                   the linux/amd64 image, pushes it as ghcr.io/<owner>/frunchy:X.Y.Z and deploys it, keyless: GitHub's
+#                   OIDC token is exchanged for a short-lived Bella Baxter key and `bella run` injects every deploy
+#                   parameter (Parameters__<name>) into the command. No deploy secret is stored in GitHub.
+# The tests gate both. A pre-release tag (vX.Y.Z-rc.1) builds the self-host image but does not deploy.
+#
+# To turn the deploy on (docs/deploy-caravana.md, "Deploying from a tag"):
+#   - Bella Baxter, project frunchy, environment production: every deploy parameter as a Parameters__<name> key, and a
+#     trust domain for GitHub (issuer https://token.actions.githubusercontent.com, role Consumer, claim rules
+#     repository_id = this repository's numeric id and environment = production).
+#   - GitHub repository variables (not secrets): BELLA_BAXTER_TENANT, BELLA_BAXTER_PROJECT (frunchy), BELLA_BAXTER_ENV
+#     (production, the default). The deploy job is skipped while BELLA_BAXTER_PROJECT is empty.
+#   - GitHub environment `production`, limited to the tag rule `v*` (Deployment branches and tags).
 name: Release
 
 on:
@@ -77,3 +89,59 @@ jobs:
             echo "- Digest: \`${{ steps.build.outputs.digest }}\`"
             echo "- Pin it as: \`${{ steps.name.outputs.image }}@${{ steps.build.outputs.digest }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # Feature 018: the release goes to Caravana with the AppHost's `aspire deploy`. The Aspire CLI is the version pinned in
+  # .config/dotnet-tools.json (the same as the Aspire.Hosting package). aspire builds the Frunchy image, pushes it with
+  # the ambient docker login (GITHUB_TOKEN) and waits until the app is healthy. Deploy__ImageTag is the release version,
+  # so the image is tagged X.Y.Z. This job does not use the `image` job: that one is the self-host multi-arch image.
+  deploy:
+    needs: test
+    if: ${{ !contains(github.ref_name, '-') && vars.BELLA_BAXTER_PROJECT != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    permissions:
+      contents: read
+      packages: write # push the image to GHCR with GITHUB_TOKEN
+      id-token: write # the OIDC token Bella Baxter exchanges for its key
+    env:
+      BELLA_BAXTER_URL: https://api.bella-baxter.io # the API, not the console
+      BELLA_BAXTER_TENANT: ${{ vars.BELLA_BAXTER_TENANT }}
+      BELLA_BAXTER_PROJECT: ${{ vars.BELLA_BAXTER_PROJECT }}
+      BELLA_BAXTER_ENV: ${{ vars.BELLA_BAXTER_ENV || 'production' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      # Restores the Aspire CLI pinned in .config/dotnet-tools.json; it runs as `dotnet aspire`
+      - name: Restore the Aspire CLI
+        run: dotnet tool restore
+
+      # The release version, without its "v": the tag the Frunchy image is pushed with (AppHost: Deploy:ImageTag)
+      - name: Name the release
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "The tag $GITHUB_REF_NAME is not vMAJOR.MINOR.PATCH." >&2
+            exit 1
+          fi
+          echo "Deploy__ImageTag=$version" >> "$GITHUB_ENV"
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: cosmic-chimps/bella-baxter-setup-action@cf993ff9e477ec89370abb7f166a4e48a2786693 # v0.1.1-preview.137
+        with:
+          version: 0.1.1-preview.137
+          oidc: 'true'
+
+      # bella run injects the Parameters__<name> keys into aspire's environment only. Nothing here prints them, and
+      # aspire marks the secret parameters (caravana-token, db-password, ...) as secret in its own output.
+      - name: Deploy to Caravana
+        run: bella run -- dotnet aspire deploy --non-interactive

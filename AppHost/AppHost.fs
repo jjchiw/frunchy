@@ -93,6 +93,15 @@ let private publishGraph (builder: IDistributedApplicationBuilder) (repoRoot: st
     let project = setting "Caravana:Project" "frunchy"
     let environment = setting "Caravana:Environment" "production"
 
+    // The tag `aspire deploy` pushes the Frunchy image with: the release version (release.yml sets Deploy__ImageTag
+    // from the v* tag, without its "v"). A local deploy has none, so it gets local-<UTC timestamp>: a unique,
+    // traceable tag that is never "latest" (Aspire's own default when no tag is set).
+    let imageTag =
+        match setting "Deploy:ImageTag" "" with
+        | "" -> "local-" + DateTime.UtcNow.ToString("yyyyMMddHHmmss")
+        | "latest" -> failwith "Deploy:ImageTag must be a release version or a unique tag, never latest."
+        | tag -> tag
+
     builder.AddContainerRegistry("registry", registryEndpoint, registryRepository) |> ignore
 
     // The resource is named "caravana" because "frunchy" is the project's name (resource names are unique); the
@@ -140,6 +149,7 @@ let private publishGraph (builder: IDistributedApplicationBuilder) (repoRoot: st
         .WithCaravanaDomain(caravana, frunchyDomain)
         .WithCaravanaHealthCheck(caravana, "/healthz")
         .WithCaravanaMemory(caravana, 256, 768)
+        .WithRemoteImageTag(imageTag)
         .WaitFor(db)
     |> ignore
 

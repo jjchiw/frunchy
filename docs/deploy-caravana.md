@@ -62,6 +62,49 @@ data. Caravana's backups do not include secrets.
 Then `aspire deploy`. Run it again and the same app is updated (the AppHost is the source of truth: what you change in
 the console for things the AppHost describes is replaced on the next deploy).
 
+### The Aspire CLI and the image tag
+
+- The repo pins the Aspire CLI (NuGet `Aspire.Cli`, 13.6.1, the same as `Aspire.Hosting`) in
+  `.config/dotnet-tools.json`. After `dotnet tool restore`, `dotnet aspire deploy` works locally; the globally
+  installed `aspire` works too. Bump both together.
+- The pushed image is tagged with `Deploy:ImageTag` (env `Deploy__ImageTag`), through Aspire's
+  `WithRemoteImageTag`. The release workflow sets it to the tag without its `v` (`v0.1.0` pushes `frunchy:0.1.0`).
+  A local deploy has none and gets `local-<UTC timestamp>` (`local-20261019195636`): unique and traceable, and never
+  `latest`, which Aspire would otherwise use. Set `Deploy__ImageTag` yourself to deploy a chosen version; `latest` is refused.
+
+### Deploying from a tag
+
+A pushed `v*` tag runs `release.yml`: the tests, then the job `deploy`, which runs `bella run -- dotnet aspire deploy
+--non-interactive` with GitHub's OIDC token exchanged for a short-lived Bella key. No deploy secret is stored in
+GitHub; every parameter above is read from Bella. The multi-arch `image` job still runs beside it for self-hosters.
+
+One-time setup, done by the owner:
+
+1. **Bella Baxter**, project `frunchy`, environment `production`: every parameter as a `Parameters__<name>` key
+   (`Parameters__caravana-url`, `Parameters__caravana-token`, `Parameters__registry-endpoint` = `ghcr.io`,
+   `Parameters__registry-repository` = `jjchiw`, and the rest of the table). Then Identity > Add trust domain >
+   GitHub template:
+   - issuer `https://token.actions.githubusercontent.com`, role Consumer, TTL 15, audiences empty;
+   - claim rules: `repository_id` Equals the numeric id (`gh api repos/jjchiw/frunchy --jq .id`) AND `environment`
+     Equals `production`.
+2. **GitHub repository variables** (variables, not secrets: a job-level `if:` can't see environment ones):
+   `BELLA_BAXTER_TENANT` (the tenant slug; the local `.bella` file names the org `code4fun-17d1c3`),
+   `BELLA_BAXTER_PROJECT` = `frunchy`, `BELLA_BAXTER_ENV` = `production`. The deploy job is skipped while
+   `BELLA_BAXTER_PROJECT` is empty.
+3. **GitHub environment** `production` > Deployment branches and tags > Selected > tag rule `v*`. With the trust
+   domain's `environment` rule, only a tag release can read the secrets.
+4. **GHCR**: after the first push, make the `frunchy` package public, or add ghcr.io credentials (a `read:packages`
+   token) in Caravana > Settings > Registries (the rollout otherwise dies at its 10-minute deadline). The workflow
+   pushes with `GITHUB_TOKEN`; the first push creates the package under the repository, so check its "Manage Actions
+   access" if a later push is refused.
+5. Also the "Before the first deploy" list above (project and environment in Caravana, backup destination, Umbral).
+
+Release: `git tag v0.1.0 && git push origin v0.1.0`, from `main`.
+
+- The tests gate the deploy: a red test run means no deploy (and no self-host image).
+- A pre-release tag (`v0.2.0-rc.1`) builds the self-host image but does not deploy.
+- Pushing is the only trigger; re-running the job redeploys the same tag (`aspire deploy` is idempotent).
+
 ### Pitfalls
 
 - `POSTGRES_DB=frunchydb` applies only while the data volume is empty (the image creates the database on first start).
@@ -77,7 +120,7 @@ the console for things the AppHost describes is replaced on the next deploy).
 # Releasing to Caravana with Bella Baxter (backlog, superseded by `aspire deploy`)
 
 The sections below are the earlier plan, kept as history: a hand-written `deploy/caravana-app.json` plus
-`caravana-action`. `aspire deploy` replaces both; `release.yml` is unchanged for now.
+`caravana-action`. `aspire deploy` replaces both; `release.yml`'s `deploy` job now runs `aspire deploy` (see "Deploying from a tag").
 
 How Umbral deploys a release to Caravana, shared by the Umbral session on 2026-10-19 so Frunchy can do the
 same. It is live in Umbral: `.github/workflows/release.yml` (the `deploy` job) and `deploy/caravana-app.json` in
