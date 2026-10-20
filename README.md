@@ -225,7 +225,7 @@ A provider's redirect URI under the AppHost is the gateway's: `http://localhost:
 
 The same AppHost deploys Frunchy and its Postgres to [Caravana](https://github.com/Cosmic-Chimps/caravana) with `aspire deploy` (publish mode builds a smaller graph than `aspire run`; federation stays off). The parameters, the registry login and the one-time Caravana and Umbral setup are in [docs/deploy-caravana.md](docs/deploy-caravana.md).
 
-Releasing deploys it: pushing a `vX.Y.Z` tag from `main` runs the tests and then `aspire deploy` in GitHub Actions, keyless through Bella Baxter (a pre-release tag such as `v0.2.0-rc.1` only builds the self-host image). The repo pins the Aspire CLI in `.config/dotnet-tools.json`, so `dotnet tool restore` then `dotnet aspire deploy` works locally too (the globally installed `aspire` does as well). One-time setup: "Deploying from a tag" in the same document.
+Releasing deploys it: pushing a `vX.Y.Z` tag from `main` runs the tests and then `aspire deploy` in GitHub Actions, keyless through Bella Baxter (a pre-release tag such as `v0.2.0-rc.1` only builds the self-host image). The repo pins the Aspire CLI in `.config/dotnet-tools.json`, so `dotnet tool restore` then `dotnet aspire deploy` works locally too (the globally installed `aspire` does as well). One-time setup: "Deploying from a tag" in the same document. Each release's notes are its section of [CHANGELOG.md](CHANGELOG.md), written by hand under "Unreleased" as features land; the workflow refuses a tag with nothing there, and publishes the section as the GitHub Release.
 
 ### Run the platform with Aspire (feature 014)
 

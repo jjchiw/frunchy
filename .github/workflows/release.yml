@@ -29,11 +29,49 @@ permissions:
   contents: read
 
 jobs:
+  # First: the release notes from CHANGELOG.md (the same script and flow as Umbral). A release tag turns
+  # "## Unreleased" into the version's section and fails the whole run when Unreleased is empty, so nothing is built
+  # or deployed without notes. A pre-release tag writes preview notes and leaves CHANGELOG.md alone.
+  changelog:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Notes
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir out
+          if [[ "$VERSION" == *-* ]]; then
+            {
+              echo "Prerelease $VERSION: a version to try, not a release. Its self-host image is published by tag only, it is not deployed, and the changelog stays as it was."
+              if [ -n "$(.github/scripts/changelog.sh unreleased)" ]; then
+                echo
+                echo "What is on its way, from the changelog's \"Unreleased\" section:"
+                echo
+                .github/scripts/changelog.sh unreleased
+              fi
+            } > out/notes.md
+          else
+            .github/scripts/changelog.sh notes "$VERSION" >/dev/null 2>&1 ||
+              .github/scripts/changelog.sh prepare "$VERSION"
+            .github/scripts/changelog.sh notes "$VERSION" > out/notes.md
+            cp CHANGELOG.md out/CHANGELOG.md
+          fi
+          { echo "### Release notes"; echo; cat out/notes.md; } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: release-notes
+          path: out
+          if-no-files-found: error
+
   test:
     uses: ./.github/workflows/ci.yml
 
   image:
-    needs: test
+    needs: [test, changelog]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -92,10 +130,11 @@ jobs:
 
   # Feature 018: the release goes to Caravana with the AppHost's `aspire deploy`. The Aspire CLI is the version pinned in
   # .config/dotnet-tools.json (the same as the Aspire.Hosting package). aspire builds the Frunchy image, pushes it with
-  # the ambient docker login (GITHUB_TOKEN) and waits until the app is healthy. Deploy__ImageTag is the release version,
-  # so the image is tagged X.Y.Z. This job does not use the `image` job: that one is the self-host multi-arch image.
+  # the ambient docker login (GITHUB_TOKEN) and waits until the app is healthy. Its image is tagged X.Y.Z-amd64: the
+  # `image` job owns X.Y.Z (the self-host multi-arch image, same package) and runs at the same time, so sharing the
+  # tag would let whichever finishes last overwrite the other.
   deploy:
-    needs: test
+    needs: [test, changelog]
     if: ${{ !contains(github.ref_name, '-') && vars.BELLA_BAXTER_PROJECT != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -120,7 +159,7 @@ jobs:
       - name: Restore the Aspire CLI
         run: dotnet tool restore
 
-      # The release version, without its "v": the tag the Frunchy image is pushed with (AppHost: Deploy:ImageTag)
+      # The tag the deployed Frunchy image is pushed with (AppHost: Deploy:ImageTag): the release version plus -amd64
       - name: Name the release
         run: |
           version="${GITHUB_REF_NAME#v}"
@@ -128,7 +167,7 @@ jobs:
             echo "The tag $GITHUB_REF_NAME is not vMAJOR.MINOR.PATCH." >&2
             exit 1
           fi
-          echo "Deploy__ImageTag=$version" >> "$GITHUB_ENV"
+          echo "Deploy__ImageTag=$version-amd64" >> "$GITHUB_ENV"
 
       - uses: docker/login-action@v3
         with:
@@ -145,3 +184,60 @@ jobs:
       # aspire marks the secret parameters (caravana-token, db-password, ...) as secret in its own output.
       - name: Deploy to Caravana
         run: bella run -- dotnet aspire deploy --non-interactive
+
+  # Last: the GitHub Release (the changelog section, then GitHub's own commit list) and, for a release, the renamed
+  # CHANGELOG.md committed to main. Only after the notes, the image and the deploy succeeded, so a release is never
+  # claimed for a rollout that failed (the tag stays, visible and easy to retry); a skipped deploy (a pre-release
+  # tag, or no Bella settings yet) doesn't block it.
+  release:
+    needs: [changelog, image, deploy]
+    if: ${{ !cancelled() && needs.changelog.result == 'success' && needs.image.result == 'success' && (needs.deploy.result == 'success' || needs.deploy.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release, push the changelog to main
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: release-notes
+          path: out
+
+      - name: Publish the release
+        run: |
+          args=()
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then args+=(--prerelease); fi
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" --notes-file out/notes.md "${args[@]}"
+          else
+            gh release create "$GITHUB_REF_NAME" --title "Frunchy ${GITHUB_REF_NAME#v}" --notes-file out/notes.md --generate-notes --verify-tag "${args[@]}"
+          fi
+
+      # main gets the rename, so the next release starts from an empty "Unreleased". Only when main is still the
+      # tagged commit; otherwise its "Unreleased" may hold newer entries, which a rename would wrongly claim.
+      # The tag never moves.
+      - name: Record the changelog on main
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          if [[ "$VERSION" == *-* ]]; then
+            exit 0 # a prerelease leaves the changelog alone
+          fi
+          cp out/CHANGELOG.md CHANGELOG.md
+          if git diff --quiet -- CHANGELOG.md; then
+            exit 0 # the tagged commit had its section already
+          fi
+          git fetch -q origin main
+          if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then
+            echo "::warning::main has moved past $GITHUB_REF_NAME, so its CHANGELOG.md still lists $VERSION's entries under \"## Unreleased\". On main, run .github/scripts/changelog.sh prepare $VERSION and keep any newer entries under Unreleased."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs(changelog): release $VERSION" -- CHANGELOG.md
+          if ! git push origin HEAD:main; then
+            echo "::warning::Couldn't push the changelog to main. On main, run .github/scripts/changelog.sh prepare $VERSION and commit it."
+          fi

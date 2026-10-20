@@ -68,7 +68,9 @@ the console for things the AppHost describes is replaced on the next deploy).
   `.config/dotnet-tools.json`. After `dotnet tool restore`, `dotnet aspire deploy` works locally; the globally
   installed `aspire` works too. Bump both together.
 - The pushed image is tagged with `Deploy:ImageTag` (env `Deploy__ImageTag`), through Aspire's
-  `WithRemoteImageTag`. The release workflow sets it to the tag without its `v` (`v0.1.0` pushes `frunchy:0.1.0`).
+  `WithRemoteImageTag`. The release workflow sets it to the version plus `-amd64` (`v0.1.0` pushes
+  `frunchy:0.1.0-amd64`): the self-host `image` job owns `frunchy:0.1.0` (multi-arch) in the same package and runs
+  at the same time, so the deploy's image gets its own tag.
   A local deploy has none and gets `local-<UTC timestamp>` (`local-20261019195636`): unique and traceable, and never
   `latest`, which Aspire would otherwise use. Set `Deploy__ImageTag` yourself to deploy a chosen version; `latest` is refused.
 
@@ -100,6 +102,21 @@ One-time setup, done by the owner:
 5. Also the "Before the first deploy" list above (project and environment in Caravana, backup destination, Umbral).
 
 Release: `git tag v0.1.0 && git push origin v0.1.0`, from `main`.
+
+The order of the jobs:
+1. `changelog` first: a release tag turns `## Unreleased` in `CHANGELOG.md` into `## X.Y.Z - <date>` and fails the
+   run when Unreleased is empty, so nothing builds or deploys without notes.
+2. `test`, then `image` (self-host) and `deploy` (Caravana).
+3. `release` last: the GitHub Release (the version's section plus GitHub's commit list), and the renamed
+   `CHANGELOG.md` committed to `main` as github-actions[bot], only if `main` is still the tagged commit; otherwise a
+   warning tells you to run `.github/scripts/changelog.sh prepare X.Y.Z` on `main`. It runs only when the deploy
+   succeeded or was skipped, so a failed rollout leaves the tag without a release: fix and re-run the workflow. A
+   protected `main` makes the bot's push fail with that warning.
+
+The changelog is written by hand (the same script and flow as Umbral and Caravana): every branch that changes
+something for whoever runs Frunchy adds its bullets under `## Unreleased` in the same branch; nobody edits a
+released section. After merging a released `main` into a feature branch, check the branch's entries are still
+under Unreleased.
 
 - The tests gate the deploy: a red test run means no deploy (and no self-host image).
 - A pre-release tag (`v0.2.0-rc.1`) builds the self-host image but does not deploy.
