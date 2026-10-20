@@ -42,6 +42,7 @@ new image. Add to "Unreleased" as you work; a release renames it.
 - English and Spanish, chosen from the browser's language.
 - Deployment: `GET /healthz` for orchestrators; a container image; a self-host compose file
   (`deploy/compose.yaml`); and `aspire deploy` to Caravana, which a `v*` tag runs after the tests.
+- Every page's footer says Frunchy is not affiliated with Crunchyroll or MyAnimeList.
 
 ### Security
 

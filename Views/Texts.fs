@@ -9,6 +9,8 @@ type Texts =
       Culture: CultureInfo
       SiteName: string
       Footer: string
+      /// Said under the footer line on every page: the name and the imports must not read as an affiliation
+      FooterDisclaimer: string
 
       HomeTitle: string
       HomeHeadline: string
@@ -465,6 +467,7 @@ let en =
       Culture = CultureInfo.GetCultureInfo "en"
       SiteName = "Frunchy"
       Footer = "Frunchy, anime stats you can share"
+      FooterDisclaimer = "Frunchy is not affiliated with Crunchyroll or MyAnimeList."
 
       HomeTitle = "Home"
       HomeHeadline = "Your anime identity, in numbers"
@@ -1034,6 +1037,7 @@ let es =
       Culture = CultureInfo.GetCultureInfo "es"
       SiteName = "Frunchy"
       Footer = "Frunchy, estadísticas de anime para compartir"
+      FooterDisclaimer = "Frunchy no está afiliado a Crunchyroll ni a MyAnimeList."
 
       HomeTitle = "Inicio"
       HomeHeadline = "Tu identidad anime, en números"
