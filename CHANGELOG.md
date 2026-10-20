@@ -10,6 +10,8 @@ new image. Add to "Unreleased" as you work; a release renames it.
 
 ## Unreleased
 
+## 0.1.0 - 2026-10-20
+
 ### Added
 
 - Watch history from Crunchyroll: the Frunchy browser extension sends a user's history pages, and
