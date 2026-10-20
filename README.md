@@ -175,7 +175,7 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 - .NET SDK 10
 - Docker running (Aspire starts Postgres and Megáfono in containers, the tests use Testcontainers)
 - To run the whole platform: nothing more. The AppHost pulls Megáfono (the fediverse service, a separate repo) as the published images `ghcr.io/cosmic-chimps/megafono` and `megafono-gateway`, pinned by `Megafono:ImageTag` (`0.1.0`). To try an unreleased Megáfono, set `Megafono:BuildFromSource` to `true` and `Megafono:SourcePath` to a checkout (default `../../Megafono`)
-- Optional, to sign in with Umbral (our own OpenID Connect provider, a separate repo) under the AppHost: a checkout of Umbral at `../../Umbral` (or `Umbral:SourcePath`). No image is published yet, so the AppHost builds it from its `Dockerfile`; without the checkout the AppHost warns and runs without Umbral
+- Optional, to sign in with Umbral (our own OpenID Connect provider, a separate repo) under the AppHost: nothing to check out: the AppHost pulls `ghcr.io/cosmic-chimps/umbral` at `Umbral:ImageTag` (`0.1.1`). To try an unreleased Umbral, set `Umbral:BuildFromSource=true` and a checkout at `../../Umbral` (or `Umbral:SourcePath`) is built from its `Dockerfile`; without the checkout the AppHost warns and runs without Umbral
 - To run Frunchy alone: PostgreSQL 14+ (locally it runs in Docker: container `postgres-postgres-1`)
 
 ### Run it locally (start here)
@@ -204,7 +204,7 @@ Bella values reach Frunchy only. The containers (Postgres, Megáfono, the gatewa
    ```bash
    dotnet user-secrets set "Parameters:megafono-master-key" "$(openssl rand -base64 32)" --project AppHost
    ```
-3. Optional, for Umbral: a checkout at `../../Umbral`. When working from a git worktree that relative path points somewhere else, so set the absolute one: `dotnet user-secrets set "Umbral:SourcePath" "/path/to/Umbral" --project AppHost`. Registering Frunchy in Umbral is a one-time manual step, [below](#run-the-platform-with-aspire-feature-014).
+3. Optional, only to build Umbral from source (`Umbral:BuildFromSource=true`; by default its published image is pulled): a checkout at `../../Umbral`. When working from a git worktree that relative path points somewhere else, so set the absolute one: `dotnet user-secrets set "Umbral:SourcePath" "/path/to/Umbral" --project AppHost`. Registering Frunchy in Umbral is a one-time manual step, [below](#run-the-platform-with-aspire-feature-014).
 
 **Where things are** (`aspire run` prints the dashboard link with its login token):
 
@@ -220,6 +220,12 @@ Bella values reach Frunchy only. The containers (Postgres, Megáfono, the gatewa
 ConnectionStrings__Database="<connection string from the dashboard>" dotnet run -- invite-create
 ```
 A provider's redirect URI under the AppHost is the gateway's: `http://localhost:5300/signin-google` and `http://localhost:5300/signin-umbral` (Frunchy alone uses 5099). If Bella's `development` environment holds Umbral settings from running Umbral by itself (authority `http://localhost:5173`), they stay in effect under the AppHost until the AppHost's own Umbral is registered as described below.
+
+### Deploy to Caravana
+
+The same AppHost deploys Frunchy and its Postgres to [Caravana](https://github.com/Cosmic-Chimps/caravana) with `aspire deploy` (publish mode builds a smaller graph than `aspire run`; federation stays off). The parameters, the registry login and the one-time Caravana and Umbral setup are in [docs/deploy-caravana.md](docs/deploy-caravana.md).
+
+Releasing deploys it: pushing a `vX.Y.Z` tag from `main` runs the tests and then `aspire deploy` in GitHub Actions, keyless through Bella Baxter (a pre-release tag such as `v0.2.0-rc.1` only builds the self-host image). The repo pins the Aspire CLI in `.config/dotnet-tools.json`, so `dotnet tool restore` then `dotnet aspire deploy` works locally too (the globally installed `aspire` does as well). One-time setup: "Deploying from a tag" in the same document. Each release's notes are its section of [CHANGELOG.md](CHANGELOG.md), written by hand under "Unreleased" as features land; the workflow refuses a tag with nothing there, and publishes the section as the GitHub Release.
 
 ### Run the platform with Aspire (feature 014)
 
@@ -239,7 +245,7 @@ A provider's redirect URI under the AppHost is the gateway's: `http://localhost:
 
 **Fixed ports.** The site (the gateway) is always `http://localhost:5300` (`Gateway:Port`) and Umbral `http://localhost:5380` (`Umbral:Port`). They are pinned because sign-in redirect URIs are registered once and must not move. Open the site on 5300, not on Frunchy's own port.
 
-**Sign in with Umbral (optional).** With `Umbral:Enabled` (default `true` in `AppHost/appsettings.json`) and a checkout at `Umbral:SourcePath` (default `../../Umbral`), the AppHost builds and starts Umbral with its dev settings (plain http on `localhost`, a volume `umbral-data`). Frunchy's Umbral sign-in stays off until Frunchy is registered in Umbral, which cannot be automated (the client id and secret are generated in its admin). Once per `umbral-data` volume (wiping the volume means doing it again):
+**Sign in with Umbral (optional).** With `Umbral:Enabled` (default `true` in `AppHost/appsettings.json`) the AppHost pulls Umbral's published image (`Umbral:ImageTag`, `0.1.1`; `Umbral:BuildFromSource=true` builds the checkout at `Umbral:SourcePath`, default `../../Umbral`, instead) and starts it with its dev settings (plain http on `localhost`, a volume `umbral-data`). Frunchy's Umbral sign-in stays off until Frunchy is registered in Umbral, which cannot be automated (the client id and secret are generated in its admin). Once per `umbral-data` volume (wiping the volume means doing it again):
 1. Claim Umbral: `docker exec <umbral container> /app/Umbral reset-credential` prints a credential for `http://localhost:5380/admin`, or use the setup token from Umbral's log at `/admin/setup`.
 2. Under Connectors, enable the **fake connector**. It is dev only: it exists because the AppHost sets `UMBRAL__ALLOW_FAKE_CONNECTOR`, and it signs anyone in without a real identity.
 3. Apps, Create app, **Web application**, redirect URI exactly `http://localhost:5300/signin-umbral`. Copy the client id and secret.
@@ -250,7 +256,7 @@ A provider's redirect URI under the AppHost is the gateway's: `http://localhost:
    ```
    Frunchy then starts with the Umbral provider on (authority `http://localhost:5380`) and waits for Umbral. Until both are set the AppHost prints these steps and leaves the provider off. Google can still be configured through Bella or user secrets as before.
 
-In production (`deploy/compose.yaml`) Umbral is the optional `umbral` profile, built from `UMBRAL_CONTEXT` until an image is published; see `deploy/.env.example`.
+In production (`deploy/compose.yaml`) Umbral is the optional `umbral` profile, from `ghcr.io/cosmic-chimps/umbral` pinned by `UMBRAL_VERSION` (0.1.1); see `deploy/.env.example`.
 
 **One-time wipe.** The schema bootstrap now assumes an empty database, and the AppHost uses its own volume (`frunchy-pg`), so nothing from before carries over. If you ran an older version against `postgres-postgres-1`, drop its old databases (dev data, not real history):
 ```bash

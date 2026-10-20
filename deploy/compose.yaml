@@ -122,11 +122,7 @@ services:
 
   umbral:
     profiles: [umbral]
-    # No image is published yet, so it is built from a checkout (UMBRAL_CONTEXT). Once released, replace `build`
-    # with `image: ghcr.io/<owner>/umbral:X.Y.Z` (pinned).
-    build:
-      context: ${UMBRAL_CONTEXT:-../../Umbral}
-      dockerfile: Dockerfile
+    image: ghcr.io/cosmic-chimps/umbral:${UMBRAL_VERSION:-0.1.1} # pinned, change it deliberately
     restart: unless-stopped
     environment:
       # The address people type in the browser: https only (http is accepted for localhost in Development only)

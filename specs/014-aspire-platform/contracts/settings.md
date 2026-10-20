@@ -26,8 +26,9 @@
 - `Megafono:ImageTag`: the published release, `0.1.0`; empty or `latest` is refused unless building from source;
 - `Megafono:BuildFromSource`: default `false`; when true, builds from `Megafono:SourcePath` (default `../../Megafono`
   from the repo root);
-- `Umbral:Enabled`: default `true` in `appsettings.json`; `Umbral:SourcePath`: default `../../Umbral` (a missing
-  Dockerfile skips Umbral with a warning); `Umbral:Port`: default 5380;
+- `Umbral:Enabled`: default `true` in `appsettings.json`; `Umbral:ImageTag`: default `0.1.1` (empty or `latest` is
+  refused); `Umbral:BuildFromSource`: default `false`; `Umbral:SourcePath`: default `../../Umbral` (source mode only; a
+  missing Dockerfile skips Umbral with a warning); `Umbral:Port`: default 5380;
 - `Gateway:Port`: default 5300, pinned so the redirect URI `http://localhost:5300/signin-umbral` stays valid.
 
 **Resources**:
@@ -38,13 +39,13 @@
 | `frunchydb`, `megafono-db` | databases (`frunchydb`, `megafono`) | — | `pg` |
 | `megafono` | container | `federation` 8080 (internal to the network), `internal` 8081 (not external) | `megafono-db` |
 | `gateway` | container | `http` 8080 on host port 5300, **the only external endpoint** | `megafono`, `frunchy` |
-| `umbral` | container (optional, built from source), volume `umbral-data` | `http` 8080 on host port 5380 | — |
+| `umbral` | container (optional, published image; source build is opt-in), volume `umbral-data` | `http` 8080 on host port 5380 | — |
 | `frunchy` | project | `http` | `frunchydb`, and `umbral` once its client credentials are set |
 
 ## Self-host compose
 
 - **Profiles**: none gives `postgres` and `frunchy`; `federation` adds `megafono` and `gateway`; `umbral` adds
-  Umbral built from `UMBRAL_CONTEXT` (default `../../Umbral`), published on `127.0.0.1:8100`.
+  Umbral from `ghcr.io/cosmic-chimps/umbral:${UMBRAL_VERSION}` (0.1.1), published on `127.0.0.1:8100`.
 - **Published ports**: without a profile, Frunchy's; with `federation`, the gateway's only. 8081 is
   never published.
 - **Images**: `ghcr.io/cosmic-chimps/megafono:0.1.0` and `megafono-gateway:0.1.0` (pinned);

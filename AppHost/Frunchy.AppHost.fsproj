@@ -7,8 +7,9 @@
     <UserSecretsId>frunchy-apphost</UserSecretsId>
     <!-- ASPIRE001: Aspire's F# support is partial (no Projects.* code generation), so Frunchy is added by path.
          ASPIRE010: the Aspire CLI bundle is off; harmless.
-         NU1902: a MessagePack advisory arrives transitively through Aspire; there is no fix on our side. -->
-    <NoWarn>$(NoWarn);ASPIRE001;ASPIRE010;NU1902</NoWarn>
+         NU1902: a MessagePack advisory arrives transitively through Aspire; there is no fix on our side.
+         FS0057: AddContainerRegistry (publish graph) is an experimental Aspire API, which F# reports as FS0057. -->
+    <NoWarn>$(NoWarn);ASPIRE001;ASPIRE010;NU1902;FS0057</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,6 +18,7 @@
 
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.6.1" />
+    <PackageReference Include="CosmicChimps.Aspire.Hosting.Caravana" Version="0.1.0" />
     <PackageReference Include="FSharp.Aspire.Hosting.AppHost" Version="13.0.0" />
   </ItemGroup>
 
