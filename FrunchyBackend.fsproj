@@ -25,9 +25,11 @@
     <Compile Include="Infrastructure/Fediverse.fs" />
     <Compile Include="Infrastructure/MegafonoClient.fs" />
     <Compile Include="Infrastructure/SecurityEvents.fs" />
+    <Compile Include="Infrastructure/SignUpMode.fs" />
     <Compile Include="Infrastructure/BlockActions.fs" />
     <Compile Include="Infrastructure/AccountActions.fs" />
     <Compile Include="Infrastructure/OperatorActions.fs" />
+    <Compile Include="Infrastructure/InviteActions.fs" />
     <Compile Include="Infrastructure/WebAuth.fs" />
     <Compile Include="Infrastructure/Profiles.fs" />
     <Compile Include="Infrastructure/MalModel.fs" />
@@ -59,6 +61,8 @@
     <Compile Include="Handlers/Series/Series.fs" />
     <Compile Include="Handlers/Review/MalReview.fs" />
     <Compile Include="Handlers/Review/Operators.fs" />
+    <Compile Include="Handlers/Review/Invites.fs" />
+    <Compile Include="Handlers/Review/Settings.fs" />
     <Compile Include="Handlers/Review/FediverseBlocks.fs" />
     <Compile Include="Handlers/Episodes/Episode.fs" />
     <Compile Include="Handlers/Episodes/EditComment.fs" />

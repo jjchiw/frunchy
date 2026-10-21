@@ -67,6 +67,10 @@ let endpoints =
       yield! Handlers.Review.MalReview.endpoint
       // Feature 008: the root operator manages operators (404 for everyone else)
       yield! Handlers.Review.Operators.endpoint
+      // Feature 019: operators create, list and revoke invites (404 for everyone else)
+      yield! Handlers.Review.Invites.endpoint
+      // Feature 020: the root sets the sign-up mode (404 for everyone else)
+      yield! Handlers.Review.Settings.endpoint
       // Feature 002: sign-in and the private account pages
       Handlers.Auth.SignIn.endpoint
       Handlers.Auth.Complete.endpoint

@@ -398,10 +398,21 @@ let view
                             t.ReviewFediverseLink
                         }
 
+                    a(href = "/review/invites", class' = btn Secondary).data("invites-link", "") {
+                        icon Theme.Key
+                        t.InvitesAccountLink
+                    }
+
                     if isRoot then
                         a(href = "/review/operators", class' = btn Secondary).data("operators-link", "") {
                             icon Theme.Shield
                             t.OperatorsAccountLink
+                        }
+
+                    if isRoot then
+                        a(href = "/review/settings", class' = btn Secondary).data("settings-link", "") {
+                            icon Theme.Settings
+                            t.SettingsAccountLink
                         }
                 }
             }

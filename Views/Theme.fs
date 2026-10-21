@@ -202,6 +202,7 @@ type Icon =
     | OpenInNew
     | ProgressActivity
     | Schedule
+    | Settings
     | Shield
     | Star
     | Sync
@@ -236,6 +237,7 @@ type Icon =
         | OpenInNew -> "open_in_new"
         | ProgressActivity -> "progress_activity"
         | Schedule -> "schedule"
+        | Settings -> "settings"
         | Shield -> "shield"
         | Star -> "star"
         | Sync -> "sync"
