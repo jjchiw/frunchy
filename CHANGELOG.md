@@ -10,6 +10,19 @@ new image. Add to "Unreleased" as you work; a release renames it.
 
 ## Unreleased
 
+### Added
+
+- Invites on the web: operators create sign-up invites, see recent ones with their state and revoke
+  active ones on `/review/invites`, linked from `/account`. The code is shown once, when it is
+  created. The `invite-*` commands do the same and are unchanged.
+- Open sign-up: the root operator chooses on `/review/settings` ("Site settings", linked from
+  `/account`) whether new accounts need an invite code (the default) or anyone who signs in with a
+  provider can create one. The change applies at once, with no redeploy, and needs a sign-in within
+  the last 10 minutes. Existing accounts sign in the same way in both modes. On an invite-only
+  Frunchy the sign-in page now says so, with a note and a dialog before leaving for the provider
+  ("Don't show this again on this device" is remembered in the browser only).
+- Every page's footer says Frunchy is not affiliated with Crunchyroll or MyAnimeList.
+
 ## 0.1.0 - 2026-10-20
 
 ### Added
@@ -38,22 +51,12 @@ new image. Add to "Unreleased" as you work; a release renames it.
   that uses it, until the owner replaces or turns it off.
 - Operators: one root operator (`Frunchy:RootOperator`) adds and removes operators on the web or
   with `operator-add` / `operator-remove`.
-- Invites on the web: operators create sign-up invites, see recent ones with their state and revoke
-  active ones on `/review/invites`, linked from `/account`. The code is shown once, when it is
-  created. The `invite-*` commands do the same and are unchanged.
-- Open sign-up: the root operator chooses on `/review/settings` ("Site settings", linked from
-  `/account`) whether new accounts need an invite code (the default) or anyone who signs in with a
-  provider can create one. The change applies at once, with no redeploy, and needs a sign-in within
-  the last 10 minutes. Existing accounts sign in the same way in both modes. On an invite-only
-  Frunchy the sign-in page now says so, with a note and a dialog before leaving for the provider
-  ("Don't show this again on this device" is remembered in the browser only).
 - The fediverse, behind `Frunchy:Federation:Enabled` (off by default): users and series are
   fediverse accounts through Megáfono, comments go both ways with Mastodon, and users and
   operators block remote accounts and servers.
 - English and Spanish, chosen from the browser's language.
 - Deployment: `GET /healthz` for orchestrators; a container image; a self-host compose file
   (`deploy/compose.yaml`); and `aspire deploy` to Caravana, which a `v*` tag runs after the tests.
-- Every page's footer says Frunchy is not affiliated with Crunchyroll or MyAnimeList.
 
 ### Security
 
