@@ -142,6 +142,8 @@ type SecurityEventType =
     | ShareLinkCreated
     | ShareLinkReplaced
     | ShareLinkRevoked
+    | InviteCreated
+    | InviteRevoked
 
 module SecurityEventType =
     let toDb =
@@ -170,6 +172,8 @@ module SecurityEventType =
         | SecurityEventType.ShareLinkCreated -> "share_link_created"
         | SecurityEventType.ShareLinkReplaced -> "share_link_replaced"
         | SecurityEventType.ShareLinkRevoked -> "share_link_revoked"
+        | SecurityEventType.InviteCreated -> "invite_created"
+        | SecurityEventType.InviteRevoked -> "invite_revoked"
 
     let all =
         [ SecurityEventType.AccountCreated; SecurityEventType.SignedIn; SecurityEventType.Claimed
@@ -180,6 +184,7 @@ module SecurityEventType =
           SecurityEventType.OperatorRemoved; SecurityEventType.CommentHidden; SecurityEventType.CommentUnhidden
           SecurityEventType.FediverseBlockAdded; SecurityEventType.FediverseBlockRemoved
           SecurityEventType.ProfileVisibilityChanged; SecurityEventType.ShareLinkCreated
-          SecurityEventType.ShareLinkReplaced; SecurityEventType.ShareLinkRevoked ]
+          SecurityEventType.ShareLinkReplaced; SecurityEventType.ShareLinkRevoked
+          SecurityEventType.InviteCreated; SecurityEventType.InviteRevoked ]
 
     let tryFromDb (value: string) = all |> List.tryFind (fun e -> toDb e = value)

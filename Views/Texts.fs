@@ -458,7 +458,37 @@ type Texts =
       ShareLinkRevokeButton: string
       ShareLinkRevoked: string
       ShareLinkShownTitle: string
-      ShareLinkShownOnce: string }
+      ShareLinkShownOnce: string
+
+      // Invites (/review/invites, feature 019)
+      InvitesTitle: string
+      InvitesIntro: string
+      InvitesAccountLink: string
+      InvitesCreateTitle: string
+      InvitesDaysLabel: string
+      InvitesDaysHint: string
+      InvitesCreateButton: string
+      InvitesListTitle: string
+      InvitesEmpty: string
+      InvitesColState: string
+      InvitesColCreated: string
+      InvitesColExpires: string
+      InvitesColUsedBy: string
+      /// active, used, revoked, expired
+      InvitesState: string -> string
+      InvitesUsedByDeleted: string
+      InvitesRevokeButton: string
+      InvitesRevokeLabel: string
+      /// The notice for a `msg` key (revoked, not-active, bad-days, bad-input)
+      InvitesNotice: string -> string
+      InvitesShownTitle: string
+      InvitesShownOnce: string
+      /// How to use the code, with the sign-in address
+      InvitesHowTo: string -> string
+      InvitesExpiresLine: string
+      InvitesCopyCode: string
+      InvitesCodeCopied: string
+      InvitesBack: string }
 
 let en =
     { Lang = "en"
@@ -674,6 +704,8 @@ let en =
             | "share_link_created" -> "Share link created"
             | "share_link_replaced" -> "Share link replaced"
             | "share_link_revoked" -> "Share link turned off"
+            | "invite_created" -> "Invite created"
+            | "invite_revoked" -> "Invite revoked"
             | other -> other
       ByOperator = "by the operator"
 
@@ -1027,7 +1059,47 @@ let en =
       ShareLinkRevokeButton = "Turn off the link"
       ShareLinkRevoked = "Share link turned off. Nobody can use it any more."
       ShareLinkShownTitle = "Your share link"
-      ShareLinkShownOnce = "It's shown only once: Frunchy doesn't keep a copy. If you lose it, replace it with a new one. Replacing or turning off the link ends access for everyone who has it." }
+      ShareLinkShownOnce = "It's shown only once: Frunchy doesn't keep a copy. If you lose it, replace it with a new one. Replacing or turning off the link ends access for everyone who has it."
+
+      InvitesTitle = "Invites"
+      InvitesIntro = "Invite people to sign up. Each code works once, and Frunchy keeps only its fingerprint, so a lost code is revoked and replaced."
+      InvitesAccountLink = "Manage invites"
+      InvitesCreateTitle = "New invite"
+      InvitesDaysLabel = "Valid for (days)"
+      InvitesDaysHint = "From 1 to 365 days."
+      InvitesCreateButton = "Create invite"
+      InvitesListTitle = "Recent invites"
+      InvitesEmpty = "No invites yet."
+      InvitesColState = "State"
+      InvitesColCreated = "Created"
+      InvitesColExpires = "Expires"
+      InvitesColUsedBy = "Used by"
+      InvitesState =
+        fun state ->
+            match state with
+            | "active" -> "Active"
+            | "used" -> "Used"
+            | "revoked" -> "Revoked"
+            | "expired" -> "Expired"
+            | other -> other
+      InvitesUsedByDeleted = "Account deleted"
+      InvitesRevokeButton = "Revoke"
+      InvitesRevokeLabel = "Revoke this invite"
+      InvitesNotice =
+        fun key ->
+            match key with
+            | "revoked" -> "Invite revoked. Its code no longer works."
+            | "not-active" -> "That invite isn't active (already used, revoked or expired). Nothing changed."
+            | "bad-days" -> "Enter a whole number of days from 1 to 365. Nothing was created."
+            | "bad-input" -> "That invite doesn't exist. Nothing changed."
+            | other -> other
+      InvitesShownTitle = "Your invite code"
+      InvitesShownOnce = "It's shown only once: Frunchy doesn't keep a copy. If you lose it, revoke the invite and create a new one."
+      InvitesHowTo = fun address -> $"Send it to the person you invite. They sign in at {address}, then enter it on the sign-up page. It works once."
+      InvitesExpiresLine = "Valid until"
+      InvitesCopyCode = "Copy code"
+      InvitesCodeCopied = "Code copied"
+      InvitesBack = "Back to invites" }
 
 let es =
     { Lang = "es"
@@ -1243,6 +1315,8 @@ let es =
             | "share_link_created" -> "Enlace para compartir creado"
             | "share_link_replaced" -> "Enlace para compartir reemplazado"
             | "share_link_revoked" -> "Enlace para compartir desactivado"
+            | "invite_created" -> "Invitación creada"
+            | "invite_revoked" -> "Invitación revocada"
             | other -> other
       ByOperator = "por el operador"
 
@@ -1600,7 +1674,47 @@ let es =
       ShareLinkRevokeButton = "Desactivar el enlace"
       ShareLinkRevoked = "Enlace para compartir desactivado. Nadie puede usarlo ya."
       ShareLinkShownTitle = "Tu enlace para compartir"
-      ShareLinkShownOnce = "Solo se muestra una vez: Frunchy no guarda una copia. Si lo pierdes, reemplázalo por uno nuevo. Al reemplazar o desactivar el enlace, todas las personas que lo tengan pierden el acceso." }
+      ShareLinkShownOnce = "Solo se muestra una vez: Frunchy no guarda una copia. Si lo pierdes, reemplázalo por uno nuevo. Al reemplazar o desactivar el enlace, todas las personas que lo tengan pierden el acceso."
+
+      InvitesTitle = "Invitaciones"
+      InvitesIntro = "Invita a otras personas a registrarse. Cada código funciona una sola vez y Frunchy solo guarda su huella, así que un código perdido se revoca y se sustituye."
+      InvitesAccountLink = "Gestionar invitaciones"
+      InvitesCreateTitle = "Nueva invitación"
+      InvitesDaysLabel = "Válida durante (días)"
+      InvitesDaysHint = "De 1 a 365 días."
+      InvitesCreateButton = "Crear invitación"
+      InvitesListTitle = "Invitaciones recientes"
+      InvitesEmpty = "Todavía no hay invitaciones."
+      InvitesColState = "Estado"
+      InvitesColCreated = "Creada"
+      InvitesColExpires = "Caduca"
+      InvitesColUsedBy = "Usada por"
+      InvitesState =
+        fun state ->
+            match state with
+            | "active" -> "Activa"
+            | "used" -> "Usada"
+            | "revoked" -> "Revocada"
+            | "expired" -> "Caducada"
+            | other -> other
+      InvitesUsedByDeleted = "Cuenta eliminada"
+      InvitesRevokeButton = "Revocar"
+      InvitesRevokeLabel = "Revocar esta invitación"
+      InvitesNotice =
+        fun key ->
+            match key with
+            | "revoked" -> "Invitación revocada. Su código ya no funciona."
+            | "not-active" -> "Esa invitación no está activa (ya se usó, se revocó o caducó). No se cambió nada."
+            | "bad-days" -> "Escribe un número entero de días entre 1 y 365. No se creó nada."
+            | "bad-input" -> "Esa invitación no existe. No se cambió nada."
+            | other -> other
+      InvitesShownTitle = "Tu código de invitación"
+      InvitesShownOnce = "Se muestra una sola vez: Frunchy no guarda una copia. Si lo pierdes, revoca la invitación y crea otra."
+      InvitesHowTo = fun address -> $"Envíaselo a la persona que invitas. Debe iniciar sesión en {address} y escribirlo en la página de registro. Funciona una sola vez."
+      InvitesExpiresLine = "Válido hasta"
+      InvitesCopyCode = "Copiar código"
+      InvitesCodeCopied = "Código copiado"
+      InvitesBack = "Volver a las invitaciones" }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =

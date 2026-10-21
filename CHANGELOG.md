@@ -36,6 +36,9 @@ new image. Add to "Unreleased" as you work; a release renames it.
   that uses it, until the owner replaces or turns it off.
 - Operators: one root operator (`Frunchy:RootOperator`) adds and removes operators on the web or
   with `operator-add` / `operator-remove`.
+- Invites on the web: operators create sign-up invites, see recent ones with their state and revoke
+  active ones on `/review/invites`, linked from `/account`. The code is shown once, when it is
+  created. The `invite-*` commands do the same and are unchanged.
 - The fediverse, behind `Frunchy:Federation:Enabled` (off by default): users and series are
   fediverse accounts through Megáfono, comments go both ways with Mastodon, and users and
   operators block remote accounts and servers.
