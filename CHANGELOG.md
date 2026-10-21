@@ -10,8 +10,6 @@ new image. Add to "Unreleased" as you work; a release renames it.
 
 ## Unreleased
 
-## 0.2.0 - 2026-10-21
-
 ### Added
 
 - Members-only profiles: a profile can now be Public, Members or Private. Members means anyone
@@ -19,17 +17,6 @@ new image. Add to "Unreleased" as you work; a release renames it.
   afterwards. Owners choose on `/account#visibility`, and a share link still opens any profile.
   Private profiles still answer like a username that doesn't exist. Charts, series and episode
   pages are unchanged.
-
-- Invites on the web: operators create sign-up invites, see recent ones with their state and revoke
-  active ones on `/review/invites`, linked from `/account`. The code is shown once, when it is
-  created. The `invite-*` commands do the same and are unchanged.
-- Open sign-up: the root operator chooses on `/review/settings` ("Site settings", linked from
-  `/account`) whether new accounts need an invite code (the default) or anyone who signs in with a
-  provider can create one. The change applies at once, with no redeploy, and needs a sign-in within
-  the last 10 minutes. Existing accounts sign in the same way in both modes. On an invite-only
-  Frunchy the sign-in page now says so, with a note and a dialog before leaving for the provider
-  ("Don't show this again on this device" is remembered in the browser only).
-- Every page's footer says Frunchy is not affiliated with Crunchyroll or MyAnimeList.
 
 ### Changed
 
@@ -46,6 +33,21 @@ new image. Add to "Unreleased" as you work; a release renames it.
 - The database upgrades by itself on start: the check on `profile_settings.visibility` is replaced
   to accept `members`, once, with no data change. Two copies starting together take turns. Nothing
   to run by hand.
+
+## 0.2.0 - 2026-10-21
+
+### Added
+
+- Invites on the web: operators create sign-up invites, see recent ones with their state and revoke
+  active ones on `/review/invites`, linked from `/account`. The code is shown once, when it is
+  created. The `invite-*` commands do the same and are unchanged.
+- Open sign-up: the root operator chooses on `/review/settings` ("Site settings", linked from
+  `/account`) whether new accounts need an invite code (the default) or anyone who signs in with a
+  provider can create one. The change applies at once, with no redeploy, and needs a sign-in within
+  the last 10 minutes. Existing accounts sign in the same way in both modes. On an invite-only
+  Frunchy the sign-in page now says so, with a note and a dialog before leaving for the provider
+  ("Don't show this again on this device" is remembered in the browser only).
+- Every page's footer says Frunchy is not affiliated with Crunchyroll or MyAnimeList.
 
 ## 0.1.0 - 2026-10-20
 
