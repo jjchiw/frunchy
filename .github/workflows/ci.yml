@@ -35,6 +35,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.ref }}
+          fetch-depth: 0 # the release tags, for the changelog check
+
+      # A branch started before a release can put its entries inside that release's section when merged (git can't
+      # tell); this fails the push instead of the next release (.github/scripts/changelog.sh, "released")
+      - name: Released changelog sections are unchanged
+        run: .github/scripts/changelog.sh released
 
       - uses: actions/setup-dotnet@v4
         with:

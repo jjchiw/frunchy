@@ -84,9 +84,16 @@ tests). Then the image, the deploy and the GitHub Release run on the tagged comm
 its own changelog section, red tests never leave a tag behind, and `main` is renamed before anything else can merge.
 A tag that already exists is refused with the commands to delete it. Nothing is tagged locally.
 
-**Still works: pushing a tag.** `git tag v0.2.2 && git push origin v0.2.2`, from `main`, runs the same workflow. The
-changelog is then prepared only in the run's own checkout and recorded on `main` afterwards, and only if `main` hasn't
-moved (see the job order below), so prefer the button.
+**By hand: prepare, commit, then tag.** `.github/scripts/changelog.sh prepare 0.2.2`, commit it
+(`chore(release): 0.2.2`), tag that commit (`v0.2.2`, annotated), then push `main` and the tag together with
+`--atomic`. The workflow refuses a pushed tag whose commit doesn't hold its own `## 0.2.2` section, so every release
+tag records its notes.
+
+**Released notes are protected.** CI runs `.github/scripts/changelog.sh released` on every push: each `## X.Y.Z`
+section must read exactly as in its tag. A branch started before a release that, once merged, puts its entries inside
+that release's section fails CI at once (move them under `## Unreleased`), instead of the next release finding
+Unreleased empty. Releases from before this rule (0.1.0, 0.2.0) don't hold their section in their tag and aren't
+checked.
 
 Either way `release.yml` runs the tests, then the job `deploy`, which runs `bella run -- dotnet aspire deploy
 --non-interactive` with GitHub's OIDC token exchanged for a short-lived Bella key. No deploy secret is stored in

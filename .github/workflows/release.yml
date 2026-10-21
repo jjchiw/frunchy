@@ -13,8 +13,8 @@
 #     commits that to main as github-actions[bot], tags the commit vX.Y.Z and pushes both in one atomic push. It runs
 #     only after the tests passed on that commit of main, so red tests never leave a tag. The tag therefore always
 #     contains its own changelog section, and main is renamed before anything else can merge.
-#   - Pushing a tag `vX.Y.Z` (git tag vX.Y.Z && git push origin vX.Y.Z) still works: the changelog is prepared in this
-#     run's own checkout and recorded on main afterwards, only if main hasn't moved (job `release`).
+#   - Pushing a tag by hand works when the tagged commit already holds its section: .github/scripts/changelog.sh
+#     prepare X.Y.Z, commit, tag that commit, push main and the tag together (--atomic). A tag without it is refused.
 # Every later job takes the version and the tag from the outputs of `changelog` (never from GITHUB_REF_NAME, which is
 # `main` on a dispatch) and checks out the tag, so it builds exactly the tagged commit.
 #
@@ -127,6 +127,12 @@ jobs:
               fi
             } > out/notes.md
           else
+            # A pushed tag must already hold its own section (prepare, commit, then tag that commit), so every
+            # release tag records its notes and `changelog.sh released` can protect them; the button does that
+            if [ "$GITHUB_EVENT_NAME" != "workflow_dispatch" ] && ! .github/scripts/changelog.sh notes "$VERSION" >/dev/null 2>&1; then
+              echo "::error::The tag v$VERSION has no \"## $VERSION\" section in its CHANGELOG.md. Release with Actions > Release > Run workflow, or by hand: .github/scripts/changelog.sh prepare $VERSION, commit, tag that commit, then git push --atomic origin main v$VERSION. Delete this tag first: git push --delete origin v$VERSION."
+              exit 1
+            fi
             .github/scripts/changelog.sh notes "$VERSION" >/dev/null 2>&1 ||
               .github/scripts/changelog.sh prepare "$VERSION"
             .github/scripts/changelog.sh notes "$VERSION" > out/notes.md
@@ -331,29 +337,4 @@ jobs:
             gh release edit "$TAG" --notes-file out/notes.md "${args[@]}"
           else
             gh release create "$TAG" --title "Frunchy $VERSION" --notes-file out/notes.md --generate-notes --verify-tag "${args[@]}"
-          fi
-
-      # Tag push only (a dispatch renamed main before it tagged). main gets the rename, so the next release starts from
-      # an empty "Unreleased". Only when main is still the tagged commit; otherwise its "Unreleased" may hold newer
-      # entries, which a rename would wrongly claim. The tag never moves.
-      - name: Record the changelog on main
-        if: ${{ github.event_name != 'workflow_dispatch' }}
-        run: |
-          if [ "$PRERELEASE" = "true" ]; then
-            exit 0 # a prerelease leaves the changelog alone
-          fi
-          cp out/CHANGELOG.md CHANGELOG.md
-          if git diff --quiet -- CHANGELOG.md; then
-            exit 0 # the tagged commit had its section already
-          fi
-          git fetch -q origin main
-          if [ "$(git rev-parse origin/main)" != "$(git rev-parse HEAD)" ]; then
-            echo "::warning::main has moved past $TAG, so its CHANGELOG.md still lists $VERSION's entries under \"## Unreleased\". On main, run .github/scripts/changelog.sh prepare $VERSION and keep any newer entries under Unreleased."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "docs(changelog): release $VERSION" -- CHANGELOG.md
-          if ! git push origin HEAD:main; then
-            echo "::warning::Couldn't push the changelog to main. On main, run .github/scripts/changelog.sh prepare $VERSION and commit it."
           fi
