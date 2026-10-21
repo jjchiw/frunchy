@@ -155,7 +155,10 @@ let page (ctx: HttpContext) (t: Texts) (titleText: string) (content: HtmlElement
             footer(class' = "border-t border-outline-variant/40") {
                 div(class' = "mx-auto flex max-w-page items-center gap-3 px-4 py-8 text-label-md font-normal text-on-surface-variant md:px-8") {
                     span(class' = "block h-5 w-5 opacity-80") { raw Theme.markSvg }
-                    p() { t.Footer }
+                    div(class' = "space-y-1") {
+                        p() { t.Footer }
+                        p().data("footer-disclaimer", "") { t.FooterDisclaimer }
+                    }
                 }
             }
         }

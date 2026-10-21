@@ -40,6 +40,19 @@ let ``placeholder pages are gone`` (path: string) =
         Assert.Contains("Página no encontrada", html)
     }
 
+[<Theory>]
+[<InlineData("en-US", "Frunchy is not affiliated with Crunchyroll or MyAnimeList.")>]
+[<InlineData("es-ES", "Frunchy no está afiliado a Crunchyroll ni a MyAnimeList.")>]
+let ``every page says Frunchy is not affiliated with Crunchyroll`` (language: string, line: string) =
+    task {
+        use! app = newApp ()
+        for path in [ "/"; "/charts"; "/nothing-here" ] do
+            let! response = getWithLanguage app.Client language path
+            let! html = readHtml response
+            Assert.Contains("data-footer-disclaimer", html)
+            Assert.Contains(line, html)
+    }
+
 [<Fact>]
 let ``unknown api path returns the JSON error shape`` () =
     task {
