@@ -10,6 +10,8 @@ new image. Add to "Unreleased" as you work; a release renames it.
 
 ## Unreleased
 
+## 0.2.0 - 2026-10-21
+
 ### Added
 
 - Invites on the web: operators create sign-up invites, see recent ones with their state and revoke
