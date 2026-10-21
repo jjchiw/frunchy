@@ -372,18 +372,23 @@ let private loadYears (connection: NpgsqlConnection) (userId: Guid) : Task<int l
         return List.ofSeq years
     }
 
-/// The user, once the viewer is known to see their profile: None for an unknown username and for a hidden profile
-/// alike (the same 404), with no history query before the check
-let private loadUser (ctx: HttpContext) (connection: NpgsqlConnection) (username: string) : Task<(User * Profiles.PageAccess) option> =
+/// The user, once the viewer is known to see their profile: `Error NotFound` for an unknown username and for a hidden
+/// profile alike (the same 404), `Error SignInFirst` for a Members profile and a signed-out viewer (feature 021), with
+/// no history query before the check
+let private loadUser
+    (ctx: HttpContext)
+    (connection: NpgsqlConnection)
+    (username: string)
+    : Task<Result<User * Profiles.PageAccess, Profiles.GateResult>> =
     task {
         match! findUser connection username with
-        | None -> return None
+        | None -> return Error Profiles.NotFound
         | Some(id, displayName) ->
             match! Profiles.gate ctx (ctx.GetService<DbConfig>()) id with
-            | None -> return None
-            | Some access ->
+            | Profiles.Show access ->
                 let! years = loadYears connection id
-                return Some({ Id = id; DisplayName = displayName; Years = years }, access)
+                return Ok({ Id = id; DisplayName = displayName; Years = years }, access)
+            | refused -> return Error refused
     }
 
 let private loadYear (connection: NpgsqlConnection) (userId: Guid) (year: int) : Task<int64 * Figures option> =
@@ -622,8 +627,9 @@ let latest (rawUsername: string) : EndpointHandler =
                 do! connection.OpenAsync()
 
                 match! loadUser ctx connection username with
-                | None -> return! notFound ctx t true
-                | Some(user, access) ->
+                | Error Profiles.SignInFirst -> return! WebAuth.redirectToSignInHere ctx
+                | Error _ -> return! notFound ctx t true
+                | Ok(user, access) ->
                     let year = user.Years |> List.tryHead |> Option.defaultValue (currentYear ctx)
                     ctx.Response.Redirect $"/u/{username}/year/{year}"
                     return ()
@@ -648,8 +654,9 @@ let handler (rawUsername: string) (rawYear: string) : EndpointHandler =
                 do! connection.OpenAsync()
 
                 match! loadUser ctx connection username with
-                | None -> return! notFound ctx t true
-                | Some(user, access) ->
+                | Error Profiles.SignInFirst -> return! WebAuth.redirectToSignInHere ctx
+                | Error _ -> return! notFound ctx t true
+                | Ok(user, access) ->
                     match year with
                     | None -> return! notFound ctx t false
                     | Some y when y <> thisYear && not (List.contains y user.Years) ->

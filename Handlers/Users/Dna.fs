@@ -377,13 +377,14 @@ let private round1 (value: decimal) =
 let private percent (part: int64) (whole: int64) =
     if whole = 0L then 0m else round1 (100m * decimal part / decimal whole)
 
-/// `gate` runs right after the user lookup, before any other query: None hides the profile (feature 017)
+/// `gate` runs right after the user lookup, before any other query: anything but `Show` is an `Error` and the handler
+/// answers the 404 (or, for a Members profile and a signed-out viewer, the sign-in redirect; features 017 and 021)
 let private tryLoad
     (db: DbConfig)
-    (gate: Guid -> Task<Profiles.PageAccess option>)
+    (gate: Guid -> Task<Profiles.GateResult>)
     (username: string)
     (now: DateTimeOffset)
-    : Task<DnaModel option> =
+    : Task<Result<DnaModel, Profiles.GateResult>> =
     task {
         use connection = getConnection db
         do! connection.OpenAsync()
@@ -402,14 +403,15 @@ let private tryLoad
             match user with
             | Some(userId, displayName) ->
                 task {
-                    let! access = gate userId
-                    return access |> Option.map (fun a -> userId, displayName, a)
+                    match! gate userId with
+                    | Profiles.Show access -> return Ok(userId, displayName, access)
+                    | refused -> return Error refused
                 }
-            | None -> Task.FromResult None
+            | None -> Task.FromResult(Error Profiles.NotFound)
 
         match gated with
-        | None -> return None
-        | Some(userId, displayName, access) ->
+        | Error refused -> return Error refused
+        | Ok(userId, displayName, access) ->
             // One statement, one row shape: (kind, name, ms, n, x1, x2, x3, t1, t2, t3, t4, t5)
             use cmd =
                 new NpgsqlCommand(
@@ -604,7 +606,7 @@ let private tryLoad
             let hours = decimal allMs / 3_600_000m
 
             return
-                Some
+                Ok
                     { Username = username
                       DisplayName = displayName
                       FullyWatched = fullyWatched
@@ -647,11 +649,13 @@ let handler (rawUsername: string) : EndpointHandler =
                     let db = ctx.GetService<DbConfig>()
                     // A hidden profile loads as no user at all: the unknown-user 404 below
                     tryLoad db (Profiles.gate ctx db) username now
-                | None -> Task.FromResult None
+                | None -> Task.FromResult(Error Profiles.NotFound)
 
             match model with
-            | Some m -> return! ctx.WriteHtmlView(view ctx t m)
-            | None ->
+            | Ok m -> return! ctx.WriteHtmlView(view ctx t m)
+            // A Members profile and a signed-out viewer: sign in, then back here (feature 021)
+            | Error Profiles.SignInFirst -> return! WebAuth.redirectToSignInHere ctx
+            | Error _ ->
                 ctx.SetStatusCode 404
                 return! ctx.WriteHtmlView(Layout.messagePage ctx t t.UserNotFoundTitle t.UserNotFoundBody)
         }

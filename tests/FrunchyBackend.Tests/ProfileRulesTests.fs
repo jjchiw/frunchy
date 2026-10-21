@@ -60,21 +60,29 @@ let ``a grant for another user does not open this profile`` () =
 // ---------------------------------------------------------------------------
 
 [<Fact>]
-let ``parseDefault: missing and blank mean private`` () =
-    Assert.Equal(Private, parseDefault null)
-    Assert.Equal(Private, parseDefault "")
-    Assert.Equal(Private, parseDefault "   ")
+let ``parseDefault: missing and blank mean members`` () =
+    Assert.Equal(Members, parseDefault null)
+    Assert.Equal(Members, parseDefault "")
+    Assert.Equal(Members, parseDefault "   ")
 
 [<Fact>]
 let ``parseDefault is case-insensitive and trimmed`` () =
     Assert.Equal(Public, parseDefault "PUBLIC")
     Assert.Equal(Public, parseDefault "public")
     Assert.Equal(Private, parseDefault " private ")
+    Assert.Equal(Members, parseDefault " Members ")
 
 [<Fact>]
 let ``parseDefault refuses anything else, naming the key`` () =
     let ex = Assert.Throws<InvalidOperationException>(fun () -> parseDefault "friends" |> ignore)
     Assert.Contains(DefaultVisibilityKey, ex.Message)
+    Assert.Contains("members", ex.Message)
+
+[<Fact>]
+let ``a members profile is visible to a signed-in viewer only`` () =
+    Assert.True(canView (Some(Guid.NewGuid())) [] (access Members None))
+    Assert.False(canView None [] (access Members None))
+    Assert.True(canView None [ grant owner link 1L ] (access Members (Some link)))
 
 [<Fact>]
 let ``effective prefers the owner's choice over the default`` () =

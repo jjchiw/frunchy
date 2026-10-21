@@ -130,6 +130,11 @@ let requireSignedInReturning (returnUrl: string) (handler: Guid -> EndpointHandl
         | Some userId -> handler userId ctx
         | None -> redirect ctx $"/signin?returnUrl={Uri.EscapeDataString returnUrl}"
 
+/// Send a signed-out browser to /signin and back to the page it asked for (path and query, local only)
+let redirectToSignInHere (ctx: HttpContext) : Task =
+    let returnUrl = localReturnUrl (currentPathAndQuery ctx) "/"
+    redirect ctx $"/signin?returnUrl={Uri.EscapeDataString returnUrl}"
+
 /// Run the handler for the signed-in user, or send the browser to /signin and back afterwards
 let requireSignedIn (handler: Guid -> EndpointHandler) : EndpointHandler =
     fun ctx -> requireSignedInReturning (currentPathAndQuery ctx) handler ctx

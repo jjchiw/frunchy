@@ -487,8 +487,9 @@ let handler (rawUsername: string) (rawSeriesId: string) : EndpointHandler =
                 | Some(userId, _) ->
                     // The visibility check (feature 017): hidden is the unknown-user 404, before any history query
                     match! Profiles.gate ctx (ctx.GetService<DbConfig>()) userId with
-                    | None -> return! notFound ctx t true
-                    | Some access ->
+                    | Profiles.SignInFirst -> return! WebAuth.redirectToSignInHere ctx
+                    | Profiles.NotFound -> return! notFound ctx t true
+                    | Profiles.Show access ->
                         let! rows = loadRows connection userId rawSeriesId
 
                         match toModel username rawSeriesId access rows with

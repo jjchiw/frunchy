@@ -17,8 +17,9 @@ type Texts =
       HomeIntro: string
       HomeHowToSyncTitle: string
       HomeSteps: string list
-      /// Which of the two the home page shows follows `Frunchy:Profiles:DefaultVisibility` (feature 017)
+      /// Which of the three the home page shows follows `Frunchy:Profiles:DefaultVisibility` (features 017 and 021)
       HomeProfilesPrivateNote: string
+      HomeProfilesMembersNote: string
       HomeProfilesPublicNote: string
 
       NotFoundTitle: string
@@ -32,6 +33,9 @@ type Texts =
       /// The owner's own pages when the profile is private, with a link to the visibility settings (feature 017)
       PrivateProfileNote: string
       PrivateProfileLink: string
+      /// The owner's own pages when the profile is for members (feature 021), with a link to the visibility settings
+      MembersProfileNote: string
+      MembersProfileLink: string
       LastSync: string
       NeverSynced: string
       NewestEpisode: string
@@ -444,10 +448,13 @@ type Texts =
       VisibilityIntro: string
       VisibilityPublicLabel: string
       VisibilityPublicHelp: string
+      VisibilityMembersLabel: string
+      VisibilityMembersHelp: string
       VisibilityPrivateLabel: string
       VisibilityPrivateHelp: string
-      /// "Your profile is public." with where it comes from (true = the site's default, false = your choice)
-      VisibilityState: bool -> bool -> string
+      /// "Your profile is public." for the level's word (`public`, `members` or `private`), with where it comes from
+      /// (true = the site's default, false = your choice)
+      VisibilityState: string -> bool -> string
       VisibilitySaved: string
       VisibilityInvalid: string
       ShareLinkTitle: string
@@ -530,6 +537,7 @@ let en =
           "Open your watch history on crunchyroll.com."
           "The extension sends it to Frunchy; your dashboard updates in a moment." ]
       HomeProfilesPrivateNote = "Profiles are private: only their owner, and the people they share a link with, can see them."
+      HomeProfilesMembersNote = "Profiles are for members: anyone signed in to Frunchy can see them, and each owner can make theirs public or private."
       HomeProfilesPublicNote = "Profiles are public unless their owner makes them private: anyone with the link to a profile can see its numbers."
 
       NotFoundTitle = "Page not found"
@@ -541,6 +549,8 @@ let en =
       PublicProfileNote = "This profile is public: anyone with the link can see these numbers."
       PrivateProfileNote = "This profile is private: only you can see it."
       PrivateProfileLink = "Share it or make it public"
+      MembersProfileNote = "Anyone signed in to Frunchy can see this profile."
+      MembersProfileLink = "Change who can see it"
       LastSync = "Last sync"
       NeverSynced = "Not synced yet"
       NewestEpisode = "Newest episode"
@@ -1067,14 +1077,21 @@ let en =
       VisibilityIntro = "Your profile is your dashboard and every page under it: Anime DNA, years in review, anime pages and comparisons."
       VisibilityPublicLabel = "Public"
       VisibilityPublicHelp = "Anyone can see your profile."
+      VisibilityMembersLabel = "Members"
+      VisibilityMembersHelp = "Anyone signed in to Frunchy, and people who open your share link, can see it."
       VisibilityPrivateLabel = "Private"
       VisibilityPrivateHelp = "Only you and people who open your share link can see it."
       VisibilityState =
-        fun isPublic fromDefault ->
-            let state = if isPublic then "Your profile is public." else "Your profile is private."
+        fun level fromDefault ->
+            let state =
+                match level with
+                | "public" -> "Your profile is public."
+                | "members" -> "Your profile is for members."
+                | _ -> "Your profile is private."
+
             state + (if fromDefault then " That is this site's default until you choose." else " You chose this.")
       VisibilitySaved = "Visibility saved."
-      VisibilityInvalid = "Choose public or private."
+      VisibilityInvalid = "Choose public, members or private."
       ShareLinkTitle = "Share link"
       ShareLinkIntro = "Anyone who opens your share link can see your whole profile, even while it is private. The link is shown only once, when you create it."
       ShareLinkNone = "You have no share link."
@@ -1167,6 +1184,7 @@ let es =
           "Abre tu historial en crunchyroll.com."
           "La extensión lo envía a Frunchy y tu dashboard se actualiza en unos instantes." ]
       HomeProfilesPrivateNote = "Los perfiles son privados: solo los ve su dueño y las personas con quienes comparte un enlace."
+      HomeProfilesMembersNote = "Los perfiles son para miembros: los ve cualquier persona con sesión iniciada en Frunchy, y cada dueño puede hacer el suyo público o privado."
       HomeProfilesPublicNote = "Los perfiles son públicos salvo que su dueño los haga privados: cualquiera con el enlace de un perfil puede ver sus números."
 
       NotFoundTitle = "Página no encontrada"
@@ -1178,6 +1196,8 @@ let es =
       PublicProfileNote = "Este perfil es público: cualquiera con el enlace puede ver estos números."
       PrivateProfileNote = "Este perfil es privado: solo tú puedes verlo."
       PrivateProfileLink = "Compártelo o hazlo público"
+      MembersProfileNote = "Cualquier persona con sesión iniciada en Frunchy puede ver este perfil."
+      MembersProfileLink = "Cambia quién puede verlo"
       LastSync = "Última sincronización"
       NeverSynced = "Aún sin sincronizar"
       NewestEpisode = "Último episodio"
@@ -1708,14 +1728,21 @@ let es =
       VisibilityIntro = "Tu perfil es tu panel y todas las páginas que cuelgan de él: ADN anime, resúmenes del año, páginas de anime y comparaciones."
       VisibilityPublicLabel = "Público"
       VisibilityPublicHelp = "Cualquiera puede ver tu perfil."
+      VisibilityMembersLabel = "Miembros"
+      VisibilityMembersHelp = "Cualquier persona con sesión iniciada en Frunchy, y quien abra tu enlace para compartir, puede verlo."
       VisibilityPrivateLabel = "Privado"
       VisibilityPrivateHelp = "Solo tú y quien abra tu enlace para compartir pueden verlo."
       VisibilityState =
-        fun isPublic fromDefault ->
-            let state = if isPublic then "Tu perfil es público." else "Tu perfil es privado."
+        fun level fromDefault ->
+            let state =
+                match level with
+                | "public" -> "Tu perfil es público."
+                | "members" -> "Tu perfil es para miembros."
+                | _ -> "Tu perfil es privado."
+
             state + (if fromDefault then " Es lo predeterminado en este sitio hasta que elijas." else " Lo elegiste tú.")
       VisibilitySaved = "Visibilidad guardada."
-      VisibilityInvalid = "Elige público o privado."
+      VisibilityInvalid = "Elige público, miembros o privado."
       ShareLinkTitle = "Enlace para compartir"
       ShareLinkIntro = "Quien abra tu enlace para compartir puede ver todo tu perfil, incluso mientras es privado. El enlace solo se muestra una vez, cuando lo creas."
       ShareLinkNone = "No tienes ningún enlace para compartir."

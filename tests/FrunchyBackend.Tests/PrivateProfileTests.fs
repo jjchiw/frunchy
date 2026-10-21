@@ -1,4 +1,5 @@
-/// Feature 017 (T008): profiles are private by default. Every route under /u/{username} answers the unknown-user 404
+/// Feature 017 (T008): a private profile. (Feature 021 made `members` the default, so these tests ask for `private`
+/// explicitly.) Every route under /u/{username} answers the unknown-user 404
 /// to anyone but the owner, and a hidden profile can't be told apart from a username that doesn't exist.
 module FrunchyBackend.Tests.PrivateProfileTests
 
@@ -178,15 +179,16 @@ let ``with a public default everything opens, with the copy link and no private 
     }
 
 [<Fact>]
-let ``the app's own default, with the setting blank, is private`` () =
+let ``the app's own default, with the setting blank, is members and no longer private`` () =
     task {
-        // the fixture sets "public"; a blank value is what an instance without the setting reads
+        // the fixture sets "public"; a blank value is what an instance without the setting reads (feature 021)
         use! w = world [ defaultKey, "" ]
-        let! status, _ = body w.Stranger "/u/animenerd"
-        Assert.Equal(HttpStatusCode.NotFound, status)
+        use! response = w.Stranger.GetRaw "/u/animenerd"
+        Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
         let! own = w.Owner.Get "/u/animenerd"
         Assert.Equal(HttpStatusCode.OK, own.Status)
-        Assert.Contains("data-profile-private", own.Html)
+        Assert.DoesNotContain("data-profile-private", own.Html)
+        Assert.Contains("data-profile-members", own.Html)
     }
 
 [<Fact>]
@@ -249,6 +251,13 @@ let ``the home note follows the instance default`` () =
         let! es = getWithLanguage privateApp.Client "es" "/"
         let! esHtml = readHtml es
         Assert.Contains("Los perfiles son privados", esHtml)
+
+        let! db3 = newDatabase ()
+        use! membersApp = createAppWith db3 [ defaultKey, "members" ] ignore
+        let! response = getWithLanguage membersApp.Client "en" "/"
+        let! html = readHtml response
+        Assert.Contains("Profiles are for members", html)
+        Assert.DoesNotContain("Profiles are private", html)
 
         let! db2 = newDatabase ()
         use! publicApp = createAppWith db2 [ defaultKey, "public" ] ignore

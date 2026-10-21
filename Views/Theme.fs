@@ -191,6 +191,7 @@ type Icon =
     | ExploreOff
     | Extension
     | Fingerprint
+    | Group
     | History
     | Home
     | Info
@@ -226,6 +227,7 @@ type Icon =
         | ExploreOff -> "explore_off"
         | Extension -> "extension"
         | Fingerprint -> "fingerprint"
+        | Group -> "group"
         | History -> "history"
         | Home -> "home"
         | Info -> "info"

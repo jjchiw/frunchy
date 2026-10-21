@@ -11,8 +11,9 @@ Frunchy implements Megáfono's app contract v1 (001 + 002 + 003 + 004) and calls
 | `POST /megafono/webhooks` | Bearer + `Megafono-Signature` | 204 (applied, repeated, ignored), 401 (auth/signature), 400 (not JSON or no `id`/`type`), 413 (over 1 MB) |
 
 Actor JSON:
-- **Person**: `{ id, handle, name, profileUrl: "https://{domain}/u/{username}", type: "Person", locked: false }`.
-- **Group**: `{ id: "series-{seriesId}", handle, name: series title, profileUrl: "https://{domain}/anime/{seriesId}", iconUrl?, type: "Group", locked: false }`.
+- **Person**: `{ id, handle, name, profileUrl: "https://{domain}/u/{username}", type: "Person", locked: false, discoverable, indexable }`.
+- **Group**: `{ id: "series-{seriesId}", handle, name: series title, profileUrl: "https://{domain}/anime/{seriesId}", iconUrl?, type: "Group", locked: false, discoverable: true, indexable: true }`.
+- **`discoverable` and `indexable`** (added by feature 021): optional JSON booleans, exactly these names; any non-boolean value is invalid. A user gets both `true` when the effective profile visibility (their choice, else `Frunchy:Profiles:DefaultVisibility`) is Public, and both `false` for Members and Private; a series (Group) gets both `true`. Absent, Megáfono keeps its hardcoded `discoverable: true, indexable: false`. Optional: Megáfono ignores them until it renders them. A change of a user's visibility queues `refresh_profile` for that user (only with federation on, only when the effective level changed), so Megáfono looks the actor up again.
 
 ## What Frunchy calls (outbox worker unless noted)
 

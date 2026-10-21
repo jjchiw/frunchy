@@ -150,10 +150,9 @@ let private profile (ctx: HttpContext) (t: Texts) (msg: string) (m: AccountModel
     }
     |> accountSection "profile" Theme.Fingerprint t.AccountProfileTitle
 
-/// Feature 017: public or private, and the share link. `data-visibility`, `data-visibility-source` and
+/// Features 017 and 021: public, members or private, and the share link. `data-visibility`, `data-visibility-source` and
 /// `data-share-link-state` are the test hooks (contracts/visibility.md).
 let private visibilitySection (ctx: HttpContext) (t: Texts) (m: AccountModel) =
-    let isPublic = (m.Visibility = Profiles.Public)
     let fromDefault = m.VisibilityChoice.IsNone
 
     let option (value: Profiles.Visibility) (label': string) (help: string) =
@@ -180,6 +179,7 @@ let private visibilitySection (ctx: HttpContext) (t: Texts) (m: AccountModel) =
             fieldset(class' = "space-y-3") {
                 legend(class' = "sr-only") { t.VisibilityTitle }
                 option Profiles.Public t.VisibilityPublicLabel t.VisibilityPublicHelp
+                option Profiles.Members t.VisibilityMembersLabel t.VisibilityMembersHelp
                 option Profiles.Private t.VisibilityPrivateLabel t.VisibilityPrivateHelp
             }
 
@@ -187,7 +187,7 @@ let private visibilitySection (ctx: HttpContext) (t: Texts) (m: AccountModel) =
                 p(class' = "text-body-md text-on-surface")
                     .data("visibility", Profiles.Visibility.toDb m.Visibility)
                     .data("visibility-source", (if fromDefault then "default" else "choice")) {
-                    t.VisibilityState isPublic fromDefault
+                    t.VisibilityState (Profiles.Visibility.toDb m.Visibility) fromDefault
                 }
 
                 button(type' = "submit", class' = btn Secondary + " shrink-0") { t.SaveButton }
