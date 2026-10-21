@@ -490,3 +490,5 @@ design/*.zip
 
 # Agent worktrees (parallel teammates)
 .claude/worktrees/
+
+.alta
