@@ -74,9 +74,20 @@ the console for things the AppHost describes is replaced on the next deploy).
   A local deploy has none and gets `local-<UTC timestamp>` (`local-20261019195636`): unique and traceable, and never
   `latest`, which Aspire would otherwise use. Set `Deploy__ImageTag` yourself to deploy a chosen version; `latest` is refused.
 
-### Deploying from a tag
+### Releasing (and deploying from a tag)
 
-A pushed `v*` tag runs `release.yml`: the tests, then the job `deploy`, which runs `bella run -- dotnet aspire deploy
+**Preferred: the button.** In GitHub, Actions > Release > Run workflow, branch `main`, and type the version in
+`version` (`0.2.2`, no `v`; a pre-release such as `0.3.0-rc.1` works too). The workflow itself prepares the changelog
+on `main`, commits it as github-actions[bot] (`chore(release): 0.2.2`), tags that commit `v0.2.2`, pushes both in one
+atomic push, and then runs the tests, the image, the deploy and the GitHub Release on the tagged commit. The tag
+therefore always contains its own changelog section, and `main` is renamed before anything else can merge. A tag that
+already exists is refused with the commands to delete it. Nothing is tagged locally.
+
+**Still works: pushing a tag.** `git tag v0.2.2 && git push origin v0.2.2`, from `main`, runs the same workflow. The
+changelog is then prepared only in the run's own checkout and recorded on `main` afterwards, and only if `main` hasn't
+moved (see the job order below), so prefer the button.
+
+Either way `release.yml` runs the tests, then the job `deploy`, which runs `bella run -- dotnet aspire deploy
 --non-interactive` with GitHub's OIDC token exchanged for a short-lived Bella key. No deploy secret is stored in
 GitHub; every parameter above is read from Bella. The multi-arch `image` job still runs beside it for self-hosters.
 
@@ -93,34 +104,50 @@ One-time setup, done by the owner:
    `BELLA_BAXTER_TENANT` (the tenant slug; the local `.bella` file names the org `code4fun-17d1c3`),
    `BELLA_BAXTER_PROJECT` = `frunchy`, `BELLA_BAXTER_ENV` = `production`. The deploy job is skipped while
    `BELLA_BAXTER_PROJECT` is empty.
-3. **GitHub environment** `production` > Deployment branches and tags > Selected > tag rule `v*`. With the trust
-   domain's `environment` rule, only a tag release can read the secrets.
+3. **GitHub environment** `production` > Deployment branches and tags > Selected > two rules: the tag rule `v*` (a
+   pushed tag) **and the branch rule `main` (Run workflow)**. GitHub checks the rule against the ref the run is on,
+   and a Run workflow run is on `main`, so with only the tag rule the `deploy` job is refused ("not allowed to deploy
+   to production due to environment protection rules") and the release stops there, after the tag was pushed. With the
+   trust domain's `environment` rule, only a run of this workflow on a rule-matching ref can read the secrets. Bella's
+   claim `environment = production` is the environment's name, so the trust domain doesn't change. If `main` is a
+   protected branch, github-actions[bot] must be allowed to push to it (or the bot's changelog commit is refused and
+   the run fails before anything is tagged).
 4. **GHCR**: after the first push, make the `frunchy` package public, or add ghcr.io credentials (a `read:packages`
    token) in Caravana > Settings > Registries (the rollout otherwise dies at its 10-minute deadline). The workflow
    pushes with `GITHUB_TOKEN`; the first push creates the package under the repository, so check its "Manage Actions
    access" if a later push is refused.
 5. Also the "Before the first deploy" list above (project and environment in Caravana, backup destination, Umbral).
 
-Release: `git tag v0.1.0 && git push origin v0.1.0`, from `main`.
-
 The order of the jobs:
-1. `changelog` first: a release tag turns `## Unreleased` in `CHANGELOG.md` into `## X.Y.Z - <date>` and fails the
-   run when Unreleased is empty, so nothing builds or deploys without notes.
-2. `test`, then `image` (self-host) and `deploy` (Caravana).
-3. `release` last: the GitHub Release (the version's section plus GitHub's commit list), and the renamed
-   `CHANGELOG.md` committed to `main` as github-actions[bot], only if `main` is still the tagged commit; otherwise a
-   warning tells you to run `.github/scripts/changelog.sh prepare X.Y.Z` on `main`. It runs only when the deploy
-   succeeded or was skipped, so a failed rollout leaves the tag without a release: fix and re-run the workflow. A
-   protected `main` makes the bot's push fail with that warning.
+1. `changelog` first. It decides the version and the tag and hands them to every later job as outputs (`version`,
+   `tag`, `prerelease`; no job reads `GITHUB_REF_NAME`, which is `main` on a dispatch). A release turns
+   `## Unreleased` in `CHANGELOG.md` into `## X.Y.Z - <date>` and fails the run when Unreleased is empty, so nothing
+   builds or deploys without notes. On a dispatch it also commits that to `main`, tags the commit and pushes both.
+2. `test` (the same tests as every push, on the tagged commit), then `image` (self-host) and `deploy` (Caravana),
+   each checking out the tag.
+3. `release` last: the GitHub Release (the version's section plus GitHub's commit list). On a tag push it also
+   commits the renamed `CHANGELOG.md` to `main` as github-actions[bot], only if `main` is still the tagged commit;
+   otherwise a warning tells you to run `.github/scripts/changelog.sh prepare X.Y.Z` on `main`. It runs only when the
+   deploy succeeded or was skipped, so a failed rollout leaves the tag without a release.
+
+If a run fails after the tag was pushed (red tests, a failed rollout), the changelog commit and the tag already
+exist. Re-run the failed jobs of that run (the tag and notes are kept), or delete the tag and run the workflow again
+with the same version (the renamed changelog is reused, it is not renamed twice).
 
 The changelog is written by hand (the same script and flow as Umbral and Caravana): every branch that changes
 something for whoever runs Frunchy adds its bullets under `## Unreleased` in the same branch; nobody edits a
-released section. After merging a released `main` into a feature branch, check the branch's entries are still
-under Unreleased.
+released section. **The trap**: a feature branch made before a release carries the old `## Unreleased` text, and
+merging it after the release can put its entries under the wrong heading or resurrect a released section's entries.
+Before releasing, and when merging `main` into a branch made earlier, check that the branch's entries are under
+`## Unreleased` and the released sections are untouched. The button reduces the risk (`main` is renamed before
+anything else merges) but doesn't remove it.
 
 - The tests gate the deploy: a red test run means no deploy (and no self-host image).
-- A pre-release tag (`v0.2.0-rc.1`) builds the self-host image but does not deploy.
-- Pushing is the only trigger; re-running the job redeploys the same tag (`aspire deploy` is idempotent).
+- A pre-release (`0.2.0-rc.1`, by the button or by tag) builds the self-host image but does not deploy; the button
+  tags `main`'s current commit for it and leaves the changelog alone.
+- Re-running the jobs of a run redeploys the same tag (`aspire deploy` is idempotent).
+- A tag pushed by the workflow doesn't start another run (GitHub doesn't trigger workflows from `GITHUB_TOKEN`
+  pushes), so the button never releases twice.
 
 ### Pitfalls
 

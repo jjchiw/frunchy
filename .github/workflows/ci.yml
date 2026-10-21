@@ -9,10 +9,18 @@ on:
     branches: ["**"] # tags are left to release.yml, which runs these same tests itself
   pull_request:
   workflow_call:
+    inputs:
+      ref:
+        description: "What to check out (a tag); empty means the event's own ref"
+        required: false
+        type: string
+        default: ""
 
-# A newer push to the same branch cancels the run in progress
+# A newer push to the same branch cancels the run in progress. The workflow's name is in the group because, when
+# release.yml calls this one, github.ref is the caller's (main on a dispatch) and would otherwise share main's group
+# and cancel (or be cancelled by) a push's run
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -23,7 +31,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
+      # inputs.ref exists only under workflow_call; elsewhere it is empty and the default checkout applies
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
 
       - uses: actions/setup-dotnet@v4
         with:

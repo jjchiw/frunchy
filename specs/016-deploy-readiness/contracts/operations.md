@@ -26,9 +26,9 @@ Compose: `FRUNCHY_DATA_PROTECTION_KEY` (required) maps to the encryption key; `F
 
 | Workflow | Triggers | Does | Needs |
 |---|---|---|---|
-| `ci.yml` | push to any branch, pull request, `workflow_call` | `dotnet build` + `dotnet test` from the root | nothing (Docker on the runner) |
-| `release.yml` | push of a `v*` tag | `ci.yml`, then the image | `packages: write` on `GITHUB_TOKEN` only |
-| `release.yml`, job `deploy` (feature 018) | the same tag, after `ci.yml`; skipped for a pre-release tag (`-` in the name) and while the repository variable `BELLA_BAXTER_PROJECT` is empty | `dotnet aspire deploy` through `bella run` (Bella Baxter keyless): builds and pushes the amd64 image as `<registry>/<owner>/frunchy:<version>` and deploys it to Caravana | environment `production` (tag rule `v*`), `packages: write` and `id-token: write`, repository variables `BELLA_BAXTER_TENANT/PROJECT/ENV`, a Bella trust domain; no deploy secret in GitHub |
+| `ci.yml` | push to any branch, pull request, `workflow_call` (optional input `ref`: what to check out, empty = the event's own ref) | `dotnet build` + `dotnet test` from the root | nothing (Docker on the runner) |
+| `release.yml` | push of a `v*` tag, or `workflow_dispatch` ("Run workflow" on `main`, input `version` X.Y.Z, no `v`) | job `changelog` decides the version and tag (on a dispatch also commits the renamed `CHANGELOG.md` to `main`, tags it and pushes both atomically), then `ci.yml` on the tag, then the image | `contents: write` for `changelog` and `release`, `packages: write` on `GITHUB_TOKEN` only |
+| `release.yml`, job `deploy` (feature 018) | the same tag or dispatch, after `ci.yml`; skipped for a pre-release tag (`-` in the name) and while the repository variable `BELLA_BAXTER_PROJECT` is empty | `dotnet aspire deploy` through `bella run` (Bella Baxter keyless): builds and pushes the amd64 image as `<registry>/<owner>/frunchy:<version>` and deploys it to Caravana | environment `production` (tag rule `v*` and branch rule `main`), `packages: write` and `id-token: write`, repository variables `BELLA_BAXTER_TENANT/PROJECT/ENV`, a Bella trust domain; no deploy secret in GitHub |
 
 ## Image
 
