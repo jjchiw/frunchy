@@ -10,6 +10,8 @@ new image. Add to "Unreleased" as you work; a release renames it.
 
 ## Unreleased
 
+## 0.3.0 - 2026-10-21
+
 ### Added
 
 - Members-only profiles: a profile can now be Public, Members or Private. Members means anyone
