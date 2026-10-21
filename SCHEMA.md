@@ -20,6 +20,7 @@ EXISTS`, no migration framework). Keep this document in sync with it. The design
 | **Personal, settings** (feature 017) | `profile_settings` | the owner's profile visibility and share link (only its hash); cascades on user delete |
 | **Shared catalog** | `cr_series`, `cr_seasons`, `cr_episodes` | public Crunchyroll metadata, shared by all users; never deleted |
 | **Instance** (feature 016) | `data_protection_keys` | the instance's own data-protection keys, not personal: no user reference, untouched by `user-delete`, part of the backup |
+| **Instance** (feature 020) | `instance_settings` | the root's site-wide switches (today only `signup_mode`); `updated_by` is `ON DELETE SET NULL`, so deleting that user never deletes the setting |
 | **Shared catalog, external** (feature 003) | `mal_anime`, `mal_searches` (raw), `mal_tags`, `mal_anime_tags`, `mal_relations`, `cr_season_matches` | MyAnimeList data (official API or Jikan); nothing references `users`, so user deletion never touches it |
 
 Everything personal hangs off `users` with `ON DELETE CASCADE`, so `user-delete` removes all of it.
@@ -72,11 +73,12 @@ Remote comments reuse `comments` (`remote_actor`, `format = 'html'`, `object_id`
 website has no key until "Connect extension". Sessions aren't stored (encrypted cookies), and
 provider tokens, emails and avatars are never stored.
 
-## Instance (feature 016)
+## Instance (features 016 and 020)
 
 | Table | Key | Notes |
 |---|---|---|
 | `data_protection_keys` | identity `id` | the ASP.NET Core data-protection keys that protect session cookies, sign-in round trips and form tokens, so a restart, a release or a second copy keeps everyone signed in. `friendly_name` (UNIQUE, the framework's `key-<guid>`; storing the same name again is ignored), `xml` (the key's XML; its secret is an `encryptedSecret`, AES-256-GCM, when `Frunchy:DataProtection:EncryptionKey` is set), `created_at`. Rows are only inserted: expired keys stay so older payloads can still be read. Not personal; losing the encryption key makes them unreadable and signs everyone out |
+| `instance_settings` | `key` | the root's site-wide switches, one row per key. Today only `signup_mode` (`invite` or `open`; no row, or any other value, means `invite`). `value`, `updated_at`, `updated_by` (the user who last changed it, `ON DELETE SET NULL`). Read per request, so every copy of Frunchy sees a change at once. Not personal |
 
 ## Tracking
 

@@ -68,6 +68,7 @@
     <Compile Include="OperatorActionsTests.fs" />
     <Compile Include="OperatorsPageTests.fs" />
     <Compile Include="InviteReviewTests.fs" />
+    <Compile Include="SignUpModeTests.fs" />
     <Compile Include="EpisodePageTests.fs" />
     <Compile Include="CommentsTests.fs" />
     <Compile Include="CommentThreadGroupTests.fs" />

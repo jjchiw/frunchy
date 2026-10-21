@@ -488,7 +488,29 @@ type Texts =
       InvitesExpiresLine: string
       InvitesCopyCode: string
       InvitesCodeCopied: string
-      InvitesBack: string }
+      InvitesBack: string
+
+      // Sign-up mode (feature 020): the sign-in note and dialog, the open-mode sign-up intro, /review/settings
+      SignInInviteOnlyNote: string
+      InviteDialogTitle: string
+      InviteDialogBody: string
+      InviteDialogContinue: string -> string
+      InviteDialogCancel: string
+      InviteDialogRemember: string
+      SignUpIntroOpen: string
+      SettingsTitle: string
+      SettingsIntro: string
+      SettingsAccountLink: string
+      SettingsSignUpTitle: string
+      SettingsSignUpIntro: string
+      SettingsSignUpInviteLabel: string
+      SettingsSignUpInviteHelp: string
+      SettingsSignUpOpenLabel: string
+      SettingsSignUpOpenHelp: string
+      /// The current state line; true when sign-up is open
+      SettingsSignUpState: bool -> string
+      /// The notice for a `msg` key (saved, bad-input)
+      SettingsNotice: string -> string }
 
 let en =
     { Lang = "en"
@@ -706,6 +728,7 @@ let en =
             | "share_link_revoked" -> "Share link turned off"
             | "invite_created" -> "Invite created"
             | "invite_revoked" -> "Invite revoked"
+            | "signup_mode_changed" -> "Sign-up mode changed"
             | other -> other
       ByOperator = "by the operator"
 
@@ -1099,7 +1122,31 @@ let en =
       InvitesExpiresLine = "Valid until"
       InvitesCopyCode = "Copy code"
       InvitesCodeCopied = "Code copied"
-      InvitesBack = "Back to invites" }
+      InvitesBack = "Back to invites"
+
+      SignInInviteOnlyNote = "Frunchy is invite-only: if you're new here, you'll need an invite code from someone on Frunchy, and we'll ask for it after you sign in."
+      InviteDialogTitle = "Frunchy is invite-only"
+      InviteDialogBody = "Already have an account? Continue and sign in. New here? You'll need an invite code from someone on Frunchy: after you sign in, we'll ask for it."
+      InviteDialogContinue = fun provider -> $"Continue with {provider}"
+      InviteDialogCancel = "Cancel"
+      InviteDialogRemember = "Don't show this again on this device"
+      SignUpIntroOpen = "First time here with this account. Choose how you'll appear."
+      SettingsTitle = "Site settings"
+      SettingsIntro = "Only the root operator sees this page. A change applies to the whole site at once, with no restart."
+      SettingsAccountLink = "Site settings"
+      SettingsSignUpTitle = "Sign-up"
+      SettingsSignUpIntro = "Who can create a new account. People who already have an account sign in the same way in both modes."
+      SettingsSignUpInviteLabel = "Invite only"
+      SettingsSignUpInviteHelp = "A new account needs an invite code. Operators create codes on the Invites page. This is the default."
+      SettingsSignUpOpenLabel = "Open"
+      SettingsSignUpOpenHelp = "Anyone who signs in with a provider can create an account, no code needed. Invites keep working but aren't required."
+      SettingsSignUpState = fun isOpen -> if isOpen then "Sign-up is open: anyone can create an account." else "Sign-up is invite-only."
+      SettingsNotice =
+        fun key ->
+            match key with
+            | "saved" -> "Saved."
+            | "bad-input" -> "Choose Invite only or Open. Nothing changed."
+            | other -> other }
 
 let es =
     { Lang = "es"
@@ -1317,6 +1364,7 @@ let es =
             | "share_link_revoked" -> "Enlace para compartir desactivado"
             | "invite_created" -> "Invitación creada"
             | "invite_revoked" -> "Invitación revocada"
+            | "signup_mode_changed" -> "Modo de registro cambiado"
             | other -> other
       ByOperator = "por el operador"
 
@@ -1714,7 +1762,31 @@ let es =
       InvitesExpiresLine = "Válido hasta"
       InvitesCopyCode = "Copiar código"
       InvitesCodeCopied = "Código copiado"
-      InvitesBack = "Volver a las invitaciones" }
+      InvitesBack = "Volver a las invitaciones"
+
+      SignInInviteOnlyNote = "Frunchy es solo con invitación: si eres nuevo, necesitarás un código de invitación de alguien que ya esté en Frunchy, y te lo pediremos después de iniciar sesión."
+      InviteDialogTitle = "Frunchy es solo con invitación"
+      InviteDialogBody = "¿Ya tienes una cuenta? Continúa e inicia sesión. ¿Eres nuevo? Necesitarás un código de invitación de alguien que ya esté en Frunchy: después de iniciar sesión, te lo pediremos."
+      InviteDialogContinue = fun provider -> $"Continuar con {provider}"
+      InviteDialogCancel = "Cancelar"
+      InviteDialogRemember = "No volver a mostrar esto en este dispositivo"
+      SignUpIntroOpen = "Es la primera vez que entras con esta cuenta. Elige cómo aparecerás."
+      SettingsTitle = "Ajustes del sitio"
+      SettingsIntro = "Solo el operador principal ve esta página. Un cambio se aplica a todo el sitio al instante, sin reiniciar."
+      SettingsAccountLink = "Ajustes del sitio"
+      SettingsSignUpTitle = "Registro"
+      SettingsSignUpIntro = "Quién puede crear una cuenta nueva. Quienes ya tienen cuenta inician sesión igual en los dos modos."
+      SettingsSignUpInviteLabel = "Solo con invitación"
+      SettingsSignUpInviteHelp = "Una cuenta nueva necesita un código de invitación. Los operadores crean los códigos en la página de invitaciones. Es el modo por defecto."
+      SettingsSignUpOpenLabel = "Abierto"
+      SettingsSignUpOpenHelp = "Cualquiera que inicie sesión con un proveedor puede crear una cuenta, sin código. Las invitaciones siguen funcionando, pero no hacen falta."
+      SettingsSignUpState = fun isOpen -> if isOpen then "El registro está abierto: cualquiera puede crear una cuenta." else "El registro es solo con invitación."
+      SettingsNotice =
+        fun key ->
+            match key with
+            | "saved" -> "Guardado."
+            | "bad-input" -> "Elige Solo con invitación o Abierto. No se cambió nada."
+            | other -> other }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise
 let forCulture (culture: CultureInfo) =

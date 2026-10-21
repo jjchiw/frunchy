@@ -72,11 +72,11 @@ let private usernameField (ctx: HttpContext) (t: Texts) (value: string) (refused
         p(id = "username-hint", class' = "fr-hint") { t.UsernameHint }
     }
 
-let view (ctx: HttpContext) (t: Texts) (values: FormValues) (error: string option) =
+let view (ctx: HttpContext) (t: Texts) (mode: SignUpMode.SignUpMode) (values: FormValues) (error: string option) =
     let refused = refusedField t error
 
     Fragment() {
-        pageHeading t.SignUpTitle (Some t.SignUpIntro)
+        pageHeading t.SignUpTitle (Some(if mode = SignUpMode.Open then t.SignUpIntroOpen else t.SignUpIntro))
 
         match error with
         | Some message -> (alert Failure message).attr("id", "signup-error").data("signup-error", "") :> HtmlElement
@@ -85,7 +85,13 @@ let view (ctx: HttpContext) (t: Texts) (values: FormValues) (error: string optio
         form(method = "post", action = "/signup", class' = "space-y-5") {
             ctx.GetAntiforgeryInput()
 
-            formField refused "invite" [] (fun i -> i.attr("autocomplete", "off").attr("autocapitalize", "none") |> ignore) t.InviteCodeLabel "invite" values.Invite None None true
+            // Open mode (feature 020): no invite field, nothing about a code
+            match mode with
+            | SignUpMode.Invite ->
+                formField refused "invite" [] (fun i -> i.attr("autocomplete", "off").attr("autocapitalize", "none") |> ignore) t.InviteCodeLabel "invite" values.Invite None None true
+                :> HtmlElement
+            | SignUpMode.Open -> Fragment()
+
             usernameField ctx t values.Username refused
 
             formField refused "displayName" [] (fun i -> i.attr("autocomplete", "nickname").attr("maxlength", "60") |> ignore) t.DisplayNameLabel "displayName" values.DisplayName (Some t.DisplayNameHint) None false
@@ -100,7 +106,8 @@ let view (ctx: HttpContext) (t: Texts) (values: FormValues) (error: string optio
     |> Layout.page ctx t t.SignUpTitle
 
 // ---------------------------------------------------------------------------
-// Data access: one transaction; the invite is consumed only if the account is created (research R4)
+// Data access: one transaction; in invite mode the invite is consumed only if the account is created (research R4),
+// in open mode (feature 020) the same transaction runs without the invite step
 // ---------------------------------------------------------------------------
 
 type private SignUpError =
@@ -108,7 +115,9 @@ type private SignUpError =
     | UsernameNotFree
     | IdentityTaken
 
-let private createAccount (db: DbConfig) (identity: ProviderIdentity) (inviteCode: string) (username: string) (displayName: string) =
+/// `inviteCode` is Some in invite mode (the code is consumed in this transaction) and None in open mode (the
+/// `invites` table is not touched)
+let private createAccount (db: DbConfig) (identity: ProviderIdentity) (inviteCode: string option) (username: string) (displayName: string) =
     task {
         use connection = getConnection db
         do! connection.OpenAsync()
@@ -139,23 +148,31 @@ let private createAccount (db: DbConfig) (identity: ProviderIdentity) (inviteCod
             insertUser.Parameters.AddWithValue("display_name", displayName) |> ignore
             let! _ = insertUser.ExecuteNonQueryAsync()
 
-            // Consume the invite only if it's still usable; rolled back with the user if anything fails
-            use consume =
-                new NpgsqlCommand(
-                    """
-                    UPDATE invites SET used_at = now(), used_by_user_id = @user_id
-                    WHERE code_hash = @hash AND used_at IS NULL AND revoked_at IS NULL AND expires_at > now()
-                    RETURNING id
-                    """,
-                    connection,
-                    tx
-                )
+            // Invite mode: consume the invite only if it's still usable; rolled back with the user if anything fails.
+            // Open mode: there is no invite step.
+            let! inviteUsable =
+                task {
+                    match inviteCode with
+                    | None -> return true
+                    | Some code ->
+                        use consume =
+                            new NpgsqlCommand(
+                                """
+                                UPDATE invites SET used_at = now(), used_by_user_id = @user_id
+                                WHERE code_hash = @hash AND used_at IS NULL AND revoked_at IS NULL AND expires_at > now()
+                                RETURNING id
+                                """,
+                                connection,
+                                tx
+                            )
 
-            consume.Parameters.AddWithValue("user_id", userId) |> ignore
-            consume.Parameters.AddWithValue("hash", InviteCode.hash inviteCode) |> ignore
-            let! consumed = consume.ExecuteScalarAsync()
+                        consume.Parameters.AddWithValue("user_id", userId) |> ignore
+                        consume.Parameters.AddWithValue("hash", InviteCode.hash code) |> ignore
+                        let! consumed = consume.ExecuteScalarAsync()
+                        return not (isNull consumed)
+                }
 
-            if isNull consumed then
+            if not inviteUsable then
                 do! tx.RollbackAsync()
                 return Error InviteNotValid
             else
@@ -193,13 +210,19 @@ let private withPending (handler: ProviderIdentity -> EndpointHandler) : Endpoin
         }
 
 let page: EndpointHandler =
-    withPending (fun _ ctx -> ctx.WriteHtmlView(view ctx (Texts.current ()) empty None))
+    withPending (fun _ ctx ->
+        task {
+            let! mode = SignUpMode.current (ctx.GetService<DbConfig>())
+            return! ctx.WriteHtmlView(view ctx (Texts.current ()) mode empty None)
+        })
 
 let submit: EndpointHandler =
     withPending (fun identity ctx ->
         task {
             let t = Texts.current ()
             let! form = WebAuth.readValidatedForm ctx
+            // The mode at submit time decides, not the one the page was rendered with
+            let! mode = SignUpMode.current (ctx.GetService<DbConfig>())
 
             let values =
                 { Invite = WebAuth.formValue form "invite"
@@ -208,14 +231,16 @@ let submit: EndpointHandler =
 
             let refuse (message: string) =
                 ctx.SetStatusCode StatusCodes.Status400BadRequest
-                ctx.WriteHtmlView(view ctx t values (Some message))
+                ctx.WriteHtmlView(view ctx t mode values (Some message))
 
             match Username.tryCreateNew values.Username with
             | None -> return! refuse t.UsernameInvalid
             | Some _ when values.DisplayName.Length < 1 || values.DisplayName.Length > 60 -> return! refuse t.DisplayNameInvalid
-            | Some _ when values.Invite = "" -> return! refuse t.InviteInvalid
+            | Some _ when mode = SignUpMode.Invite && values.Invite = "" -> return! refuse t.InviteInvalid
             | Some username ->
-                match! createAccount (ctx.GetService<DbConfig>()) identity values.Invite username values.DisplayName with
+                let invite = if mode = SignUpMode.Open then None else Some values.Invite
+
+                match! createAccount (ctx.GetService<DbConfig>()) identity invite username values.DisplayName with
                 | Error InviteNotValid -> return! refuse t.InviteInvalid
                 | Error UsernameNotFree -> return! refuse t.UsernameTaken
                 | Error IdentityTaken -> return! refuse t.IdentityAlreadyUsed

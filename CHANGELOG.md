@@ -39,6 +39,12 @@ new image. Add to "Unreleased" as you work; a release renames it.
 - Invites on the web: operators create sign-up invites, see recent ones with their state and revoke
   active ones on `/review/invites`, linked from `/account`. The code is shown once, when it is
   created. The `invite-*` commands do the same and are unchanged.
+- Open sign-up: the root operator chooses on `/review/settings` ("Site settings", linked from
+  `/account`) whether new accounts need an invite code (the default) or anyone who signs in with a
+  provider can create one. The change applies at once, with no redeploy, and needs a sign-in within
+  the last 10 minutes. Existing accounts sign in the same way in both modes. On an invite-only
+  Frunchy the sign-in page now says so, with a note and a dialog before leaving for the provider
+  ("Don't show this again on this device" is remembered in the browser only).
 - The fediverse, behind `Frunchy:Federation:Enabled` (off by default): users and series are
   fediverse accounts through Megáfono, comments go both ways with Mastodon, and users and
   operators block remote accounts and servers.

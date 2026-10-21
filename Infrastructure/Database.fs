@@ -265,6 +265,16 @@ let private schema =
         created_at    timestamptz NOT NULL DEFAULT now()
     );
 
+    -- Instance settings (feature 020): the root's site-wide switches, one row per key (today only signup_mode,
+    -- 'invite' or 'open'). No row means the default (invite). updated_by is who last changed it; the row outlives
+    -- that user. Not personal data.
+    CREATE TABLE IF NOT EXISTS instance_settings (
+        key         text PRIMARY KEY,
+        value       text NOT NULL,
+        updated_at  timestamptz NOT NULL DEFAULT now(),
+        updated_by  uuid NULL REFERENCES users(id) ON DELETE SET NULL
+    );
+
     -- MyAnimeList enrichment (feature 003): shared catalog data, nothing references users.
     -- raw columns hold the provider's responses verbatim (source says which provider); everything
     -- else is re-derivable (mal-rebuild).

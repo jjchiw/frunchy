@@ -408,6 +408,12 @@ let view
                             icon Theme.Shield
                             t.OperatorsAccountLink
                         }
+
+                    if isRoot then
+                        a(href = "/review/settings", class' = btn Secondary).data("settings-link", "") {
+                            icon Theme.Settings
+                            t.SettingsAccountLink
+                        }
                 }
             }
 
