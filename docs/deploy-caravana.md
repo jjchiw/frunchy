@@ -77,11 +77,12 @@ the console for things the AppHost describes is replaced on the next deploy).
 ### Releasing (and deploying from a tag)
 
 **Preferred: the button.** In GitHub, Actions > Release > Run workflow, branch `main`, and type the version in
-`version` (`0.2.2`, no `v`; a pre-release such as `0.3.0-rc.1` works too). The workflow itself prepares the changelog
-on `main`, commits it as github-actions[bot] (`chore(release): 0.2.2`), tags that commit `v0.2.2`, pushes both in one
-atomic push, and then runs the tests, the image, the deploy and the GitHub Release on the tagged commit. The tag
-therefore always contains its own changelog section, and `main` is renamed before anything else can merge. A tag that
-already exists is refused with the commands to delete it. Nothing is tagged locally.
+`version` (`0.2.2`, no `v`; a pre-release such as `0.3.0-rc.1` works too). The workflow runs the tests on `main` as
+it is; only when they pass does it prepare the changelog, commit it as github-actions[bot] (`chore(release): 0.2.2`),
+tag that commit `v0.2.2` and push both in one atomic push (refused, and nothing tagged, if `main` moved during the
+tests). Then the image, the deploy and the GitHub Release run on the tagged commit. The tag therefore always contains
+its own changelog section, red tests never leave a tag behind, and `main` is renamed before anything else can merge.
+A tag that already exists is refused with the commands to delete it. Nothing is tagged locally.
 
 **Still works: pushing a tag.** `git tag v0.2.2 && git push origin v0.2.2`, from `main`, runs the same workflow. The
 changelog is then prepared only in the run's own checkout and recorded on `main` afterwards, and only if `main` hasn't
@@ -130,8 +131,8 @@ The order of the jobs:
    otherwise a warning tells you to run `.github/scripts/changelog.sh prepare X.Y.Z` on `main`. It runs only when the
    deploy succeeded or was skipped, so a failed rollout leaves the tag without a release.
 
-If a run fails after the tag was pushed (red tests, a failed rollout), the changelog commit and the tag already
-exist. Re-run the failed jobs of that run (the tag and notes are kept), or delete the tag and run the workflow again
+If a run fails after the tag was pushed (the image or a failed rollout; red tests stop a button run before tagging),
+the changelog commit and the tag already exist. Re-run the failed jobs of that run (the tag and notes are kept), or delete the tag and run the workflow again
 with the same version (the renamed changelog is reused, it is not renamed twice).
 
 The changelog is written by hand (the same script and flow as Umbral and Caravana): every branch that changes

@@ -10,8 +10,9 @@
 # Two ways to start it:
 #   - Run workflow (preferred): Actions > Release > Run workflow on `main`, with the version (X.Y.Z, no v). The job
 #     `changelog` then does what used to be done by hand, on main: it turns "## Unreleased" into the version's section,
-#     commits that to main as github-actions[bot], tags the commit vX.Y.Z and pushes both in one atomic push. The tag
-#     therefore always contains its own changelog section, and main is renamed before anything else can merge.
+#     commits that to main as github-actions[bot], tags the commit vX.Y.Z and pushes both in one atomic push. It runs
+#     only after the tests passed on that commit of main, so red tests never leave a tag. The tag therefore always
+#     contains its own changelog section, and main is renamed before anything else can merge.
 #   - Pushing a tag `vX.Y.Z` (git tag vX.Y.Z && git push origin vX.Y.Z) still works: the changelog is prepared in this
 #     run's own checkout and recorded on main afterwards, only if main hasn't moved (job `release`).
 # Every later job takes the version and the tag from the outputs of `changelog` (never from GITHUB_REF_NAME, which is
@@ -53,6 +54,8 @@ jobs:
   # Unreleased is empty, so nothing is built or deployed without notes. A pre-release writes preview notes and leaves
   # CHANGELOG.md alone.
   changelog:
+    # The tests come first: a dispatch tags only a commit whose tests passed, and a failing test leaves no tag
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: write # a dispatch pushes the changelog commit and the tag to the repository
@@ -61,10 +64,12 @@ jobs:
       tag: ${{ steps.ver.outputs.tag }} # vX.Y.Z...
       prerelease: ${{ steps.ver.outputs.prerelease }} # "true" or "false"
     steps:
-      # A dispatch works on main (full history, to push to it and to see every tag); a tag push on its own tag
+      # A dispatch works on the commit of main the run started from, the one the tests just passed on (full history,
+      # to push to main and to see every tag): if main moved meanwhile, the atomic push below is refused and nothing
+      # is tagged. A tag push works on its own tag.
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && 'main' || github.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.ref }}
           fetch-depth: 0
 
       - name: Decide the version
@@ -161,11 +166,10 @@ jobs:
           if-no-files-found: error
 
   # The same tests as every push, on the tagged commit (on a dispatch, that includes the changelog commit)
+  # On the commit the run started from: main's head for a dispatch (the release commit only adds the changelog
+  # section), the tagged commit for a tag push
   test:
-    needs: changelog
     uses: ./.github/workflows/ci.yml
-    with:
-      ref: ${{ needs.changelog.outputs.tag }}
 
   image:
     needs: [test, changelog]
