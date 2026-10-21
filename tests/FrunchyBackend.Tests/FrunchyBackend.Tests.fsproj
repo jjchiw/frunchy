@@ -17,6 +17,7 @@
     <Compile Include="IdentityTests.fs" />
     <Compile Include="DatabaseTests.fs" />
     <Compile Include="SchemaBootstrapTests.fs" />
+    <Compile Include="SchemaUpgradeTests.fs" />
     <Compile Include="TestHelpers.fs" />
     <Compile Include="AuthHelpers.fs" />
     <Compile Include="HomeTests.fs" />
@@ -94,6 +95,7 @@
     <Compile Include="ProfileVisibilityTests.fs" />
     <Compile Include="ShareLinkTests.fs" />
     <Compile Include="ProfileLinksTests.fs" />
+    <Compile Include="MembersProfileTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

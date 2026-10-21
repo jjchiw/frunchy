@@ -9,6 +9,15 @@ EXISTS`, no migration framework). Keep this document in sync with it. The design
 > TABLE`, for an empty database. There is no legacy check and no `ALTER` patch: a database built by an
 > older version is reset (drop it and let the app create it again). `SchemaBootstrapTests` proves the
 > script builds the same columns, constraints and indexes the old patch-style script did.
+>
+> **Guarded upgrades** (feature 021): a fresh database gets no `ALTER`, but a database that already exists in
+> production (`profile_settings`, from feature 017) must be brought up to date without a reset. Such a change is a
+> guarded, idempotent block in the script's `upgrades` section: it checks the live catalog first (here: a CHECK on
+> `visibility` whose definition lacks `members`), changes the table only when that is true, and so does nothing on
+> every later run. The whole script runs in one transaction under a transaction-scoped advisory lock, so two copies
+> starting together take turns and the second finds nothing left to do. New tables and columns are still described
+> only in their `CREATE TABLE`; an upgrade block is added only for a table that is already deployed, and is proved by
+> a test that builds the previous shape (`SchemaUpgradeTests`).
 
 ## Data classes
 
@@ -51,7 +60,7 @@ belongs to at most one user.
 | `security_events` | identity `id` | per-user account events (`signed_in`, `claimed`, `claim_refused`, `identity_linked`/`unlinked`, `sync_key_generated`, `binding_reset`, `reconfirmed`, `display_name_changed`, `account_created`, `operator_added`/`operator_removed`, `comment_hidden`/`comment_unhidden`, `fediverse_block_added`/`fediverse_block_removed`, `profile_visibility_changed`, `share_link_created`/`share_link_replaced`/`share_link_revoked`) with `actor` user/operator. No IP or device data. Personal, cascades on user delete |
 | `operators` | `user_id` | users the root operator (`Frunchy:RootOperator`) made operators (feature 008); the root itself is configuration only and never a row. `added_by` is the granting root (`ON DELETE SET NULL`, NULL when added from the terminal or when that account was deleted), `added_at`. Personal, cascades on user delete |
 | `comments` | `id` | episode comments (feature 009; the id is a 22-char base64url minted with the form), written on `cr_episodes(id)`. `author_user_id` is the local author (`ON DELETE CASCADE`, so account deletion removes the comments); `remote_actor` is NULL until the fediverse integration, and exactly one of the two is set. `content` + `format` (`text`; `html` later), `summary` + `sensitive` (the spoiler warning; NULL/false when not a spoiler), `audience` (local comments are limited to `public`/`unlisted` by a CHECK), `created_at`, `edited_at`. A deleted comment is a tombstone: `deleted_at` set, `content = ''`, `summary` NULL. `hidden_at`/`hidden_by` record an operator hide (`hidden_by` is `ON DELETE SET NULL`). `in_reply_to` and `object_id` stay empty until the integration. Index `(cr_episode_id, created_at)`. Personal, cascades on user delete |
-| `profile_settings` | `user_id` | a user's profile visibility and share link (feature 017). One row per user who chose a visibility or made a link; no row means the instance default (`Frunchy:Profiles:DefaultVisibility`, `private` unless set) applies and there is no link. `visibility` (`public`/`private`, NULL follows the default), `share_token_hash` (UNIQUE, lowercase-hex SHA-256 of the `frs_` token, never the token), `share_link_id` (a new uuid for every link; the browser's grant cookie names it, so replacing or turning off a link ends every grant), `share_link_created_at` (the three link columns are all set or all NULL), `updated_at`. Personal, cascades on user delete |
+| `profile_settings` | `user_id` | a user's profile visibility and share link (feature 017). One row per user who chose a visibility or made a link; no row means the instance default (`Frunchy:Profiles:DefaultVisibility`, `members` unless set) applies and there is no link. `visibility` (`public`/`members`/`private`, CHECK `profile_settings_visibility_check`; feature 021 added `members`, applied to existing databases by a guarded upgrade; NULL follows the default), `share_token_hash` (UNIQUE, lowercase-hex SHA-256 of the `frs_` token, never the token), `share_link_id` (a new uuid for every link; the browser's grant cookie names it, so replacing or turning off a link ends every grant), `share_link_created_at` (the three link columns are all set or all NULL), `updated_at`. Personal, cascades on user delete |
 
 ## Fediverse (feature 015)
 

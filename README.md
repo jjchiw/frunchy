@@ -124,13 +124,13 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 
 ### HTML Pages
 - `GET /`: home, explains how to sync
-- `GET /u/{username}`: the dashboard (series, episodes, hours, days, recent episodes), English or Spanish. Every page under `/u/{username}` is private by default (feature 017, see [Accounts](#accounts)): anyone but the owner, or someone who opened the owner's share link, gets the same 404 as for a username that doesn't exist
+- `GET /u/{username}`: the dashboard (series, episodes, hours, days, recent episodes), English or Spanish. Every page under `/u/{username}` is for members by default (features 017 and 021, see [Accounts](#accounts)): a signed-in user sees it, a signed-out visitor is sent to sign in, and a private profile gives anyone but its owner, or someone who opened the owner's share link, the same 404 as for a username that doesn't exist
 - `GET /u/{username}/dna`: the Anime DNA (favourite studio, dominant decade, genres and formats by watch time, insignia anime, 90-day viewing pace, totals), from 15 fully watched episodes; every MyAnimeList figure states its coverage
 - `GET /u/{username}/year/{year}`: the year in review (hours, episodes, series, new versus continued, month by month, most watched series, genres, top 3 studios, formats, longest streak) for one UTC calendar year, with a picker of the years that have history; `/u/{username}/year` goes to the newest one
 - `GET /u/{username}/anime/{seriesId}`: one series as that person watched it (episodes, hours, first and latest watch, seasons with their MyAnimeList details, the episodes watched); every series title on the dashboard, DNA and year pages links to it
   from the browser's `Accept-Language`
 - `GET /s/{token}` (feature 017): opens a shared profile. A valid link sets a cookie that remembers the grant and redirects to `/u/{username}`; anything else gets the plain 404 page and no cookie. Limited to 30 a minute per IP.
-- `POST /account/visibility`, `POST /account/share-link` and `POST /account/share-link/revoke` (feature 017): the owner's choice of public or private, and creating, replacing and turning off the share link. Limited like the other account writes.
+- `POST /account/visibility`, `POST /account/share-link` and `POST /account/share-link/revoke` (feature 017): the owner's choice of public, members or private, and creating, replacing and turning off the share link. Limited like the other account writes.
 - `GET /review/mal` and `/review/mal/manual`, with `POST /review/mal/set|none|retry|auto` (feature 007): operators review the MyAnimeList matches the matcher couldn't decide (pick a candidate, type an id or link, mark the season as not listed, ask for a retry) and send manual decisions back to automatic. Operators are the root operator (the username in `Frunchy:RootOperator`) plus the users the root added; everyone else, signed in or not, gets the plain 404 page. The account page says "You're an operator" and links to it for operators.
 - `GET /review/operators`, with `POST /review/operators/add|remove` (feature 008): the root operator makes existing users operators and takes them back, from the web. Everyone else, operators included, gets the plain 404 page. Changes need a sign-in within the last 10 minutes and are limited to 10 a minute; each one is a security event on the root's account and on the affected user's account. The account page links to it for the root.
 - `GET /review/invites`, with `POST /review/invites/create|revoke` (feature 019): operators (the root and the users in the `operators` table) create sign-up invites, see the 100 newest with their state (active, used and by whom, revoked, expired) and revoke active ones. The code is shown once, on the page the create POST renders, and only its hash is stored. Everyone else, signed in or not, gets the plain 404 page. Each change is a security event on the operator's account; writes share the 30 a minute `review-write` limit. The account page links to it for operators.
@@ -158,10 +158,12 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
   stops working), reset the Crunchyroll binding, link or unlink Google/Umbral (never the last one), see
   the last 10 syncs and the last 20 security events, and delete the account. A new key and deletion need
   a sign-in within the last 10 minutes; otherwise you re-confirm with your provider.
-- **Profiles are private by default** (feature 017). Every page under `/u/{username}` (dashboard, Anime DNA,
-  years in review, anime pages, compare) shows only to its owner, and to anyone else answers the same 404 as a
-  username that doesn't exist; operators get no exception. On `/account#visibility` the owner chooses **public**
-  or **private** (a choice that outlives any change of the instance default), and can create one **share link**
+- **Profiles are for members by default** (features 017 and 021). Every page under `/u/{username}` (dashboard,
+  Anime DNA, years in review, anime pages, compare) has one of three levels: **public** (everyone), **members**
+  (anyone signed in to this Frunchy; a signed-out visitor is sent to sign in and back to the page) and
+  **private** (only its owner; anyone else gets the same 404 as for a username
+  that doesn't exist). Operators get no exception. On `/account#visibility` the owner chooses
+  (a choice that outlives any change of the instance default), and can create one **share link**
   (`/s/{token}`): it is shown once, only its hash is stored, and whoever opens it can see the whole profile in
   that browser until the owner replaces the link or turns it off. Instance operators set the default with
   `Frunchy:Profiles:DefaultVisibility` (below). Comment authors link to their profile only for viewers who can
@@ -338,7 +340,7 @@ No Aspire, no Megáfono: Frunchy is a complete web app without federation (`Frun
 
 | Key | Default | Meaning |
 |---|---|---|
-| `Frunchy:Profiles:DefaultVisibility` | `private` | `private` or `public` (case-insensitive): what a profile is for users who never chose. Any other value stops startup naming the key. A user's own choice always outranks it |
+| `Frunchy:Profiles:DefaultVisibility` | `members` | `private`, `members` or `public` (case-insensitive; blank means `members`): what a profile is for users who never chose. Any other value stops startup naming the key. A user's own choice always outranks it |
 
 ### Health check, keys and releases (feature 016)
 
@@ -477,6 +479,7 @@ Features are built through spec-kit (`specs/###-name/`), in this order:
 | 015 | **Fediverse integration**: users are `@username@domain` and series are `@series-handle@domain` on the fediverse; each episode gets a thread post from its series; comments go both ways (a Frunchy comment is a reply, a Mastodon reply shows on the episode page, edits and deletes follow); deleting an account deletes its actor; users block accounts and servers from `/account`, operators from `/review/fediverse`; a Postgres outbox and a worker talk to Megáfono; `fediverse-status` and `series-handle` commands | Implemented ([spec](specs/015-fediverse/fediverse.spec.md)); following and a feed wait for Megáfono's feed feature |
 | 016 | **Deploy readiness**: tests on every push (GitHub Actions); `GET /healthz` for Caravana (the app and its database); the data-protection keys in Postgres, encrypted with a configured key, so releases and parallel copies keep everyone signed in; a `v*` tag publishes a two-architecture image on GHCR (never `latest`); the compose file moves to Postgres 18 with no keys volume | Implemented ([spec](specs/016-deploy-readiness/deploy-readiness.spec.md)); the deploy itself waits for Caravana's publisher |
 | 017 | **Private profiles**: every page under `/u/{username}` is private unless its owner chooses otherwise. `Frunchy:Profiles:DefaultVisibility` (default `private`) is what a profile is until its owner chooses; owners choose public or private on `/account` and can share a profile through one secret link (`/s/{token}`, shown once, stored only as a hash, replaced or turned off at will); strangers get the unknown-user 404; comment authors link only when the viewer can see them | Implemented ([spec](specs/017-private-profiles/private-profiles.spec.md)) |
+| 021 | **Members-only profiles, the new default**: a third level between private and public, `members` (anyone signed in; signed-out visitors are sent to sign in and back); `Frunchy:Profiles:DefaultVisibility` now defaults to `members`; the first guarded, idempotent upgrade of an existing table (`profile_settings`'s check), run under a lock in one transaction; no change to charts, series or episode pages | Implemented ([spec](specs/021-members-profiles/members-profiles.spec.md)) |
 | 019 | **Operators manage invites on the web**: `/review/invites` (operators only, 404 for everyone else) creates invites with the code shown once, lists the 100 newest with their state and revokes active ones, through the same module as the `invite-*` commands; `invite_created` and `invite_revoked` security events; no schema change | Implemented ([spec](specs/019-operator-invites/operator-invites.spec.md)) |
 | 020 | **Say sign-up is by invitation, and let the root open it**: `/signin` shows a note and a dialog (invite mode only); the root sets the sign-up mode (`invite` or `open`) on `/review/settings` (404 for everyone else, recent sign-in, `signup_mode_changed` event); new table `instance_settings`, no config key | Implemented ([spec](specs/020-open-signup/open-signup.spec.md)) |
 

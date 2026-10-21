@@ -1,8 +1,9 @@
-/// Feature 017: who can see a profile (every page under `/u/{username}`). One rule, used by every handler that
-/// shows or links into a profile (specs/017-private-profiles/contracts/visibility.md):
+/// Feature 017 (and 021): who can see a profile (every page under `/u/{username}`). One rule, used by every handler
+/// that shows or links into a profile (specs/017-private-profiles/contracts/visibility.md):
 ///   1. the profile is public (the owner's choice, or no choice and `Frunchy:Profiles:DefaultVisibility=public`);
-///   2. the viewer is the owner;
-///   3. the viewer's `frunchy.shares` cookie holds a grant naming the owner and the owner's current share link.
+///   2. the profile is for members and the viewer is signed in (feature 021, the default);
+///   3. the viewer is the owner;
+///   4. the viewer's `frunchy.shares` cookie holds a grant naming the owner and the owner's current share link.
 /// Operators get no exception. The rule itself (`canView`) is pure; the database and the cookie sit around it.
 module FrunchyBackend.Infrastructure.Profiles
 
@@ -26,6 +27,8 @@ let DefaultVisibilityKey = "Frunchy:Profiles:DefaultVisibility"
 
 type Visibility =
     | Public
+    /// Anyone signed in to this Frunchy (feature 021)
+    | Members
     | Private
 
 module Visibility =
@@ -33,27 +36,29 @@ module Visibility =
     let toDb =
         function
         | Public -> "public"
+        | Members -> "members"
         | Private -> "private"
 
-    /// Trimmed and case-insensitive; None for anything but `public` or `private`
+    /// Trimmed and case-insensitive; None for anything but `public`, `members` or `private`
     let tryParse (raw: string) =
         if isNull raw then
             None
         else
             match raw.Trim().ToLowerInvariant() with
             | "public" -> Some Public
+            | "members" -> Some Members
             | "private" -> Some Private
             | _ -> None
 
-/// The instance default for a user who never chose. Missing or blank means `Private`; any other value than
-/// `public` or `private` raises, naming the key.
+/// The instance default for a user who never chose. Missing or blank means `Members`; any other value than
+/// `public`, `members` or `private` raises, naming the key.
 let parseDefault (raw: string) : Visibility =
     if String.IsNullOrWhiteSpace raw then
-        Private
+        Members
     else
         match Visibility.tryParse raw with
         | Some visibility -> visibility
-        | None -> raise (InvalidOperationException $"{DefaultVisibilityKey} must be 'public' or 'private', not '{raw.Trim()}'.")
+        | None -> raise (InvalidOperationException $"{DefaultVisibilityKey} must be 'public', 'members' or 'private', not '{raw.Trim()}'.")
 
 /// The singleton handlers read for the instance default
 type ProfileSettings(defaultVisibility: Visibility) =
@@ -86,9 +91,11 @@ type Grant =
       /// Unix seconds when it was added
       At: int64 }
 
-/// Pure: public, the owner, or a grant naming the owner's current link (an old link's grant counts for nothing)
+/// Pure: public, members with a signed-in viewer, the owner, or a grant naming the owner's current link (an old
+/// link's grant counts for nothing)
 let canView (viewer: Guid option) (grants: Grant list) (owner: OwnerAccess) : bool =
     owner.Visibility = Public
+    || (owner.Visibility = Members && viewer.IsSome)
     || viewer = Some owner.UserId
     || (match owner.LinkId with
         | Some linkId -> grants |> List.exists (fun g -> g.UserId = owner.UserId && g.LinkId = linkId)
@@ -250,6 +257,8 @@ let visibleTo (ctx: HttpContext) (db: DbConfig) (userId: Guid) : Task<bool> =
 type PageAccess =
     /// The profile is public
     | PublicPage
+    /// The profile is for members (anyone signed in): the copy link, plus a note for the owner
+    | MembersPage of isOwner: bool
     /// The owner looking at their private profile: the page says only they can see it
     | OwnPrivatePage
     /// A link holder looking at someone's private profile
@@ -258,13 +267,28 @@ type PageAccess =
 let pageAccess (viewer: ViewerAccess) : PageAccess =
     match viewer.Access.Visibility, viewer.IsOwner with
     | Public, _ -> PublicPage
+    | Members, owner -> MembersPage owner
     | Private, true -> OwnPrivatePage
     | Private, false -> SharedPrivatePage
 
-/// The check a `/u/` handler runs right after its user lookup: Some how the page should present itself, or None when
-/// the viewer can't see the profile (the handler then answers exactly what an unknown username gets)
-let gate (ctx: HttpContext) (db: DbConfig) (userId: Guid) : Task<PageAccess option> =
+/// What the check on a `/u/` page decides
+type GateResult =
+    /// The viewer may see the page, presented this way
+    | Show of PageAccess
+    /// The viewer can't see it: the handler answers exactly what an unknown username gets
+    | NotFound
+    /// A Members profile and a signed-out viewer: the handler sends them to sign in and back
+    | SignInFirst
+
+/// The check a `/u/` handler runs right after its user lookup. A Private profile is `NotFound` for everyone who can't
+/// see it (indistinguishable from an unknown username); only a Members profile for a signed-out viewer is
+/// `SignInFirst`, and a signed-in viewer is never sent anywhere.
+let gate (ctx: HttpContext) (db: DbConfig) (userId: Guid) : Task<GateResult> =
     task {
         let! viewer = forViewer ctx db userId
-        return if viewer.Visible then Some(pageAccess viewer) else None
+
+        return
+            if viewer.Visible then Show(pageAccess viewer)
+            elif viewer.Access.Visibility = Members then SignInFirst
+            else NotFound
     }

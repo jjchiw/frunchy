@@ -401,8 +401,9 @@ let notFoundView (ctx: HttpContext) (t: Texts) =
 let private round1 (value: decimal) =
     Math.Round(value, 1, MidpointRounding.AwayFromZero)
 
-/// `gate` runs right after the user lookup, before any other query: None hides the profile (feature 017)
-let private tryLoad (db: DbConfig) (gate: Guid -> Task<Profiles.PageAccess option>) (username: string) : Task<DashboardModel option> =
+/// `gate` runs right after the user lookup, before any other query: anything but `Show` is an `Error` and the handler
+/// answers the 404 (or, for a Members profile and a signed-out viewer, the sign-in redirect; features 017 and 021)
+let private tryLoad (db: DbConfig) (gate: Guid -> Task<Profiles.GateResult>) (username: string) : Task<Result<DashboardModel, Profiles.GateResult>> =
     task {
         use connection = getConnection db
         do! connection.OpenAsync()
@@ -421,14 +422,15 @@ let private tryLoad (db: DbConfig) (gate: Guid -> Task<Profiles.PageAccess optio
             match user with
             | Some(userId, displayName) ->
                 task {
-                    let! access = gate userId
-                    return access |> Option.map (fun a -> userId, displayName, a)
+                    match! gate userId with
+                    | Profiles.Show access -> return Ok(userId, displayName, access)
+                    | refused -> return Error refused
                 }
-            | None -> Task.FromResult None
+            | None -> Task.FromResult(Error Profiles.NotFound)
 
         match gated with
-        | None -> return None
-        | Some(userId, displayName, access) ->
+        | Error refused -> return Error refused
+        | Ok(userId, displayName, access) ->
             use figuresCmd =
                 new NpgsqlCommand(
                     """
@@ -591,7 +593,7 @@ let private tryLoad (db: DbConfig) (gate: Guid -> Task<Profiles.PageAccess optio
                 }
 
             return
-                Some
+                Ok
                     { UserId = userId
                       Username = username
                       DisplayName = displayName
@@ -619,10 +621,12 @@ let handler (rawUsername: string) : EndpointHandler =
                     let db = ctx.GetService<DbConfig>()
                     // A hidden profile loads as no user at all: the unknown-user 404 below
                     tryLoad db (Profiles.gate ctx db) username
-                | None -> Task.FromResult None
+                | None -> Task.FromResult(Error Profiles.NotFound)
 
             match model with
-            | Some m ->
+            // A Members profile and a signed-out viewer: sign in, then back here (feature 021)
+            | Error Profiles.SignInFirst -> return! WebAuth.redirectToSignInHere ctx
+            | Ok m ->
                 // The card is for a signed-in viewer on someone else's dashboard; everyone else runs no extra query
                 let! compat =
                     match WebAuth.currentUserId ctx with
@@ -643,7 +647,7 @@ let handler (rawUsername: string) : EndpointHandler =
                     | _ -> m
 
                 return! ctx.WriteHtmlView(view ctx t m compat)
-            | None ->
+            | Error _ ->
                 ctx.SetStatusCode 404
                 return! ctx.WriteHtmlView(notFoundView ctx t)
         }

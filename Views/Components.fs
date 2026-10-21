@@ -262,11 +262,29 @@ let privateProfileNote (t: Texts) =
         }
     }
 
-/// The address block of a profile page: "copy link" when the profile is public, the private note for its owner, and
-/// nothing for a link holder (the address alone opens nothing for anyone else)
+/// The owner's note on a Members profile (feature 021): who can see it, with a link to change that
+let membersProfileNote (t: Texts) =
+    p(class' = "flex flex-wrap items-center gap-x-2 gap-y-1 text-body-md text-on-surface-variant").data("profile-members", "") {
+        icon Group
+        span() { t.MembersProfileNote }
+
+        a(href = "/account#visibility", class' = "font-semibold text-primary underline underline-offset-4") {
+            t.MembersProfileLink
+        }
+    }
+
+/// The address block of a profile page: "copy link" when the profile is public, and for a Members profile too (any
+/// member can open the address) with the owner's note; the private note for its owner; and nothing for a link holder
+/// (the address alone opens nothing for anyone else)
 let profileAddress (t: Texts) (access: PageAccess) (address: string) : HtmlElement =
     match access with
     | PublicPage -> copyLink t address
+    | MembersPage true ->
+        Fragment() {
+            membersProfileNote t
+            copyLink t address
+        }
+    | MembersPage false -> copyLink t address
     | OwnPrivatePage -> privateProfileNote t
     | SharedPrivatePage -> Fragment()
 

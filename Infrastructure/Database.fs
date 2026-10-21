@@ -242,11 +242,11 @@ let private schema =
 
     CREATE INDEX IF NOT EXISTS ix_fediverse_outbox_pending ON fediverse_outbox (next_attempt_at, id) WHERE state = 'pending';
 
-    -- Profile visibility and share link (feature 017): one row per user who chose a visibility or made a link.
+    -- Profile visibility and share link (feature 017, 'members' added by 021): one row per user who chose a visibility or made a link.
     -- No row means the instance default applies and there is no link. Only the link's hash is stored.
     CREATE TABLE IF NOT EXISTS profile_settings (
         user_id               uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-        visibility            text NULL CHECK (visibility IN ('public', 'private')),
+        visibility            text NULL CHECK (visibility IN ('public', 'members', 'private')),
         share_token_hash      text NULL UNIQUE,
         share_link_id         uuid NULL,
         share_link_created_at timestamptz NULL,
@@ -368,12 +368,62 @@ let private schema =
     CREATE INDEX IF NOT EXISTS ix_cr_season_matches_queue ON cr_season_matches (status, next_attempt_at);
     """
 
-/// Create the schema if missing (idempotent: every statement is IF NOT EXISTS, so a second run changes nothing)
+/// Guarded upgrades of tables that already exist in a deployed database (the CREATE TABLEs above only build new
+/// ones). Each block checks the live catalog first, so a database that is already current is left alone and every
+/// run after the first changes nothing. They run in the same transaction, and under the same lock, as the schema.
+let private upgrades =
+    """
+    -- Feature 021: profile_settings.visibility accepts 'members'. A database from feature 017 has
+    -- CHECK (visibility IN ('public', 'private')) under whatever name Postgres gave it; find it by what it says
+    -- (it names visibility and lacks 'members'), drop it by that real name, and add the three-value check.
+    DO $$
+    DECLARE
+        old_check text;
+        replaced  boolean := false;
+    BEGIN
+        FOR old_check IN
+            SELECT c.conname
+            FROM pg_constraint c
+            WHERE c.conrelid = 'profile_settings'::regclass
+              AND c.contype = 'c'
+              AND pg_get_constraintdef(c.oid) LIKE '%visibility%'
+              AND pg_get_constraintdef(c.oid) NOT LIKE '%members%'
+        LOOP
+            EXECUTE format('ALTER TABLE profile_settings DROP CONSTRAINT %I', old_check);
+            replaced := true;
+        END LOOP;
+
+        IF replaced THEN
+            ALTER TABLE profile_settings
+                ADD CONSTRAINT profile_settings_visibility_check
+                CHECK (visibility IN ('public', 'members', 'private'));
+        END IF;
+    END $$;
+    """
+
+/// Any number, the same for every copy of Frunchy: the lock that makes two starting copies take turns
+[<Literal>]
+let private SchemaLockKey = 7_021_014L
+
+/// Create the schema if missing and bring existing tables up to date. Idempotent: the CREATEs are IF NOT EXISTS and
+/// every upgrade checks the catalog first, so a second run changes nothing. All of it runs in one transaction under
+/// a transaction-scoped advisory lock, so two copies starting together on an old database take turns: the second
+/// waits, then finds nothing left to do.
 let initializeSchema (config: DbConfig) : Task<unit> =
     task {
         use connection = getConnection config
         do! connection.OpenAsync()
-        use cmd = new NpgsqlCommand(schema, connection)
+        use! transaction = connection.BeginTransactionAsync()
+
+        use lockCmd = new NpgsqlCommand("SELECT pg_advisory_xact_lock(@key)", connection, transaction)
+        lockCmd.Parameters.AddWithValue("key", SchemaLockKey) |> ignore
+        let! _ = lockCmd.ExecuteNonQueryAsync()
+
+        use cmd = new NpgsqlCommand(schema, connection, transaction)
         let! _ = cmd.ExecuteNonQueryAsync()
-        ()
+
+        use upgradeCmd = new NpgsqlCommand(upgrades, connection, transaction)
+        let! _ = upgradeCmd.ExecuteNonQueryAsync()
+
+        do! transaction.CommitAsync()
     }

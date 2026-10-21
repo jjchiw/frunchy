@@ -56,6 +56,7 @@ let private hero (ctx: HttpContext) (t: Texts) =
                 span() {
                     match (ctx.GetService<Profiles.ProfileSettings>()).DefaultVisibility with
                     | Profiles.Private -> t.HomeProfilesPrivateNote
+                    | Profiles.Members -> t.HomeProfilesMembersNote
                     | Profiles.Public -> t.HomeProfilesPublicNote
                 }
             }

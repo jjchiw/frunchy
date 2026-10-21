@@ -1,4 +1,4 @@
-/// Feature 017 (US2): the owner chooses whether their profile is public or private. The choice is stored in
+/// Feature 017 (US2): the owner chooses whether their profile is public, for members or private (021 added members). The choice is stored in
 /// `profile_settings` (no row means the instance default) and outranks the default from then on.
 module FrunchyBackend.Handlers.Account.Visibility
 
@@ -47,10 +47,11 @@ let handler: EndpointHandler =
         task {
             let! form = WebAuth.readValidatedForm ctx
 
-            // Exactly the two words the radios send
+            // Exactly the three words the radios send (not trimmed or case-folded further: `formValue` trims)
             let choice =
                 match WebAuth.formValue form "visibility" with
                 | "public" -> Some Profiles.Public
+                | "members" -> Some Profiles.Members
                 | "private" -> Some Profiles.Private
                 | _ -> None
 

@@ -12,6 +12,12 @@ new image. Add to "Unreleased" as you work; a release renames it.
 
 ### Added
 
+- Members-only profiles: a profile can now be Public, Members or Private. Members means anyone
+  signed in to this Frunchy can see it; a signed-out visitor is sent to sign in and lands on the page
+  afterwards. Owners choose on `/account#visibility`, and a share link still opens any profile.
+  Private profiles still answer like a username that doesn't exist. Charts, series and episode
+  pages are unchanged.
+
 - Invites on the web: operators create sign-up invites, see recent ones with their state and revoke
   active ones on `/review/invites`, linked from `/account`. The code is shown once, when it is
   created. The `invite-*` commands do the same and are unchanged.
@@ -22,6 +28,19 @@ new image. Add to "Unreleased" as you work; a release renames it.
   Frunchy the sign-in page now says so, with a note and a dialog before leaving for the provider
   ("Don't show this again on this device" is remembered in the browser only).
 - Every page's footer says Frunchy is not affiliated with Crunchyroll or MyAnimeList.
+
+### Changed
+
+- The default profile visibility is now `members` (it was `private`): users who never chose move
+  from Private to Members when you deploy this, and users who chose keep their choice.
+  `Frunchy:Profiles:DefaultVisibility` accepts `private`, `members` or `public`; set it to
+  `private` to keep the old behaviour.
+
+### Upgrade
+
+- The database upgrades by itself on start: the check on `profile_settings.visibility` is replaced
+  to accept `members`, once, with no data change. Two copies starting together take turns. Nothing
+  to run by hand.
 
 ## 0.1.0 - 2026-10-20
 
