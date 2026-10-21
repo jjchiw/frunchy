@@ -137,8 +137,8 @@ jobs:
       # Dispatch only: commit the renamed changelog to main, tag that commit and push both at once (atomic: if main
       # moved meanwhile, nothing is pushed and the run fails, so run it again). A pre-release only gets its tag.
       # A tag pushed with GITHUB_TOKEN does NOT start another workflow run, which is what we want: this run goes on to
-      # test, build and deploy it. (For the same reason the changelog commit doesn't start ci.yml on main; `test`
-      # below runs the same tests on the tagged commit.)
+      # build and deploy it. (For the same reason the changelog commit doesn't start ci.yml on main; `test` already
+      # ran the same tests on the commit underneath it, which only gains the changelog section.)
       - name: Commit the changelog, tag and push
         if: ${{ github.event_name == 'workflow_dispatch' }}
         env:
@@ -165,8 +165,7 @@ jobs:
           path: out
           if-no-files-found: error
 
-  # The same tests as every push, on the tagged commit (on a dispatch, that includes the changelog commit)
-  # On the commit the run started from: main's head for a dispatch (the release commit only adds the changelog
+  # The same tests as every push, on the commit the run started from: main's head for a dispatch (the release commit only adds the changelog
   # section), the tagged commit for a tag push
   test:
     uses: ./.github/workflows/ci.yml
