@@ -35,6 +35,9 @@ new image. Add to "Unreleased" as you work; a release renames it.
   from Private to Members when you deploy this, and users who chose keep their choice.
   `Frunchy:Profiles:DefaultVisibility` accepts `private`, `members` or `public`; set it to
   `private` to keep the old behaviour.
+- With federation on, users whose profile isn't Public are marked as not discoverable and not
+  indexable for the fediverse (honoured by Mastodon; other servers may not), and changing a
+  profile's visibility refreshes the actor on Megáfono.
 
 ### Upgrade
 

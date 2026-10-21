@@ -92,6 +92,7 @@
     <Compile Include="ProfileRulesTests.fs" />
     <Compile Include="PrivateProfileTests.fs" />
     <Compile Include="ProfileHelpers.fs" />
+    <Compile Include="ActorDiscoverabilityTests.fs" />
     <Compile Include="ProfileVisibilityTests.fs" />
     <Compile Include="ShareLinkTests.fs" />
     <Compile Include="ProfileLinksTests.fs" />

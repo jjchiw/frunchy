@@ -27,9 +27,13 @@ type private Actor =
       Name: string
       ProfileUrl: string
       IconUrl: string option
-      IsGroup: bool }
+      IsGroup: bool
+      /// Whether Megáfono may list the actor in directories (a hint to other servers). Users: only a Public profile.
+      Discoverable: bool
+      /// Whether search engines and full-text search may index the actor's posts (same rule)
+      Indexable: bool }
 
-/// The wire shape: camelCase keys, `iconUrl` only when there is one
+/// The wire shape: camelCase keys, `iconUrl` only when there is one, `discoverable` and `indexable` always booleans
 let private toJson (actor: Actor) : IDictionary<string, obj> =
     let json = Dictionary<string, obj>()
     json["id"] <- actor.Id
@@ -39,6 +43,8 @@ let private toJson (actor: Actor) : IDictionary<string, obj> =
     actor.IconUrl |> Option.iter (fun url -> json["iconUrl"] <- url)
     json["type"] <- (if actor.IsGroup then "Group" else "Person")
     json["locked"] <- false
+    json["discoverable"] <- actor.Discoverable
+    json["indexable"] <- actor.Indexable
     json :> IDictionary<string, obj>
 
 // ---------------------------------------------------------------------------
@@ -53,41 +59,61 @@ let private SeriesPrefix = "series-"
 
 /// The actor of the user row the reader is on, None when the username can't federate (a trailing dash from
 /// before feature 013 isn't a valid handle)
-let private readUser (domain: string) (r: System.Data.Common.DbDataReader) : Actor option =
+let private readUser (domain: string) (instanceDefault: Profiles.Visibility) (r: System.Data.Common.DbDataReader) : Actor option =
     if r.Read() then
         let username = r.GetString 1
 
         if Fediverse.isValidHandle username then
+            // The user's own choice, else the instance default: only a Public profile is discoverable and indexable
+            let choice = if r.IsDBNull 3 then None else Profiles.Visibility.tryParse (r.GetString 3)
+            let isPublic = (Profiles.effective instanceDefault choice = Profiles.Public)
+
             Some
                 { Id = string (r.GetGuid 0)
                   Handle = username
                   Name = r.GetString 2
                   ProfileUrl = $"https://{domain}/u/{username}"
                   IconUrl = None
-                  IsGroup = false }
+                  IsGroup = false
+                  Discoverable = isPublic
+                  Indexable = isPublic }
         else
             None
     else
         None
 
-let private userByName (db: DbConfig) (domain: string) (username: string) : Task<Actor option> =
+let private userByName (db: DbConfig) (domain: string) (instanceDefault: Profiles.Visibility) (username: string) : Task<Actor option> =
     task {
         use connection = getConnection db
         do! connection.OpenAsync()
-        use cmd = new NpgsqlCommand("SELECT id, username, display_name FROM users WHERE username = @username", connection)
+        use cmd = new NpgsqlCommand(
+                """
+                SELECT u.id, u.username, u.display_name, s.visibility
+                FROM users u LEFT JOIN profile_settings s ON s.user_id = u.id
+                WHERE u.username = @username
+                """,
+                connection
+            )
         cmd.Parameters.AddWithValue("username", username) |> ignore
         use! r = cmd.ExecuteReaderAsync()
-        return readUser domain r
+        return readUser domain instanceDefault r
     }
 
-let private userById (db: DbConfig) (domain: string) (id: Guid) : Task<Actor option> =
+let private userById (db: DbConfig) (domain: string) (instanceDefault: Profiles.Visibility) (id: Guid) : Task<Actor option> =
     task {
         use connection = getConnection db
         do! connection.OpenAsync()
-        use cmd = new NpgsqlCommand("SELECT id, username, display_name FROM users WHERE id = @id", connection)
+        use cmd = new NpgsqlCommand(
+                """
+                SELECT u.id, u.username, u.display_name, s.visibility
+                FROM users u LEFT JOIN profile_settings s ON s.user_id = u.id
+                WHERE u.id = @id
+                """,
+                connection
+            )
         cmd.Parameters.AddWithValue("id", id) |> ignore
         use! r = cmd.ExecuteReaderAsync()
-        return readUser domain r
+        return readUser domain instanceDefault r
     }
 
 /// The series title the series page shows: the stored one, else the smallest episode series title, else the id
@@ -166,7 +192,9 @@ let private seriesActor (db: DbConfig) (domain: string) (seriesId: string) : Tas
                       Name = title
                       ProfileUrl = $"https://{domain}/anime/{seriesId}"
                       IconUrl = icon
-                      IsGroup = true }
+                      IsGroup = true
+                      Discoverable = true
+                      Indexable = true }
     }
 
 /// A series that already has a handle, found by it (a handle never creates one)
@@ -183,7 +211,7 @@ let private seriesByHandle (db: DbConfig) (domain: string) (handle: string) : Ta
     }
 
 /// By handle: a user (when the name qualifies as a user and a handle), else a series with that handle
-let private byHandle (db: DbConfig) (domain: string) (raw: string) : Task<Actor option> =
+let private byHandle (db: DbConfig) (domain: string) (instanceDefault: Profiles.Visibility) (raw: string) : Task<Actor option> =
     task {
         let handle = raw.Trim().ToLowerInvariant()
 
@@ -192,7 +220,7 @@ let private byHandle (db: DbConfig) (domain: string) (raw: string) : Task<Actor 
         else
             let! user =
                 match Username.tryCreate handle with
-                | Some username -> userByName db domain username
+                | Some username -> userByName db domain instanceDefault username
                 | None -> Task.FromResult None
 
             match user with
@@ -201,7 +229,7 @@ let private byHandle (db: DbConfig) (domain: string) (raw: string) : Task<Actor 
     }
 
 /// By id: a user's uuid, or `series-{seriesId}`
-let private byId (db: DbConfig) (domain: string) (id: string) : Task<Actor option> =
+let private byId (db: DbConfig) (domain: string) (instanceDefault: Profiles.Visibility) (id: string) : Task<Actor option> =
     task {
         if id.StartsWith(SeriesPrefix, StringComparison.Ordinal) then
             let seriesId = id.Substring SeriesPrefix.Length
@@ -212,7 +240,7 @@ let private byId (db: DbConfig) (domain: string) (id: string) : Task<Actor optio
                 return None
         else
             match Guid.TryParse id with
-            | true, guid -> return! userById db domain guid
+            | true, guid -> return! userById db domain instanceDefault guid
             | _ -> return None
     }
 
@@ -248,12 +276,12 @@ let private answer (find: Federation.FederationValues -> HttpContext -> Task<Act
 let byHandleHandler: EndpointHandler =
     answer (fun values ctx ->
         match ctx.TryGetQueryValue "handle" with
-        | Some handle -> byHandle (ctx.GetService<DbConfig>()) values.Domain handle
+        | Some handle -> byHandle (ctx.GetService<DbConfig>()) values.Domain (ctx.GetService<Profiles.ProfileSettings>()).DefaultVisibility handle
         | None -> Task.FromResult None)
 
 /// GET /megafono/actors/{id}
 let byIdHandler (id: string) : EndpointHandler =
-    answer (fun values ctx -> byId (ctx.GetService<DbConfig>()) values.Domain id)
+    answer (fun values ctx -> byId (ctx.GetService<DbConfig>()) values.Domain (ctx.GetService<Profiles.ProfileSettings>()).DefaultVisibility id)
 
 // ---------------------------------------------------------------------------
 // Endpoint
