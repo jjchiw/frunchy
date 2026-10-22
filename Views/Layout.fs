@@ -107,6 +107,23 @@ let advertiseActivityPub (ctx: HttpContext) (href: string) =
     addHeadLink ctx { Rel = "alternate"; Type = Some "application/activity+json"; Href = href }
     ctx.Response.Headers["Link"] <- $"<{href}>; rel=\"alternate\"; type=\"application/activity+json\""
 
+/// The footer's language link (feature 024): one link to the OTHER language, in that language's own name (never a
+/// flag). It sets the `frunchy.lang` cookie and comes back to this page. `data-language` is the target language.
+let private languageSwitch (ctx: HttpContext) (t: Texts) =
+    let target = LanguagePreference.other t.Lang
+    let name = if target = "es" then t.LanguageNameEs else t.LanguageNameEn
+    let here = ctx.Request.Path.Value + ctx.Request.QueryString.Value
+
+    nav(class' = "w-full sm:ml-auto sm:w-auto").attr("aria-label", t.LanguageSwitchLabel).data("language-switch", "") {
+        a(href = LanguagePreference.switchHref target here, class' = Components.btnSm Components.Ghost + " -ml-3.5 sm:ml-0")
+            .attr("hreflang", target)
+            .attr("lang", target)
+            .data("language", target) {
+            Components.icon Theme.Language
+            name
+        }
+    }
+
 /// Base HTML layout on the design system (Views/Theme.fs), in the request's language
 let page (ctx: HttpContext) (t: Texts) (titleText: string) (content: HtmlElement) =
     html(lang = t.Lang, class' = "bg-surface") {
@@ -153,12 +170,13 @@ let page (ctx: HttpContext) (t: Texts) (titleText: string) (content: HtmlElement
             main(id = "main", class' = "mx-auto w-full max-w-page flex-1 px-4 py-8 md:px-8 md:py-12") { content }
 
             footer(class' = "border-t border-outline-variant/40") {
-                div(class' = "mx-auto flex max-w-page items-center gap-3 px-4 py-8 text-label-md font-normal text-on-surface-variant md:px-8") {
+                div(class' = "mx-auto flex max-w-page flex-wrap items-center gap-3 px-4 py-8 text-label-md font-normal text-on-surface-variant md:px-8") {
                     span(class' = "block h-5 w-5 opacity-80") { raw Theme.markSvg }
                     div(class' = "space-y-1") {
                         p() { t.Footer }
                         p().data("footer-disclaimer", "") { t.FooterDisclaimer }
                     }
+                    languageSwitch ctx t
                 }
             }
         }

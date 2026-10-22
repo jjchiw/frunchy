@@ -45,6 +45,8 @@ let endpoints =
     [ // Feature 016: the health check for Caravana (always mapped, federation or not)
       Handlers.Health.endpoint
       Handlers.Home.endpoint
+      // Feature 024: the language preference cookie
+      Handlers.Language.endpoint
       Handlers.Api.CreateImport.endpoint
       Handlers.Api.GetImportStatus.endpoint
       Handlers.Api.WhoAmI.endpoint
@@ -142,8 +144,8 @@ let errorHandler (ctx: HttpContext) (next: RequestDelegate) =
     }
     :> Task
 
-/// English is the default; Spanish when the browser prefers it. Only Accept-Language decides
-/// (no query/cookie override until a language switcher exists).
+/// English is the default. The `frunchy.lang` cookie (`en` or `es`, set by `/language/{code}`, feature 024) decides
+/// first; without a valid one, Spanish when the browser's Accept-Language prefers it.
 let localizationOptions () =
     let cultures = [| CultureInfo "en"; CultureInfo "es" |]
 
@@ -155,7 +157,10 @@ let localizationOptions () =
         )
 
     options.RequestCultureProviders <-
-        ResizeArray<IRequestCultureProvider>([ AcceptLanguageHeaderRequestCultureProvider() :> IRequestCultureProvider ])
+        ResizeArray<IRequestCultureProvider>(
+            [ LanguagePreference.CookieRequestCultureProvider() :> IRequestCultureProvider
+              AcceptLanguageHeaderRequestCultureProvider() :> IRequestCultureProvider ]
+        )
     options
 
 let dbConfigFrom (config: IConfiguration) : DbConfig =

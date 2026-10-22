@@ -20,6 +20,9 @@ new image. Add to "Unreleased" as you work; a release renames it.
   invite and cancels the old one; once an account exists nothing is printed. Set
   `Frunchy:SetupInvite:Enabled=false` to turn it off. The database gains `invites.is_setup`,
   added automatically on start.
+- A language link in the footer of every page: it offers the other language (English or Español), remembers
+  the choice in a cookie for a year and brings you back to the same page. Without the choice, the browser's
+  language still decides, as before.
 
 ### Changed
 

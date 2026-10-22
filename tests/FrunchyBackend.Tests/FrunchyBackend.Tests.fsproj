@@ -21,6 +21,7 @@
     <Compile Include="TestHelpers.fs" />
     <Compile Include="AuthHelpers.fs" />
     <Compile Include="HomeTests.fs" />
+    <Compile Include="LanguageSwitchTests.fs" />
     <Compile Include="CrunchyrollPageTests.fs" />
     <Compile Include="CreateImportTests.fs" />
     <Compile Include="GetImportStatusTests.fs" />
