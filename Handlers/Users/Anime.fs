@@ -50,6 +50,7 @@ type Poster =
 
 type AnimeModel =
     { Username: string
+      DisplayName: string
       SeriesId: string
       Title: string
       Slug: string option
@@ -75,52 +76,50 @@ let private peopleLine (t: Texts) (people: int option) =
 let private header (ctx: HttpContext) (t: Texts) (people: int option) (m: AnimeModel) =
     let address = $"{ctx.Request.Scheme}://{ctx.Request.Host}/u/{m.Username}/anime/{m.SeriesId}"
 
-    div(class' = "space-y-6") {
-        div(class' = "flex flex-col gap-6 sm:flex-row sm:items-end") {
-            match m.Poster with
-            | Some(Portrait url) ->
-                img(src = url, alt = "", class' = "aspect-[2/3] w-32 shrink-0 rounded-md object-cover sm:w-40")
-                    .attr("loading", "lazy")
-                    .attr("style", "box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4)")
-            | Some(Thumbnail url) ->
-                img(src = url, alt = "", class' = "aspect-video w-full max-w-xs shrink-0 rounded-md object-cover sm:w-64")
-                    .attr("loading", "lazy")
-                    .attr("style", "box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4)")
-            | None -> Fragment()
+    Fragment() {
+        profileTop t ProfileTab.NoTab m.Username m.DisplayName (Some(m.Access, address))
 
-            div(class' = "min-w-0 space-y-4") {
-                h1(class' = "text-display-hero-mobile md:text-display-hero text-on-surface text-balance [overflow-wrap:anywhere]").data("anime-title", "") {
-                    m.Title
-                }
+        div(class' = "space-y-6") {
+            div(class' = "flex flex-col gap-6 sm:flex-row sm:items-end") {
+                match m.Poster with
+                | Some(Portrait url) ->
+                    img(src = url, alt = "", class' = "aspect-[2/3] w-32 shrink-0 rounded-md object-cover sm:w-40")
+                        .attr("loading", "lazy")
+                        .attr("style", "box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4)")
+                | Some(Thumbnail url) ->
+                    img(src = url, alt = "", class' = "aspect-video w-full max-w-xs shrink-0 rounded-md object-cover sm:w-64")
+                        .attr("loading", "lazy")
+                        .attr("style", "box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4)")
+                | None -> Fragment()
 
-                div(class' = "flex flex-wrap items-start gap-2") {
-                    a(href = $"/u/{m.Username}", class' = btn Ghost).data("dashboard-link", "") {
-                        icon Theme.ArrowBack
-                        t.DashboardLink
+                div(class' = "min-w-0 space-y-4") {
+                    h1(class' = "text-headline-xl-mobile md:text-headline-xl text-on-surface text-balance [overflow-wrap:anywhere]")
+                        .data("anime-title", "") {
+                        m.Title
                     }
 
-                    a(href = $"/anime/{m.SeriesId}", class' = btn Ghost).data("series-page-link", "") { t.SeriesPageLink }
+                    div(class' = "flex flex-wrap items-start gap-2") {
+                        match m.Slug with
+                        | Some slug ->
+                            a(href = $"https://www.crunchyroll.com/series/{m.SeriesId}/{slug}", target = "_blank", class' = btn Secondary)
+                                .attr("rel", "noopener")
+                                .data("crunchyroll-link", "") {
+                                t.AnimeWatchOnCrunchyroll
+                                icon Theme.OpenInNew
+                            }
+                        | None -> Fragment()
 
-                    match m.Slug with
-                    | Some slug ->
-                        a(href = $"https://www.crunchyroll.com/series/{m.SeriesId}/{slug}", target = "_blank", class' = btn Secondary)
-                            .attr("rel", "noopener")
-                            .data("crunchyroll-link", "") {
-                            t.AnimeWatchOnCrunchyroll
-                            icon Theme.OpenInNew
-                        }
-                    | None -> Fragment()
+                        a(href = $"/anime/{m.SeriesId}", class' = btn Ghost).data("series-page-link", "") { t.SeriesPageLink }
+                    }
 
-                    profileAddress t m.Access address
+                    peopleLine t people
                 }
-
-                peopleLine t people
             }
-        }
 
-        p(class' = "flex items-start gap-1.5 text-label-md font-normal text-on-surface-variant").data("rewatch-note", "") {
-            icon Theme.Info
-            span() { t.AnimeRewatchNote }
+            p(class' = "flex items-start gap-1.5 text-label-md font-normal text-on-surface-variant").data("rewatch-note", "") {
+                icon Theme.Info
+                span() { t.AnimeRewatchNote }
+            }
         }
     }
 
@@ -232,7 +231,7 @@ let private seasonCard (t: Texts) (seriesId: string) (shownBefore: bool) (s: Sea
     }
 
 let view (ctx: HttpContext) (t: Texts) (people: int option) (m: AnimeModel) =
-    div(class' = "space-y-10").data("anime", m.SeriesId) {
+    div(class' = "space-y-8").data("anime", m.SeriesId) {
         header ctx t people m
         totals t m
 
@@ -388,7 +387,7 @@ let private loadRows (connection: NpgsqlConnection) (userId: Guid) (seriesId: st
 
 /// The page's figures from the rows: the dashboard's rule restricted to the series (R3), seasons in the
 /// order the rows come in (R4), the poster by watch time (R2)
-let private toModel (username: string) (seriesId: string) (access: Profiles.PageAccess) (rows: Row list) : AnimeModel option =
+let private toModel (username: string) (displayName: string) (seriesId: string) (access: Profiles.PageAccess) (rows: Row list) : AnimeModel option =
     match rows with
     | [] -> None
     | first :: _ ->
@@ -443,6 +442,7 @@ let private toModel (username: string) (seriesId: string) (access: Profiles.Page
 
         Some
             { Username = username
+              DisplayName = displayName
               SeriesId = seriesId
               Title = title
               Slug = first.Slug
@@ -484,7 +484,7 @@ let handler (rawUsername: string) (rawSeriesId: string) : EndpointHandler =
 
                 match! loadUser connection username with
                 | None -> return! notFound ctx t true
-                | Some(userId, _) ->
+                | Some(userId, displayName) ->
                     // The visibility check (feature 017): hidden is the unknown-user 404, before any history query
                     match! Profiles.gate ctx (ctx.GetService<DbConfig>()) userId with
                     | Profiles.SignInFirst -> return! WebAuth.redirectToSignInHere ctx
@@ -492,7 +492,7 @@ let handler (rawUsername: string) (rawSeriesId: string) : EndpointHandler =
                     | Profiles.Show access ->
                         let! rows = loadRows connection userId rawSeriesId
 
-                        match toModel username rawSeriesId access rows with
+                        match toModel username displayName rawSeriesId access rows with
                         | None -> return! notFound ctx t false
                         | Some model ->
                             let! people = Charts.seriesPeople (ctx.GetService<DbConfig>()) rawSeriesId (Charts.minPeople (ctx.GetService<IConfiguration>()))

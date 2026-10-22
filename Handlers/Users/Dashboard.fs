@@ -222,54 +222,31 @@ let private topGenres (t: Texts) (g: TopGenres) =
         }
     }
 
-let private header (ctx: HttpContext) (t: Texts) (m: DashboardModel) =
-    let address = $"{ctx.Request.Scheme}://{ctx.Request.Host}/u/{m.Username}"
+/// The sync and fediverse lines, the first block under the tab bar (feature 022)
+let private statusLines (t: Texts) (m: DashboardModel) =
+    div(class' = "space-y-2") {
+        p(class' = "flex flex-wrap items-center gap-x-1.5 gap-y-1 text-body-md text-on-surface-variant") {
+            icon Theme.Sync
+            span() { t.LastSync + ":" }
 
-    div(class' = "flex flex-col gap-6 md:flex-row md:items-end md:justify-between") {
-        div(class' = "min-w-0 space-y-3 [overflow-wrap:anywhere]") {
-            pageHeading
-                m.DisplayName
-                (match m.Access with
-                 | Profiles.PublicPage -> Some t.PublicProfileNote
-                 | _ -> None)
+            match m.LastSyncAt with
+            | Some at -> span(class' = "text-on-surface") { timeElement t "relative" at }
+            | None -> span(class' = "text-on-surface") { t.NeverSynced }
 
-            p(class' = "flex flex-wrap items-center gap-x-1.5 gap-y-1 text-body-md text-on-surface-variant") {
-                icon Theme.Sync
-                span() { t.LastSync + ":" }
-
-                match m.LastSyncAt with
-                | Some at -> span(class' = "text-on-surface") { timeElement t "relative" at }
-                | None -> span(class' = "text-on-surface") { t.NeverSynced }
-
-                match m.Recent with
-                | newest :: _ ->
-                    // One group, so the separator wraps with what it introduces
-                    span() {
-                        span().attr("aria-hidden", "true") { "· " }
-                        t.NewestEpisode + ": "
-                        span(class' = "text-on-surface") { seriesLink m.Username newest.SeriesId newest.SeriesTitle }
-                    }
-                | [] -> Fragment()
-            }
-
-            match m.FediverseHandle with
-            | Some handle -> fediverseHandleLine t handle
-            | None -> Fragment()
+            match m.Recent with
+            | newest :: _ ->
+                // One group, so the separator wraps with what it introduces
+                span() {
+                    span().attr("aria-hidden", "true") { "· " }
+                    t.NewestEpisode + ": "
+                    span(class' = "text-on-surface") { seriesLink m.Username newest.SeriesId newest.SeriesTitle }
+                }
+            | [] -> Fragment()
         }
 
-        div(class' = "flex shrink-0 flex-wrap items-start gap-2") {
-            a(href = $"/u/{m.Username}/dna", class' = btn Primary).data("dna-link", "") {
-                icon Theme.Fingerprint
-                t.DnaLink
-            }
-
-            a(href = $"/u/{m.Username}/year", class' = btn Secondary).data("year-link", "") {
-                icon Theme.CalendarMonth
-                t.YearLink
-            }
-
-            profileAddress t m.Access address
-        }
+        match m.FediverseHandle with
+        | Some handle -> fediverseHandleLine t handle
+        | None -> Fragment()
     }
 
 let private recent (t: Texts) (m: DashboardModel) =
@@ -355,8 +332,11 @@ let private compatCard (t: Texts) (c: Compatibility.Comparison) =
     }
 
 let view (ctx: HttpContext) (t: Texts) (m: DashboardModel) (compat: Compatibility.Comparison option) =
-    div(class' = "space-y-8 md:space-y-10") {
-        header ctx t m
+    let address = $"{ctx.Request.Scheme}://{ctx.Request.Host}/u/{m.Username}"
+
+    div(class' = "space-y-8") {
+        profileTop t ProfileTab.Dashboard m.Username m.DisplayName (Some(m.Access, address))
+        statusLines t m
 
         match compat with
         | Some c -> compatCard t c

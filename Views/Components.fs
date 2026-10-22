@@ -273,20 +273,83 @@ let membersProfileNote (t: Texts) =
         }
     }
 
-/// The address block of a profile page: "copy link" when the profile is public, and for a Members profile too (any
-/// member can open the address) with the owner's note; the private note for its owner; and nothing for a link holder
-/// (the address alone opens nothing for anyone else)
+/// The address block of a profile page, on the masthead's right: "copy link" when the profile is public or for
+/// members (any member can open the address), the private note for its owner, and nothing for a link holder (the
+/// address alone opens nothing for anyone else)
 let profileAddress (t: Texts) (access: PageAccess) (address: string) : HtmlElement =
     match access with
-    | PublicPage -> copyLink t address
-    | MembersPage true ->
-        Fragment() {
-            membersProfileNote t
-            copyLink t address
-        }
-    | MembersPage false -> copyLink t address
+    | PublicPage
+    | MembersPage _ -> copyLink t address
     | OwnPrivatePage -> privateProfileNote t
     | SharedPrivatePage -> Fragment()
+
+/// The three views of a profile (feature 022); `NoTab` for the pages that belong to a profile without being one of
+/// its views (a series, a comparison)
+[<RequireQualifiedAccess>]
+type ProfileTab =
+    | Dashboard
+    | Dna
+    | Year
+    | NoTab
+
+/// The profile masthead (feature 022): the person's name (the page's `h1` on the dashboard, elsewhere a link back to
+/// the dashboard so each page keeps one `h1`), `@username`, the notes on who can see it, and on the right the
+/// address block. `access` is None on the comparison page, which shows neither notes nor address.
+let profileMasthead (t: Texts) (asHeading: bool) (username: string) (displayName: string) (access: (PageAccess * string) option) =
+    div(class' = "flex flex-col gap-5 md:flex-row md:items-end md:justify-between").data("profile-masthead", "") {
+        div(class' = "min-w-0 space-y-1.5 [overflow-wrap:anywhere]") {
+            if asHeading then
+                h1(class' = "text-headline-xl-mobile md:text-headline-xl text-on-surface text-balance").data("profile-name", "") {
+                    displayName
+                }
+            else
+                p(class' = "text-headline-xl-mobile md:text-headline-xl font-display text-on-surface text-balance") {
+                    a(href = $"/u/{username}", class' = "rounded hover:underline decoration-primary/60 underline-offset-[6px]")
+                        .data("profile-name", "") {
+                        displayName
+                    }
+                }
+
+            p(class' = "font-mono text-label-md text-on-surface-variant") { "@" + username }
+
+            match access with
+            | Some(PublicPage, _) -> p(class' = "text-body-md text-on-surface-variant") { t.PublicProfileNote }
+            | Some(MembersPage true, _) -> membersProfileNote t
+            | _ -> Fragment()
+        }
+
+        match access with
+        | Some(SharedPrivatePage, _)
+        | None -> Fragment()
+        | Some(access, address) -> div(class' = "flex shrink-0 flex-wrap items-center gap-2") { profileAddress t access address }
+    }
+
+/// The tab bar of a profile (feature 022): page links, not an ARIA tablist. The selected one is marked with
+/// `aria-current="page"`, the only thing its style reads. The hooks `data-dashboard-link`, `data-dna-link` and
+/// `data-year-link` sit on the tabs of every profile page.
+let profileTabs (t: Texts) (selected: ProfileTab) (username: string) =
+    let tab (which: ProfileTab) (name: string) (hook: string) (href: string) (label: string) =
+        let link = a(href = href, class' = "fr-tab").data("tab", name).data(hook, "")
+        if selected = which then link.attr("aria-current", "page") { label } else link { label }
+
+    nav(class' = "fr-tabs").attr("aria-label", t.ProfileTabsLabel).data("profile-tabs", "") {
+        tab ProfileTab.Dashboard "dashboard" "dashboard-link" $"/u/{username}" t.DashboardLink
+        tab ProfileTab.Dna "dna" "dna-link" $"/u/{username}/dna" t.DnaLink
+        tab ProfileTab.Year "year" "year-link" $"/u/{username}/year" t.YearLink
+    }
+
+/// Masthead and tab bar, the same top on every profile page
+let profileTop
+    (t: Texts)
+    (selected: ProfileTab)
+    (username: string)
+    (displayName: string)
+    (access: (PageAccess * string) option)
+    =
+    div(class' = "space-y-5") {
+        profileMasthead t (selected = ProfileTab.Dashboard) username displayName access
+        profileTabs t selected username
+    }
 
 /// "Follow on the fediverse: @handle@domain" with a copy button (feature 015, FR-003). `handle` is the full
 /// `@name@domain`; it is also the value of `data-fediverse-handle`, the test hook.

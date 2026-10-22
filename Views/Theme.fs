@@ -161,9 +161,24 @@ let componentCss =
   .fr-stat, .text-stat-counter { font-family: var(--font-mono); }
   .text-display-hero, .text-display-hero-mobile, .text-headline-xl, .text-headline-xl-mobile, .text-headline-lg, .text-headline-md { font-family: var(--font-display); }
   .material-symbols-outlined { font-size: 1.25em; line-height: 1; vertical-align: -0.2em; user-select: none; }
+
+  /* The profile tab bar (feature 022). A hairline across the content width. On phones it bleeds to the viewport
+     edges (-mx-4 / px-4, undone at md) so a row that overflows reads as scrollable and the rule runs edge to edge;
+     the scrollbar is hidden because the labels themselves show the overflow. */
+  .fr-tabs { @apply flex items-stretch gap-1 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0; border-bottom: 1px solid var(--color-outline-variant); scrollbar-width: none; }
+  .fr-tabs::-webkit-scrollbar { display: none; }
+  /* A tab: 44px tall (touch target), 12px side padding, pulled 1px down so its 2px rule sits on the hairline. The
+     first tab is pulled left by its own padding so the labels align with the heading above. Selected is styled from
+     aria-current only: a tab cannot look selected without being announced as selected. */
+  .fr-tab { @apply relative inline-flex h-11 shrink-0 items-center px-3 -mb-px whitespace-nowrap text-body-md font-semibold text-on-surface-variant rounded-t-sm; border-bottom: 2px solid transparent; }
+  .fr-tab:first-child { @apply -ml-3; }
+  .fr-tab:hover { @apply text-on-surface; border-bottom-color: var(--color-outline); }
+  .fr-tab[aria-current="page"] { @apply text-on-surface; border-bottom-color: var(--color-primary); }
+  /* The ring sits inside the tab: the bar clips overflow, and an outside ring would be cut on the first and last tab */
+  .fr-tab:focus-visible { outline-offset: -2px; border-radius: var(--radius-sm); }
 }
 @media (prefers-reduced-motion: no-preference) {
-  .fr-btn, .fr-input, .fr-link, .fr-nav-link { transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), border-color 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms; }
+  .fr-btn, .fr-input, .fr-link, .fr-nav-link, .fr-tab { transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), border-color 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms; }
   .fr-btn-primary:hover { box-shadow: var(--glow-primary); }
   .fr-fill { transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1); }
 }

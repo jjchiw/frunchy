@@ -97,6 +97,7 @@
     <Compile Include="ShareLinkTests.fs" />
     <Compile Include="ProfileLinksTests.fs" />
     <Compile Include="MembersProfileTests.fs" />
+    <Compile Include="ProfileTabsTests.fs" />
   </ItemGroup>
 
   <ItemGroup>

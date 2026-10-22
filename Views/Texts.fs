@@ -62,10 +62,11 @@ type Texts =
 
       // Anime DNA (/u/{username}/dna, feature 004)
       DnaTitle: string
-      DnaHeading: string -> string
       DnaIntro: string
       DnaLink: string
       DashboardLink: string
+      /// The accessible name of the profile tab bar (feature 022)
+      ProfileTabsLabel: string
       CopyLink: string
       LinkCopied: string
       CopyLinkFallback: string
@@ -221,7 +222,6 @@ type Texts =
 
       // Year in review (/u/{username}/year, feature 005)
       YearTitle: int -> string
-      YearHeading: string -> int -> string
       YearIntro: string
       YearLink: string
       YearRewatchNote: string
@@ -582,10 +582,10 @@ let en =
       UserNotFoundBody = "There's no Frunchy profile with this name."
 
       DnaTitle = "Anime DNA"
-      DnaHeading = fun name -> $"{name}'s Anime DNA"
       DnaIntro = "What this profile watches, from its Crunchyroll history and MyAnimeList."
       DnaLink = "Anime DNA"
       DashboardLink = "Dashboard"
+      ProfileTabsLabel = "Profile pages"
       CopyLink = "Copy link"
       LinkCopied = "Link copied"
       CopyLinkFallback = "Copy this address"
@@ -780,7 +780,6 @@ let en =
 
       // Year in review (feature 005)
       YearTitle = fun y -> $"{y} in review"
-      YearHeading = fun name y -> $"{name}'s {y} in anime"
       YearIntro = "One calendar year of this profile's Crunchyroll history, with MyAnimeList details."
       YearLink = "Year in review"
       YearRewatchNote = "Frunchy keeps the latest watch of each episode, so a rewatch counts in the year it was last watched. Years are in UTC."
@@ -1231,10 +1230,10 @@ let es =
       UserNotFoundBody = "No hay ningún perfil de Frunchy con este nombre."
 
       DnaTitle = "ADN anime"
-      DnaHeading = fun name -> $"El ADN anime de {name}"
       DnaIntro = "Lo que ve este perfil, según su historial de Crunchyroll y MyAnimeList."
       DnaLink = "ADN anime"
-      DashboardLink = "Dashboard"
+      DashboardLink = "Panel"
+      ProfileTabsLabel = "Páginas del perfil"
       CopyLink = "Copiar enlace"
       LinkCopied = "Enlace copiado"
       CopyLinkFallback = "Copia esta dirección"
@@ -1429,9 +1428,8 @@ let es =
 
       // Year in review (feature 005)
       YearTitle = fun y -> $"Resumen de {y}"
-      YearHeading = fun name y -> $"El {y} anime de {name}"
       YearIntro = "Un año natural del historial de Crunchyroll de este perfil, con datos de MyAnimeList."
-      YearLink = "Resumen del año"
+      YearLink = "Año en anime"
       YearRewatchNote = "Frunchy guarda el último visionado de cada episodio, así que una revisión cuenta en el año en que se vio por última vez. Los años están en UTC."
       YearPickerLabel = "Años"
       YearHoursCaption = fun d -> $"""{d.ToString("N1", CultureInfo.GetCultureInfo "es")} días"""

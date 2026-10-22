@@ -31,14 +31,6 @@ let private coverage (p: Compatibility.Person) =
     else
         Math.Round(100m * decimal p.MatchedMs / decimal p.DedupMs, 1, MidpointRounding.AwayFromZero)
 
-let private backLink (t: Texts) (owner: string) =
-    div() {
-        a(href = $"/u/{owner}", class' = btn Ghost).data("dashboard-link", "") {
-            icon Theme.ArrowBack
-            t.DashboardLink
-        }
-    }
-
 /// One of the two people: name (amber for the viewer, rose for the owner), username in mono, series count
 let private personBlock (t: Texts) (role: string) (person: Compatibility.Person) =
     let viewer = role = "viewer"
@@ -253,8 +245,8 @@ let view (ctx: HttpContext) (t: Texts) (c: Compatibility.Comparison) =
     let content =
         match c.Level with
         | Some level ->
-            div(class' = "space-y-6 md:space-y-8").data("compare", owner.Username).data("level", string level) {
-                backLink t owner.Username
+            div(class' = "space-y-8").data("compare", owner.Username).data("level", string level) {
+                profileTop t ProfileTab.NoTab owner.Username owner.DisplayName None
                 heading t c level
 
                 div(class' = "grid grid-cols-1 gap-6 lg:grid-cols-12") {
@@ -275,8 +267,8 @@ let view (ctx: HttpContext) (t: Texts) (c: Compatibility.Comparison) =
                 | Compatibility.OwnerShort -> "owner", t.CompatNotEnoughOwner owner.DisplayName
                 | _ -> "both", t.CompatNotEnoughBoth owner.DisplayName
 
-            div(class' = "space-y-6 md:space-y-8").data("compare", owner.Username).data("level", "") {
-                backLink t owner.Username
+            div(class' = "space-y-8").data("compare", owner.Username).data("level", "") {
+                profileTop t ProfileTab.NoTab owner.Username owner.DisplayName None
                 (emptyState Theme.Info (t.CompatPageTitle owner.DisplayName) text None).data("compat-not-enough", who)
             }
 

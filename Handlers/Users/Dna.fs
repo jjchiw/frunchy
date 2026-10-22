@@ -83,27 +83,13 @@ type DnaModel =
 let private header (ctx: HttpContext) (t: Texts) (m: DnaModel) =
     let address = $"{ctx.Request.Scheme}://{ctx.Request.Host}/u/{m.Username}/dna"
 
-    div(class' = "flex flex-col gap-6 md:flex-row md:items-end md:justify-between") {
-        div(class' = "space-y-3") {
-            h1(class' = "text-display-hero-mobile md:text-display-hero text-on-surface text-balance").data("dna-user", m.DisplayName) {
-                t.DnaHeading m.DisplayName
-            }
+    Fragment() {
+        profileTop t ProfileTab.Dna m.Username m.DisplayName (Some(m.Access, address))
+
+        div(class' = "space-y-2") {
+            h1(class' = "text-headline-lg text-on-surface text-balance").data("dna-user", m.DisplayName) { t.DnaTitle }
 
             p(class' = "max-w-prose text-body-lg text-on-surface-variant") { t.DnaIntro }
-        }
-
-        div(class' = "flex flex-wrap items-start gap-2") {
-            a(href = $"/u/{m.Username}", class' = btn Ghost).data("dashboard-link", "") {
-                icon Theme.ArrowBack
-                t.DashboardLink
-            }
-
-            a(href = $"/u/{m.Username}/year", class' = btn Ghost).data("year-link", "") {
-                icon Theme.CalendarMonth
-                t.YearLink
-            }
-
-            profileAddress t m.Access address
         }
     }
 
@@ -343,7 +329,7 @@ let private empty (t: Texts) (m: DnaModel) =
     }
 
 let view (ctx: HttpContext) (t: Texts) (m: DnaModel) =
-    div(class' = "space-y-10").data("dna", "") {
+    div(class' = "space-y-8").data("dna", "") {
         header ctx t m
 
         match m.Figures with

@@ -92,37 +92,23 @@ let private day (t: Texts) (d: DateOnly) = d.ToString("d MMM", t.Culture)
 let private header (ctx: HttpContext) (t: Texts) (m: YearModel) =
     let address = $"{ctx.Request.Scheme}://{ctx.Request.Host}/u/{m.Username}/year/{m.Year}"
 
-    div(class' = "space-y-6") {
-        div(class' = "flex flex-col gap-6 md:flex-row md:items-end md:justify-between") {
-            div(class' = "space-y-3") {
-                h1(class' = "text-display-hero-mobile md:text-display-hero text-on-surface text-balance").data("year-user", m.DisplayName) {
-                    t.YearHeading m.DisplayName m.Year
-                }
+    Fragment() {
+        profileTop t ProfileTab.Year m.Username m.DisplayName (Some(m.Access, address))
+
+        div(class' = "space-y-4") {
+            div(class' = "space-y-2") {
+                h1(class' = "text-headline-lg text-on-surface text-balance").data("year-user", m.DisplayName) { t.YearTitle m.Year }
 
                 p(class' = "max-w-prose text-body-lg text-on-surface-variant") { t.YearIntro }
             }
 
-            div(class' = "flex flex-wrap items-start gap-2") {
-                a(href = $"/u/{m.Username}", class' = btn Ghost).data("dashboard-link", "") {
-                    icon Theme.ArrowBack
-                    t.DashboardLink
-                }
+            if not m.Years.IsEmpty then
+                yearPicker t.YearPickerLabel m.Username m.Years m.Year
 
-                a(href = $"/u/{m.Username}/dna", class' = btn Ghost).data("dna-link", "") {
-                    icon Theme.Fingerprint
-                    t.DnaLink
-                }
-
-                profileAddress t m.Access address
+            p(class' = "flex items-start gap-1.5 text-label-md font-normal text-on-surface-variant").data("rewatch-note", "") {
+                icon Theme.Info
+                span() { t.YearRewatchNote }
             }
-        }
-
-        if not m.Years.IsEmpty then
-            yearPicker t.YearPickerLabel m.Username m.Years m.Year
-
-        p(class' = "flex items-start gap-1.5 text-label-md font-normal text-on-surface-variant").data("rewatch-note", "") {
-            icon Theme.Info
-            span() { t.YearRewatchNote }
         }
     }
 
@@ -298,7 +284,7 @@ let private empty (t: Texts) (m: YearModel) =
     }
 
 let view (ctx: HttpContext) (t: Texts) (m: YearModel) =
-    div(class' = "space-y-10").data("year", string m.Year) {
+    div(class' = "space-y-8").data("year", string m.Year) {
         header ctx t m
 
         match m.Figures with
