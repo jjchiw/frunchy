@@ -11,6 +11,11 @@ type Texts =
       Footer: string
       /// Said under the footer line on every page: the name and the imports must not read as an affiliation
       FooterDisclaimer: string
+      /// aria-label of the footer's language link, in the page's own language (feature 024)
+      LanguageSwitchLabel: string
+      /// The two languages' own names, the same in both text sets (never translated, never flags)
+      LanguageNameEn: string
+      LanguageNameEs: string
 
       HomeTitle: string
       HomeHeadline: string
@@ -531,6 +536,9 @@ let en =
       SiteName = "Frunchy"
       Footer = "Frunchy, anime stats you can share"
       FooterDisclaimer = "Frunchy is not affiliated with Crunchyroll or MyAnimeList."
+      LanguageSwitchLabel = "Language"
+      LanguageNameEn = "English"
+      LanguageNameEs = "Español"
 
       HomeTitle = "Home"
       HomeHeadline = "Your anime identity, in numbers"
@@ -1179,6 +1187,9 @@ let es =
       SiteName = "Frunchy"
       Footer = "Frunchy, estadísticas de anime para compartir"
       FooterDisclaimer = "Frunchy no está afiliado a Crunchyroll ni a MyAnimeList."
+      LanguageSwitchLabel = "Idioma"
+      LanguageNameEn = "English"
+      LanguageNameEs = "Español"
 
       HomeTitle = "Inicio"
       HomeHeadline = "Tu identidad anime, en números"

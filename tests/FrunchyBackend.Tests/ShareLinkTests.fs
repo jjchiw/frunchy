@@ -217,7 +217,7 @@ let ``malformed, unknown and replaced tokens get the plain 404 and no cookie`` (
         // it is the same plain 404 page every other unknown address gets
         let! page = w.Stranger.Get unknown
         let! plain = w.Stranger.Get "/nothing-here"
-        Assert.Equal(plain.Html, page.Html)
+        Assert.Equal(withoutLanguageReturn plain.Html, withoutLanguageReturn page.Html)
     }
 
 [<Fact>]

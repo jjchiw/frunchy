@@ -212,6 +212,7 @@ type Icon =
     | Home
     | Info
     | Key
+    | Language
     | Link
     | LinkOff
     | LocalFireDepartment
@@ -249,6 +250,7 @@ type Icon =
         | Home -> "home"
         | Info -> "info"
         | Key -> "key"
+        | Language -> "language"
         | Link -> "link"
         | LinkOff -> "link_off"
         | LocalFireDepartment -> "local_fire_department"

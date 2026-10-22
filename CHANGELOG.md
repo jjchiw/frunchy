@@ -14,6 +14,9 @@ new image. Add to "Unreleased" as you work; a release renames it.
 
 - The home page links the Frunchy extension in the Chrome Web Store ("Get the Chrome extension")
   and Frunchy's source code on GitHub.
+- A language link in the footer of every page: it offers the other language (English or Español), remembers
+  the choice in a cookie for a year and brings you back to the same page. Without the choice, the browser's
+  language still decides, as before.
 
 ### Changed
 
