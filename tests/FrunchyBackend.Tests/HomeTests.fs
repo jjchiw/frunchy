@@ -56,7 +56,7 @@ let ``every page says Frunchy is not affiliated with Crunchyroll`` (language: st
 [<Theory>]
 [<InlineData("en-US", "Get the Chrome extension", "Frunchy is open source:")>]
 [<InlineData("es-ES", "Instala la extensión de Chrome", "Frunchy es de código abierto:")>]
-let ``home links the Chrome extension and the source code, in a new tab`` (language: string, extension: string, source: string) =
+let ``home links the Chrome extension and the source code`` (language: string, extension: string, source: string) =
     task {
         use! app = newApp ()
         let! response = getWithLanguage app.Client language "/"
@@ -73,9 +73,10 @@ let ``home links the Chrome extension and the source code, in a new tab`` (langu
         Assert.Contains("href=\"https://chromewebstore.google.com/detail/frunchy/hfbjnojnefgpdnloekbgekeaakpobjip\"", extensionTag)
         Assert.Contains("href=\"https://github.com/jjchiw/frunchy\"", sourceTag)
 
-        for tag in [ extensionTag; sourceTag ] do
-            Assert.Contains("target=\"_blank\"", tag)
-            Assert.Contains("rel=\"noopener\"", tag)
+        // The store opens in the same tab (a destination); the source link opens a new one from prose
+        Assert.DoesNotContain("target=", extensionTag)
+        Assert.Contains("target=\"_blank\"", sourceTag)
+        Assert.Contains("rel=\"noopener\"", sourceTag)
 
         Assert.Contains(extension, html)
         Assert.Contains(source, html)

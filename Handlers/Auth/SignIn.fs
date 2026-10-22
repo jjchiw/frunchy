@@ -89,7 +89,11 @@ let view
 
         // Plain text, so nobody depends on the dialog (and the only copy there is without JavaScript)
         if inviteOnly then
-            (alert Notice t.SignInInviteOnlyNote).data("invite-only-note", "")
+            // Information, not a warning: a plain line like the home page's notes, so the sign-in buttons stay first
+            p(class' = "flex max-w-prose items-start gap-2 text-body-md text-on-surface-variant").data("invite-only-note", "") {
+                span(class' = "text-primary") { icon Theme.Info }
+                span() { t.SignInInviteOnlyNote }
+            }
 
         if failed then
             (alert Failure t.SignInFailed).data("signin-error", "")

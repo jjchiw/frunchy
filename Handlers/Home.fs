@@ -54,11 +54,13 @@ let private hero (ctx: HttpContext) (t: Texts) =
 
             div(class' = "flex flex-wrap gap-3") {
                 callToAction ctx t
-                a(href = ExtensionUrl, target = "_blank", rel = "noopener", class' = btn Secondary).data("home-extension", "") {
+                // Same tab: the store is a destination, and the browser's back returns here
+                a(href = ExtensionUrl, class' = btn Secondary).data("home-extension", "") {
                     icon Theme.Extension
                     t.HomeGetExtension
                 }
-                a(href = "#how-to-sync", class' = btnSm Ghost + " self-center") { t.HomeHowToSyncTitle }
+                // Pulled left by its own padding on phones, where it wraps under the buttons, so its text lines up
+                a(href = "#how-to-sync", class' = btnSm Ghost + " -ml-3.5 self-center sm:ml-0") { t.HomeHowToSyncTitle }
             }
 
             p(class' = "flex max-w-prose items-start gap-2 text-body-md text-on-surface-variant") {

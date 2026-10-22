@@ -195,7 +195,7 @@ let private visibilitySection (ctx: HttpContext) (t: Texts) (m: AccountModel) =
         }
 
         div(class' = "space-y-4 border-t border-outline-variant/40 pt-6").data("share-link-state", (if hasLink then "active" else "none")) {
-            h3(class' = "text-headline-sm text-on-surface") { t.ShareLinkTitle }
+            h3(class' = "text-headline-md text-on-surface") { t.ShareLinkTitle }
             p(class' = "max-w-prose text-body-md text-on-surface-variant") { t.ShareLinkIntro }
 
             stateLine
