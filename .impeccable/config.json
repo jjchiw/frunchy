@@ -10,5 +10,12 @@
         "reason": "Frunchy design-system font: --font-family token in Views/Theme.fs, shared with the browser extension's tokens.css and pinned equal by DesignSystemTests (feature 004)"
       }
     ]
+  },
+  "hook": {
+    "enabled": true,
+    "limits": {
+      "maxFindings": 5,
+      "maxChars": 8000
+    }
   }
 }
