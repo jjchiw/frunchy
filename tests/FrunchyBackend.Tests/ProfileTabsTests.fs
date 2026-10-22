@@ -77,7 +77,7 @@ let private assertTabs (page: string) (user: string) (selected: string option) (
         Assert.Equal(1, Regex.Matches(html, "data-profile-tabs").Count)
 
 let private english = [ "Dashboard"; "Anime DNA"; "Year in review" ]
-let private spanish = [ "Panel"; "ADN anime"; "Año en anime" ]
+let private spanish = [ "Panel"; "ADN anime"; "Resumen del año" ]
 
 /// A world with a public "animenerd": the owner, another member and a signed-out visitor
 let private publicWorld () = world [ defaultKey, "public" ]
@@ -229,4 +229,6 @@ let ``a page for a profile that is not enough to compare still has the masthead 
         Assert.Equal(HttpStatusCode.OK, page.Status)
         assertTabs "compare, not enough" "animenerd" None english "Profile pages" page.Html
         Assert.Contains("data-compat-not-enough", page.Html)
+        // The empty card's title is the page's one h1 (the masthead name is a link here)
+        Assert.Equal(1, h1Count page.Html)
     }

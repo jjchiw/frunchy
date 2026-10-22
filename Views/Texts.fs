@@ -1429,7 +1429,7 @@ let es =
       // Year in review (feature 005)
       YearTitle = fun y -> $"Resumen de {y}"
       YearIntro = "Un año natural del historial de Crunchyroll de este perfil, con datos de MyAnimeList."
-      YearLink = "Año en anime"
+      YearLink = "Resumen del año"
       YearRewatchNote = "Frunchy guarda el último visionado de cada episodio, así que una revisión cuenta en el año en que se vio por última vez. Los años están en UTC."
       YearPickerLabel = "Años"
       YearHoursCaption = fun d -> $"""{d.ToString("N1", CultureInfo.GetCultureInfo "es")} días"""

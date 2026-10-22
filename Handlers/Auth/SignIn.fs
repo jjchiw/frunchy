@@ -41,7 +41,7 @@ let private inviteDialogState =
   go() { if (this.skip) { try { window.localStorage.setItem('frunchy.inviteNoticeSeen', '1') } catch (e) {} } } }"""
 
 let private inviteDialog (t: Texts) (providers: AuthConfig.FrunchyProvider list) (hrefOf: AuthConfig.FrunchyProvider -> string) =
-    dialog(class' = "fr-card m-auto w-full max-w-lg text-on-surface shadow-level-2 backdrop:bg-surface/80")
+    dialog(class' = "fr-card m-auto w-[calc(100%-2rem)] max-w-lg text-on-surface shadow-level-2 backdrop:bg-surface/80")
         .data("invite-only-dialog", "")
         .attr("x-ref", "inviteDialog")
         .attr("x-on:close", "skip = false")

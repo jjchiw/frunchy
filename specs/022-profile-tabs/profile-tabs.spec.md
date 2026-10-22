@@ -27,7 +27,7 @@
   - **Focus ring**: `outline-offset: -2px` on the tabs, so the bar's overflow clipping can't cut it.
   - **Motion**: the colour transition joins the existing reduced-motion-gated rule.
   - **No icons.**
-  - **Labels**: Dashboard · Anime DNA · Year in review, and in Spanish Panel · ADN anime · Año en anime. aria-label "Profile pages" / "Páginas del perfil".
+  - **Labels**: Dashboard · Anime DNA · Year in review, and in Spanish Panel · ADN anime · Resumen del año (it matches the year page's h1, "Resumen de 2026", as the English pair does). aria-label "Profile pages" / "Páginas del perfil".
 - Q: The dashboard's sync and fediverse lines? → A: They move under the tabs, as the first block of the dashboard, with unchanged markup.
 - Q: The view headings? → A:
   - **DNA**: `h1` "Anime DNA" (headline-lg) with `data-dna-user="{DisplayName}"` kept, then the intro. The page `<title>` keeps "X's Anime DNA".

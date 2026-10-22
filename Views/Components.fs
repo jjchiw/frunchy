@@ -129,19 +129,28 @@ let processing (text: string) =
     }
 
 /// Empty state: icon, title, body, optional call to action
-let emptyState (i: Icon) (title: string) (body: string) (action: HtmlElement option) =
+let private emptyStateAt (asPageHeading: bool) (i: Icon) (title: string) (body: string) (action: HtmlElement option) =
     div(class' = "fr-card flex flex-col items-center gap-3 py-12 text-center") {
         span(class' = "flex h-12 w-12 items-center justify-center rounded-full bg-surface-container-high text-headline-md text-on-surface-variant") {
             icon i
         }
 
-        h2(class' = "text-headline-md text-on-surface") { title }
+        if asPageHeading then
+            h1(class' = "text-headline-md text-on-surface") { title }
+        else
+            h2(class' = "text-headline-md text-on-surface") { title }
         p(class' = "max-w-prose text-body-md text-on-surface-variant") { body }
 
         match action with
         | Some a -> div(class' = "mt-2") { a }
         | None -> Fragment()
     }
+
+/// An empty card inside a page that has its own heading: its title is an h2
+let emptyState (i: Icon) (title: string) (body: string) (action: HtmlElement option) = emptyStateAt false i title body action
+
+/// An empty card that is the whole page (the page has no other h1): its title is the page's h1
+let emptyPageState (i: Icon) (title: string) (body: string) (action: HtmlElement option) = emptyStateAt true i title body action
 
 /// `field` with an input type ("text", "password"…), ids of other elements describing the input (put first
 /// in aria-describedby) and the input's own extra attributes (required, autocomplete, Alpine…). `.attr`
@@ -252,26 +261,24 @@ let copyLink (t: Texts) (address: string) =
 
 /// The owner's own private profile: only they can see it (feature 017). Replaces the page's copy-link block, since
 /// the address alone opens nothing for anyone else; the link leads to the visibility settings.
-let privateProfileNote (t: Texts) =
-    p(class' = "flex flex-wrap items-center gap-x-2 gap-y-1 text-body-md text-on-surface-variant").data("profile-private", "") {
-        icon Lock
-        span() { t.PrivateProfileNote }
+/// A masthead note: the icon keeps the first line, the sentence and its link wrap together beside it
+let private profileNote (hook: string) (i: Icon) (text: string) (link: string) =
+    p(class' = "flex items-start gap-2 text-body-md text-on-surface-variant").data(hook, "") {
+        span(class' = "shrink-0") { icon i }
 
-        a(href = "/account#visibility", class' = "font-semibold text-primary underline underline-offset-4") {
-            t.PrivateProfileLink
+        span() {
+            text
+            " "
+            a(href = "/account#visibility", class' = "font-semibold text-primary underline underline-offset-4") { link }
         }
     }
+
+let privateProfileNote (t: Texts) =
+    profileNote "profile-private" Lock t.PrivateProfileNote t.PrivateProfileLink
 
 /// The owner's note on a Members profile (feature 021): who can see it, with a link to change that
 let membersProfileNote (t: Texts) =
-    p(class' = "flex flex-wrap items-center gap-x-2 gap-y-1 text-body-md text-on-surface-variant").data("profile-members", "") {
-        icon Group
-        span() { t.MembersProfileNote }
-
-        a(href = "/account#visibility", class' = "font-semibold text-primary underline underline-offset-4") {
-            t.MembersProfileLink
-        }
-    }
+    profileNote "profile-members" Group t.MembersProfileNote t.MembersProfileLink
 
 /// The address block of a profile page, on the masthead's right: "copy link" when the profile is public or for
 /// members (any member can open the address), the private note for its owner, and nothing for a link holder (the

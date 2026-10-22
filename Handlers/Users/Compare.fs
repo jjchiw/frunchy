@@ -269,7 +269,7 @@ let view (ctx: HttpContext) (t: Texts) (c: Compatibility.Comparison) =
 
             div(class' = "space-y-8").data("compare", owner.Username).data("level", "") {
                 profileTop t ProfileTab.NoTab owner.Username owner.DisplayName None
-                (emptyState Theme.Info (t.CompatPageTitle owner.DisplayName) text None).data("compat-not-enough", who)
+                (emptyPageState Theme.Info (t.CompatPageTitle owner.DisplayName) text None).data("compat-not-enough", who)
             }
 
     content |> Layout.page ctx t (t.CompatPageTitle owner.DisplayName)
