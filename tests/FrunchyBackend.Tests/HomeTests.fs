@@ -53,6 +53,34 @@ let ``every page says Frunchy is not affiliated with Crunchyroll`` (language: st
             Assert.Contains(line, html)
     }
 
+[<Theory>]
+[<InlineData("en-US", "Get the Chrome extension", "Frunchy is open source:")>]
+[<InlineData("es-ES", "Instala la extensión de Chrome", "Frunchy es de código abierto:")>]
+let ``home links the Chrome extension and the source code, in a new tab`` (language: string, extension: string, source: string) =
+    task {
+        use! app = newApp ()
+        let! response = getWithLanguage app.Client language "/"
+        let! html = readHtml response
+
+        // The opening tag of the link carrying a hook
+        let tagOf (hook: string) =
+            let m = System.Text.RegularExpressions.Regex.Match(html, $"<a [^>]*data-{hook}[^>]*>")
+            Assert.True(m.Success, $"no link with data-{hook}")
+            m.Value
+
+        let extensionTag = tagOf "home-extension"
+        let sourceTag = tagOf "home-source"
+        Assert.Contains("href=\"https://chromewebstore.google.com/detail/frunchy/hfbjnojnefgpdnloekbgekeaakpobjip\"", extensionTag)
+        Assert.Contains("href=\"https://github.com/jjchiw/frunchy\"", sourceTag)
+
+        for tag in [ extensionTag; sourceTag ] do
+            Assert.Contains("target=\"_blank\"", tag)
+            Assert.Contains("rel=\"noopener\"", tag)
+
+        Assert.Contains(extension, html)
+        Assert.Contains(source, html)
+    }
+
 [<Fact>]
 let ``unknown api path returns the JSON error shape`` () =
     task {

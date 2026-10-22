@@ -199,6 +199,10 @@ type Texts =
 
       // T017
       HomeNoPassword: string
+      /// The home page's link to the extension in the Chrome Web Store
+      HomeGetExtension: string
+      /// Before the link to the source code on GitHub
+      HomeOpenSource: string
       // T019
       AccountProfileTitle: string
       AccountUsernameLocked: string
@@ -755,6 +759,8 @@ let en =
 
       // T017
       HomeNoPassword = "Frunchy never asks for your Crunchyroll password: it only reads the history pages the extension sends."
+      HomeGetExtension = "Get the Chrome extension"
+      HomeOpenSource = "Frunchy is open source:"
       // T019
       AccountProfileTitle = "Profile"
       AccountUsernameLocked = "Usernames can't be changed."
@@ -1402,6 +1408,8 @@ let es =
 
       // T017
       HomeNoPassword = "Frunchy nunca te pide la contraseña de Crunchyroll: solo lee las páginas del historial que envía la extensión."
+      HomeGetExtension = "Instala la extensión de Chrome"
+      HomeOpenSource = "Frunchy es de código abierto:"
       // T019
       AccountProfileTitle = "Perfil"
       AccountUsernameLocked = "El nombre de usuario no se puede cambiar."

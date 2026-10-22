@@ -10,6 +10,11 @@ new image. Add to "Unreleased" as you work; a release renames it.
 
 ## Unreleased
 
+### Added
+
+- The home page links the Frunchy extension in the Chrome Web Store ("Get the Chrome extension")
+  and Frunchy's source code on GitHub.
+
 ## 0.3.0 - 2026-10-21
 
 ### Added

@@ -12,6 +12,12 @@ open FrunchyBackend.Views.Texts
 // View (design/frunchy_home, per design/REVIEW.md: no sample figures, no demo or docs links)
 // ---------------------------------------------------------------------------
 
+/// Where the browser extension is installed from
+let ExtensionUrl = "https://chromewebstore.google.com/detail/frunchy/hfbjnojnefgpdnloekbgekeaakpobjip"
+
+/// Frunchy's source code
+let SourceUrl = "https://github.com/jjchiw/frunchy"
+
 /// The headline, its part after the comma in the primary colour ("…identity, / in numbers")
 let private headline (text: string) =
     match text.LastIndexOf ',' with
@@ -48,7 +54,11 @@ let private hero (ctx: HttpContext) (t: Texts) =
 
             div(class' = "flex flex-wrap gap-3") {
                 callToAction ctx t
-                a(href = "#how-to-sync", class' = btn Secondary) { t.HomeHowToSyncTitle }
+                a(href = ExtensionUrl, target = "_blank", rel = "noopener", class' = btn Secondary).data("home-extension", "") {
+                    icon Theme.Extension
+                    t.HomeGetExtension
+                }
+                a(href = "#how-to-sync", class' = btnSm Ghost + " self-center") { t.HomeHowToSyncTitle }
             }
 
             p(class' = "flex max-w-prose items-start gap-2 text-body-md text-on-surface-variant") {
@@ -94,6 +104,17 @@ let private howToSync (t: Texts) =
         p(class' = "flex max-w-prose items-start gap-2 text-body-md text-on-surface-variant") {
             span(class' = "text-primary") { icon Theme.Lock }
             span() { t.HomeNoPassword }
+        }
+
+        p(class' = "flex max-w-prose items-start gap-2 text-body-md text-on-surface-variant") {
+            span(class' = "text-primary") { icon Theme.Code }
+            span() {
+                t.HomeOpenSource
+                " "
+                a(href = SourceUrl, target = "_blank", rel = "noopener", class' = "fr-link font-mono").data("home-source", "") {
+                    "github.com/jjchiw/frunchy"
+                }
+            }
         }
     }
 

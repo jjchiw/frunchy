@@ -185,6 +185,7 @@ type Icon =
     | Block
     | CalendarMonth
     | CheckCircle
+    | Code
     | ContentCopy
     | DeleteForever
     | ErrorMark
@@ -221,6 +222,7 @@ type Icon =
         | Block -> "block"
         | CalendarMonth -> "calendar_month"
         | CheckCircle -> "check_circle"
+        | Code -> "code"
         | ContentCopy -> "content_copy"
         | DeleteForever -> "delete_forever"
         | ErrorMark -> "error"
