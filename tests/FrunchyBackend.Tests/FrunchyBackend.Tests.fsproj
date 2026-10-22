@@ -98,6 +98,7 @@
     <Compile Include="ProfileLinksTests.fs" />
     <Compile Include="MembersProfileTests.fs" />
     <Compile Include="ProfileTabsTests.fs" />
+    <Compile Include="PageSnapshots.fs" />
   </ItemGroup>
 
   <ItemGroup>
