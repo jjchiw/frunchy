@@ -171,10 +171,13 @@ let page (ctx: HttpContext) (t: Texts) (titleText: string) (content: HtmlElement
 
             footer(class' = "border-t border-outline-variant/40") {
                 div(class' = "mx-auto flex max-w-page flex-wrap items-center gap-3 px-4 py-8 text-label-md font-normal text-on-surface-variant md:px-8") {
-                    span(class' = "block h-5 w-5 opacity-80") { raw Theme.markSvg }
-                    div(class' = "space-y-1") {
-                        p() { t.Footer }
-                        p().data("footer-disclaimer", "") { t.FooterDisclaimer }
+                    // The mark and the two lines stay together; only the language link wraps onto its own line
+                    div(class' = "flex items-center gap-3") {
+                        span(class' = "block h-5 w-5 shrink-0 opacity-80") { raw Theme.markSvg }
+                        div(class' = "min-w-0 space-y-1") {
+                            p() { t.Footer }
+                            p().data("footer-disclaimer", "") { t.FooterDisclaimer }
+                        }
                     }
                     languageSwitch ctx t
                 }
