@@ -14,6 +14,12 @@ new image. Add to "Unreleased" as you work; a release renames it.
 
 - The home page links the Frunchy extension in the Chrome Web Store ("Get the Chrome extension")
   and Frunchy's source code on GitHub.
+- The setup invite: while Frunchy has no accounts, every start prints a one-time invite in the
+  console output (`docker logs`, Caravana's Logs tab). Sign in, enter it, and that account becomes
+  an operator, so the first account no longer needs a console command. A restart prints a new
+  invite and cancels the old one; once an account exists nothing is printed. Set
+  `Frunchy:SetupInvite:Enabled=false` to turn it off. The database gains `invites.is_setup`,
+  added automatically on start.
 
 ### Changed
 

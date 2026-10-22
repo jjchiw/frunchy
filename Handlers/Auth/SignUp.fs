@@ -150,17 +150,17 @@ let private createAccount (db: DbConfig) (identity: ProviderIdentity) (inviteCod
 
             // Invite mode: consume the invite only if it's still usable; rolled back with the user if anything fails.
             // Open mode: there is no invite step.
-            let! inviteUsable =
+            let! (inviteUsable, isSetupInvite) =
                 task {
                     match inviteCode with
-                    | None -> return true
+                    | None -> return (true, false)
                     | Some code ->
                         use consume =
                             new NpgsqlCommand(
                                 """
                                 UPDATE invites SET used_at = now(), used_by_user_id = @user_id
                                 WHERE code_hash = @hash AND used_at IS NULL AND revoked_at IS NULL AND expires_at > now()
-                                RETURNING id
+                                RETURNING is_setup
                                 """,
                                 connection,
                                 tx
@@ -169,7 +169,13 @@ let private createAccount (db: DbConfig) (identity: ProviderIdentity) (inviteCod
                         consume.Parameters.AddWithValue("user_id", userId) |> ignore
                         consume.Parameters.AddWithValue("hash", InviteCode.hash code) |> ignore
                         let! consumed = consume.ExecuteScalarAsync()
-                        return not (isNull consumed)
+                        // RETURNING is_setup: null when the invite was not usable, else true for the setup invite (feature 023)
+                        let isSetup =
+                            match consumed with
+                            | :? bool as setup -> setup
+                            | _ -> false
+
+                        return (not (isNull consumed), isSetup)
                 }
 
             if not inviteUsable then
@@ -188,6 +194,15 @@ let private createAccount (db: DbConfig) (identity: ProviderIdentity) (inviteCod
                 insertIdentity.Parameters.AddWithValue("user_id", userId) |> ignore
                 let! _ = insertIdentity.ExecuteNonQueryAsync()
                 do! SecurityEvents.record connection tx userId SecurityEventType.AccountCreated (Some identity.Provider) Actor.User
+
+                // Feature 023: the setup invite makes its account an operator, in this same transaction (what
+                // `operator-add` writes: the row with no granting root, and the event as the operator's doing)
+                if isSetupInvite then
+                    use operatorRow = new NpgsqlCommand("INSERT INTO operators (user_id) VALUES (@user_id)", connection, tx)
+                    operatorRow.Parameters.AddWithValue("user_id", userId) |> ignore
+                    let! _ = operatorRow.ExecuteNonQueryAsync()
+                    do! SecurityEvents.record connection tx userId SecurityEventType.OperatorAdded None Actor.Operator
+
                 do! tx.CommitAsync()
                 return Ok userId
         with :? PostgresException as ex when ex.SqlState = PostgresErrorCodes.UniqueViolation ->

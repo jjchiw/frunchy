@@ -138,7 +138,9 @@ let private schema =
         expires_at      timestamptz NOT NULL,
         revoked_at      timestamptz NULL,
         used_at         timestamptz NULL,
-        used_by_user_id uuid NULL REFERENCES users(id) ON DELETE SET NULL
+        used_by_user_id uuid NULL REFERENCES users(id) ON DELETE SET NULL,
+        -- Feature 023: the invite printed in the console while there are no accounts; its account becomes an operator
+        is_setup        boolean NOT NULL DEFAULT false
     );
 
     -- Account security events shown to the user (no IP or device data)
@@ -399,6 +401,9 @@ let private upgrades =
                 CHECK (visibility IN ('public', 'members', 'private'));
         END IF;
     END $$;
+
+    -- Feature 023: invites.is_setup marks the setup invite; existing invites read false
+    ALTER TABLE invites ADD COLUMN IF NOT EXISTS is_setup boolean NOT NULL DEFAULT false;
     """
 
 /// Any number, the same for every copy of Frunchy: the lock that makes two starting copies take turns

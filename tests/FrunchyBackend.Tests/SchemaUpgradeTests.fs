@@ -147,3 +147,63 @@ let ``copies starting together on the old database all succeed and upgrade it on
 
         do! setVisibility db defaultUser "members"
     }
+
+// ---------------------------------------------------------------------------
+// Feature 023: invites.is_setup on a database whose invites table predates it
+// ---------------------------------------------------------------------------
+
+/// `invites` as it was before feature 023 (no is_setup column), with two rows
+let private databaseBefore023 () : Task<DbConfig> =
+    task {
+        let! db = newEmptyDatabase ()
+        do! initializeSchema db
+        do! Db.execute db "ALTER TABLE invites DROP COLUMN is_setup"
+
+        do!
+            Db.execute
+                db
+                """INSERT INTO invites (id, code_hash, expires_at) VALUES
+                    ('00000000-0000-0000-0000-0000000000b1', 'hash-one', now() + interval '7 days'),
+                    ('00000000-0000-0000-0000-0000000000b2', 'hash-two', now() + interval '7 days')"""
+
+        return db
+    }
+
+let private setupColumn (db: DbConfig) =
+    Db.dump
+        db
+        "SELECT data_type || '|' || is_nullable || '|' || column_default FROM information_schema.columns WHERE table_name = 'invites' AND column_name = 'is_setup'"
+
+[<Fact>]
+let ``an invites table without is_setup gets the column once, old rows read false, and the second run changes nothing`` () =
+    task {
+        let! db = databaseBefore023 ()
+        let! before = setupColumn db
+        Assert.Empty before
+
+        do! initializeSchema db
+        let! after = setupColumn db
+        Assert.Equal<string list>([ "boolean|NO|false" ], after)
+
+        let! flags = Db.dump db "SELECT code_hash || '|' || is_setup FROM invites ORDER BY code_hash"
+        Assert.Equal<string list>([ "hash-one|false"; "hash-two|false" ], flags)
+
+        // a row marked as setup survives the next runs (the upgrade never resets it)
+        do! Db.execute db "UPDATE invites SET is_setup = true WHERE code_hash = 'hash-two'"
+        do! initializeSchema db
+        do! initializeSchema db
+        let! again = setupColumn db
+        Assert.Equal<string list>([ "boolean|NO|false" ], again)
+        let! flagsAgain = Db.dump db "SELECT code_hash || '|' || is_setup FROM invites ORDER BY code_hash"
+        Assert.Equal<string list>([ "hash-one|false"; "hash-two|true" ], flagsAgain)
+    }
+
+[<Fact>]
+let ``copies starting together on an invites table without is_setup all succeed`` () =
+    task {
+        let! db = databaseBefore023 ()
+        let! results = Task.WhenAll [| for _ in 1..6 -> initializeSchema db |]
+        Assert.Equal(6, results.Length)
+        let! after = setupColumn db
+        Assert.Equal<string list>([ "boolean|NO|false" ], after)
+    }

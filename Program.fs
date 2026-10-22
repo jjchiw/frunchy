@@ -598,6 +598,36 @@ let private runCli (command: string) (rest: string list) : int =
     }
     |> fun t -> t.GetAwaiter().GetResult()
 
+/// Feature 023: while there are no accounts, print the setup invite in the console (never the logger, which gets
+/// one line pointing to it). Web start only: the operator CLI commands never come here.
+let private announceSetupInvite (app: WebApplication) (db: DbConfig) : Task<unit> =
+    task {
+        let config = app.Configuration
+
+        let enabled =
+            match config["Frunchy:SetupInvite:Enabled"] with
+            | null
+            | "" -> true
+            | value -> not (value.Trim().Equals("false", StringComparison.OrdinalIgnoreCase))
+
+        // The public origin is only known when the public host is configured; there is no other source at start
+        let origin =
+            match config[Federation.DomainKey] with
+            | null -> None
+            | domain when String.IsNullOrWhiteSpace domain || domain.Trim().Contains '/' || domain.Trim().Contains ' ' -> None
+            | domain -> Some $"https://{domain.Trim()}"
+
+        match! SetupInvite.ensure db enabled origin Console.WriteLine with
+        | SetupInvite.Minted _ -> app.Logger.LogInformation "Frunchy has no accounts yet: the setup invite is in the console output"
+        | SetupInvite.RecentElsewhere mintedAt ->
+            app.Logger.LogInformation(
+                "Frunchy has no accounts yet: another copy printed the setup invite at {MintedAt:HH:mm:ss} UTC",
+                mintedAt
+            )
+        | SetupInvite.Disabled
+        | SetupInvite.HasUsers -> ()
+    }
+
 [<EntryPoint>]
 let main args =
     match List.ofArray args with
@@ -622,7 +652,9 @@ let main args =
             app.Logger.LogInformation("Frunchy {Version} starting", version)
 
             task {
-                do! initializeSchema (app.Services.GetRequiredService<DbConfig>())
+                let db = app.Services.GetRequiredService<DbConfig>()
+                do! initializeSchema db
+                do! announceSetupInvite app db
                 do! app.RunAsync()
             }
             |> fun t -> t.GetAwaiter().GetResult()

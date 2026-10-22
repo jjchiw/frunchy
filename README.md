@@ -236,11 +236,27 @@ A provider's redirect URI under the AppHost is the gateway's: `http://localhost:
 
 The same AppHost deploys Frunchy and its Postgres to [Caravana](https://github.com/Cosmic-Chimps/caravana) with `aspire deploy` (publish mode builds a smaller graph than `aspire run`; federation stays off). The parameters, the registry login and the one-time Caravana and Umbral setup are in [docs/deploy-caravana.md](docs/deploy-caravana.md).
 
-**The first account on a new deploy.** Nobody can sign in yet, so the first invite comes from the operator CLI inside the running container, which already has the database connection. In Caravana: the app (`frunchy--production--frunchy`) > Running > Run a command, in the box of the **`frunchy`** copy (not `pg`):
+**The first account on a new deploy.** While there are no accounts, every start prints a one-time **setup invite** in the console output (feature 023). Open the app's logs (in Caravana: the app (`frunchy--production--frunchy`) > Logs, on the **`frunchy`** copy, not `pg`; with Docker, `docker logs`), copy the invite from the banner, sign in at `/signin`, and enter it on the sign-up page. That account becomes an operator, so from then on it creates invites in the browser on `/review/invites` (linked from `/account`). Choose the username you set as `root-operator` (`Parameters__root-operator`) to become the root as well, who can also open sign-up on `/review/settings`.
+
+```
+================================================================
+  Frunchy has no accounts yet.
+
+  Sign in   https://frunchy.example/signin
+  Invite    inv_XXXXXXXXXXXX
+
+  The invite works once and makes its account an operator.
+  A restart prints a new invite and cancels this one.
+================================================================
+```
+
+The invite is valid for 7 days and only its hash is stored; the code is written to the console and never to the log levels or sinks. Restarting while there are still no accounts cancels the old invite and prints a new one; a second copy that starts within two minutes of the first prints a short note instead ("look for it in the other copy's log") so two codes never compete. Once an account exists nothing is printed again. Set `Frunchy:SetupInvite:Enabled=false` to turn it off.
+
+**The fallback: a console command.** If you turned the setup invite off, or lost it, the first invite also comes from the operator CLI inside the running container, which already has the database connection. In Caravana: the app > Running > Run a command, in the box of the **`frunchy`** copy (not `pg`):
 ```
 dotnet /app/FrunchyBackend.dll invite-create
 ```
-It prints the code once (valid 7 days; `invite-create --days 30` for longer, 1 to 365). If `dotnet` isn't found, run `/app/FrunchyBackend invite-create`. Sign in at `/signin`; a new identity lands on the sign-up page, which asks for the code. Choose the username you set as `root-operator` (`Parameters__root-operator`) to become the root. From then on, operators create invites in the browser on `/review/invites` (linked from `/account`), and the root can open sign-up on `/review/settings`. Any other operator command runs the same way (`dotnet /app/FrunchyBackend.dll user-list`, `operator-add <username>`…).
+It prints the code once (valid 7 days; `invite-create --days 30` for longer, 1 to 365). If `dotnet` isn't found, run `/app/FrunchyBackend invite-create`. An invite made this way is a normal one: it gives no operator rights, so choose the root's username or run `operator-add <username>` afterwards. Any other operator command runs the same way (`dotnet /app/FrunchyBackend.dll user-list`, `operator-add <username>`…).
 
 Releasing deploys it. The preferred way is GitHub's button: Actions > Release > Run workflow on `main` with the version (`X.Y.Z`), and the workflow prepares the changelog on `main`, tags it and deploys, with nothing tagged locally. Pushing a `vX.Y.Z` tag from `main` still works and runs the tests and then `aspire deploy` in GitHub Actions, keyless through Bella Baxter (a pre-release tag such as `v0.2.0-rc.1` only builds the self-host image). The repo pins the Aspire CLI in `.config/dotnet-tools.json`, so `dotnet tool restore` then `dotnet aspire deploy` works locally too (the globally installed `aspire` does as well). One-time setup: "Deploying from a tag" in the same document. Each release's notes are its section of [CHANGELOG.md](CHANGELOG.md), written by hand under "Unreleased" as features land; the workflow refuses a tag with nothing there, and publishes the section as the GitHub Release.
 
@@ -340,6 +356,7 @@ No Aspire, no Megáfono: Frunchy is a complete web app without federation (`Frun
 | `Frunchy:Federation:Domain` | | The public host, no scheme. Permanent once federating |
 | `Frunchy:Megafono:Url` | | Megáfono's **internal** API base URL (port 8081), never through the gateway |
 | `Frunchy:Megafono:Token`, `Frunchy:Megafono:WebhookSecret` | | Bearer token and webhook HMAC key shared with Megáfono |
+| `Frunchy:SetupInvite:Enabled` | `true` | While there are no accounts, each web start prints a one-time setup invite in the console (its account becomes an operator). `false` for self-hosters who create the first account with the CLI |
 | `Frunchy:TrustedProxies` | empty | Comma- or semicolon-separated IPs or CIDRs whose `X-Forwarded-For/-Proto/-Host` are believed; empty means none |
 
 ### Setting added by feature 017
@@ -372,7 +389,7 @@ cp deploy/.env.example deploy/.env      # fill it in: every variable has its gen
 docker compose -f deploy/compose.yaml --env-file deploy/.env up -d --build
 ```
 
-The first invite, before anyone can sign in: `docker compose -f deploy/compose.yaml exec frunchy dotnet FrunchyBackend.dll invite-create` (the same CLI as under "Operator commands"; then sign in and enter the code, with the username of `FRUNCHY_ROOT_OPERATOR` to become the root).
+The first account, before anyone can sign in: while there are no accounts the app prints a one-time setup invite in its console output (`docker compose -f deploy/compose.yaml logs frunchy`); sign in, enter it, and that account becomes an operator (the username of `FRUNCHY_ROOT_OPERATOR` also becomes the root). The fallback, with `Frunchy:SetupInvite:Enabled=false`: `docker compose -f deploy/compose.yaml exec frunchy dotnet FrunchyBackend.dll invite-create` (the same CLI as under "Operator commands"; a normal invite, no operator rights).
 
 Without the profile you get Frunchy and Postgres, and Frunchy listens on `127.0.0.1:${FRUNCHY_PORT}`. To federate, set `COMPOSE_PROFILES=federation` and `FRUNCHY_FEDERATION_ENABLED=true` together with `DOMAIN` and the Megáfono secrets; the gateway then listens on `127.0.0.1:${GATEWAY_PORT}` and is the entrance of the domain. Neither terminates TLS: put a TLS proxy in front. Megáfono's internal port 8081 is never published. **`DOMAIN` is permanent once you federate, and `MEGAFONO_MASTER_KEY` and `FRUNCHY_DATA_PROTECTION_KEY` must be backed up apart from the database.**
 
@@ -490,6 +507,7 @@ Features are built through spec-kit (`specs/###-name/`), in this order:
 | 021 | **Members-only profiles, the new default**: a third level between private and public, `members` (anyone signed in; signed-out visitors are sent to sign in and back); `Frunchy:Profiles:DefaultVisibility` now defaults to `members`; the first guarded, idempotent upgrade of an existing table (`profile_settings`'s check), run under a lock in one transaction; no change to charts, series or episode pages | Implemented ([spec](specs/021-members-profiles/members-profiles.spec.md)) |
 | 019 | **Operators manage invites on the web**: `/review/invites` (operators only, 404 for everyone else) creates invites with the code shown once, lists the 100 newest with their state and revokes active ones, through the same module as the `invite-*` commands; `invite_created` and `invite_revoked` security events; no schema change | Implemented ([spec](specs/019-operator-invites/operator-invites.spec.md)) |
 | 020 | **Say sign-up is by invitation, and let the root open it**: `/signin` shows a note and a dialog (invite mode only); the root sets the sign-up mode (`invite` or `open`) on `/review/settings` (404 for everyone else, recent sign-in, `signup_mode_changed` event); new table `instance_settings`, no config key | Implemented ([spec](specs/020-open-signup/open-signup.spec.md)) |
+| 023 | **The setup invite**: while there are no accounts, each web start prints a one-time invite in the console (a banner, never the logger); the account that signs up with it becomes an operator; a restart cancels the old one, an advisory lock and a 2-minute window keep two copies from competing; `Frunchy:SetupInvite:Enabled`; `invites.is_setup` by a guarded upgrade | Implemented ([spec](specs/023-setup-invite/setup-invite.spec.md)) |
 
 **Also in the backlog**: deploying the released image to Caravana with Bella Baxter, keyless and with no secrets in GitHub, the way Umbral does it; it waits for Caravana's Aspire publisher (feature 016 built the tests, the health check, the keys and the image). The recipe and what differs for Frunchy are in [`docs/deploy-caravana.md`](docs/deploy-caravana.md).
 
