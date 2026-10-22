@@ -236,6 +236,12 @@ A provider's redirect URI under the AppHost is the gateway's: `http://localhost:
 
 The same AppHost deploys Frunchy and its Postgres to [Caravana](https://github.com/Cosmic-Chimps/caravana) with `aspire deploy` (publish mode builds a smaller graph than `aspire run`; federation stays off). The parameters, the registry login and the one-time Caravana and Umbral setup are in [docs/deploy-caravana.md](docs/deploy-caravana.md).
 
+**The first account on a new deploy.** Nobody can sign in yet, so the first invite comes from the operator CLI inside the running container, which already has the database connection. In Caravana: the app (`frunchy--production--frunchy`) > Running > Run a command, in the box of the **`frunchy`** copy (not `pg`):
+```
+dotnet /app/FrunchyBackend.dll invite-create
+```
+It prints the code once (valid 7 days; `invite-create --days 30` for longer, 1 to 365). If `dotnet` isn't found, run `/app/FrunchyBackend invite-create`. Sign in at `/signin`; a new identity lands on the sign-up page, which asks for the code. Choose the username you set as `root-operator` (`Parameters__root-operator`) to become the root. From then on, operators create invites in the browser on `/review/invites` (linked from `/account`), and the root can open sign-up on `/review/settings`. Any other operator command runs the same way (`dotnet /app/FrunchyBackend.dll user-list`, `operator-add <username>`…).
+
 Releasing deploys it. The preferred way is GitHub's button: Actions > Release > Run workflow on `main` with the version (`X.Y.Z`), and the workflow prepares the changelog on `main`, tags it and deploys, with nothing tagged locally. Pushing a `vX.Y.Z` tag from `main` still works and runs the tests and then `aspire deploy` in GitHub Actions, keyless through Bella Baxter (a pre-release tag such as `v0.2.0-rc.1` only builds the self-host image). The repo pins the Aspire CLI in `.config/dotnet-tools.json`, so `dotnet tool restore` then `dotnet aspire deploy` works locally too (the globally installed `aspire` does as well). One-time setup: "Deploying from a tag" in the same document. Each release's notes are its section of [CHANGELOG.md](CHANGELOG.md), written by hand under "Unreleased" as features land; the workflow refuses a tag with nothing there, and publishes the section as the GitHub Release.
 
 ### Run the platform with Aspire (feature 014)
@@ -366,6 +372,8 @@ cp deploy/.env.example deploy/.env      # fill it in: every variable has its gen
 docker compose -f deploy/compose.yaml --env-file deploy/.env up -d --build
 ```
 
+The first invite, before anyone can sign in: `docker compose -f deploy/compose.yaml exec frunchy dotnet FrunchyBackend.dll invite-create` (the same CLI as under "Operator commands"; then sign in and enter the code, with the username of `FRUNCHY_ROOT_OPERATOR` to become the root).
+
 Without the profile you get Frunchy and Postgres, and Frunchy listens on `127.0.0.1:${FRUNCHY_PORT}`. To federate, set `COMPOSE_PROFILES=federation` and `FRUNCHY_FEDERATION_ENABLED=true` together with `DOMAIN` and the Megáfono secrets; the gateway then listens on `127.0.0.1:${GATEWAY_PORT}` and is the entrance of the domain. Neither terminates TLS: put a TLS proxy in front. Megáfono's internal port 8081 is never published. **`DOMAIN` is permanent once you federate, and `MEGAFONO_MASTER_KEY` and `FRUNCHY_DATA_PROTECTION_KEY` must be backed up apart from the database.**
 
 ### Sign-in providers (optional locally; the tests use a fake provider)
@@ -401,7 +409,7 @@ Without the profile you get Frunchy and Postgres, and Frunchy listens on `127.0.
 
 ### Operator commands
 
-`dotnet run -- <command>`:
+`dotnet run -- <command>` from the repo root (with `ConnectionStrings__Database` pointing at the database), or inside a running container: `dotnet /app/FrunchyBackend.dll <command>` (Caravana's "Run a command" on the `frunchy` copy, or `docker compose … exec frunchy dotnet FrunchyBackend.dll <command>`):
 - **Users**: `user-create <username> <displayName>`, `user-regenerate-key <username>`,
   `user-reset-binding <username>`, `user-rebuild <username>`, `user-delete <username> --yes`, `user-list`.
 - **Invites** (feature 002): `invite-create [--days N]`, `invite-list`, `invite-revoke <id>`.
