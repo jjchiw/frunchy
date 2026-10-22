@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Profile tabs: Frunchy design mock (feature 022)</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600..800&family=Figtree:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=block&icon_names=alternate_email,content_copy,group,info,lock,open_in_new,sync">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = { theme: { extend: {
+  colors: { 'surface': '#13111a', 'surface-container-lowest': '#0d0b12', 'surface-container-low': '#1a1722', 'surface-container': '#1e1a27', 'surface-container-high': '#2a2435', 'surface-container-highest': '#352e42', 'on-surface': '#f1ece4', 'on-surface-variant': '#d2cabe', 'outline': '#9b9286', 'outline-variant': '#4a4255', 'primary': '#ffb547', 'on-primary': '#2a1700', 'primary-container': '#e0942a', 'primary-fixed': '#ffd08a', 'secondary': '#ff6fa8', 'secondary-container': '#5c2342', 'tertiary': '#c9bcff', 'error': '#ff9b85', 'on-error': '#4a0b00', 'error-container': '#8c1d0e', 'on-error-container': '#ffdad3' },
+  fontSize: { 'display-hero': ['48px', { lineHeight: '56px', fontWeight: '800', letterSpacing: '-0.035em' }], 'display-hero-mobile': ['32px', { lineHeight: '40px', fontWeight: '800', letterSpacing: '-0.03em' }], 'headline-xl': ['36px', { lineHeight: '44px', fontWeight: '800', letterSpacing: '-0.03em' }], 'headline-xl-mobile': ['26px', { lineHeight: '34px', fontWeight: '700', letterSpacing: '-0.02em' }], 'headline-lg': ['24px', { lineHeight: '32px', fontWeight: '700', letterSpacing: '-0.02em' }], 'headline-md': ['20px', { lineHeight: '28px', fontWeight: '700', letterSpacing: '-0.015em' }], 'stat-counter': ['32px', { lineHeight: '36px', fontWeight: '800', letterSpacing: '-0.02em' }], 'body-lg': ['16px', { lineHeight: '24px', fontWeight: '400', letterSpacing: '0em' }], 'body-md': ['14px', { lineHeight: '20px', fontWeight: '400', letterSpacing: '0em' }], 'label-md': ['13px', { lineHeight: '18px', fontWeight: '600', letterSpacing: '0.01em' }], 'label-sm': ['11px', { lineHeight: '14px', fontWeight: '700', letterSpacing: '0.06em' }] },
+  borderRadius: { 'sm': '0.375rem', 'DEFAULT': '0.75rem', 'md': '1rem', 'lg': '1.25rem', 'xl': '1.75rem', 'full': '9999px' },
+  fontFamily: { sans: ['"Figtree"', 'system-ui', 'sans-serif'], display: ['"Bricolage Grotesque"', '"Figtree"', 'system-ui', 'sans-serif'], mono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'] },
+  maxWidth: { page: '1360px' },
+  boxShadow: { 'level-2': 'var(--shadow-level-2)', 'glow-primary': 'var(--glow-primary)' }
+} } };
+</script>
+<style type="text/tailwindcss">
+:root { color-scheme: dark; --color-surface: #13111a; --color-surface-container: #1e1a27; --color-surface-container-highest: #352e42; --color-on-surface: #f1ece4; --color-on-surface-variant: #d2cabe; --color-outline: #9b9286; --color-outline-variant: #4a4255; --color-primary: #ffb547; --radius-sm: 0.375rem; --border-ghost: 1px solid rgb(241 236 228 / 0.14); --shadow-level-2: 0 12px 32px -8px rgb(0 0 0 / 0.6); --glow-primary: 0 4px 20px -4px rgb(255 181 71 / 0.45); --font-display: "Bricolage Grotesque", "Figtree", system-ui, sans-serif; --font-mono: "IBM Plex Mono", ui-monospace, monospace; }
+@layer base {
+  html { background: var(--color-surface); -webkit-font-smoothing: antialiased; }
+  body { @apply bg-surface text-on-surface font-sans text-body-lg; font-variant-numeric: tabular-nums; }
+  ::selection { background: rgb(255 181 71 / 0.3); color: var(--color-on-surface); }
+  * { scrollbar-color: var(--color-surface-container-highest) var(--color-surface); }
+  :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; border-radius: var(--radius-sm); }
+  a { text-underline-offset: 3px; }
+  h1, h2, h3 { font-family: var(--font-display); }
+}
+@layer components {
+  .fr-card { @apply bg-surface-container-low rounded-lg p-6 md:p-8; }
+  .fr-btn { @apply inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-body-md font-semibold whitespace-nowrap; }
+  .fr-btn-primary { @apply bg-primary text-on-primary; }
+  .fr-btn-secondary { @apply bg-transparent text-on-surface; border: var(--border-ghost); }
+  .fr-btn-ghost { @apply text-on-surface-variant; }
+  .fr-btn-sm { @apply h-9 px-3.5 text-label-md; }
+  .fr-pill { @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-label-md; }
+  .fr-pill-primary { @apply bg-primary/[0.14] text-primary border-primary/25; }
+  .fr-pill-muted { @apply bg-surface-container-high text-on-surface-variant border-outline-variant; }
+  .fr-overline { @apply text-label-sm uppercase text-on-surface-variant; }
+  .fr-link { @apply text-primary underline decoration-primary/40 hover:decoration-primary; }
+  .fr-mono { @apply font-mono; }
+  .text-stat-counter { font-family: var(--font-mono); }
+  .text-display-hero, .text-display-hero-mobile, .text-headline-xl, .text-headline-xl-mobile, .text-headline-lg, .text-headline-md { font-family: var(--font-display); }
+  .material-symbols-outlined { font-size: 1.25em; line-height: 1; vertical-align: -0.2em; user-select: none; }
+
+  /* ---- NEW (feature 022): the profile tab bar. Proposed additions to Theme.componentCss ---- */
+  /* The bar: a hairline across the content width. On phones it bleeds to the viewport edges
+     (-mx-4 / px-4, undone at md) so a row that overflows reads as scrollable and the rule runs
+     edge to edge; the scrollbar is hidden because the labels themselves show the overflow. */
+  .fr-tabs { @apply flex items-stretch gap-1 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0; border-bottom: 1px solid var(--color-outline-variant); scrollbar-width: none; }
+  .fr-tabs::-webkit-scrollbar { display: none; }
+  /* A tab: 44px tall (touch target), 12px side padding, pulled 1px down so its 2px rule sits on
+     the hairline. The first tab is pulled left by its own padding so the labels align with the
+     heading above. Selected is styled from aria-current only: a tab cannot look selected without
+     being announced as selected. */
+  .fr-tab { @apply relative inline-flex h-11 shrink-0 items-center px-3 -mb-px whitespace-nowrap text-body-md font-semibold text-on-surface-variant rounded-t-sm; border-bottom: 2px solid transparent; }
+  .fr-tab:first-child { @apply -ml-3; }
+  .fr-tab:hover { @apply text-on-surface; border-bottom-color: var(--color-outline); }
+  .fr-tab[aria-current="page"] { @apply text-on-surface; border-bottom-color: var(--color-primary); }
+  /* The ring sits inside the tab: the bar clips overflow, and an outside ring would be cut on the first and last tab */
+  .fr-tab:focus-visible { outline-offset: -2px; border-radius: var(--radius-sm); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .fr-btn, .fr-link, .fr-tab { transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), border-color 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms; }
+  .fr-btn-primary:hover { box-shadow: var(--glow-primary); }
+}
+.fr-btn-primary:hover { @apply bg-primary-fixed; }
+.fr-btn-secondary:hover { @apply bg-surface-container-high; }
+.fr-btn-ghost:hover { @apply text-on-surface bg-surface-container; }
+
+/* mock only: separators between the stacked cases */
+.mock-case { border-top: 6px solid #352e42; }
+.mock-note { @apply mx-auto max-w-page px-4 md:px-8 pt-6 font-mono text-label-md text-tertiary; }
+</style>
+</head>
+<body class="min-h-screen bg-surface text-on-surface">
+
+<!-- ============================================================ CASE 1: dashboard, public profile, visitor -->
+<section class="mock-case" id="case-dashboard">
+<p class="mock-note">Case 1 · /u/animenerd · Dashboard selected · public profile, signed-out visitor</p>
+<header class="sticky top-0 z-50 border-b border-outline-variant/40 bg-surface/85 backdrop-blur-md">
+  <nav class="mx-auto flex h-16 max-w-page items-center justify-between gap-4 px-4 md:px-8">
+    <a href="#" class="inline-flex shrink-0 items-center gap-2.5 rounded font-display text-headline-md font-extrabold tracking-tight text-on-surface"><span class="block h-8 w-8"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" aria-hidden="true"><g transform="rotate(-14 6 15)"><rect x="6" y="9" width="35" height="7" rx="2" fill="#ffb547"/><path d="M14 9 L11 16 M23 9 L20 16 M32 9 L29 16" stroke="#13111a" stroke-width="2.6" stroke-linecap="square"/></g><path d="M6 18 H40 M6 18 V42 H11" stroke="#ffb547" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="14" y="31" width="4" height="11" rx="1" fill="#ffb547"/><rect x="21" y="26" width="4" height="16" rx="1" fill="#e0942a"/><rect x="28" y="21" width="4" height="21" rx="1" fill="#e0942a"/><rect x="35" y="23" width="4" height="19" rx="1" fill="#ff6fa8"/></svg></span><span class="hidden sm:inline">Frunchy</span></a>
+    <div class="flex items-center gap-1"><a href="#" class="fr-btn fr-btn-ghost fr-btn-sm px-2 sm:px-3.5">Charts</a><a href="#" class="fr-btn fr-btn-ghost fr-btn-sm px-2 sm:px-3.5">Sign in</a></div>
+  </nav>
+</header>
+<main class="mx-auto w-full max-w-page px-4 py-8 md:px-8 md:py-12">
+  <div class="space-y-8">
+    <!-- profile masthead + tabs: the shared component -->
+    <div class="space-y-5">
+      <div class="flex flex-col gap-5 md:flex-row md:items-end md:justify-between" data-profile-masthead>
+        <div class="min-w-0 space-y-1.5 [overflow-wrap:anywhere]">
+          <h1 class="text-headline-xl-mobile md:text-headline-xl text-on-surface text-balance" data-profile-name>Animenerd</h1>
+          <p class="font-mono text-label-md text-on-surface-variant">@animenerd</p>
+          <p class="text-body-md text-on-surface-variant">This profile is public: anyone with the link can see these numbers.</p>
+        </div>
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+          <button type="button" class="fr-btn fr-btn-secondary" data-copy-link><span class="material-symbols-outlined" aria-hidden="true">content_copy</span>Copy link</button>
+        </div>
+      </div>
+      <nav class="fr-tabs" aria-label="Profile pages" data-profile-tabs>
+        <a href="#" class="fr-tab" aria-current="page" data-tab="dashboard" data-dashboard-link>Dashboard</a>
+        <a href="#" class="fr-tab" data-tab="dna" data-dna-link>Anime DNA</a>
+        <a href="#" class="fr-tab" data-tab="year" data-year-link>Year in review</a>
+      </nav>
+    </div>
+
+    <!-- dashboard content: the status lines move here, under the tabs -->
+    <div class="space-y-2">
+      <p class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-body-md text-on-surface-variant"><span class="material-symbols-outlined" aria-hidden="true">sync</span><span>Last sync:</span><span class="text-on-surface">2 hours ago</span><span><span aria-hidden="true">· </span>Newest episode: <a href="#" class="fr-link">Frieren: Beyond Journey's End</a></span></p>
+      <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-body-md text-on-surface-variant"><span class="material-symbols-outlined" aria-hidden="true">alternate_email</span><span>Follow on the fediverse:</span><span class="fr-mono font-semibold text-on-surface [overflow-wrap:anywhere]">@animenerd@frunchy.lacalabaza.xyz</span><button type="button" class="fr-btn fr-btn-ghost fr-btn-sm"><span class="material-symbols-outlined" aria-hidden="true">content_copy</span>Copy</button></div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div class="fr-card flex flex-col gap-2 p-5 md:p-6"><p class="fr-overline">Series</p><p class="text-stat-counter text-primary">148</p></div>
+      <div class="fr-card flex flex-col gap-2 p-5 md:p-6"><p class="fr-overline">Episodes watched</p><p class="text-stat-counter text-primary">2,316</p></div>
+      <div class="fr-card flex flex-col gap-2 p-5 md:p-6"><p class="fr-overline">Hours watched</p><p class="text-stat-counter text-primary">912.4</p></div>
+    </div>
+    <section class="space-y-4"><h2 class="text-headline-md text-on-surface">Recently watched</h2><div class="grid grid-cols-1 gap-3 lg:grid-cols-2"><div class="fr-card p-5 md:p-6 text-body-md text-on-surface-variant">(recent cards as today)</div><div class="fr-card p-5 md:p-6 text-body-md text-on-surface-variant">(recent cards as today)</div></div></section>
+  </div>
+</main>
+</section>
+
+<!-- ============================================================ CASE 2: Anime DNA, public profile, visitor -->
+<section class="mock-case" id="case-dna">
+<p class="mock-note">Case 2 · /u/animenerd/dna · Anime DNA selected · the masthead name is a link back to the dashboard, the h1 is the view's</p>
+<header class="sticky top-0 z-50 border-b border-outline-variant/40 bg-surface/85 backdrop-blur-md">
+  <nav class="mx-auto flex h-16 max-w-page items-center justify-between gap-4 px-4 md:px-8">
+    <a href="#" class="inline-flex shrink-0 items-center gap-2.5 rounded font-display text-headline-md font-extrabold tracking-tight text-on-surface"><span class="block h-8 w-8"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" aria-hidden="true"><g transform="rotate(-14 6 15)"><rect x="6" y="9" width="35" height="7" rx="2" fill="#ffb547"/><path d="M14 9 L11 16 M23 9 L20 16 M32 9 L29 16" stroke="#13111a" stroke-width="2.6" stroke-linecap="square"/></g><path d="M6 18 H40 M6 18 V42 H11" stroke="#ffb547" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="14" y="31" width="4" height="11" rx="1" fill="#ffb547"/><rect x="21" y="26" width="4" height="16" rx="1" fill="#e0942a"/><rect x="28" y="21" width="4" height="21" rx="1" fill="#e0942a"/><rect x="35" y="23" width="4" height="19" rx="1" fill="#ff6fa8"/></svg></span><span class="hidden sm:inline">Frunchy</span></a>
+    <div class="flex items-center gap-1"><a href="#" class="fr-btn fr-btn-ghost fr-btn-sm px-2 sm:px-3.5">Charts</a><a href="#" class="fr-btn fr-btn-ghost fr-btn-sm px-2 sm:px-3.5">Sign in</a></div>
+  </nav>
+</header>
+<main class="mx-auto w-full max-w-page px-4 py-8 md:px-8 md:py-12">
+  <div class="space-y-8">
+    <div class="space-y-5">
+      <div class="flex flex-col gap-5 md:flex-row md:items-end md:justify-between" data-profile-masthead>
+        <div class="min-w-0 space-y-1.5 [overflow-wrap:anywhere]">
+          <p class="text-headline-xl-mobile md:text-headline-xl font-display text-on-surface text-balance"><a href="#" class="rounded hover:underline decoration-primary/60 underline-offset-[6px]" data-profile-name>Animenerd</a></p>
+          <p class="font-mono text-label-md text-on-surface-variant">@animenerd</p>
+          <p class="text-body-md text-on-surface-variant">This profile is public: anyone with the link can see these numbers.</p>
+        </div>
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+          <button type="button" class="fr-btn fr-btn-secondary" data-copy-link><span class="material-symbols-outlined" aria-hidden="true">content_copy</span>Copy link</button>
+        </div>
+      </div>
+      <nav class="fr-tabs" aria-label="Profile pages" data-profile-tabs>
+        <a href="#" class="fr-tab" data-tab="dashboard" data-dashboard-link>Dashboard</a>
+        <a href="#" class="fr-tab" aria-current="page" data-tab="dna" data-dna-link>Anime DNA</a>
+        <a href="#" class="fr-tab" data-tab="year" data-year-link>Year in review</a>
+      </nav>
+    </div>
+
+    <div class="space-y-2">
+      <h1 class="text-headline-lg text-on-surface text-balance" data-dna-user="Animenerd">Anime DNA</h1>
+      <p class="max-w-prose text-body-lg text-on-surface-variant">What this profile watches, from its Crunchyroll history and MyAnimeList.</p>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3" data-dna-totals>
+      <div class="fr-card flex flex-col gap-2 p-5 md:p-6"><p class="fr-overline">Watch time</p><div class="flex items-baseline gap-1.5"><span class="text-stat-counter text-primary">912.4</span><span class="text-headline-md text-on-surface-variant" aria-hidden="true">h</span></div><p class="text-label-md font-normal text-on-surface-variant">38.0 days of life</p></div>
+      <div class="fr-card flex flex-col gap-2 p-5 md:p-6"><p class="fr-overline">Episodes</p><p class="text-stat-counter text-primary">2,316</p></div>
+      <div class="fr-card flex flex-col gap-2 p-5 md:p-6"><p class="fr-overline">Series</p><p class="text-stat-counter text-primary">148</p></div>
+    </div>
+    <div class="fr-card p-5 md:p-6 text-body-md text-on-surface-variant">(genre shares, studios, decades as today)</div>
+  </div>
+</main>
+</section>
+
+<!-- ============================================================ CASE 3: a year, members profile, the owner -->
+<section class="mock-case" id="case-year">
+<p class="mock-note">Case 3 · /u/animenerd/year/2026 · Year in review selected · Members profile seen by its owner: note + Copy link · the year pills are the second level under the h1</p>
+<header class="sticky top-0 z-50 border-b border-outline-variant/40 bg-surface/85 backdrop-blur-md">
+  <nav class="mx-auto flex h-16 max-w-page items-center justify-between gap-4 px-4 md:px-8">
+    <a href="#" class="inline-flex shrink-0 items-center gap-2.5 rounded font-display text-headline-md font-extrabold tracking-tight text-on-surface"><span class="block h-8 w-8"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" aria-hidden="true"><g transform="rotate(-14 6 15)"><rect x="6" y="9" width="35" height="7" rx="2" fill="#ffb547"/><path d="M14 9 L11 16 M23 9 L20 16 M32 9 L29 16" stroke="#13111a" stroke-width="2.6" stroke-linecap="square"/></g><path d="M6 18 H40 M6 18 V42 H11" stroke="#ffb547" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="14" y="31" width="4" height="11" rx="1" fill="#ffb547"/><rect x="21" y="26" width="4" height="16" rx="1" fill="#e0942a"/><rect x="28" y="21" width="4" height="21" rx="1" fill="#e0942a"/><rect x="35" y="23" width="4" height="19" rx="1" fill="#ff6fa8"/></svg></span><span class="hidden sm:inline">Frunchy</span></a>
+    <div class="flex items-center gap-1"><a href="#" class="fr-btn fr-btn-ghost fr-btn-sm px-2 sm:px-3.5">Charts</a><span class="hidden sm:inline text-body-md font-semibold text-on-surface-variant px-2">Animenerd</span><a href="#" class="fr-btn fr-btn-ghost fr-btn-sm px-2 sm:px-3.5">Account</a><a href="#" class="fr-btn fr-btn-ghost fr-btn-sm px-2 sm:px-3.5">Sign out</a></div>
+  </nav>
+</header>
+<main class="mx-auto w-full max-w-page px-4 py-8 md:px-8 md:py-12">
+  <div class="space-y-8">
+    <div class="space-y-5">
+      <div class="flex flex-col gap-5 md:flex-row md:items-end md:justify-between" data-profile-masthead>
+        <div class="min-w-0 space-y-1.5 [overflow-wrap:anywhere]">
+          <p class="text-headline-xl-mobile md:text-headline-xl font-display text-on-surface text-balance"><a href="#" class="rounded hover:underline decoration-primary/60 underline-offset-[6px]" data-profile-name>Animenerd</a></p>
+          <p class="font-mono text-label-md text-on-surface-variant">@animenerd</p>
+          <p class="flex flex-wrap items-center gap-x-2 gap-y-1 text-body-md text-on-surface-variant" data-profile-members><span class="material-symbols-outlined" aria-hidden="true">group</span><span>Anyone signed in to Frunchy can see this profile.</span><a href="#" class="font-semibold text-primary underline underline-offset-4">Change who can see it</a></p>
+        </div>
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+          <button type="button" class="fr-btn fr-btn-secondary" data-copy-link><span class="material-symbols-outlined" aria-hidden="true">content_copy</span>Copy link</button>
+        </div>
+      </div>
+      <nav class="fr-tabs" aria-label="Profile pages" data-profile-tabs>
+        <a href="#" class="fr-tab" data-tab="dashboard" data-dashboard-link>Dashboard</a>
+        <a href="#" class="fr-tab" data-tab="dna" data-dna-link>Anime DNA</a>
+        <a href="#" class="fr-tab" aria-current="page" data-tab="year" data-year-link>Year in review</a>
+      </nav>
+    </div>
+
+    <div class="space-y-4">
+      <div class="space-y-2">
+        <h1 class="text-headline-lg text-on-surface text-balance" data-year-user="Animenerd">2026 in review</h1>
+        <p class="max-w-prose text-body-lg text-on-surface-variant">One calendar year of this profile's Crunchyroll history, with MyAnimeList details.</p>
+      </div>
+      <nav class="flex flex-wrap items-center gap-2" aria-label="Years" data-year-picker>
+        <a href="#" class="fr-pill fr-pill-primary" aria-current="page" data-year-option="2026">2026</a>
+        <a href="#" class="fr-pill fr-pill-muted hover:text-on-surface" data-year-option="2025">2025</a>
+        <a href="#" class="fr-pill fr-pill-muted hover:text-on-surface" data-year-option="2024">2024</a>
+        <a href="#" class="fr-pill fr-pill-muted hover:text-on-surface" data-year-option="2022">2022</a>
+      </nav>
+      <p class="flex items-start gap-1.5 text-label-md font-normal text-on-surface-variant" data-rewatch-note><span class="material-symbols-outlined" aria-hidden="true">info</span><span>Frunchy keeps the latest watch of each episode, so a rewatch counts in the year it was last watched. Years are in UTC.</span></p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 lg:grid-cols-4" data-year-totals>
+      <div class="fr-card flex flex-col gap-2 p-5 md:p-6"><p class="fr-overline">Hours watched</p><p class="text-stat-counter text-primary">211.6</p><p class="text-label-md font-normal text-on-surface-variant">8.8 days</p></div>
+      <div class="fr-card flex flex-col gap-2 p-5 md:p-6"><p class="fr-overline">Episodes</p><p class="text-stat-counter text-primary">538</p></div>
+      <div class="fr-card flex flex-col gap-2 p-5 md:p-6"><p class="fr-overline">Series</p><p class="text-stat-counter text-primary">41</p></div>
+      <div class="fr-card flex flex-col gap-2 p-5 md:p-6"><p class="fr-overline">Finished</p><p class="text-stat-counter text-primary">17</p></div>
+    </div>
+  </div>
+</main>
+</section>
+
+<!-- ============================================================ CASE 4: the anime page, private profile, the owner -->
+<section class="mock-case" id="case-anime">
+<p class="mock-note">Case 4 · /u/animenerd/anime/GRMG8ZQZR · no tab selected (the page belongs to the profile but is not one of its three views) · private profile: the owner's note replaces Copy link · the back link is gone, the Dashboard tab and the masthead name lead back</p>
+<header class="sticky top-0 z-50 border-b border-outline-variant/40 bg-surface/85 backdrop-blur-md">
+  <nav class="mx-auto flex h-16 max-w-page items-center justify-between gap-4 px-4 md:px-8">
+    <a href="#" class="inline-flex shrink-0 items-center gap-2.5 rounded font-display text-headline-md font-extrabold tracking-tight text-on-surface"><span class="block h-8 w-8"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" aria-hidden="true"><g transform="rotate(-14 6 15)"><rect x="6" y="9" width="35" height="7" rx="2" fill="#ffb547"/><path d="M14 9 L11 16 M23 9 L20 16 M32 9 L29 16" stroke="#13111a" stroke-width="2.6" stroke-linecap="square"/></g><path d="M6 18 H40 M6 18 V42 H11" stroke="#ffb547" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="14" y="31" width="4" height="11" rx="1" fill="#ffb547"/><rect x="21" y="26" width="4" height="16" rx="1" fill="#e0942a"/><rect x="28" y="21" width="4" height="21" rx="1" fill="#e0942a"/><rect x="35" y="23" width="4" height="19" rx="1" fill="#ff6fa8"/></svg></span><span class="hidden sm:inline">Frunchy</span></a>
+    <div class="flex items-center gap-1"><a href="#" class="fr-btn fr-btn-ghost fr-btn-sm px-2 sm:px-3.5">Charts</a><span class="hidden sm:inline text-body-md font-semibold text-on-surface-variant px-2">Animenerd</span><a href="#" class="fr-btn fr-btn-ghost fr-btn-sm px-2 sm:px-3.5">Account</a><a href="#" class="fr-btn fr-btn-ghost fr-btn-sm px-2 sm:px-3.5">Sign out</a></div>
+  </nav>
+</header>
+<main class="mx-auto w-full max-w-page px-4 py-8 md:px-8 md:py-12">
+  <div class="space-y-8">
+    <div class="space-y-5">
+      <div class="flex flex-col gap-5 md:flex-row md:items-end md:justify-between" data-profile-masthead>
+        <div class="min-w-0 space-y-1.5 [overflow-wrap:anywhere]">
+          <p class="text-headline-xl-mobile md:text-headline-xl font-display text-on-surface text-balance"><a href="#" class="rounded hover:underline decoration-primary/60 underline-offset-[6px]" data-profile-name>Animenerd</a></p>
+          <p class="font-mono text-label-md text-on-surface-variant">@animenerd</p>
+        </div>
+        <div class="flex shrink-0 flex-wrap items-center gap-2">
+          <p class="flex flex-wrap items-center gap-x-2 gap-y-1 text-body-md text-on-surface-variant" data-profile-private><span class="material-symbols-outlined" aria-hidden="true">lock</span><span>This profile is private: only you can see it.</span><a href="#" class="font-semibold text-primary underline underline-offset-4">Share it or make it public</a></p>
+        </div>
+      </div>
+      <nav class="fr-tabs" aria-label="Profile pages" data-profile-tabs>
+        <a href="#" class="fr-tab" data-tab="dashboard" data-dashboard-link>Dashboard</a>
+        <a href="#" class="fr-tab" data-tab="dna" data-dna-link>Anime DNA</a>
+        <a href="#" class="fr-tab" data-tab="year" data-year-link>Year in review</a>
+      </nav>
+    </div>
+
+    <div class="space-y-6">
+      <div class="flex flex-col gap-6 sm:flex-row sm:items-end">
+        <div class="aspect-[2/3] w-32 shrink-0 rounded-md bg-surface-container-high sm:w-40" aria-hidden="true"></div>
+        <div class="min-w-0 space-y-4">
+          <h1 class="text-headline-xl-mobile md:text-headline-xl text-on-surface text-balance [overflow-wrap:anywhere]" data-anime-title>Frieren: Beyond Journey's End</h1>
+          <div class="flex flex-wrap items-start gap-2">
+            <a href="#" class="fr-btn fr-btn-secondary" target="_blank" rel="noopener" data-crunchyroll-link>Watch on Crunchyroll<span class="material-symbols-outlined" aria-hidden="true">open_in_new</span></a>
+            <a href="#" class="fr-btn fr-btn-ghost" data-series-page-link>About this series</a>
+          </div>
+          <p class="text-body-md text-on-surface-variant">Watched by 12 people on Frunchy</p>
+        </div>
+      </div>
+      <p class="flex items-start gap-1.5 text-label-md font-normal text-on-surface-variant" data-rewatch-note><span class="material-symbols-outlined" aria-hidden="true">info</span><span>Frunchy keeps only the latest watch of each episode, so rewatches aren't counted.</span></p>
+    </div>
+    <div class="fr-card p-5 md:p-6 text-body-md text-on-surface-variant">(watch tiles and seasons as today)</div>
+  </div>
+</main>
+</section>
+
+<!-- ============================================================ STRIP: Spanish labels and the hover / focus states -->
+<section class="mock-case" id="case-states" lang="es">
+<p class="mock-note">States · Spanish labels ("Panel · ADN anime · Año en anime") · second row: hover on "ADN anime", keyboard focus on "Año en anime" (forced for the mock)</p>
+<main class="mx-auto w-full max-w-page px-4 py-8 md:px-8 md:py-12 space-y-10">
+  <nav class="fr-tabs" aria-label="Páginas del perfil" data-profile-tabs>
+    <a href="#" class="fr-tab" aria-current="page" data-tab="dashboard">Panel</a>
+    <a href="#" class="fr-tab" data-tab="dna">ADN anime</a>
+    <a href="#" class="fr-tab" data-tab="year">Año en anime</a>
+  </nav>
+  <nav class="fr-tabs" aria-label="Páginas del perfil (estados)">
+    <a href="#" class="fr-tab" aria-current="page" data-tab="dashboard">Panel</a>
+    <a href="#" class="fr-tab text-on-surface" style="border-bottom-color:#9b9286" data-tab="dna">ADN anime</a>
+    <a href="#" class="fr-tab" style="outline:2px solid #ffb547;outline-offset:-2px;border-radius:.375rem" data-tab="year">Año en anime</a>
+  </nav>
+</main>
+</section>
+
+</body>
+</html>
