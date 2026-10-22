@@ -297,6 +297,8 @@ docker exec postgres-postgres-1 dropdb -U postgres frunchydb
 docker exec postgres-postgres-1 dropdb -U postgres megafono   # if it exists
 ```
 
+**Starting the AppHost's database from empty** (to see the setup invite, for example). Stop the AppHost, then `aspire stop --force --volumes`. That removes only the named volumes Aspire created and records as its own for this AppHost's path; a `frunchy-pg` volume made by an older Aspire, or by the AppHost from another checkout or worktree, is adopted, not owned, and survives (`docker volume inspect frunchy-pg` shows `Labels: null`). Remove such a volume once by hand, with the AppHost stopped: `docker volume rm frunchy-pg` (Megáfono's local database lives in the same Postgres and goes too; `umbral-data` is separate). The next start creates it under Aspire's ownership. On start Frunchy logs either the setup-invite banner or why it didn't print one ("the database already has N account(s)").
+
 **Operator commands against the AppHost's database.** The commands read `ConnectionStrings__Database`: copy the `frunchydb` connection string from the Aspire dashboard (resource `pg`, database `frunchydb`) into that variable for the command:
 ```bash
 ConnectionStrings__Database="Host=localhost;Port=<port>;Username=postgres;Password=<password>;Database=frunchydb" \

@@ -629,8 +629,13 @@ let private announceSetupInvite (app: WebApplication) (db: DbConfig) : Task<unit
                 "Frunchy has no accounts yet: another copy printed the setup invite at {MintedAt:HH:mm:ss} UTC",
                 mintedAt
             )
-        | SetupInvite.Disabled
-        | SetupInvite.HasUsers -> ()
+        // Say why there is no banner, so a missing one never looks like a silent failure (e.g. a volume that wasn't wiped)
+        | SetupInvite.HasUsers accounts ->
+            app.Logger.LogInformation(
+                "Setup invite not printed: the database already has {Accounts} account(s); invite people from /review/invites",
+                accounts
+            )
+        | SetupInvite.Disabled -> app.Logger.LogInformation "Setup invite not printed: Frunchy:SetupInvite:Enabled is false"
     }
 
 [<EntryPoint>]

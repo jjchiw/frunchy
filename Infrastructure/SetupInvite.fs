@@ -27,8 +27,8 @@ let days = 7
 type Outcome =
     /// `Frunchy:SetupInvite:Enabled` is false: nothing is read, printed or created
     | Disabled
-    /// There is at least one account, so nothing is printed and no invite is created
-    | HasUsers
+    /// There is at least one account (this many), so no banner and no invite; the start logs why
+    | HasUsers of accounts: int64
     /// A new setup invite was made (every older unused one is revoked) and its banner written
     | Minted of code: string
     /// Another copy minted one less than `recentMinutes` ago: nothing is minted, a short banner is written
@@ -88,12 +88,13 @@ let ensure (db: DbConfig) (enabled: bool) (origin: string option) (write: string
             lock.Parameters.AddWithValue("key", LockKey) |> ignore
             let! _ = lock.ExecuteNonQueryAsync()
 
-            use anyUser = new NpgsqlCommand("SELECT EXISTS (SELECT 1 FROM users)", connection, tx)
-            let! hasUsers = anyUser.ExecuteScalarAsync()
+            use countUsers = new NpgsqlCommand("SELECT count(*) FROM users", connection, tx)
+            let! accounts = countUsers.ExecuteScalarAsync()
+            let accounts = unbox<int64> accounts
 
-            if unbox<bool> hasUsers then
+            if accounts > 0L then
                 do! tx.RollbackAsync()
-                return HasUsers
+                return HasUsers accounts
             else
                 use recent =
                     new NpgsqlCommand(

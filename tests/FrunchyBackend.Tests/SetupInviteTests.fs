@@ -157,7 +157,7 @@ let ``with an account nothing is printed and no invite is created`` () =
         let console = Console()
         let! outcome = ensureOn db console
 
-        Assert.Equal(SetupInvite.HasUsers, outcome)
+        Assert.Equal(SetupInvite.HasUsers 1L, outcome) // the count is what the start logs
         Assert.Empty console.All
         let! invites = Db.count db "invites"
         Assert.Equal(0L, invites)
@@ -286,7 +286,7 @@ let ``a revoked setup invite does not hold the window, and a used one ends the s
         let! used = submitSignUp (app.NewBrowser()) "sub-x" (codeOf afterRevoke) "xuser" "X"
         Assert.Equal(HttpStatusCode.Found, used.StatusCode)
         let! afterUse = ensureOn db (Console())
-        Assert.Equal(SetupInvite.HasUsers, afterUse)
+        Assert.Equal(SetupInvite.HasUsers 1L, afterUse)
     }
 
 [<Fact>]
