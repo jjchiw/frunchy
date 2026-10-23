@@ -10,6 +10,18 @@ new image. Add to "Unreleased" as you work; a release renames it.
 
 ## Unreleased
 
+### Changed
+
+- Changing a profile's visibility now records which level it became ("Profile made public", "Profile
+  set to members", "Profile made private") in the account's security activity, instead of "Profile
+  visibility changed". Earlier entries keep their old wording. Nothing to do on upgrade.
+
+### Fixed
+
+- Frunchy waits up to 60 s for its database at start instead of exiting when Postgres is not ready
+  yet (on a first Caravana deploy the app and its database start together, which cost a restart). The
+  operator commands wait too. `Frunchy:Database:StartupWaitSeconds` sets the limit; `0` fails at once.
+
 ## 0.4.0 - 2026-10-22
 
 ### Added
@@ -31,15 +43,6 @@ new image. Add to "Unreleased" as you work; a release renames it.
 - The profile pages share one top: the person's name, then a tab bar (Dashboard, Anime DNA, Year in
   review) that shows which view you are on. It replaces the buttons that were scattered on each page
   and is on the series and comparison pages too, with nothing selected there.
-- Changing a profile's visibility now records which level it became ("Profile made public", "Profile
-  set to members", "Profile made private") in the account's security activity, instead of "Profile
-  visibility changed". Earlier entries keep their old wording. Nothing to do on upgrade.
-
-### Fixed
-
-- Frunchy waits up to 60 s for its database at start instead of exiting when Postgres is not ready
-  yet (on a first Caravana deploy the app and its database start together, which cost a restart). The
-  operator commands wait too. `Frunchy:Database:StartupWaitSeconds` sets the limit; `0` fails at once.
 
 ## 0.3.0 - 2026-10-21
 
