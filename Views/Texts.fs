@@ -528,7 +528,34 @@ type Texts =
       /// The current state line; true when sign-up is open
       SettingsSignUpState: bool -> string
       /// The notice for a `msg` key (saved, bad-input)
-      SettingsNotice: string -> string }
+      SettingsNotice: string -> string
+
+      // The install guide (/guide)
+      GuideTitle: string
+      GuideIntro: string
+      GuideContentsTitle: string
+      /// The link to the guide from the home and sign-up pages
+      GuideReadLink: string
+      GuideInstallTitle: string
+      GuideInstallBody: string list
+      GuideInstallButton: string
+      GuideSignUpTitle: string
+      GuideSignUpSteps: string list
+      GuideSignUpClaim: string
+      GuideConnectTitle: string
+      GuideConnectSteps: string list
+      GuideSyncTitle: string
+      GuideSyncSteps: string list
+      GuideSyncNote: string
+      GuideDashboardTitle: string
+      GuideDashboardBody: string list
+      GuideVisibilityTitle: string
+      GuideVisibilityBody: string list
+      GuideDeleteTitle: string
+      GuideDeleteBody: string list
+      /// The alt text and the caption of a guide screenshot, by its name (`signup`, `sync-key`…)
+      GuideImageAlt: string -> string
+      GuideImageCaption: string -> string }
 
 let en =
     { Lang = "en"
@@ -1179,6 +1206,78 @@ let en =
             match key with
             | "saved" -> "Saved."
             | "bad-input" -> "Choose Invite only or Open. Nothing changed."
+            | other -> other
+
+      GuideTitle = "Getting started"
+      GuideIntro = "How to install the extension, create your account with an invite, sync your Crunchyroll history and see your numbers."
+      GuideContentsTitle = "In this guide"
+      GuideReadLink = "Read the guide"
+      GuideInstallTitle = "Install the extension"
+      GuideInstallBody =
+        [ "Frunchy reads your watch history through its browser extension. Install it from the Chrome Web Store."
+          "It works in Chrome and in other Chromium browsers that can install from the Chrome Web Store, such as Edge, Brave and Opera." ]
+      GuideInstallButton = "Get the Chrome extension"
+      GuideSignUpTitle = "Create your account"
+      GuideSignUpSteps =
+        [ "Go to Sign in and choose a sign-in provider. Frunchy never stores a password."
+          "The first time, Frunchy asks for the invite code you received, a username and a display name."
+          "Your username is part of the address of your profile and can't be changed later. Your display name can." ]
+      GuideSignUpClaim = "If someone already made an account for you, claim it with its sync key instead:"
+      GuideConnectTitle = "Connect the extension"
+      GuideConnectSteps =
+        [ "Open your account page and press \"Connect extension\"."
+          "Create the sync key and copy it. Frunchy shows it only once, and making a new key turns the old one off."
+          "Click the extension's icon in the browser, then the gear icon (Settings) in its popup: the \"Frunchy settings\" page opens. Its link \"Open “Connect extension”\" takes you to your account page if you still need a key."
+          "Paste the key in \"Sync key\" and press \"Save and check\". It answers \"Connected as\" and your name, with an \"Open web dashboard\" link."
+          "Leave \"Backend URL\" as it is, unless you use another Frunchy server (a self-hosted one). \"Use default\" puts back this site's address." ]
+      GuideSyncTitle = "Sync your history"
+      GuideSyncSteps =
+        [ "Sign in to crunchyroll.com and open crunchyroll.com/history."
+          "Click the extension's icon and press \"Scrape history\"."
+          "Keep that tab open. The extension scrolls through your history by itself, stores every episode it finds and uploads it to Frunchy."
+          "Your dashboard fills in after a short import." ]
+      GuideSyncNote = "Later scrapes stop by themselves when they reach history that is already synced, so sync again whenever you want to add what you watched since."
+      GuideDashboardTitle = "Your dashboard"
+      GuideDashboardBody =
+        [ "Your dashboard, at /u/ followed by your username, shows the time you watched, your episodes and series, your recent episodes and your top genres. The genres come from MyAnimeList and can take a while to appear after a sync."
+          "The Anime DNA page, at /u/ followed by your username and /dna, appears once you have fully watched 15 episodes. A dub and its original count once."
+          "There are also pages for each year, with the same figures for one calendar year." ]
+      GuideVisibilityTitle = "Who can see your profile"
+      GuideVisibilityBody =
+        [ "On your account page, under profile visibility, choose Private (only you), Members (anyone signed in to Frunchy) or Public (anyone)."
+          "A share link lets anyone who has it see your profile, whatever you chose. Making a new link, or turning it off, ends access for everyone who had the old one."
+          "The charts and the \"watched by\" counts never name anyone." ]
+      GuideDeleteTitle = "Delete your account"
+      GuideDeleteBody =
+        [ "On your account page, \"Delete my account\" removes your account and your whole history from Frunchy for good. It needs a recent sign-in."
+          "Afterwards, remove the extension, or clear what it stored: in its popup, press the trash icon in the footer (Clear), then \"Delete\" when it asks \"Delete N scraped entries?\" (\"Cancel\" keeps them)." ]
+      GuideImageAlt =
+        fun name ->
+            match name with
+            | "signup" -> "The sign-up form with the invite code, username and display name fields"
+            | "account-extension" -> "The Extension section of the account page with the Connect extension button"
+            | "sync-key" -> "The page that shows the new sync key once, with a copy button"
+            | "extension-options" -> "The extension's settings with the Sync key field and the Save and check button"
+            | "extension-ready" -> "The extension's popup on the Crunchyroll history page, ready to scrape"
+            | "extension-scraping" -> "The extension's popup while it scrapes the history"
+            | "extension-synced" -> "The extension's popup after the history was uploaded"
+            | "dashboard" -> "A Frunchy dashboard with hours watched, episodes, series and recent episodes"
+            | "dna" -> "An Anime DNA page with genre shares"
+            | "account-visibility" -> "The profile visibility settings on the account page"
+            | other -> other
+      GuideImageCaption =
+        fun name ->
+            match name with
+            | "signup" -> "The sign-up form."
+            | "account-extension" -> "Connect extension, on your account page."
+            | "sync-key" -> "The sync key, shown once."
+            | "extension-options" -> "The extension's settings."
+            | "extension-ready" -> "The extension on your Crunchyroll history, ready to scrape."
+            | "extension-scraping" -> "The extension scraping the history."
+            | "extension-synced" -> "The history is synced."
+            | "dashboard" -> "Your dashboard."
+            | "dna" -> "The Anime DNA page."
+            | "account-visibility" -> "Profile visibility, on your account page."
             | other -> other }
 
 let es =
@@ -1834,6 +1933,78 @@ let es =
             match key with
             | "saved" -> "Guardado."
             | "bad-input" -> "Elige Solo con invitación o Abierto. No se cambió nada."
+            | other -> other
+
+      GuideTitle = "Primeros pasos"
+      GuideIntro = "Cómo instalar la extensión, crear tu cuenta con una invitación, sincronizar tu historial de Crunchyroll y ver tus números."
+      GuideContentsTitle = "En esta guía"
+      GuideReadLink = "Lee la guía"
+      GuideInstallTitle = "Instala la extensión"
+      GuideInstallBody =
+        [ "Frunchy lee tu historial a través de su extensión del navegador. Instálala desde la Chrome Web Store."
+          "Funciona en Chrome y en otros navegadores basados en Chromium que pueden instalar desde la Chrome Web Store, como Edge, Brave y Opera." ]
+      GuideInstallButton = "Instala la extensión de Chrome"
+      GuideSignUpTitle = "Crea tu cuenta"
+      GuideSignUpSteps =
+        [ "Ve a Iniciar sesión y elige un proveedor. Frunchy nunca guarda una contraseña."
+          "La primera vez, Frunchy te pide el código de invitación que recibiste, un nombre de usuario y un nombre visible."
+          "Tu nombre de usuario forma parte de la dirección de tu perfil y no se puede cambiar después. El nombre visible sí." ]
+      GuideSignUpClaim = "Si alguien ya creó una cuenta para ti, reclámala con su clave de sincronización:"
+      GuideConnectTitle = "Conecta la extensión"
+      GuideConnectSteps =
+        [ "Abre la página de tu cuenta y pulsa \"Conectar la extensión\"."
+          "Crea la clave de sincronización y cópiala. Frunchy la muestra una sola vez, y al crear una clave nueva la anterior deja de funcionar."
+          "Haz clic en el icono de la extensión en el navegador y luego en el engranaje (Ajustes) de su ventana: se abre la página \"Ajustes de Frunchy\". Su enlace \"Abrir «Conectar la extensión»\" te lleva a la página de tu cuenta si aún necesitas una clave."
+          "Pega la clave en \"Clave de sincronización\" y pulsa \"Guardar y comprobar\". Responde \"Conectado como\" y tu nombre, con un enlace \"Abrir Dashboard Web\"."
+          "Deja \"URL del servidor\" como está, salvo que uses otro servidor de Frunchy (uno propio). \"Usar el predeterminado\" vuelve a poner la dirección de este sitio." ]
+      GuideSyncTitle = "Sincroniza tu historial"
+      GuideSyncSteps =
+        [ "Inicia sesión en crunchyroll.com y abre crunchyroll.com/history."
+          "Haz clic en el icono de la extensión y pulsa \"Escanear historial\"."
+          "Deja esa pestaña abierta. La extensión recorre tu historial sola, guarda cada episodio que encuentra y lo sube a Frunchy."
+          "Tu panel se llena después de una importación breve." ]
+      GuideSyncNote = "Los siguientes escaneos se detienen solos al llegar a un historial que ya está sincronizado, así que sincroniza de nuevo cuando quieras añadir lo que viste desde entonces."
+      GuideDashboardTitle = "Tu panel"
+      GuideDashboardBody =
+        [ "Tu panel, en /u/ seguido de tu nombre de usuario, muestra el tiempo que viste, tus episodios y series, tus episodios recientes y tus géneros principales. Los géneros vienen de MyAnimeList y pueden tardar en aparecer después de una sincronización."
+          "La página de ADN anime, en /u/ seguido de tu nombre de usuario y /dna, aparece cuando has visto completos 15 episodios. Un doblaje y su original cuentan una vez."
+          "También hay una página por cada año, con las mismas cifras de un año natural." ]
+      GuideVisibilityTitle = "Quién puede ver tu perfil"
+      GuideVisibilityBody =
+        [ "En la página de tu cuenta, en visibilidad del perfil, elige Privado (solo tú), Miembros (cualquier persona con sesión iniciada en Frunchy) o Público (cualquiera)."
+          "Un enlace para compartir permite ver tu perfil a cualquiera que lo tenga, elijas lo que elijas. Crear un enlace nuevo, o desactivarlo, termina el acceso de todos los que tenían el anterior."
+          "Los rankings y los conteos de \"visto por\" nunca nombran a nadie." ]
+      GuideDeleteTitle = "Elimina tu cuenta"
+      GuideDeleteBody =
+        [ "En la página de tu cuenta, \"Eliminar mi cuenta\" borra para siempre tu cuenta y todo tu historial de Frunchy. Necesita un inicio de sesión reciente."
+          "Después, quita la extensión, o borra lo que guardó: en su ventana, pulsa el icono de la papelera del pie (Borrar) y luego \"Borrar\" cuando pregunte \"¿Borrar N entradas escaneadas?\" (\"Cancelar\" las conserva)." ]
+      GuideImageAlt =
+        fun name ->
+            match name with
+            | "signup" -> "El formulario de registro con los campos de código de invitación, nombre de usuario y nombre visible"
+            | "account-extension" -> "La sección Extensión de la página de la cuenta con el botón Conectar la extensión"
+            | "sync-key" -> "La página que muestra la clave de sincronización nueva una sola vez, con un botón para copiarla"
+            | "extension-options" -> "Los ajustes de la extensión con el campo Clave de sincronización y el botón Guardar y comprobar"
+            | "extension-ready" -> "La ventana de la extensión en la página del historial de Crunchyroll, lista para escanear"
+            | "extension-scraping" -> "La ventana de la extensión mientras escanea el historial"
+            | "extension-synced" -> "La ventana de la extensión después de subir el historial"
+            | "dashboard" -> "Un panel de Frunchy con horas vistas, episodios, series y episodios recientes"
+            | "dna" -> "Una página de ADN anime con la proporción de géneros"
+            | "account-visibility" -> "Los ajustes de visibilidad del perfil en la página de la cuenta"
+            | other -> other
+      GuideImageCaption =
+        fun name ->
+            match name with
+            | "signup" -> "El formulario de registro."
+            | "account-extension" -> "Conectar la extensión, en la página de tu cuenta."
+            | "sync-key" -> "La clave de sincronización, mostrada una vez."
+            | "extension-options" -> "Los ajustes de la extensión."
+            | "extension-ready" -> "La extensión en tu historial de Crunchyroll, lista para escanear."
+            | "extension-scraping" -> "La extensión escaneando el historial."
+            | "extension-synced" -> "El historial está sincronizado."
+            | "dashboard" -> "Tu panel."
+            | "dna" -> "La página de ADN anime."
+            | "account-visibility" -> "Visibilidad del perfil, en la página de tu cuenta."
             | other -> other }
 
 /// Spanish when the request culture is Spanish (any region), English otherwise

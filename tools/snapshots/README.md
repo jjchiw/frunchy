@@ -24,9 +24,10 @@ session can look at them without signing in anywhere. Both steps are opt-in: a n
    profile is a temp folder under `<abs path>` and is deleted at the end. Requests to `snapshot.invalid` are aborted, so
    a click on a link never leaves the saved page.
 
-Names: `home`, `signin` (signed out), `dashboard`, `dna`, `year-2026`, `anime`, `compare`, `account` (no share link),
+Names: `home`, `signin` (signed out), `signup` (back from a provider with no account yet), `dashboard`, `dna`, `year-2026`, `anime`, `compare`, `account` (no share link),
 `account-shared` (with one), `share-link-created` (the show-once page), `review-invites`, `invite-created` (the show-once
-code page), `review-settings`.
+code page), `review-settings`, `sync-key` (the show-once key page, a throwaway key of the test database), `guide` (its screenshots
+are blocked like every root-relative URL).
 
 `signin` also gets two viewport-sized shots per width and language, from real mouse clicks (CDP
 `Input.dispatchMouseEvent`) on the first provider link:
@@ -37,3 +38,22 @@ code page), `review-settings`.
 
 The shooter prints those eight results, any page wider than the viewport at 360 (with the first offending elements) and
 console errors per page, and exits 1 if a sign-in check fails.
+
+## The /guide screenshots
+
+The guide page (`/guide`, `Handlers/Guide.fs`) shows Frunchy's own pages from the same saved HTML. After step 1:
+
+```bash
+bash tools/snapshots/guide.sh <abs path>            # writes wwwroot/guide/<name>-<lang>.png (en and es)
+```
+
+It shoots at 1280 wide and scale 2: `signup` (the form filled with invented values), `account-extension`, `sync-key`,
+`account-visibility` (cropped to their section or card), `dashboard` and `dna` (the top of the page, 1280x800). The list
+is `SHOTS` in `guide.mjs`; an image the guide links to must exist, `GuideTests` checks every one. Look at each image
+before committing it.
+
+The `extension-*` images (`ready`, `scraping`, `synced`, `options`, en and es) are the extension's own: copy them from
+`browser-extension/store/guide/` (the popup alone at 380 px and the settings page at 480 px, both at 2x, invented data,
+made by its `npm run store:assets`). The extension's session messages this repository's session when they change.
+
+`chrome.sh` starts the headless Chrome both scripts use; `cdp.mjs` holds their DevTools protocol helpers.
