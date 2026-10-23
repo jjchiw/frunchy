@@ -29,6 +29,8 @@ new image. Add to "Unreleased" as you work; a release renames it.
 - The profile pages share one top: the person's name, then a tab bar (Dashboard, Anime DNA, Year in
   review) that shows which view you are on. It replaces the buttons that were scattered on each page
   and is on the series and comparison pages too, with nothing selected there.
+- In Spanish the dashboard is always "panel", the word of its tab; the home steps, sign-in, sign-up
+  and account pages said "dashboard".
 
 ## 0.3.0 - 2026-10-21
 

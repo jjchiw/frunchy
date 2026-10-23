@@ -1198,7 +1198,7 @@ let es =
       HomeSteps =
         [ "Instala la extensión de Frunchy y pega tu clave de sincronización en sus opciones."
           "Abre tu historial en crunchyroll.com."
-          "La extensión lo envía a Frunchy y tu dashboard se actualiza en unos instantes." ]
+          "La extensión lo envía a Frunchy y tu panel se actualiza en unos instantes." ]
       HomeProfilesPrivateNote = "Los perfiles son privados: solo los ve su dueño y las personas con quienes comparte un enlace."
       HomeProfilesMembersNote = "Los perfiles son para miembros: los ve cualquier persona con sesión iniciada en Frunchy, y cada dueño puede hacer el suyo público o privado."
       HomeProfilesPublicNote = "Los perfiles son públicos salvo que su dueño los haga privados: cualquiera con el enlace de un perfil puede ver sus números."
@@ -1314,7 +1314,7 @@ let es =
       SignUpIntro = "Es la primera vez que entras con esta cuenta. Escribe tu código de invitación y elige cómo aparecerás."
       InviteCodeLabel = "Código de invitación"
       UsernameLabel = "Nombre de usuario"
-      UsernameHint = "La dirección de tu dashboard público: 3-30 caracteres, a-z 0-9 _ -, terminando en letra, número o _. No se puede cambiar después."
+      UsernameHint = "La dirección de tu panel público: 3-30 caracteres, a-z 0-9 _ -, terminando en letra, número o _. No se puede cambiar después."
       DisplayNameLabel = "Nombre visible"
       CreateAccountButton = "Crear cuenta"
       HaveAccountLink = "Ya tengo una cuenta de Frunchy"
@@ -1327,7 +1327,7 @@ let es =
       AccountTitle = "Tu cuenta"
       AccountUsername = "Nombre de usuario"
       AccountDisplayName = "Nombre visible"
-      AccountDashboard = "Dashboard público"
+      AccountDashboard = "Panel público"
       AccountSyncKey = "Extensión"
       AccountKeyActive = "Hay una clave de sincronización activa."
       AccountKeyMissing = "Aún no hay clave de sincronización: conecta la extensión para empezar a sincronizar."
@@ -1427,7 +1427,7 @@ let es =
       KeyCopied = "Clave copiada"
       DeleteItems =
         [ "Tu historial sincronizado, incluidos los envíos originales"
-          "Tu dashboard público y tu ADN anime"
+          "Tu panel público y tu ADN anime"
           "Tus métodos de inicio de sesión y tu clave de sincronización"
           "Tu actividad de seguridad" ]
       // T016
@@ -1435,7 +1435,7 @@ let es =
       WatchedPercent = fun p -> $"{p}%% visto"
       // T018
       UsernamePreviewPlaceholder = "tu-usuario"
-      DisplayNameHint = "Cómo aparece tu nombre en tu dashboard. Puedes cambiarlo después en tu cuenta."
+      DisplayNameHint = "Cómo aparece tu nombre en tu panel. Puedes cambiarlo después en tu cuenta."
 
       // Year in review (feature 005)
       YearTitle = fun y -> $"Resumen de {y}"
