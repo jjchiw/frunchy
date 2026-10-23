@@ -1955,7 +1955,7 @@ let es =
         [ "Abre la página de tu cuenta y pulsa \"Conectar la extensión\"."
           "Crea la clave de sincronización y cópiala. Frunchy la muestra una sola vez, y al crear una clave nueva la anterior deja de funcionar."
           "Haz clic en el icono de la extensión en el navegador y luego en el engranaje (Ajustes) de su ventana: se abre la página \"Ajustes de Frunchy\". Su enlace \"Abrir «Conectar la extensión»\" te lleva a la página de tu cuenta si aún necesitas una clave."
-          "Pega la clave en \"Clave de sincronización\" y pulsa \"Guardar y comprobar\". Responde \"Conectado como\" y tu nombre, con un enlace \"Abrir Dashboard Web\"."
+          "Pega la clave en \"Clave de sincronización\" y pulsa \"Guardar y comprobar\". Responde \"Conectado como\" y tu nombre, con un enlace \"Abrir mi panel\"."
           "Deja \"URL del servidor\" como está, salvo que uses otro servidor de Frunchy (uno propio). \"Usar el predeterminado\" vuelve a poner la dirección de este sitio." ]
       GuideSyncTitle = "Sincroniza tu historial"
       GuideSyncSteps =
