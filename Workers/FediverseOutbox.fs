@@ -35,13 +35,14 @@ type private Item =
 type private Outcome =
     /// Nothing more to do (an optional note is kept in `last_error`)
     | Finished of note: string option
-    /// Megáfono refused it for good: done, with the reason kept and a warning logged
+    /// Megáfono refused it for good: `failed`, with the reason kept and a warning logged; it is never retried
     | Refused of reason: string
     /// Try again later (`attempts + 1`, backoff)
     | Retry of reason: string
 
-/// Network failures, 5xx, an idempotency conflict, a wrong token (an operator fixes that) and throttling are
-/// transient; every other refusal is permanent
+/// Network failures (status 0), 5xx, 408, 409 (the idempotency conflict, research R5), 429 (throttling) and 401 (a
+/// wrong token: an operator fixes that, and then the item goes through) are transient and keep the backoff; every
+/// other 4xx (400 `invalid_request`, 403, 404, 410 not named as done by the item's kind…) is permanent
 let private isTransient (status: int) =
     status = 0 || status >= 500 || status = 401 || status = 408 || status = 409 || status = 429
 
@@ -135,7 +136,22 @@ let private finish (db: DbConfig) (now: DateTimeOffset) (item: Item) (outcome: O
 
         match outcome with
         | Finished note -> do! doneWith note
-        | Refused reason -> do! doneWith (Some reason)
+        | Refused reason ->
+            // `failed` leaves the queue like `done` does, but stays apart so `fediverse-status` and the author can see it
+            use cmd =
+                new NpgsqlCommand(
+                    """
+                    UPDATE fediverse_outbox
+                    SET state = 'failed', attempts = attempts + 1, claimed_at = NULL, last_error = @error
+                    WHERE id = @id
+                    """,
+                    connection
+                )
+
+            param cmd "error" reason
+            param cmd "id" item.Id
+            let! _ = cmd.ExecuteNonQueryAsync()
+            ()
         | Retry reason ->
             use cmd =
                 new NpgsqlCommand(
@@ -333,7 +349,26 @@ let private publishComment (connection: NpgsqlConnection) (client: HttpClient) (
                         return Finished None
                     | None when result.IsSuccess -> return Retry "unreadable answer"
                     | None -> return classify [] result
-                | _ -> return Retry "waiting for thread"
+                | _ ->
+                    // A thread whose publish was refused for good will never appear: waiting would never end. A newer
+                    // pending ensure_thread (another comment queued one) is still a chance, so then the wait goes on.
+                    use refused =
+                        new NpgsqlCommand(
+                            """
+                            SELECT EXISTS (SELECT 1 FROM fediverse_outbox WHERE kind = 'ensure_thread' AND subject = @group_key AND state = 'failed')
+                               AND NOT EXISTS (SELECT 1 FROM fediverse_outbox WHERE kind = 'ensure_thread' AND subject = @group_key AND state = 'pending')
+                            """,
+                            connection
+                        )
+
+                    param refused "group_key" groupKey
+
+                    let! isRefused = refused.ExecuteScalarAsync()
+
+                    if unbox<bool> isRefused then
+                        return Refused "thread refused"
+                    else
+                        return Retry "waiting for thread"
             | _ -> return Finished(Some "author can't federate")
     }
 
