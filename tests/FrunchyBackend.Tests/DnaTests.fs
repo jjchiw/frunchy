@@ -416,3 +416,17 @@ let ``viewing the page never calls MyAnimeList`` () =
         let! _ = get app "es" "/u/animenerd/dna"
         Assert.Empty app.Mal.Requests
     }
+
+[<Fact>]
+let ``the insignia poster is decorative (empty alt) and falls back to its box when the image fails to load`` () =
+    task {
+        let! app, _ = withSample ()
+        use app = app
+        let! html = dna app
+        let imgs = [ for m in Regex.Matches(html, "<img\\b[^>]*>") -> m.Value ]
+        Assert.NotEmpty imgs
+
+        for img in imgs do
+            Assert.Contains("alt=\"\"", img)
+            Assert.Contains("onerror=\"this.remove()\"", img)
+    }

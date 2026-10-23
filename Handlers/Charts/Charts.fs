@@ -85,18 +85,12 @@ let private movement (t: Texts) (move: Move) : HtmlElement =
     | Same -> line "same" None "text-on-surface-variant" Theme.TrendingFlat t.ChartsMoveSame
     | New -> (pill TertiaryTone t.ChartsMoveNew).data("move", "new")
 
-let private poster (p: Poster option) =
+let private rowPoster (p: Poster option) =
     span(class' = "flex w-12 shrink-0 justify-center sm:w-24") {
         match p with
-        | Some(Portrait url) ->
-            img(src = url, alt = "", class' = "aspect-[2/3] w-10 rounded-md object-cover sm:w-12")
-                .attr("loading", "lazy")
-                .attr("style", "box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4)")
-        | Some(Thumbnail url) ->
-            img(src = url, alt = "", class' = "aspect-video w-12 rounded-md object-cover sm:w-24")
-                .attr("loading", "lazy")
-                .attr("style", "box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4)")
-        | None -> Fragment()
+        | Some(Portrait url) -> poster (Some url) "aspect-[2/3] w-10 rounded-md sm:w-12"
+        | Some(Thumbnail url) -> poster (Some url) "aspect-video w-12 rounded-md sm:w-24"
+        | None -> poster None "aspect-[2/3] w-10 rounded-md sm:w-12"
     }
 
 let private row (t: Texts) (username: string option) (top: int) (rank: int) (r: ChartRow) =
@@ -111,7 +105,7 @@ let private row (t: Texts) (username: string option) (top: int) (rank: int) (r: 
         .data("episodes", string r.Episodes) {
         span(class' = $"w-8 shrink-0 text-right font-mono text-headline-md {rankTone}") { string rank }
 
-        poster r.Poster
+        rowPoster r.Poster
 
         div(class' = "min-w-0 flex-1 space-y-1.5") {
             div(class' = "flex flex-wrap items-center gap-x-3 gap-y-1") {

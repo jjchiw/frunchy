@@ -112,9 +112,7 @@ let private seasonName (t: Texts) (m: EpisodeModel) =
     | Some id, None, None -> Some id
 
 let private thumbnail (url: string) =
-    img(src = url, alt = "", class' = "aspect-video w-full max-w-xs shrink-0 rounded-md object-cover sm:w-64")
-        .attr("loading", "lazy")
-        .attr("style", "box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4)")
+    poster (Some url) "aspect-video w-full max-w-xs shrink-0 rounded-md sm:w-64"
 
 let private malBlock (t: Texts) (mal: MalBlock) =
     div(class' = "space-y-2").data("mal", string mal.MalId) {

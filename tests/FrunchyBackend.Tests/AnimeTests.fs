@@ -548,3 +548,18 @@ let ``the page is identical after re-sending and after a rebuild, and viewing ne
         Assert.Equal<string list>(signature before, signature rebuilt)
         Assert.Empty app.Mal.Requests
     }
+
+[<Fact>]
+let ``the poster is decorative and falls back to its box when the image fails to load`` () =
+    task {
+        let! app, _ = withSample ()
+        use app = app
+        let! series = seriesOfSeason app.Db "GRK5CNJ14"
+        let! html = anime app "en" series
+        let imgs = [ for m in Regex.Matches(html, "<img\\b[^>]*>") -> m.Value ]
+        Assert.NotEmpty imgs
+
+        for img in imgs do
+            Assert.Contains("alt=\"\"", img)
+            Assert.Contains("onerror=\"this.remove()\"", img)
+    }

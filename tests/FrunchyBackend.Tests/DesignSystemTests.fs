@@ -394,3 +394,23 @@ let ``the series page is on the design system and keeps its test hooks`` () =
 
         Assert.True(problems.Count = 0, String.Join(Environment.NewLine, problems))
     }
+
+// ---------------------------------------------------------------------------
+// The shared poster: a placeholder box, with the image on top only when there is a URL
+// ---------------------------------------------------------------------------
+
+[<Fact>]
+let ``a poster without a URL is the placeholder box alone`` () =
+    let html = Oxpecker.ViewEngine.Render.toString (Components.poster None "aspect-[2/3] w-32 rounded-md")
+    Assert.DoesNotContain("<img", html)
+    Assert.Contains("bg-surface-container-high", html)
+    Assert.Contains("aspect-[2/3] w-32 rounded-md", html)
+
+[<Fact>]
+let ``a poster with a URL is decorative, lazy, and removes itself when it fails to load`` () =
+    let html = Oxpecker.ViewEngine.Render.toString (Components.poster (Some "https://img.example/p.jpg") "aspect-video w-12")
+    Assert.Contains("src=\"https://img.example/p.jpg\"", html)
+    Assert.Contains("alt=\"\"", html)
+    Assert.Contains("loading=\"lazy\"", html)
+    Assert.Contains("onerror=\"this.remove()\"", html)
+    Assert.Contains("bg-surface-container-high", html)

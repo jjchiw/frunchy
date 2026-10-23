@@ -145,9 +145,7 @@ let private topSeries (t: Texts) (username: string) (s: TopSeries) =
         div(class' = "flex flex-col gap-5 sm:flex-row lg:flex-col xl:flex-row") {
             match s.Poster with
             | Some url ->
-                img(src = url, alt = s.Title, class' = "aspect-[2/3] w-32 shrink-0 rounded-md object-cover sm:w-40")
-                    .attr("loading", "lazy")
-                    .attr("style", "box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4)")
+                poster (Some url) "aspect-[2/3] w-32 shrink-0 rounded-md sm:w-40"
             | None -> Fragment()
 
             div(class' = "flex min-w-0 flex-col gap-2") {
