@@ -145,6 +145,11 @@ type SecurityEventType =
     | InviteCreated
     | InviteRevoked
     | SignUpModeChanged
+    /// The three that replace ProfileVisibilityChanged: they say which level the profile became. The old event stays so
+    /// rows already stored still read.
+    | ProfileMadePublic
+    | ProfileMadeMembers
+    | ProfileMadePrivate
 
 module SecurityEventType =
     let toDb =
@@ -176,6 +181,9 @@ module SecurityEventType =
         | SecurityEventType.InviteCreated -> "invite_created"
         | SecurityEventType.InviteRevoked -> "invite_revoked"
         | SecurityEventType.SignUpModeChanged -> "signup_mode_changed"
+        | SecurityEventType.ProfileMadePublic -> "profile_made_public"
+        | SecurityEventType.ProfileMadeMembers -> "profile_made_members"
+        | SecurityEventType.ProfileMadePrivate -> "profile_made_private"
 
     let all =
         [ SecurityEventType.AccountCreated; SecurityEventType.SignedIn; SecurityEventType.Claimed
@@ -187,6 +195,7 @@ module SecurityEventType =
           SecurityEventType.FediverseBlockAdded; SecurityEventType.FediverseBlockRemoved
           SecurityEventType.ProfileVisibilityChanged; SecurityEventType.ShareLinkCreated
           SecurityEventType.ShareLinkReplaced; SecurityEventType.ShareLinkRevoked
-          SecurityEventType.InviteCreated; SecurityEventType.InviteRevoked; SecurityEventType.SignUpModeChanged ]
+          SecurityEventType.InviteCreated; SecurityEventType.InviteRevoked; SecurityEventType.SignUpModeChanged
+          SecurityEventType.ProfileMadePublic; SecurityEventType.ProfileMadeMembers; SecurityEventType.ProfileMadePrivate ]
 
     let tryFromDb (value: string) = all |> List.tryFind (fun e -> toDb e = value)

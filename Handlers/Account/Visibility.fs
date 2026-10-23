@@ -53,7 +53,15 @@ let private save
         cmd.Parameters.AddWithValue("id", userId) |> ignore
         cmd.Parameters.AddWithValue("visibility", Profiles.Visibility.toDb visibility) |> ignore
         let! _ = cmd.ExecuteNonQueryAsync()
-        do! SecurityEvents.record connection tx userId SecurityEventType.ProfileVisibilityChanged None Actor.User
+
+        // The event names the level it became (the older profile_visibility_changed rows keep their label)
+        let event =
+            match visibility with
+            | Profiles.Public -> SecurityEventType.ProfileMadePublic
+            | Profiles.Members -> SecurityEventType.ProfileMadeMembers
+            | Profiles.Private -> SecurityEventType.ProfileMadePrivate
+
+        do! SecurityEvents.record connection tx userId event None Actor.User
 
         // The actor's discoverable and indexable flags follow the level: Megáfono looks the profile up again
         // (feature 015), in the same transaction, and only when the level really changed

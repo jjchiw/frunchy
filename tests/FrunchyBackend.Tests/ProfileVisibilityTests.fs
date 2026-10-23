@@ -111,7 +111,7 @@ let ``an invalid value, a missing token and a signed-out post change nothing`` (
 
         let! rows = rowCount w
         Assert.Equal(0L, rows)
-        let! changed = eventCount w "profile_visibility_changed"
+        let! changed = eventCount w "profile_made_public"
         Assert.Equal(0L, changed)
         let! status = statusOf w.Stranger "/u/animenerd"
         Assert.Equal(HttpStatusCode.NotFound, status)
@@ -123,9 +123,50 @@ let ``each change records a security event and the account page lists it`` () =
         use! w = world [ defaultKey, "private" ]
         let! _ = setVisibility w.Owner "public"
         let! _ = setVisibility w.Owner "private"
-        let! changed = eventCount w "profile_visibility_changed"
-        Assert.Equal(2L, changed)
+        let! madePublic = eventCount w "profile_made_public"
+        let! madePrivate = eventCount w "profile_made_private"
+        let! old = eventCount w "profile_visibility_changed"
+        Assert.Equal(1L, madePublic)
+        Assert.Equal(1L, madePrivate)
+        Assert.Equal(0L, old)
 
         let! page = w.Owner.Get "/account"
-        Assert.Contains("data-security-event=\"profile_visibility_changed\"", page.Html)
+        Assert.Contains("data-security-event=\"profile_made_public\"", page.Html)
+        Assert.Contains("data-security-event=\"profile_made_private\"", page.Html)
+    }
+
+[<Fact>]
+let ``the account page names the level each change set, in English and Spanish`` () =
+    task {
+        use! w = world [ defaultKey, "private" ]
+
+        let expected =
+            [ "public", "profile_made_public", "Profile made public", "Perfil hecho público"
+              "members", "profile_made_members", "Profile set to members", "Perfil solo para miembros"
+              "private", "profile_made_private", "Profile made private", "Perfil hecho privado" ]
+
+        for level, _, _, _ in expected do
+            let! _ = setVisibility w.Owner level
+            ()
+
+        // a row from before this change still reads
+        let! _ =
+            Db.scalar<int64>
+                w.App.Db
+                "WITH ins AS (INSERT INTO security_events (user_id, event, actor) SELECT id, 'profile_visibility_changed', 'user' FROM users WHERE username = 'animenerd' RETURNING 1) SELECT count(*) FROM ins"
+                []
+
+        let! english = w.Owner.Get "/account"
+        Assert.Contains("Profile visibility changed", english.Html)
+
+        for _, event, en, _ in expected do
+            Assert.Contains($"data-security-event=\"{event}\"", english.Html)
+            Assert.Contains(en, english.Html)
+
+        let! _ = w.Owner.Get "/language/es?returnUrl=%2Faccount"
+        let! spanish = w.Owner.Get "/account"
+        Assert.Contains("Visibilidad del perfil cambiada", spanish.Html)
+
+        for _, _, _, es in expected do
+            Assert.Contains(es, spanish.Html)
     }

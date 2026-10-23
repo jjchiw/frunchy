@@ -218,7 +218,7 @@ let ``choosing members is stored, recorded, and shown`` () =
         let! events =
             Db.scalar<int64>
                 w.App.Db
-                "SELECT count(*) FROM security_events e JOIN users u ON u.id = e.user_id WHERE u.username = 'animenerd' AND e.event = 'profile_visibility_changed'"
+                "SELECT count(*) FROM security_events e JOIN users u ON u.id = e.user_id WHERE u.username = 'animenerd' AND e.event = 'profile_made_members'"
                 []
 
         Assert.Equal(1L, events)
