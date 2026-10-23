@@ -80,6 +80,8 @@ let private nextSteps (t: Texts) =
                     span(class' = "pt-0.5") { step }
                 }
         }
+
+        a(href = "/guide#connect", class' = "fr-link text-body-md").data("guide-link", "") { t.GuideReadLink }
     }
 
 /// Step 2, the only time the key is ever shown

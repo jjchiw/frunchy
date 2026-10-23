@@ -120,6 +120,12 @@ let ``save the HTML of the signed-in pages for a design review`` () =
             use visitor = app.NewBrowser language
             do! getInto visitor "home" language "/"
             do! getInto visitor "signin" language "/signin"
+            do! getInto visitor "guide" language "/guide"
+
+            // back from a provider with no account yet: the sign-up form (the guide's sign-up step)
+            use newcomer = app.NewBrowser language
+            let! _ = signInWith newcomer $"sub-newcomer-{language}"
+            do! getInto newcomer "signup" language "/signup"
 
             // signed in as the root operator
             use root = app.NewBrowser language
@@ -142,6 +148,10 @@ let ``save the HTML of the signed-in pages for a design review`` () =
             use! link = root.PostForm("/account", "/account/share-link", [])
             do! saveResponse "share-link-created" language link
             do! getInto root "account-shared" language "/account"
+
+            // the sync key, shown once (a throwaway key of this test database; the guide's connect step)
+            use! key = root.PostForm("/account/key", "/account/key", [])
+            do! saveResponse "sync-key" language key
 
         printfn "page snapshots: %s" htmlDir
     }

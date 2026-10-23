@@ -47,6 +47,8 @@ let endpoints =
       Handlers.Home.endpoint
       // Feature 024: the language preference cookie
       Handlers.Language.endpoint
+      // The install guide for people who got an invite (anyone)
+      Handlers.Guide.endpoint
       Handlers.Api.CreateImport.endpoint
       Handlers.Api.GetImportStatus.endpoint
       Handlers.Api.WhoAmI.endpoint
@@ -478,12 +480,23 @@ let private useForwardedHeaders (app: WebApplication) =
         for network in networks do options.KnownIPNetworks.Add network
         app.UseForwardedHeaders options |> ignore
 
+/// wwwroot (the install guide's screenshots): a day in the browser's cache. What isn't a file falls through
+/// to the app, so a missing file gets the plain 404 page.
+let private staticFilesOptions () =
+    let options = StaticFileOptions()
+
+    options.OnPrepareResponse <-
+        fun context -> context.Context.Response.Headers.CacheControl <- "public, max-age=86400"
+
+    options
+
 let configureApp (app: WebApplication) =
     // Before anything that reads the scheme, host or client address (authentication, rate limiting, redirects)
     useForwardedHeaders app
 
     app
         .UseRequestLocalization(localizationOptions ())
+        .UseStaticFiles(staticFilesOptions ())
         .UseRouting()
         .UseAuthentication()
         .UseRateLimiter()

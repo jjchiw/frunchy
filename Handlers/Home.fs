@@ -103,6 +103,11 @@ let private howToSync (t: Texts) =
                 }
         }
 
+        a(href = "/guide", class' = btn Secondary).data("guide-link", "") {
+            t.GuideReadLink
+            icon Theme.ArrowForward
+        }
+
         p(class' = "flex max-w-prose items-start gap-2 text-body-md text-on-surface-variant") {
             span(class' = "text-primary") { icon Theme.Lock }
             span() { t.HomeNoPassword }
