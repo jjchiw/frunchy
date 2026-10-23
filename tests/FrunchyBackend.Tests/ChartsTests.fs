@@ -889,7 +889,7 @@ let ``no user text enters the trend graphic: a hostile title and a hostile slug 
     }
 
 [<Fact>]
-let ``week and season answer in under a second, all time in under 4 seconds cold and under a second cached, over 2 million watch events`` () =
+let ``week and season answer in under a second, all time in under 4 seconds cold (best of 3) and under half a second cached, over 2 million watch events`` () =
     task {
         let! db = newDatabase ()
         let setup = Diagnostics.Stopwatch.StartNew()
@@ -933,12 +933,28 @@ let ``week and season answer in under a second, all time in under 4 seconds cold
             Assert.NotEmpty(parseRows html)
             times.Add((window, watch.ElapsedMilliseconds))
 
-        // all time: the cold first GET runs the statement, the second is served from the 10-minute copy
-        let cold = Diagnostics.Stopwatch.StartNew()
-        let! coldHtml = pageOf app.Client "en" (path "all")
-        cold.Stop()
-        Assert.NotEmpty(parseRows coldHtml)
-        times.Add(("all cold", cold.ElapsedMilliseconds))
+        // All time: the first GET runs the statement (cold), the next one is served from the 10-minute copy.
+        // The statement aggregates all 2M (series, user) pairs (this fixture has 100 distinct series per user),
+        // which no index helps: EXPLAIN shows ~0.6 s of scan and join and ~1.5 s of hash aggregate spilling to
+        // disk, ~2 s in all on an idle arm64 Mac (research R4). That is what the 10-minute copy is for. A single
+        // cold sample on a shared or loaded machine was seen at 6 to 7 s, so the cold path is measured three
+        // times (the copy is dropped between samples) and the best one is held to the limit: a slow machine
+        // slows only some samples, while a slower statement slows every one.
+        let cache = app.Services.GetRequiredService<IMemoryCache>() :?> MemoryCache
+        let colds = Collections.Generic.List<int64>()
+        let mutable coldHtml = ""
+
+        for _ in 1..3 do
+            cache.Clear()
+            let cold = Diagnostics.Stopwatch.StartNew()
+            let! html = pageOf app.Client "en" (path "all")
+            cold.Stop()
+            Assert.NotEmpty(parseRows html)
+            colds.Add cold.ElapsedMilliseconds
+            coldHtml <- html
+
+        times.Add(("all cold", Seq.min colds))
+        let coldSamples = String.Join("/", colds)
 
         let warm = Diagnostics.Stopwatch.StartNew()
         let! warmHtml = pageOf app.Client "en" (path "all")
@@ -946,12 +962,12 @@ let ``week and season answer in under a second, all time in under 4 seconds cold
         Assert.Equal<Expected list>(asExpected (parseRows coldHtml), asExpected (parseRows warmHtml))
         times.Add(("all warm", warm.ElapsedMilliseconds))
 
-        let report = String.Join(", ", times |> Seq.map (fun (w, ms) -> $"{w} {ms} ms")) + $" (setup {int setupTime.TotalSeconds} s)"
+        let report = String.Join(", ", times |> Seq.map (fun (w, ms) -> $"{w} {ms} ms")) + $" (cold samples {coldSamples} ms, setup {int setupTime.TotalSeconds} s)"
         printfn "charts at 2M events: %s" report
         let under (name: string) (limit: int64) = times |> Seq.find (fun (w, _) -> w = name) |> snd < limit
         Assert.True(under "week" 1000L && under "season" 1000L, "week or season took 1 second or more over 2M events: " + report)
-        Assert.True(under "all cold" 4000L, "the cold all-time chart took 4 seconds or more over 2M events: " + report)
-        Assert.True(under "all warm" 1000L, "the cached all-time chart took 1 second or more over 2M events: " + report)
+        Assert.True(under "all cold" 4000L, "the cold all-time chart took 4 seconds or more in every one of 3 samples over 2M events: " + report)
+        Assert.True(under "all warm" 500L, "the cached all-time chart took half a second or more over 2M events: " + report)
     }
 
 // ===========================================================================
