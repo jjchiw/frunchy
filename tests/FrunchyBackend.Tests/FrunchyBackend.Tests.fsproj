@@ -22,6 +22,7 @@
     <Compile Include="TestHelpers.fs" />
     <Compile Include="AuthHelpers.fs" />
     <Compile Include="HomeTests.fs" />
+    <Compile Include="GuideTests.fs" />
     <Compile Include="LanguageSwitchTests.fs" />
     <Compile Include="CrunchyrollPageTests.fs" />
     <Compile Include="CreateImportTests.fs" />
@@ -107,6 +108,8 @@
   <ItemGroup>
     <None Include="../../JsonSamples/PostHistory.json;../../JsonSamples/crunchyroll-history-2026-sample.json" LinkBase="JsonSamples" CopyToOutputDirectory="PreserveNewest" />
     <None Include="JsonSamples/jikan/*.json;JsonSamples/mal/*.json" CopyToOutputDirectory="PreserveNewest" />
+    <!-- The install guide's screenshots: the app serves wwwroot from the content root, which in the tests is the bin folder -->
+    <None Include="../../wwwroot/**" Link="wwwroot/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

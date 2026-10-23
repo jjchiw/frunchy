@@ -52,6 +52,7 @@
     <Compile Include="Handlers/Health.fs" />
     <Compile Include="Handlers/Home.fs" />
     <Compile Include="Handlers/Language.fs" />
+    <Compile Include="Handlers/Guide.fs" />
     <Compile Include="Handlers/Api/CreateImport.fs" />
     <Compile Include="Handlers/Api/GetImportStatus.fs" />
     <Compile Include="Handlers/Api/WhoAmI.fs" />

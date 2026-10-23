@@ -98,8 +98,9 @@ let view (ctx: HttpContext) (t: Texts) (mode: SignUpMode.SignUpMode) (values: Fo
             button(type' = "submit", class' = btn Primary + " w-full") { t.CreateAccountButton }
         }
 
-        div(class' = "border-t border-outline-variant/40 pt-5 text-center") {
+        div(class' = "flex flex-col items-center gap-3 border-t border-outline-variant/40 pt-5 text-center") {
             a(href = "/claim", class' = "fr-link text-body-md").data("claim-link", "") { t.HaveAccountLink }
+            a(href = "/guide", class' = "fr-link text-body-md").data("guide-link", "") { t.GuideReadLink }
         }
     }
     |> centredCard

@@ -38,6 +38,11 @@ new image. Add to "Unreleased" as you work; a release renames it.
 
 ### Added
 
+- A public install guide at `/guide`, in English and Spanish, for people who got an invite: installing the
+  extension, signing up with the invite, connecting the extension, syncing the history, the dashboard and
+  the Anime DNA, profile visibility and deleting the account, with screenshots. The home, sign-up and
+  sync-key pages link to it. Frunchy now serves the files in `wwwroot` (the guide's screenshots) with a
+  one-day browser cache.
 - The home page links the Frunchy extension in the Chrome Web Store ("Get the Chrome extension")
   and Frunchy's source code on GitHub.
 - The setup invite: while Frunchy has no accounts, every start prints a one-time invite in the
@@ -55,6 +60,8 @@ new image. Add to "Unreleased" as you work; a release renames it.
 - The profile pages share one top: the person's name, then a tab bar (Dashboard, Anime DNA, Year in
   review) that shows which view you are on. It replaces the buttons that were scattered on each page
   and is on the series and comparison pages too, with nothing selected there.
+- In Spanish the dashboard is always "panel", the word of its tab; the home steps, sign-in, sign-up
+  and account pages said "dashboard".
 
 ## 0.3.0 - 2026-10-21
 
