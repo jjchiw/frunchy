@@ -169,3 +169,19 @@ let ``account page in Spanish`` () =
         Assert.Contains("Tu cuenta", page.Html)
         Assert.Contains("Conectar la extensión", page.Html)
     }
+
+[<Fact>]
+let ``the profile row says Your dashboard whatever the visibility, in both languages`` () =
+    task {
+        for language, label, old in [ "en", "Your dashboard", "Public dashboard"; "es", "Tu panel", "Dashboard público" ] do
+            use! app = newApp ()
+            let! invite = createInvite app
+            use browser = app.NewBrowser language
+            let! _ = submitSignUp browser "sub-1" invite "animenerd" "AnimeNerd"
+
+            for visibility in [ "public"; "members"; "private" ] do
+                let! _ = browser.PostForm("/account", "/account/visibility", [ "visibility", visibility ])
+                let! page = browser.Get "/account"
+                Assert.Contains(label, page.Html)
+                Assert.DoesNotContain(old, page.Html)
+    }

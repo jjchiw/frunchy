@@ -44,6 +44,14 @@ new image. Add to "Unreleased" as you work; a release renames it.
   review) that shows which view you are on. It replaces the buttons that were scattered on each page
   and is on the series and comparison pages too, with nothing selected there.
 
+### Fixed
+
+- A poster or thumbnail that fails to load shows a plain placeholder box instead of the browser's
+  broken-image icon, on every page that has one. All posters are now decorative, with an empty alt
+  text (the title is beside them).
+- On `/account` the dashboard row is labelled "Your dashboard" ("Tu panel") whatever the profile's
+  visibility; it said "Public dashboard" even for Members and Private profiles.
+
 ## 0.3.0 - 2026-10-21
 
 ### Added

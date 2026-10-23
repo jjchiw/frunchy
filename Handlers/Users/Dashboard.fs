@@ -149,8 +149,7 @@ let private recentItem (t: Texts) (username: string) (e: RecentEpisode) =
         match e.ThumbnailUrl with
         | Some url ->
             // Decorative: the title is right next to it
-            img(src = url, alt = "", class' = $"aspect-video w-full rounded-md bg-surface-container object-cover {thumbRows}")
-                .attr("loading", "lazy")
+            poster (Some url) $"aspect-video w-full rounded-md {thumbRows}"
         | None -> Fragment()
 
         div(class' = "min-w-0 space-y-1") {
