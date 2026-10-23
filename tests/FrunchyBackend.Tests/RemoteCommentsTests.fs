@@ -131,8 +131,16 @@ let ``markup in remote content shows as text and no remote markup reaches the pa
         do! deliver env (receivedJson { reply env.ThreadId 2 with Content = "<p>&lt;script&gt;alert(3)&lt;/script&gt; &lt;b&gt;shown&lt;/b&gt;</p>"; Name = "<i>Mallory</i>" })
 
         let! raw = rawPage env
+        // The comment thread, where remote content lands: the page itself legitimately carries Frunchy's own
+        // markup there is none of in the thread (the poster's onerror fallback, its img)
+        let thread =
+            let m = System.Text.RegularExpressions.Regex.Match(raw, "<section [^>]*data-thread=[\\s\\S]*?</section>")
+            Assert.True(m.Success, "the comment thread section is on the page")
+            m.Value
+
         Assert.DoesNotContain("<script>alert", raw)
-        Assert.DoesNotContain("onerror", raw)
+        Assert.DoesNotContain("onerror", thread)
+        Assert.DoesNotContain("<img", thread)
         Assert.DoesNotContain("<img src=x", raw)
         Assert.DoesNotContain("<b>shown", raw)
         Assert.DoesNotContain("<i>Mallory", raw)
