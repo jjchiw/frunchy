@@ -359,6 +359,7 @@ No Aspire, no Megáfono: Frunchy is a complete web app without federation (`Frun
 | `Frunchy:Megafono:Url` | | Megáfono's **internal** API base URL (port 8081), never through the gateway |
 | `Frunchy:Megafono:Token`, `Frunchy:Megafono:WebhookSecret` | | Bearer token and webhook HMAC key shared with Megáfono |
 | `Frunchy:SetupInvite:Enabled` | `true` | While there are no accounts, each web start prints a one-time setup invite in the console (its account becomes an operator). `false` for self-hosters who create the first account with the CLI |
+| `Frunchy:Database:StartupWaitSeconds` | `60` | How long a start (web or CLI) waits for the database to accept a connection, retrying after 1 s, 2 s, then every 3 s, before exiting with an error. `0` fails at once. Lets Frunchy and its Postgres start together |
 | `Frunchy:TrustedProxies` | empty | Comma- or semicolon-separated IPs or CIDRs whose `X-Forwarded-For/-Proto/-Host` are believed; empty means none |
 
 ### Setting added by feature 017

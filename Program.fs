@@ -598,6 +598,8 @@ let private runCli (command: string) (rest: string list) : int =
           Profiles = Profiles.read config }
 
     task {
+        // Waits (stderr, so a command's own output stays clean) as the web start does
+        do! waitForDatabase db (startupWait config) (eprintfn "%s")
         do! initializeSchema db
         return! cliCommands[command] env rest
     }
@@ -663,6 +665,8 @@ let main args =
 
             task {
                 let db = app.Services.GetRequiredService<DbConfig>()
+                // The database may start together with the app (Caravana): wait for it instead of exiting
+                do! waitForDatabase db (startupWait app.Configuration) (fun message -> app.Logger.LogInformation("{Message}", message))
                 do! initializeSchema db
                 do! announceSetupInvite app db
                 do! app.RunAsync()

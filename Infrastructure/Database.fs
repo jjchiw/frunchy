@@ -1,6 +1,9 @@
 module FrunchyBackend.Infrastructure.Database
 
+open System
+open System.Diagnostics
 open System.Threading.Tasks
+open Microsoft.Extensions.Configuration
 open Npgsql
 
 type DbConfig =
@@ -9,6 +12,56 @@ type DbConfig =
 /// Get a database connection from the connection string
 let getConnection (config: DbConfig) : NpgsqlConnection =
     new NpgsqlConnection(config.connectionString)
+
+/// How long a start waits for the database to accept a connection (`Frunchy:Database:StartupWaitSeconds`, default 60;
+/// 0 means no waiting). On Caravana the app and its Postgres start together, so the first connection may be refused.
+let StartupWaitKey = "Frunchy:Database:StartupWaitSeconds"
+
+let startupWait (config: IConfiguration) : TimeSpan =
+    match config[StartupWaitKey] with
+    | null -> TimeSpan.FromSeconds 60.0
+    | raw when String.IsNullOrWhiteSpace raw -> TimeSpan.FromSeconds 60.0
+    | raw ->
+        match Int32.TryParse(raw.Trim()) with
+        | true, seconds when seconds >= 0 && seconds <= 3600 -> TimeSpan.FromSeconds(float seconds)
+        | _ -> raise (InvalidOperationException $"{StartupWaitKey} must be a whole number of seconds from 0 to 3600")
+
+/// Wait until the database answers `SELECT 1`. A failed attempt is retried after 1 s, then 2 s, then 3 s each time
+/// (never past the limit), and every wait is reported through `log`: the attempt number, the seconds waited so far and
+/// the exception's type and message (never the connection string). After `maxWait` it throws, so the start fails as
+/// it always did. A `maxWait` of zero tries once.
+let waitForDatabase (config: DbConfig) (maxWait: TimeSpan) (log: string -> unit) : Task<unit> =
+    task {
+        let clock = Stopwatch.StartNew()
+        let mutable attempt = 0
+        let mutable ready = false
+
+        while not ready do
+            attempt <- attempt + 1
+
+            try
+                use connection = getConnection config
+                do! connection.OpenAsync()
+                use cmd = new NpgsqlCommand("SELECT 1", connection)
+                let! _ = cmd.ExecuteScalarAsync()
+                ready <- true
+            with ex ->
+                let remaining = maxWait - clock.Elapsed
+
+                if remaining <= TimeSpan.Zero then
+                    raise (
+                        InvalidOperationException(
+                            $"The database did not answer within {int maxWait.TotalSeconds}s ({attempt} attempt(s))",
+                            ex
+                        )
+                    )
+
+                log
+                    $"Waiting for the database ({attempt}, {int clock.Elapsed.TotalSeconds}s): {ex.GetType().Name}: {ex.Message}"
+
+                let step = TimeSpan.FromSeconds(float (min attempt 3))
+                do! Task.Delay(if step < remaining then step else remaining)
+    }
 
 // See specs/001-crunchyroll-history-import/data-model.md and SCHEMA.md
 let private schema =
