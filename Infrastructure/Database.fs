@@ -286,7 +286,7 @@ let private schema =
         kind            text NOT NULL CHECK (kind IN ('ensure_thread', 'publish_comment', 'update_comment', 'delete_comment',
                                                        'delete_actor', 'refresh_profile')),
         subject         text NOT NULL,
-        state           text NOT NULL DEFAULT 'pending' CHECK (state IN ('pending', 'done')),
+        state           text NOT NULL DEFAULT 'pending' CHECK (state IN ('pending', 'done', 'failed')),
         attempts        int NOT NULL DEFAULT 0,
         next_attempt_at timestamptz NOT NULL DEFAULT now(),
         claimed_at      timestamptz NULL,
@@ -457,6 +457,33 @@ let private upgrades =
 
     -- Feature 023: invites.is_setup marks the setup invite; existing invites read false
     ALTER TABLE invites ADD COLUMN IF NOT EXISTS is_setup boolean NOT NULL DEFAULT false;
+
+    -- Feature 015 fix: fediverse_outbox.state accepts 'failed' (Megáfono refused the item for good). An older database
+    -- has CHECK (state IN ('pending', 'done')) under whatever name Postgres gave it; find it by what it says (it names
+    -- state and lacks 'failed'), drop it by that real name, and add the three-value check.
+    DO $$
+    DECLARE
+        old_check text;
+        replaced  boolean := false;
+    BEGIN
+        FOR old_check IN
+            SELECT c.conname
+            FROM pg_constraint c
+            WHERE c.conrelid = 'fediverse_outbox'::regclass
+              AND c.contype = 'c'
+              AND pg_get_constraintdef(c.oid) LIKE '%state%'
+              AND pg_get_constraintdef(c.oid) NOT LIKE '%failed%'
+        LOOP
+            EXECUTE format('ALTER TABLE fediverse_outbox DROP CONSTRAINT %I', old_check);
+            replaced := true;
+        END LOOP;
+
+        IF replaced THEN
+            ALTER TABLE fediverse_outbox
+                ADD CONSTRAINT fediverse_outbox_state_check
+                CHECK (state IN ('pending', 'done', 'failed'));
+        END IF;
+    END $$;
     """
 
 /// Any number, the same for every copy of Frunchy: the lock that makes two starting copies take turns

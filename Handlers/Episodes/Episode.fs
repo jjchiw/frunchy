@@ -79,7 +79,9 @@ type Comment =
       CreatedAt: DateTime
       EditedAt: DateTime option
       /// Hidden by an operator: a placeholder for everyone else
-      Hidden: bool }
+      Hidden: bool
+      /// Megáfono refused this comment's publish for good (feature 015): only its author is told
+      NotFederated: bool }
 
 /// What the comment form shows: a freshly minted id, and after a refusal the typed text and the error
 type FormState =
@@ -355,6 +357,13 @@ let private commentView (ctx: HttpContext) (t: Texts) (viewer: Guid option) (gra
         else
             body
 
+        // Only the author hears that the fediverse never got it (feature 015); the comment is fine on Frunchy
+        if isAuthor && c.NotFederated then
+            p(class' = "flex items-center gap-2 text-label-md font-normal text-on-surface-variant").data("comment-not-federated", "") {
+                icon Theme.Info
+                span() { t.CommentNotFederated }
+            }
+
         if isAuthor || isOperator then
             controls ctx t isAuthor isOperator c
     }
@@ -549,7 +558,9 @@ let private loadThread (connection: NpgsqlConnection) (settings: Profiles.Profil
                        c.content, c.summary, c.sensitive, c.created_at, c.edited_at,
                        c.hidden_at IS NOT NULL,
                        c.format, c.remote_actor, ra.handle, ra.name, ra.profile_url,
-                       ps.visibility, ps.share_link_id
+                       ps.visibility, ps.share_link_id,
+                       EXISTS (SELECT 1 FROM fediverse_outbox o
+                               WHERE o.kind = 'publish_comment' AND o.subject = c.id AND o.state = 'failed')
                 FROM comments c
                 LEFT JOIN users u ON u.id = c.author_user_id
                 LEFT JOIN profile_settings ps ON ps.user_id = c.author_user_id
@@ -607,7 +618,8 @@ let private loadThread (connection: NpgsqlConnection) (settings: Profiles.Profil
                   Sensitive = sensitive
                   CreatedAt = r.GetDateTime 8
                   EditedAt = (if r.IsDBNull 9 then None else Some(r.GetDateTime 9))
-                  Hidden = r.GetBoolean 10 }
+                  Hidden = r.GetBoolean 10
+                  NotFederated = r.GetBoolean 18 }
 
         return List.ofSeq rows
     }

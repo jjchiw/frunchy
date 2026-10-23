@@ -207,3 +207,76 @@ let ``copies starting together on an invites table without is_setup all succeed`
         let! after = setupColumn db
         Assert.Equal<string list>([ "boolean|NO|false" ], after)
     }
+
+// ---------------------------------------------------------------------------
+// fediverse_outbox.state gains 'failed' (feature 015 fix)
+// ---------------------------------------------------------------------------
+
+/// `fediverse_outbox` as feature 015 created it: state is only pending or done
+let private outboxShapeBefore =
+    """
+    DROP TABLE fediverse_outbox;
+    CREATE TABLE fediverse_outbox (
+        id              bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+        kind            text NOT NULL CHECK (kind IN ('ensure_thread', 'publish_comment', 'update_comment', 'delete_comment',
+                                                       'delete_actor', 'refresh_profile')),
+        subject         text NOT NULL,
+        state           text NOT NULL DEFAULT 'pending' CHECK (state IN ('pending', 'done')),
+        attempts        int NOT NULL DEFAULT 0,
+        next_attempt_at timestamptz NOT NULL DEFAULT now(),
+        claimed_at      timestamptz NULL,
+        last_error      text NULL,
+        created_at      timestamptz NOT NULL DEFAULT now(),
+        done_at         timestamptz NULL
+    );
+    CREATE INDEX IF NOT EXISTS ix_fediverse_outbox_pending ON fediverse_outbox (next_attempt_at, id) WHERE state = 'pending';
+    """
+
+let private setOutboxFailed (db: DbConfig) =
+    Db.execute db "UPDATE fediverse_outbox SET state = 'failed', last_error = '400 invalid_request' WHERE subject = 's1'"
+
+let private outboxChecks (db: DbConfig) =
+    Db.dump
+        db
+        "SELECT oid::text || '|' || conname || '|' || pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = 'fediverse_outbox'::regclass AND contype = 'c' AND pg_get_constraintdef(oid) LIKE '%state%'"
+
+[<Fact>]
+let ``the upgrade lets an older outbox hold failed items, keeps its rows, and the second run changes nothing`` () =
+    task {
+        let! db = newEmptyDatabase ()
+        do! initializeSchema db
+        do! Db.execute db outboxShapeBefore
+        do! Db.execute db "INSERT INTO fediverse_outbox (kind, subject, state) VALUES ('refresh_profile', 's1', 'pending'), ('refresh_profile', 's2', 'done')"
+
+        let! error = Assert.ThrowsAnyAsync<PostgresException>(fun () -> setOutboxFailed db :> Task)
+        Assert.Equal("23514", error.SqlState)
+
+        do! initializeSchema db
+        do! setOutboxFailed db
+        let! error2 = Assert.ThrowsAnyAsync<PostgresException>(fun () -> Db.execute db "UPDATE fediverse_outbox SET state = 'lost' WHERE subject = 's2'" :> Task)
+        Assert.Equal("23514", error2.SqlState)
+
+        let! rows = Db.dump db "SELECT subject || '|' || state FROM fediverse_outbox ORDER BY id"
+        Assert.Equal<string list>([ "s1|failed"; "s2|done" ], rows)
+
+        // the next starts leave the constraint alone
+        let! before = outboxChecks db
+        do! initializeSchema db
+        do! initializeSchema db
+        let! after = outboxChecks db
+        Assert.Equal<string list>(before, after)
+        Assert.Equal(1, after.Length)
+        Assert.Contains("fediverse_outbox_state_check", after[0])
+    }
+
+[<Fact>]
+let ``a fresh database accepts failed outbox items and the upgrade leaves it alone`` () =
+    task {
+        let! db = newEmptyDatabase ()
+        do! initializeSchema db
+        let! before = outboxChecks db
+        do! Db.execute db "INSERT INTO fediverse_outbox (kind, subject, state) VALUES ('refresh_profile', 's1', 'failed')"
+        do! initializeSchema db
+        let! after = outboxChecks db
+        Assert.Equal<string list>(before, after)
+    }

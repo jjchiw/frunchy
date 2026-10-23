@@ -235,6 +235,37 @@ let ``fediverse-status reports the settings without secrets, the outbox counts a
     }
 
 [<Fact>]
+let ``fediverse-status lists what Megafono refused for good apart from what waits`` () =
+    task {
+        use! app = sample true
+        let! ep = pickEpisode app.Db "e.episode_number IS NOT NULL AND sea.season_number IS NOT NULL AND e.title IS NOT NULL"
+        use! alice = signedUp app "sub-a" "alice"
+        let! _ = postComment alice ep.Series ep.Episode "Hello" false
+        let leaky = $$"""{"error":"invalid_request","message":"{{FakeMegafono.Token}}"}"""
+        app.Megafono.Route("POST /internal/actors/series-*/objects", [ FakeMegafono.Body(400, leaky) ])
+        let! _ = drainOutbox app
+
+        let! s = FediverseStatus.status app.Db
+        let settings = app.Services.GetRequiredService<Federation.FederationSettings>()
+        let lines = FediverseStatus.render settings s
+        let text = String.Join("\n", lines)
+
+        Assert.Equal<(string * int64) list>([ "ensure_thread", 1L; "publish_comment", 1L ], s.FailedByKind)
+        Assert.Equal(2, s.Failed.Length)
+        Assert.Equal(None, s.Oldest)
+        Assert.Contains("OLDEST     nothing waiting", lines)
+        Assert.Contains("FAILED     2 refused for good, not retried", lines)
+        Assert.Contains(": 400 invalid_request", text)
+        Assert.Contains(": thread refused", text)
+        // failed items are not among the waiting or done counts
+        Assert.DoesNotContain("failed", lines |> List.takeWhile (fun l -> not (l.StartsWith "OLDEST")) |> String.concat "\n")
+        Assert.DoesNotContain(FakeMegafono.Token, text)
+
+        let! code = cli app "fediverse-status" []
+        Assert.Equal(0, code)
+    }
+
+[<Fact>]
 let ``fediverse-status says so when federation is off, and with an empty outbox`` () =
     task {
         use! app = sample false
@@ -254,7 +285,7 @@ let ``fediverse-status never prints credentials that sit in the Megafono address
           Token = "t"
           WebhookSecret = "s" }
 
-    let text = String.Join("\n", FediverseStatus.render (Federation.Enabled values) { Counts = []; Oldest = None })
+    let text = String.Join("\n", FediverseStatus.render (Federation.Enabled values) { Counts = []; Oldest = None; FailedByKind = []; Failed = [] })
     Assert.Contains("MEGAFONO    http://megafono.test:8081/base", text)
     Assert.DoesNotContain("hunter2", text)
     Assert.DoesNotContain("token=abc", text)

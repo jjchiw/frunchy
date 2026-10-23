@@ -509,7 +509,7 @@ let ``no secret reaches last_error, and a network failure is recorded as such`` 
     }
 
 [<Fact>]
-let ``a permanent refusal is done with its reason, a retry never repeats a finished item`` () =
+let ``a permanent refusal is failed with its reason, a retry never repeats a failed item`` () =
     task {
         use! app = newFederatedApp ()
         let id = Guid.NewGuid()
@@ -518,7 +518,7 @@ let ``a permanent refusal is done with its reason, a retry never repeats a finis
 
         let! _ = drainOutbox app
         let! rows = outbox app
-        Assert.Equal<string list>([ "refresh_profile|done|0|400 invalid_request" ], rows)
+        Assert.Equal<string list>([ "refresh_profile|failed|1|400 invalid_request" ], rows)
         let! again = drainOutboxAt app (DateTimeOffset.UtcNow.AddHours 2.0)
         Assert.Equal(0, again)
         Assert.Equal(1, app.Megafono.Requests.Length)
@@ -616,4 +616,183 @@ let ``with federation off the episode page has no alternate link`` () =
         let! html = readHtml response
         Assert.Empty(alternateLinks html)
         Assert.Equal(None, linkHeader response)
+    }
+
+// ---------------------------------------------------------------------------
+// Permanent refusals leave the queue (the thread's refusal reaches its comments)
+// ---------------------------------------------------------------------------
+
+/// alice's first comment on a numbered episode: an ensure_thread and a publish_comment are queued
+let private aliceComments (app: TestApp) =
+    task {
+        let! ep = numberedEpisode app.Db
+        let! alice = signedUp app "sub-a" "alice"
+        let! _ = postComment alice ep.Series ep.Episode "Hello fediverse" false
+        return ep, alice
+    }
+
+[<Fact>]
+let ``a thread Megafono refuses for good fails, its comment fails with it, and neither is retried`` () =
+    task {
+        use! app = federatedSample ()
+        let! _, alice = aliceComments app
+        use _alice = alice
+        app.Megafono.Route("POST /internal/actors/series-*/objects", [ Status 400 ])
+
+        let t0 = DateTimeOffset.UtcNow.AddSeconds 5.0
+        let! first = drainOutboxAt app t0
+        Assert.Equal(2, first)
+
+        let! rows = outbox app
+        Assert.Equal<string list>([ "ensure_thread|failed|1|400 invalid_request"; "publish_comment|failed|1|thread refused" ], rows)
+
+        // nothing is left waiting, however long we wait, and Megafono hears nothing more
+        let! pending = Db.scalar<int64> app.Db "SELECT count(*) FROM fediverse_outbox WHERE state = 'pending'" []
+        Assert.Equal(0L, pending)
+        let! again = drainOutboxAt app (t0.AddHours 3.0)
+        Assert.Equal(0, again)
+        Assert.Equal(1, app.Megafono.Requests.Length)
+
+        // the comment is still on Frunchy
+        let! comments = Db.count app.Db "comments"
+        Assert.Equal(1L, comments)
+    }
+
+[<Fact>]
+let ``a comment's own permanent refusal fails it and is not retried`` () =
+    task {
+        use! app = federatedSample ()
+        let! _, alice = aliceComments app
+        use _alice = alice
+
+        // the thread goes through (the series route is checked first and has no script), the comment is refused
+        app.Megafono.Route("POST /internal/actors/series-*/objects", [])
+        app.Megafono.Route("POST /internal/actors/*/objects", [ Status 400 ])
+        let t0 = DateTimeOffset.UtcNow.AddSeconds 5.0
+        let! _ = drainOutboxAt app t0
+        let! rows = outbox app
+        Assert.Equal<string list>([ "ensure_thread|done|0|-"; "publish_comment|failed|1|400 invalid_request" ], rows)
+        let! again = drainOutboxAt app (t0.AddHours 3.0)
+        Assert.Equal(0, again)
+    }
+
+[<Fact>]
+let ``a pending thread retry keeps the comment waiting after an older thread failed`` () =
+    task {
+        use! app = federatedSample ()
+        let! _, alice = aliceComments app
+        use _alice = alice
+
+        // an older ensure_thread failed for good, but a newer one is pending: the comment keeps waiting
+        do! Db.execute app.Db "UPDATE fediverse_outbox SET state = 'failed', last_error = '400 invalid_request' WHERE kind = 'ensure_thread'"
+        let! groupKey = Db.scalar<string> app.Db "SELECT subject FROM fediverse_outbox WHERE kind = 'ensure_thread'" []
+        do! Db.execute app.Db $"INSERT INTO fediverse_outbox (kind, subject, next_attempt_at) VALUES ('ensure_thread', '{groupKey}', now() + interval '1 day')"
+
+        let! _ = drainOutbox app
+        let! rows = outbox app
+        Assert.Equal<string list>(
+            [ "ensure_thread|failed|0|400 invalid_request"; "publish_comment|pending|1|waiting for thread"; "ensure_thread|pending|0|-" ],
+            rows
+        )
+    }
+
+[<Fact>]
+let ``a 503 and a 429 keep the backoff, and any other 4xx refuses for good`` () =
+    task {
+        use! app = newFederatedApp ()
+        let mutable now = DateTimeOffset.UtcNow.AddSeconds 5.0
+
+        let stateAfter (status: int) =
+            task {
+                let id = Guid.NewGuid()
+                do! Db.execute app.Db $"INSERT INTO fediverse_outbox (kind, subject) VALUES ('refresh_profile', '{id}')"
+                app.Megafono.Route("PUT /internal/actors/*", [ Status status ])
+                now <- now.AddHours 3.0
+                let! _ = drainOutboxAt app now
+                return! Db.dump app.Db $"SELECT state || '|' || attempts FROM fediverse_outbox WHERE subject = '{id}'"
+            }
+
+        for status in [ 401; 408; 409; 429; 500; 502; 503 ] do
+            let! row = stateAfter status
+            Assert.Equal<string list>([ "pending|1" ], row)
+
+        for status in [ 400; 403; 422 ] do
+            let! row = stateAfter status
+            Assert.Equal<string list>([ "failed|1" ], row)
+    }
+
+[<Fact>]
+let ``a retried 503 on a thread still goes through later`` () =
+    task {
+        use! app = federatedSample ()
+        let! _, alice = aliceComments app
+        use _alice = alice
+
+        app.Megafono.Route("POST /internal/actors/series-*/objects", [ Status 503 ])
+        let t0 = DateTimeOffset.UtcNow.AddSeconds 5.0
+        let! _ = drainOutboxAt app t0
+        let! afterFail = outbox app
+        Assert.Equal<string list>([ "ensure_thread|pending|1|503 app_unavailable"; "publish_comment|pending|1|waiting for thread" ], afterFail)
+
+        // Megafono recovers: the thread, then the comment
+        app.Megafono.Route("POST /internal/actors/series-*/objects", [])
+        let! _ = drainOutboxAt app (t0.AddMinutes 10.0)
+        let! final = outbox app
+        Assert.Equal<string list>([ "ensure_thread|done|1|-"; "publish_comment|done|1|-" ], final)
+    }
+
+[<Fact>]
+let ``only the author sees that a refused comment was not sent`` () =
+    task {
+        use! app = federatedSample ()
+        let! ep, alice = aliceComments app
+        use _alice = alice
+        use! bob = signedUp app "sub-b" "bob"
+
+        let page = episodeUrl ep.Series ep.Episode
+        let! before = alice.Get page
+        Assert.False(hasHook "comment-not-federated" before.Html)
+
+        app.Megafono.Route("POST /internal/actors/series-*/objects", [ Status 400 ])
+        let! _ = drainOutbox app
+
+        let! mine = alice.Get page
+        Assert.True(hasHook "comment-not-federated" mine.Html)
+        Assert.Contains("Not sent to the fediverse; it's still here on Frunchy.", WebUtility.HtmlDecode mine.Html)
+
+        let! others = bob.Get page
+        Assert.False(hasHook "comment-not-federated" others.Html)
+        Assert.Contains("Hello fediverse", others.Html)
+
+        let! signedOut = getWithLanguage app.Client "en" page
+        let! signedOutHtml = readHtml signedOut
+        Assert.False(hasHook "comment-not-federated" signedOutHtml)
+        Assert.Contains("Hello fediverse", signedOutHtml)
+    }
+
+[<Fact>]
+let ``the not-sent note is in Spanish for a Spanish browser`` () =
+    task {
+        use! app = federatedSample ()
+        let! ep, alice = aliceComments app
+        use _alice = alice
+        app.Megafono.Route("POST /internal/actors/series-*/objects", [ Status 400 ])
+        let! _ = drainOutbox app
+
+        let page = episodeUrl ep.Series ep.Episode
+        let! _ = alice.Get($"/language/es?returnUrl={Uri.EscapeDataString page}")
+        let! spanish = alice.Get page
+        Assert.True(hasHook "comment-not-federated" spanish.Html)
+        Assert.Contains("No se envió al fediverso; sigue aquí en Frunchy.", WebUtility.HtmlDecode spanish.Html)
+    }
+
+[<Fact>]
+let ``a comment that was published has no not-sent note`` () =
+    task {
+        use! app = federatedSample ()
+        let! ep, alice = aliceComments app
+        use _alice = alice
+        let! _ = drainOutbox app
+        let! mine = alice.Get(episodeUrl ep.Series ep.Episode)
+        Assert.False(hasHook "comment-not-federated" mine.Html)
     }

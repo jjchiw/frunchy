@@ -356,6 +356,7 @@ type Texts =
       CommentsEmpty: string
       CommentEdited: string
       CommentHiddenPlaceholder: string
+      CommentNotFederated: string
       /// Shown to operators only: hiding a comment hides it on Frunchy, not elsewhere
       CommentModerationNote: string
       CommentShowSpoiler: string
@@ -966,6 +967,7 @@ let en =
       CommentsEmpty = "No comments yet. Be the first to write one."
       CommentEdited = "edited"
       CommentHiddenPlaceholder = "Hidden by an operator"
+      CommentNotFederated = "Not sent to the fediverse; it's still here on Frunchy."
       CommentModerationNote = "Hiding a comment hides it on Frunchy only."
       CommentShowSpoiler = "Show spoiler"
       CommentFormLabel = "Your comment"
@@ -1620,6 +1622,7 @@ let es =
       CommentsEmpty = "Aún no hay comentarios. Escribe el primero."
       CommentEdited = "editado"
       CommentHiddenPlaceholder = "Oculto por un operador"
+      CommentNotFederated = "No se envió al fediverso; sigue aquí en Frunchy."
       CommentModerationNote = "Ocultar un comentario solo lo oculta en Frunchy."
       CommentShowSpoiler = "Mostrar spoiler"
       CommentFormLabel = "Tu comentario"

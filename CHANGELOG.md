@@ -26,6 +26,13 @@ new image. Add to "Unreleased" as you work; a release renames it.
   text (the title is beside them).
 - On `/account` the dashboard row is labelled "Your dashboard" ("Tu panel") whatever the profile's
   visibility; it said "Public dashboard" even for Members and Private profiles.
+- A comment or profile change that Megáfono refuses for good (a 4xx that will never succeed, for
+  example a thread that cannot be created) now leaves the fediverse queue instead of being retried
+  every hour for ever: it is marked `failed` with its reason, the comments waiting on that thread
+  fail with it, and `fediverse-status` lists them apart from what is still waiting. The author of
+  such a comment sees "Not sent to the fediverse; it's still here on Frunchy." under it. Network
+  errors, 5xx, 408, 409, 429 and 401 are still retried. The outbox gains the `failed` state, added
+  automatically on start.
 
 ## 0.4.0 - 2026-10-22
 
