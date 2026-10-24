@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <!-- The AppHost's own warnings (ASPIRE001 etc.) apply to code that builds its model -->
+    <NoWarn>$(NoWarn);ASPIRE001;ASPIRE010;NU1902;FS0057</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="PublishModel.fs" />
+    <Compile Include="PublishGraphTests.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+    <PackageReference Include="xunit.v3" Version="4.0.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The AppHost is referenced for its publishGraph function only: it is never run from here -->
+    <ProjectReference Include="../../AppHost/Frunchy.AppHost.fsproj" />
+  </ItemGroup>
+</Project>

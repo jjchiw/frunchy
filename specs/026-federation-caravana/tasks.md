@@ -10,18 +10,18 @@ suite must stay green.
 
 ## Phase 1: The publish graph (US1, US2, US3)
 
-- [ ] T001 Shared Megáfono image tag: one private helper reading `Megafono:ImageTag` (trimmed; empty or `latest`
+- [x] T001 Shared Megáfono image tag: one private helper reading `Megafono:ImageTag` (trimmed; empty or `latest`
   refused with the existing message), used by `runGraph` (unchanged behaviour) and `publishGraph`
   · AppHost/AppHost.fs
-- [ ] T002 `publishGraph` with `Deploy:Federation` (default `true`) per plan "Design" 2 and the contract: the four
+- [x] T002 `publishGraph` with `Deploy:Federation` (default `true`) per plan "Design" 2 and the contract: the four
   secret parameters (declared only when federating), `checkMasterKey`, refusal of `Megafono:BuildFromSource=true`,
   `megafono-pg`, `megafono`, `gateway`, the domain on `gateway` only, Frunchy's federation environment and trusted
   proxies; `false` keeps today's graph byte for byte. Make `publishGraph` public (tests call it). Update the module
   and function comments (018 → 018 and 026). Use the endpoints' references (`GetEndpoint`) for every service
   address, never hand-written `http://name:port` strings
   · AppHost/AppHost.fs
-- [ ] T003 Settings: `Deploy:Federation: true` and `Caravana:ContainerNetwork: "172.26.64.0/20"` · AppHost/appsettings.json
-- [ ] T004 Test project `tests/Frunchy.AppHost.Tests` (F#, xUnit v3 on Microsoft.Testing.Platform like
+- [x] T003 Settings: `Deploy:Federation: true` and `Caravana:ContainerNetwork: "172.26.64.0/20"` · AppHost/appsettings.json
+- [x] T004 Test project `tests/Frunchy.AppHost.Tests` (F#, xUnit v3 on Microsoft.Testing.Platform like
   `tests/FrunchyBackend.Tests`, a project reference to the AppHost, added to `FrunchyBackend.slnx` under /tests/).
   Each test builds a publish-mode builder with the parameters and settings in configuration, calls `publishGraph`
   and reads `builder.Resources`. Cover every line marked **(test)** in the contract, plus: the run graph isn't
@@ -30,7 +30,7 @@ suite must stay green.
   environment callbacks for the publish operation; check secret entries reference the parameter (e.g. a
   `ParameterResource`/`ReferenceExpression` value), never a literal string
   · tests/Frunchy.AppHost.Tests/*, FrunchyBackend.slnx
-- [ ] T005 Run `dotnet build` (root), the new tests, and the full suite (`dotnet test` from the root). Commit 1:
+- [x] T005 Run `dotnet build` (root), the new tests, and the full suite (`dotnet test` from the root). Commit 1:
   `feat(026): the Caravana deploy publishes Megáfono, its gateway and its database, with federation on`
 
 ## Phase 2: Docs

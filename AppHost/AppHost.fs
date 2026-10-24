@@ -2,10 +2,10 @@
 /// gateway and Frunchy, with the shared secrets wired in. See specs/014-aspire-platform/ (research R1-R3,
 /// contracts/settings.md).
 ///
-/// Feature 018: the same AppHost is also the Caravana deploy. `aspire deploy` runs in publish mode, which builds
-/// a different, smaller graph (Frunchy and Postgres, federation off) and publishes it with
-/// CosmicChimps.Aspire.Hosting.Caravana; `aspire run` keeps the local platform. deploy/compose.yaml stays the
-/// self-hosted alternative.
+/// Features 018 and 026: the same AppHost is also the Caravana deploy. `aspire deploy` runs in publish mode, which
+/// builds a different graph and publishes it with CosmicChimps.Aspire.Hosting.Caravana: Frunchy and Postgres
+/// (018), plus Megafono, its gateway and its database when `Deploy:Federation` is on, which is the default (026).
+/// `aspire run` keeps the local platform. deploy/compose.yaml stays the self-hosted alternative.
 ///
 /// Aspire's F# support is partial: no Projects.* classes, so Frunchy is added by path, and
 /// FSharp.Aspire.Hosting.AppHost supplies the WithReference/WaitFor overloads F# lacks (no covariance).
@@ -60,11 +60,36 @@ let private generated () =
     // 32 letters and digits, no symbols: the values travel in headers and environment variables
     GenerateParameterDefault(MinLength = 32, Special = false) :> ParameterDefault
 
-/// Production, phase 1 (feature 018): `aspire deploy` publishes Frunchy and its Postgres to Caravana as one app.
-/// Federation is off (Megafono, its gateway and its database are not added) and Umbral is its own Caravana app,
-/// so only "frunchy" and "pg" exist here. Every runtime value is an Aspire parameter (prompted when missing,
-/// secret where marked): no Bella credentials reach the container.
-let private publishGraph (builder: IDistributedApplicationBuilder) (repoRoot: string) =
+/// The pinned Megafono release both graphs use for the Megafono and gateway images (`Megafono:ImageTag`). Never
+/// empty and never "latest".
+let private megafonoImageTag (configuration: IConfiguration) =
+    let tag =
+        match configuration["Megafono:ImageTag"] with
+        | null -> ""
+        | tag -> tag.Trim()
+
+    if tag = "" || tag = "latest" then
+        failwith "Set Megafono:ImageTag to a pinned Megafono release (e.g. 0.1.0, never latest), or Megafono:BuildFromSource to true."
+
+    tag
+
+/// Production (features 018 and 026): `aspire deploy` publishes one Caravana app. Umbral is its own Caravana app.
+/// With `Deploy:Federation` on (the default) the app has five services: "frunchy" and "pg" (018), plus
+/// "megafono-pg", "megafono" and "gateway" (026). The gateway is the only service with a domain: it sends the
+/// federation routes to Megafono and everything else to Frunchy. With it off the app is the 018 graph, exactly:
+/// "frunchy" (with the domain) and "pg", and none of Megafono's four parameters is declared. Every runtime value
+/// is an Aspire parameter (prompted when missing, secret where marked): no Bella credentials reach the container.
+/// Public so the AppHost tests can build the model without running anything.
+let publishGraph (builder: IDistributedApplicationBuilder) (repoRoot: string) =
+    let federating = builder.Configuration.GetValue<bool>("Deploy:Federation", true)
+
+    // Publish mode always uses Megafono's published images: refuse the run mode's build-from-source switch before
+    // anything is declared, so a misconfigured deploy fails early and names the setting.
+    if federating && builder.Configuration.GetValue<bool>("Megafono:BuildFromSource", false) then
+        failwith "Megafono:BuildFromSource is not supported by aspire deploy: the deploy uses the published Megafono images at Megafono:ImageTag. Set it to false, or set Deploy:Federation to false."
+
+    let megafonoTag = if federating then megafonoImageTag builder.Configuration else ""
+
     // Where to deploy: the Caravana console, a deploy token and the registry `aspire deploy` pushes to.
     // The push uses the ambient `docker login`; Caravana pulls from the same registry.
     let caravanaUrl = builder.AddParameter("caravana-url")
@@ -82,6 +107,21 @@ let private publishGraph (builder: IDistributedApplicationBuilder) (repoRoot: st
     let umbralClientSecret = builder.AddParameter("umbral-client-secret", secret = true)
     let malClientId = builder.AddParameter("mal-client-id", secret = true)
     let rootOperator = builder.AddParameter("root-operator")
+
+    // Megafono's four secrets, declared only when federating so a deploy without it is never prompted for them.
+    // Run mode generates the token and webhook secret and keeps them in user secrets; a release runs on a fresh
+    // runner, so here all four come from Bella like db-password. The master key is checked before the graph is
+    // built (the error names the parameter, never the value).
+    let federation =
+        if federating then
+            let masterKey = builder.AddParameter("megafono-master-key", secret = true)
+            let token = builder.AddParameter("megafono-token", secret = true)
+            let webhookSecret = builder.AddParameter("megafono-webhook-secret", secret = true)
+            let megafonoDbPassword = builder.AddParameter("megafono-db-password", secret = true)
+            checkMasterKey builder.Configuration["Parameters:megafono-master-key"]
+            Some(masterKey, token, webhookSecret, megafonoDbPassword)
+        else
+            None
 
     // The project and environment are plain settings, not parameters: they are not secret and rarely change.
     let setting (key: string) (fallback: string) =
@@ -131,27 +171,120 @@ let private publishGraph (builder: IDistributedApplicationBuilder) (repoRoot: st
 
     let db = pg.AddDatabase("frunchydb")
 
-    // Frunchy behind Caravana's Traefik (10.99.0.1 on installer-made hosts, the address its forwarded headers come
-    // from). The connection string holds the database password: the publisher moves it into Caravana secrets.
-    // Federation is left off (its default) until Megafono joins the app.
-    builder
-        .AddProject("frunchy", Path.Combine(repoRoot, "FrunchyBackend.fsproj"))
-        .WithExternalHttpEndpoints()
-        .WithEnvironment("ConnectionStrings__Database", db.Resource.ConnectionStringExpression)
-        .WithEnvironment("Frunchy__DataProtection__EncryptionKey", dataProtectionKey)
-        .WithEnvironment("Frunchy__TrustedProxies", "10.99.0.1")
-        .WithEnvironment("Frunchy__Auth__Providers__Umbral__Enabled", "true")
-        .WithEnvironment("Frunchy__Auth__Providers__Umbral__Authority", umbralAuthority)
-        .WithEnvironment("Frunchy__Auth__Providers__Umbral__ClientId", umbralClientId)
-        .WithEnvironment("Frunchy__Auth__Providers__Umbral__ClientSecret", umbralClientSecret)
-        .WithEnvironment("Frunchy__Mal__ClientId", malClientId)
-        .WithEnvironment("Frunchy__RootOperator", rootOperator)
-        .WithCaravanaDomain(caravana, frunchyDomain)
-        .WithCaravanaHealthCheck(caravana, "/healthz")
-        .WithCaravanaMemory(caravana, 256, 768)
-        .WithRemoteImageTag(imageTag)
-        .WaitFor(db)
-    |> ignore
+    // Frunchy is declared before Megafono and the gateway so they can point at its endpoint; it is wired to them
+    // below. Behind Caravana's Traefik (10.99.0.1 on installer-made hosts, the address its forwarded headers come
+    // from) when it has the domain itself, or behind the gateway when federating.
+    let frunchyBase = builder.AddProject("frunchy", Path.Combine(repoRoot, "FrunchyBackend.fsproj"))
+
+    // Federation (feature 026): Megafono's database, Megafono and the gateway. Megafono's second port (8081, the
+    // internal API Frunchy calls) has no domain; on Caravana its bearer token is its only lock.
+    let federated =
+        federation
+        |> Option.map (fun (masterKey, token, webhookSecret, megafonoDbPassword) ->
+            let containerNetwork = setting "Caravana:ContainerNetwork" "172.26.64.0/20"
+
+            // Its own Postgres and its own nightly dump, half an hour after Frunchy's
+            let megafonoPg =
+                builder
+                    .AddPostgres("megafono-pg", password = megafonoDbPassword)
+                    .WithDataVolume("megafono-pg")
+                    .WithEnvironment("POSTGRES_DB", "megafono")
+                    .WithCaravanaHealthCheck(caravana)
+                    .WithCaravanaBackup(caravana, CaravanaBackupEngine.Postgres, schedule = "30 3 * * *", keep = 14)
+                    .WithCaravanaMemory(caravana, 128, 256)
+
+            let megafonoDb = megafonoPg.AddDatabase("megafono-db", "megafono")
+
+            // 8080 federation (the gateway routes to it), 8081 internal API (never external, never a gateway
+            // destination, no domain). The gateway is its trusted proxy: it reaches Megafono from the Caravana
+            // container network, so that range is trusted.
+            let megafono =
+                builder
+                    .AddContainer("megafono", "ghcr.io/cosmic-chimps/megafono", megafonoTag)
+                    .WithHttpEndpoint(targetPort = 8080, name = "federation")
+                    .WithHttpEndpoint(targetPort = 8081, name = "internal")
+                    .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Production")
+                    .WithEnvironment("ConnectionStrings__Database", megafonoDb.Resource.ConnectionStringExpression)
+                    .WithEnvironment("Megafono__Domain", frunchyDomain)
+                    .WithEnvironment("Megafono__MasterKey", masterKey)
+                    .WithEnvironment("Megafono__App__BaseUrl", frunchyBase.GetEndpoint("http"))
+                    .WithEnvironment("Megafono__App__Token", token)
+                    .WithEnvironment("Megafono__App__WebhookSecret", webhookSecret)
+                    .WithEnvironment("Megafono__TrustedProxies", containerNetwork)
+                    .WithCaravanaHealthCheck(caravana, "/health", 8081)
+                    .WithCaravanaMemory(caravana, 256, 512)
+                    .WaitFor(megafonoDb)
+
+            // The single public entrance: Megafono's routes go to Megafono, everything else to Frunchy. Traefik
+            // reaches it from 10.99.0.1. It has no health endpoint of its own (any path is proxied), so the check is TCP.
+            builder
+                .AddContainer("gateway", "ghcr.io/cosmic-chimps/megafono-gateway", megafonoTag)
+                .WithHttpEndpoint(targetPort = 8080, name = "http")
+                .WithExternalHttpEndpoints()
+                .WithEnvironment("Gateway__TrustedProxies", "10.99.0.1")
+                .WithEnvironment(
+                    "ReverseProxy__Clusters__megafono__Destinations__primary__Address",
+                    megafono.GetEndpoint("federation")
+                )
+                .WithEnvironment(
+                    "ReverseProxy__Clusters__app__Destinations__primary__Address",
+                    frunchyBase.GetEndpoint("http")
+                )
+                .WithCaravanaDomain(caravana, frunchyDomain)
+                .WithCaravanaHealthCheck(caravana, port = 8080)
+                .WithCaravanaMemory(caravana, 64, 128)
+                .WaitFor(megafono)
+                .WaitFor(frunchyBase)
+            |> ignore
+
+            containerNetwork, megafono, token, webhookSecret)
+
+    // Trusted forwarded headers: Traefik's address when Frunchy is the entrance, the container network when the
+    // gateway (a sibling container) is
+    let trustedProxies =
+        match federated with
+        | Some(containerNetwork, _, _, _) -> containerNetwork
+        | None -> "10.99.0.1"
+
+    // Only an entrance is external; with federation on that is the gateway
+    let frunchyEntrance = if federated.IsNone then frunchyBase.WithExternalHttpEndpoints() else frunchyBase
+
+    // The connection string holds the database password: the publisher moves it into Caravana secrets.
+    let frunchy =
+        frunchyEntrance
+            .WithEnvironment("ConnectionStrings__Database", db.Resource.ConnectionStringExpression)
+            .WithEnvironment("Frunchy__DataProtection__EncryptionKey", dataProtectionKey)
+            .WithEnvironment("Frunchy__TrustedProxies", trustedProxies)
+            .WithEnvironment("Frunchy__Auth__Providers__Umbral__Enabled", "true")
+            .WithEnvironment("Frunchy__Auth__Providers__Umbral__Authority", umbralAuthority)
+            .WithEnvironment("Frunchy__Auth__Providers__Umbral__ClientId", umbralClientId)
+            .WithEnvironment("Frunchy__Auth__Providers__Umbral__ClientSecret", umbralClientSecret)
+            .WithEnvironment("Frunchy__Mal__ClientId", malClientId)
+            .WithEnvironment("Frunchy__RootOperator", rootOperator)
+
+    match federated with
+    | Some(_, megafono, token, webhookSecret) ->
+        // Federation on: Frunchy has no domain of its own (the gateway has it) and is not external
+        frunchy
+            .WithEnvironment("Frunchy__Federation__Enabled", "true")
+            .WithEnvironment("Frunchy__Federation__Domain", frunchyDomain)
+            .WithEnvironment("Frunchy__Megafono__Url", megafono.GetEndpoint("internal"))
+            .WithEnvironment("Frunchy__Megafono__Token", token)
+            .WithEnvironment("Frunchy__Megafono__WebhookSecret", webhookSecret)
+            .WithCaravanaHealthCheck(caravana, "/healthz")
+            .WithCaravanaMemory(caravana, 256, 768)
+            .WithRemoteImageTag(imageTag)
+            .WaitFor(db)
+        |> ignore
+    | None ->
+        // Federation off (its default in the app): the 018 graph
+        frunchy
+            .WithCaravanaDomain(caravana, frunchyDomain)
+            .WithCaravanaHealthCheck(caravana, "/healthz")
+            .WithCaravanaMemory(caravana, 256, 768)
+            .WithRemoteImageTag(imageTag)
+            .WaitFor(db)
+        |> ignore
 
 /// The local platform (feature 014), unchanged: what `aspire run` and `dotnet run --project AppHost` start.
 let private runGraph (builder: IDistributedApplicationBuilder) (repoRoot: string) =
@@ -174,13 +307,7 @@ let private runGraph (builder: IDistributedApplicationBuilder) (repoRoot: string
     // checkout when Megafono:BuildFromSource is true (to try an unreleased Megafono)
     let buildFromSource = builder.Configuration.GetValue<bool>("Megafono:BuildFromSource", false)
 
-    let imageTag =
-        match builder.Configuration["Megafono:ImageTag"] with
-        | null -> ""
-        | tag -> tag.Trim()
-
-    if not buildFromSource && (imageTag = "" || imageTag = "latest") then
-        failwith "Set Megafono:ImageTag to a pinned Megafono release (e.g. 0.1.0, never latest), or Megafono:BuildFromSource to true."
+    let imageTag = if buildFromSource then "" else megafonoImageTag builder.Configuration
 
     let useImage = not buildFromSource
 
@@ -251,7 +378,7 @@ let private runGraph (builder: IDistributedApplicationBuilder) (repoRoot: string
 
     let megafonoBase =
         if useImage then
-            builder.AddContainer("megafono", "ghcr.io/cosmic-chimps/megafono", imageTag.Trim())
+            builder.AddContainer("megafono", "ghcr.io/cosmic-chimps/megafono", imageTag)
         else
             builder.AddDockerfile("megafono", sourcePath, "deploy/Dockerfile.megafono")
 
@@ -277,7 +404,7 @@ let private runGraph (builder: IDistributedApplicationBuilder) (repoRoot: string
     // The gateway is the single public entrance: Megafono's routes go to Megafono, everything else to Frunchy
     let gatewayBuilder =
         if useImage then
-            builder.AddContainer("gateway", "ghcr.io/cosmic-chimps/megafono-gateway", imageTag.Trim())
+            builder.AddContainer("gateway", "ghcr.io/cosmic-chimps/megafono-gateway", imageTag)
         else
             builder.AddDockerfile("gateway", sourcePath, "deploy/Dockerfile.gateway")
 
