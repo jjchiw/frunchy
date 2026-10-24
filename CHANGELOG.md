@@ -10,6 +10,8 @@ new image. Add to "Unreleased" as you work; a release renames it.
 
 ## Unreleased
 
+## 0.5.0 - 2026-10-24
+
 ### Added
 
 - A public install guide at `/guide`, in English and Spanish, for people who got an invite: installing the
