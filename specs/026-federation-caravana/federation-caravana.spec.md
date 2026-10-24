@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-24
 
-**Status**: Draft
+**Status**: Implemented (the federated release waits for Megáfono 0.2.0, T011)
 
 **Input**: "I'm ready to test the fediverse on frunchy.lacalabaza.xyz. Keep the domain and start it autonomous."
 Today `aspire deploy` publishes only `frunchy` and `pg` to Caravana with federation off (feature 018). This feature
