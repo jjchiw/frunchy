@@ -35,7 +35,7 @@ suite must stay green.
 
 ## Phase 2: Docs
 
-- [ ] T006 `docs/deploy-caravana.md`: a "Federation (feature 026)" section after the parameters table: the five
+- [x] T006 `docs/deploy-caravana.md`: a "Federation (feature 026)" section after the parameters table: the five
   services and who owns the domain; the four new Bella keys and how to make them (`openssl rand -base64 32` for
   the master key, `openssl rand -hex 32` for the others); **the domain is permanent** and Megáfono's database is
   never wiped after the first follow, and no test instance uses that domain; **back up the master key apart from
@@ -46,14 +46,14 @@ suite must stay green.
   (`dotnet /app/FrunchyBackend.dll fediverse-status`); the discoverable gap of Megáfono 0.1.0 and the 0.2.0 pin.
   Update the intro (federation is now on) and the parameters table
   · docs/deploy-caravana.md
-- [ ] T007 README line 237 ("federation stays off") and CLAUDE.md (the `dotnet aspire deploy` command line:
+- [x] T007 README line 237 ("federation stays off") and CLAUDE.md (the `dotnet aspire deploy` command line:
   "frunchy + pg only, federation off" becomes the five services with federation on, `Deploy:Federation`)
   · README.md, CLAUDE.md
-- [ ] T008 CHANGELOG `## Unreleased`: under `### Added`, the fediverse on the Caravana deploy (what users get, the
+- [x] T008 CHANGELOG `## Unreleased`: under `### Added`, the fediverse on the Caravana deploy (what users get, the
   permanent domain); a new `### Upgrade` subsection (after Fixed, the file's order): add the four Bella keys before
   releasing (names, how to make them), back up the master key, check the host's memory, the domain is permanent,
   `Deploy:Federation=false` to stay off. Keep one subsection per kind · CHANGELOG.md
-- [ ] T009 Commit 2: `docs(026): federation on Caravana: keys, permanent domain, trust, checks`
+- [x] T009 Commit 2: `docs(026): federation on Caravana: keys, permanent domain, trust, checks`
 
 ## Phase 3: Review (main session)
 

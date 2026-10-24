@@ -234,7 +234,7 @@ A provider's redirect URI under the AppHost is the gateway's: `http://localhost:
 
 ### Deploy to Caravana
 
-The same AppHost deploys Frunchy and its Postgres to [Caravana](https://github.com/Cosmic-Chimps/caravana) with `aspire deploy` (publish mode builds a smaller graph than `aspire run`; federation stays off). The parameters, the registry login and the one-time Caravana and Umbral setup are in [docs/deploy-caravana.md](docs/deploy-caravana.md).
+The same AppHost deploys Frunchy and its Postgres to [Caravana](https://github.com/Cosmic-Chimps/caravana) with `aspire deploy` (publish mode builds its own graph: Frunchy, its Postgres and, with federation on by default, Megáfono, its gateway and its database; `Deploy:Federation=false` keeps the first two only). The parameters, the registry login and the one-time Caravana and Umbral setup are in [docs/deploy-caravana.md](docs/deploy-caravana.md).
 
 **The first account on a new deploy.** While there are no accounts, every start prints a one-time **setup invite** in the console output (feature 023). Open the app's logs (in Caravana: the app (`frunchy--production--frunchy`) > Logs, on the **`frunchy`** copy, not `pg`; with Docker, `docker logs`), copy the invite from the banner, sign in at `/signin`, and enter it on the sign-up page. That account becomes an operator, so from then on it creates invites in the browser on `/review/invites` (linked from `/account`). Choose the username you set as `root-operator` (`Parameters__root-operator`) to become the root as well, who can also open sign-up on `/review/settings`.
 
