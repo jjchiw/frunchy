@@ -288,7 +288,7 @@ let ofPeople (viewer: Person) (owner: Person) : Comparison =
 /// One row of statement 1: (user id, kind, name, text, ms, n)
 type private Row = Guid * string * string option * string option * int64 option * int64 option
 
-let private emptyPerson =
+let emptyPerson =
     { Username = ""
       DisplayName = ""
       FullyWatched = 0L
@@ -299,7 +299,7 @@ let private emptyPerson =
       DedupMs = 0L }
 
 /// Statement 1, for both users at once: who they are, their series, genres, studios and coverage
-let private loadPeople (connection: NpgsqlConnection) (users: Guid[]) : Task<Map<Guid, Person>> =
+let loadPeople (connection: NpgsqlConnection) (users: Guid[]) : Task<Map<Guid, Person>> =
     task {
         use cmd =
             new NpgsqlCommand(
@@ -417,8 +417,8 @@ let private loadPeople (connection: NpgsqlConnection) (users: Guid[]) : Task<Map
     }
 
 /// Statement 2: the MyAnimeList score and up to 3 genres of the most watched matched season of each
-/// of the owner's series (the anime page's poster rule), for the given series only
-let private loadTheirDetails (connection: NpgsqlConnection) (owner: Guid) (seriesIds: string[]) : Task<Map<string, decimal option * string list>> =
+/// series (the anime page's poster rule), for the given series only, over the watch events of the given users
+let loadTheirDetails (connection: NpgsqlConnection) (owners: Guid[]) (seriesIds: string[]) : Task<Map<string, decimal option * string list>> =
     task {
         use cmd =
             new NpgsqlCommand(
@@ -430,7 +430,7 @@ let private loadTheirDetails (connection: NpgsqlConnection) (owner: Guid) (serie
                     FROM watch_events w
                     JOIN cr_episodes e ON e.id = w.cr_episode_id
                     JOIN cr_season_matches m ON m.season_id = e.season_id AND m.status = 'matched'
-                    WHERE w.user_id = @owner AND e.duration_ms IS NOT NULL AND e.series_id = ANY(@series)
+                    WHERE w.user_id = ANY(@owners) AND e.duration_ms IS NOT NULL AND e.series_id = ANY(@series)
                     GROUP BY e.series_id, m.mal_id
                 ),
                 best AS (
@@ -446,7 +446,7 @@ let private loadTheirDetails (connection: NpgsqlConnection) (owner: Guid) (serie
                 connection
             )
 
-        cmd.Parameters.AddWithValue("owner", owner) |> ignore
+        cmd.Parameters.AddWithValue("owners", owners) |> ignore
         cmd.Parameters.AddWithValue("series", seriesIds) |> ignore
 
         use! r = cmd.ExecuteReaderAsync()
@@ -470,7 +470,7 @@ let load (db: DbConfig) (viewer: Guid) (owner: Guid) : Task<Comparison> =
         if comparison.Theirs.IsEmpty then
             return comparison
         else
-            let! details = loadTheirDetails connection owner (comparison.Theirs |> List.map _.SeriesId |> Array.ofList)
+            let! details = loadTheirDetails connection [| owner |] (comparison.Theirs |> List.map _.SeriesId |> Array.ofList)
 
             return
                 { comparison with

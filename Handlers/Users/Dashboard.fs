@@ -337,6 +337,15 @@ let view (ctx: HttpContext) (t: Texts) (m: DashboardModel) (compat: Compatibilit
         profileTop t ProfileTab.Dashboard m.Username m.DisplayName (Some(m.Access, address))
         statusLines t m
 
+        // Feature 025: the owner's way to their recommendations, nobody else's
+        if WebAuth.currentUserId ctx = Some m.UserId then
+            div() {
+                a(href = "/next", class' = btn Secondary).data("next-link", "") {
+                    t.NextTitle
+                    icon Theme.ArrowForward
+                }
+            }
+
         match compat with
         | Some c -> compatCard t c
         | None -> Fragment()

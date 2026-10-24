@@ -17,6 +17,11 @@ new image. Add to "Unreleased" as you work; a release renames it.
   the Anime DNA, profile visibility and deleting the account, with screenshots. The home, sign-up and
   sync-key pages link to it. Frunchy now serves the files in `wwwroot` (the guide's screenshots) with a
   one-day browser cache.
+- "What to watch next" at `/next`, for signed-in people with at least 15 fully watched episodes: the series
+  that the people with the most similar taste (level "Good" or better, from the profiles they can already
+  open) watched through and they haven't started, with who watched it through and the MyAnimeList score
+  and genres. A private profile only counts for someone holding its current share link. Your dashboard
+  links to it. Nothing to do on upgrade.
 
 ### Changed
 

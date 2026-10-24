@@ -414,6 +414,21 @@ type Texts =
       /// The card's link to the compare page
       CompatSeeComparison: string
 
+      // What to watch next (feature 025): /next. No text prints a score or a percentage of the level.
+      /// The page's title and the dashboard link's text
+      NextTitle: string
+      NextIntro: string
+      /// "Based on {n} people with similar taste"
+      NextMatchCount: int -> string
+      /// The list's heading
+      NextListTitle: string
+      /// Before the finishers of a series: "Watched through by"
+      NextWatchedBy: string
+      /// The viewer's history is too short
+      NextNotEnough: string
+      NextNoMatches: string
+      NextNoSeries: string
+
       // Charts and trends (feature 012): /charts, /charts/season, /charts/all and the people counts.
       // The season label is `DnaSeason` and "Watch on Crunchyroll" is `EpisodeWatchOnCrunchyroll`.
       /// The header link
@@ -1085,6 +1100,18 @@ let en =
         fun name ->
             $"Neither your history nor {name}'s is long enough yet. Compatibility appears from 15 fully watched episodes each."
       CompatSeeComparison = "See how you compare"
+
+      NextTitle = "What to watch next"
+      NextIntro = "Series that people with a taste like yours watched through and you haven't started."
+      NextMatchCount =
+        fun n ->
+            if n = 1 then "Based on 1 person with a similar taste"
+            else $"""Based on {n.ToString("N0", CultureInfo.GetCultureInfo "en")} people with a similar taste"""
+      NextListTitle = "Worth a look"
+      NextWatchedBy = "Watched through by"
+      NextNotEnough = "Your history isn't long enough yet. Suggestions appear from 15 fully watched episodes."
+      NextNoMatches = "Nobody whose profile you can see has a taste close enough to yours yet. Check back as more people sync."
+      NextNoSeries = "The people with a taste like yours haven't watched through anything you haven't started."
 
       NavCharts = "Charts"
       ChartsTitle = "Charts"
@@ -1816,6 +1843,18 @@ let es =
         fun name ->
             $"Ni tu historial ni el de {name} son todavía lo bastante largos. La compatibilidad aparece desde 15 episodios vistos completos en cada uno."
       CompatSeeComparison = "Ver cómo se comparan"
+
+      NextTitle = "Qué ver después"
+      NextIntro = "Series que vieron enteras personas con gustos parecidos a los tuyos y que tú todavía no has empezado."
+      NextMatchCount =
+        fun n ->
+            if n = 1 then "Según 1 persona con gustos parecidos"
+            else $"""Según {n.ToString("N0", CultureInfo.GetCultureInfo "es")} personas con gustos parecidos"""
+      NextListTitle = "Para echarles un vistazo"
+      NextWatchedBy = "Vista entera por"
+      NextNotEnough = "Tu historial todavía no es lo bastante largo. Las sugerencias aparecen desde 15 episodios vistos completos."
+      NextNoMatches = "Todavía no hay nadie, entre los perfiles que puedes ver, con gustos lo bastante cercanos a los tuyos. Vuelve cuando se sincronice más gente."
+      NextNoSeries = "Las personas con gustos parecidos a los tuyos no han visto enteras series que tú no hayas empezado."
 
       NavCharts = "Rankings"
       ChartsTitle = "Rankings"
