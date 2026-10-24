@@ -15,11 +15,11 @@ open FrunchyBackend.Tests.Infrastructure.PostgresFixture
 open FrunchyBackend.Tests.TestHelpers
 open FrunchyBackend.Views
 
-/// The 2026 sample imported by "animenerd" and enriched; `federated` picks the app
+/// The 2026 sample imported by "animegolden" and enriched; `federated` picks the app
 let private sample (federated: bool) : Task<TestApp> =
     task {
         let! app = if federated then newFederatedApp () else newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db
         MalFixtures.routeSampleCatalog app.Mal
@@ -58,19 +58,19 @@ let private handleLine (html: string) =
 let ``the dashboard shows the user's handle with a copy button and points to their actor`` () =
     task {
         use! app = sample true
-        let! id = Db.scalar<Guid> app.Db "SELECT id FROM users WHERE username = 'animenerd'" []
-        let! response, html = page app "en" "/u/animenerd"
+        let! id = Db.scalar<Guid> app.Db "SELECT id FROM users WHERE username = 'animegolden'" []
+        let! response, html = page app "en" "/u/animegolden"
 
         // the line: label, the handle in the page's text, and a copy button holding the handle
         match handleLine html with
         | Some(hook, text) ->
-            Assert.Equal("@animenerd@frunchy.test", hook)
+            Assert.Equal("@animegolden@frunchy.test", hook)
             Assert.Contains(Texts.en.FediverseFollowLabel, text)
-            Assert.Contains("@animenerd@frunchy.test", text)
+            Assert.Contains("@animegolden@frunchy.test", text)
         | None -> failwith "no handle line"
 
         Assert.Contains("data-copy-handle", html)
-        Assert.Contains("data-address=\"@animenerd@frunchy.test\"", html)
+        Assert.Contains("data-address=\"@animegolden@frunchy.test\"", html)
         Assert.Contains(Texts.en.CopyHandle, html)
         // the page's own copy-link control is still there, separate from the handle's
         Assert.Contains("data-copy-link", html)
@@ -89,7 +89,7 @@ let ``the dashboard shows the user's handle with a copy button and points to the
 let ``the handle line reads in Spanish`` () =
     task {
         use! app = sample true
-        let! _, html = page app "es" "/u/animenerd"
+        let! _, html = page app "es" "/u/animegolden"
         Assert.Contains(Texts.es.FediverseFollowLabel, html)
         Assert.Contains(Texts.es.CopyHandle, html)
     }
@@ -98,7 +98,7 @@ let ``the handle line reads in Spanish`` () =
 let ``a user whose username can't federate shows no handle and no actor link`` () =
     task {
         use! app = sample true
-        do! Db.execute app.Db "UPDATE users SET username = 'oldname-' WHERE username = 'animenerd'"
+        do! Db.execute app.Db "UPDATE users SET username = 'oldname-' WHERE username = 'animegolden'"
         let! response, html = page app "en" "/u/oldname-"
         Assert.Equal(Net.HttpStatusCode.OK, response.StatusCode)
         Assert.DoesNotContain("data-fediverse-handle", html)
@@ -166,7 +166,7 @@ let ``with federation off no page shows a handle, an actor link or a Link header
         use! app = sample false
         let! ep = pickEpisode app.Db "TRUE"
 
-        for path in [ "/u/animenerd"; $"/anime/{ep.Series}"; episodeUrl ep.Series ep.Episode ] do
+        for path in [ "/u/animegolden"; $"/anime/{ep.Series}"; episodeUrl ep.Series ep.Episode ] do
             let! response, html = page app "en" path
             Assert.Equal(Net.HttpStatusCode.OK, response.StatusCode)
             Assert.DoesNotContain("data-fediverse-handle", html)

@@ -26,7 +26,7 @@ let private userRows (app: TestApp) (username: string) =
 let ``a wrong username is refused and nothing is deleted`` () =
     task {
         use! app = newApp ()
-        use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
+        use browser = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
         let! response = browser.PostForm("/account/delete", "/account/delete", [ "confirmUsername", "someoneelse" ])
         let! html = response.Content.ReadAsStringAsync()
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode)
@@ -42,20 +42,20 @@ let ``deleting removes everything, signs out and frees the identity and username
         use other = signedUp app "other-sub" "userb" |> fun t -> t.Result
         let! otherKey = connectExtension other
         let! _ = submitAccepted app otherKey (envelopeOf (syntheticPages "11111111-2222-3333-4444-555555555555" 1 10))
-        use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
+        use browser = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
         let! key = connectExtension browser
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db
         let! otherBefore = getWithLanguage app.Client "en" "/u/userb"
         let! otherHtmlBefore = readHtml otherBefore
 
-        let! response = browser.PostForm("/account/delete", "/account/delete", [ "confirmUsername", "AnimeNerd" ])
+        let! response = browser.PostForm("/account/delete", "/account/delete", [ "confirmUsername", "AnimeGolden" ])
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
         Assert.Equal("/?deleted=1", string response.Headers.Location)
         let! home = browser.Follow response
         Assert.Contains("data-account-deleted", home.Html)
 
-        let! remaining = userRows app "animenerd"
+        let! remaining = userRows app "animegolden"
         Assert.Equal(0L, remaining)
         let! orphanPages = Db.scalar<int64> app.Db "SELECT count(*) FROM cr_import_pages p LEFT JOIN cr_imports i ON i.id = p.import_id WHERE i.id IS NULL" []
         Assert.Equal(0L, orphanPages)
@@ -64,7 +64,7 @@ let ``deleting removes everything, signs out and frees the identity and username
 
         let! account = browser.GetRaw "/account"
         Assert.Equal(HttpStatusCode.Redirect, account.StatusCode)
-        let! dashboard = getWithLanguage app.Client "en" "/u/animenerd"
+        let! dashboard = getWithLanguage app.Client "en" "/u/animegolden"
         Assert.Equal(HttpStatusCode.NotFound, dashboard.StatusCode)
         let! me = getWithKey app.Client (Some key) "/api/me"
         Assert.Equal(HttpStatusCode.Unauthorized, me.StatusCode)
@@ -73,7 +73,7 @@ let ``deleting removes everything, signs out and frees the identity and username
         let! landing = signInWith again "sub-1"
         Assert.Equal("/signup", landing.Path)
         let! invite2 = createInvite app
-        let! reused = again.PostForm("/signup", "/signup", [ "invite", invite2; "username", "animenerd"; "displayName", "Back" ])
+        let! reused = again.PostForm("/signup", "/signup", [ "invite", invite2; "username", "animegolden"; "displayName", "Back" ])
         Assert.Equal(HttpStatusCode.Redirect, reused.StatusCode)
 
         let! otherAfter = getWithLanguage app.Client "en" "/u/userb"
@@ -88,7 +88,7 @@ let ``deletion needs a recent sign-in`` () =
         let clock = TestClock()
         let! db = newDatabase ()
         use! app = createAppWith db [] (fun (b: WebApplicationBuilder) -> b.Services.AddSingleton<TimeProvider>(clock) |> ignore)
-        use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
+        use browser = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
         clock.Now <- clock.Now.AddMinutes 11.0
         let! blocked = browser.GetRaw "/account/delete"
         Assert.Equal("/signin/reconfirm?returnUrl=%2Faccount%2Fdelete", string blocked.Headers.Location)
@@ -103,7 +103,7 @@ let ``the delete page warns in Spanish`` () =
         use! app = newApp ()
         let! invite = createInvite app
         use browser = app.NewBrowser "es"
-        let! _ = submitSignUp browser "sub-1" invite "animenerd" "AnimeNerd"
+        let! _ = submitSignUp browser "sub-1" invite "animegolden" "AnimeGolden"
         let! page = browser.Get "/account/delete"
         Assert.Contains("lang=\"es\"", page.Html)
         Assert.Contains("No se puede deshacer", page.Html)

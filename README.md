@@ -302,14 +302,14 @@ docker exec postgres-postgres-1 dropdb -U postgres megafono   # if it exists
 **Operator commands against the AppHost's database.** The commands read `ConnectionStrings__Database`: copy the `frunchydb` connection string from the Aspire dashboard (resource `pg`, database `frunchydb`) into that variable for the command:
 ```bash
 ConnectionStrings__Database="Host=localhost;Port=<port>;Username=postgres;Password=<password>;Database=frunchydb" \
-  dotnet run -- user-create animenerd "AnimeNerd"
+  dotnet run -- user-create animegolden "AnimeGolden"
 ```
 
 ### Federation under Aspire (feature 015)
 
 With the platform running (`dotnet run --project AppHost`, federation on, domain `frunchy.test`), Frunchy is on the fediverse through Megáfono. Check it step by step:
 
-1. **Accounts.** Create a user (`dotnet run -- user-create animenerd "AnimeNerd"` against the AppHost's database) and ask the gateway for it: `curl "https://frunchy.test/.well-known/webfinger?resource=acct:animenerd@frunchy.test"` (resolve `frunchy.test` to the gateway, or send a `Host` header). A series answers the same way by its handle, which is made the first time its page is shown (`/anime/{seriesId}` shows it as "Follow on the fediverse") or set with `series-handle`.
+1. **Accounts.** Create a user (`dotnet run -- user-create animegolden "AnimeGolden"` against the AppHost's database) and ask the gateway for it: `curl "https://frunchy.test/.well-known/webfinger?resource=acct:animegolden@frunchy.test"` (resolve `frunchy.test` to the gateway, or send a `Host` header). A series answers the same way by its handle, which is made the first time its page is shown (`/anime/{seriesId}` shows it as "Follow on the fediverse") or set with `series-handle`.
 2. **A comment becomes a thread and a reply.** Sign in, comment on an episode page, then look at the queue with `fediverse-status`: a thread and the comment are sent within seconds (the worker polls every 5 seconds and retries with backoff when Megáfono is down). Megáfono's database then holds the series' thread post and the user's reply to it, and the episode page carries the thread as its ActivityPub alternate link.
 3. **Replies in.** A reply to the thread from another server reaches `POST /megafono/webhooks` and shows on the episode page with its author's handle and server; content warnings become spoilers. Remote peers need Megáfono's dev-fediverse kit, which doesn't exist yet.
 4. **Blocks.** `/account` lists the blocks of the signed-in user with a form to add one (a handle, an actor address or a server name); operators manage instance blocks on `/review/fediverse`.
@@ -337,7 +337,7 @@ No Aspire, no Megáfono: Frunchy is a complete web app without federation (`Frun
 
 2. **Create a user**, which prints their sync key once (paste it in the extension):
    ```bash
-   dotnet run -- user-create animenerd "AnimeNerd"
+   dotnet run -- user-create animegolden "AnimeGolden"
    ```
 
 3. **Run** on `http://localhost:5099` (the URL the extension uses in development):

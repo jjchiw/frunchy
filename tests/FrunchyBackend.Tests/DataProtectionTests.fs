@@ -75,7 +75,7 @@ let private sessionAndFormWorkAcross (copyA: TestApp) (copyB: TestApp) (subject:
 let private signedInOnAStoppedApp (db: Database.DbConfig) : Task<Net.CookieCollection> =
     task {
         use! app = createApp db
-        use! browser = signedUp app "sub-1" "animenerd"
+        use! browser = signedUp app "sub-1" "animegolden"
         return browser.Cookies.GetAllCookies()
     }
 
@@ -140,7 +140,7 @@ let ``a second copy on the same database accepts the first copy's session and fo
         use! first = createApp db
         use! second = createApp db
 
-        do! sessionAndFormWorkAcross first second "sub-1" "animenerd"
+        do! sessionAndFormWorkAcross first second "sub-1" "animegolden"
         let! rows = keyRows db
         Assert.Equal(1, rows.Length)
     }
@@ -192,7 +192,7 @@ let ``two copies started together on an empty table each make a key and still ac
         let! rows = keyRows db
         Assert.Equal(2, rows.Length)
 
-        do! sessionAndFormWorkAcross first second "sub-1" "animenerd"
+        do! sessionAndFormWorkAcross first second "sub-1" "animegolden"
         do! sessionAndFormWorkAcross second first "sub-2" "otherfan"
     }
 
@@ -262,7 +262,7 @@ let ``outside Production the app starts without a key and stores the keys as pla
             createAppWith db [ DataProtectionStore.EncryptionKeySetting, "" ] (fun builder ->
                 builder.Environment.EnvironmentName <- "Development")
 
-        use! browser = signedUp app "sub-1" "animenerd"
+        use! browser = signedUp app "sub-1" "animegolden"
         let! page = browser.Get "/account"
         Assert.Equal("/account", page.Path)
 
@@ -284,7 +284,7 @@ let ``the retired KeysPath setting is ignored with a warning and the keys stay i
         use! app =
             createAppWith db [ DataProtectionStore.KeysPathSetting, path ] (fun builder -> builder.Logging.AddProvider logs |> ignore)
 
-        use! browser = signedUp app "sub-1" "animenerd"
+        use! browser = signedUp app "sub-1" "animegolden"
         let! page = browser.Get "/account"
         Assert.Equal("/account", page.Path)
 

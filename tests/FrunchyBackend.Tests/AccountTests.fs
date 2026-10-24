@@ -16,11 +16,11 @@ let private events (app: TestApp) =
 let ``changing the display name shows on the dashboard and is recorded`` () =
     task {
         use! app = newApp ()
-        use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
-        let! response = browser.PostForm("/account", "/account/display-name", [ "displayName", "Neo Nerd" ])
+        use browser = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
+        let! response = browser.PostForm("/account", "/account/display-name", [ "displayName", "Bright Star" ])
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
-        let! dashboard = browser.Get "/u/animenerd"
-        Assert.Contains(">Neo Nerd<", dashboard.Html)
+        let! dashboard = browser.Get "/u/animegolden"
+        Assert.Contains(">Bright Star<", dashboard.Html)
         let! all = events app
         Assert.Contains("display_name_changed|-", all)
 
@@ -28,14 +28,14 @@ let ``changing the display name shows on the dashboard and is recorded`` () =
         let! page = browser.Follow invalid
         Assert.Contains("The display name must be 1-60 characters.", page.Html)
         let! name = Db.scalar<string> app.Db "SELECT display_name FROM users" []
-        Assert.Equal("Neo Nerd", name)
+        Assert.Equal("Bright Star", name)
     }
 
 [<Fact>]
 let ``resetting the binding keeps history and records it`` () =
     task {
         use! app = newApp ()
-        use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
+        use browser = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
         let! key = connectExtension browser
         let! _ = submitAccepted app key (load2022Envelope ())
         let! _ = processAll app.Db
@@ -56,7 +56,7 @@ let ``resetting the binding keeps history and records it`` () =
 let ``linking a second identity, signing in with it, and unlinking`` () =
     task {
         use! app = newApp ()
-        use browser = signedUp app "first-id" "animenerd" |> fun t -> t.Result
+        use browser = signedUp app "first-id" "animegolden" |> fun t -> t.Result
         let! linked = browser.Get "/account/link/test2?sub=second-id"
         Assert.Equal("/account?msg=linked", linked.Path)
         let! identities = Db.dump app.Db "SELECT provider_user_id FROM user_identities ORDER BY linked_at"
@@ -65,7 +65,7 @@ let ``linking a second identity, signing in with it, and unlinking`` () =
         use other = app.NewBrowser()
         let! viaSecond = other.Get "/signin/test2?sub=second-id"
         Assert.Equal("/account", viaSecond.Path)
-        Assert.Contains(">animenerd<", viaSecond.Html)
+        Assert.Contains(">animegolden<", viaSecond.Html)
 
         let! all = events app
         Assert.Contains("identity_linked|test2", all)
@@ -75,7 +75,7 @@ let ``linking a second identity, signing in with it, and unlinking`` () =
 let ``unlinking works while another identity remains, never the last one`` () =
     task {
         use! app = newApp ()
-        use browser = signedUp app "only-id" "animenerd" |> fun t -> t.Result
+        use browser = signedUp app "only-id" "animegolden" |> fun t -> t.Result
         let! last = browser.PostForm("/account", "/account/unlink/test", [])
         let! page = browser.Follow last
         Assert.Contains("You can't remove your last sign-in method.", page.Html)
@@ -112,7 +112,7 @@ let ``an identity of another account can't be linked`` () =
 let ``a second identity of the same provider is refused`` () =
     task {
         use! app = newApp ()
-        use browser = signedUp app "id-1" "animenerd" |> fun t -> t.Result
+        use browser = signedUp app "id-1" "animegolden" |> fun t -> t.Result
         let! page = browser.Get "/account/link/test?sub=id-2"
         // the first link of a provider already used is refused: one identity per provider per account
         Assert.Equal("/account?msg=link-duplicate", page.Path)
@@ -124,7 +124,7 @@ let ``a second identity of the same provider is refused`` () =
 let ``the account page lists the last 10 syncs and last 20 security events`` () =
     task {
         use! app = newApp ()
-        use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
+        use browser = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
         let! key = connectExtension browser
 
         for i in 1..12 do
@@ -150,8 +150,8 @@ let ``the account page lists the last 10 syncs and last 20 security events`` () 
 let ``a user deleted elsewhere is signed out on the next request`` () =
     task {
         use! app = newApp ()
-        use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
-        let! _ = FrunchyBackend.Operations.DeleteUser.deleteUser app.Db false "animenerd"
+        use browser = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
+        let! _ = FrunchyBackend.Operations.DeleteUser.deleteUser app.Db false "animegolden"
         let! response = browser.GetRaw "/account"
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
         Assert.StartsWith("/signin", string response.Headers.Location)
@@ -163,7 +163,7 @@ let ``account page in Spanish`` () =
         use! app = newApp ()
         let! invite = createInvite app
         use browser = app.NewBrowser "es"
-        let! _ = submitSignUp browser "sub-1" invite "animenerd" "AnimeNerd"
+        let! _ = submitSignUp browser "sub-1" invite "animegolden" "AnimeGolden"
         let! page = browser.Get "/account"
         Assert.Contains("lang=\"es\"", page.Html)
         Assert.Contains("Tu cuenta", page.Html)
@@ -177,7 +177,7 @@ let ``the profile row says Your dashboard whatever the visibility, in both langu
             use! app = newApp ()
             let! invite = createInvite app
             use browser = app.NewBrowser language
-            let! _ = submitSignUp browser "sub-1" invite "animenerd" "AnimeNerd"
+            let! _ = submitSignUp browser "sub-1" invite "animegolden" "AnimeGolden"
 
             for visibility in [ "public"; "members"; "private" ] do
                 let! _ = browser.PostForm("/account", "/account/visibility", [ "visibility", visibility ])

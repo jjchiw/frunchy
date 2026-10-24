@@ -124,11 +124,11 @@ let rawCommentRows (db: DbConfig) : Task<string list> =
 // The enriched 2026 sample, and picking episodes out of it by what they must show
 // ---------------------------------------------------------------------------
 
-/// The 2026 sample imported by a user "animenerd" and enriched with the feature 003 MyAnimeList fixtures
+/// The 2026 sample imported by a user "animegolden" and enriched with the feature 003 MyAnimeList fixtures
 let sampleApp () : Task<TestApp * string> =
     task {
         let! app = newApp ()
-        let! key = TestHelpers.createUser app.Db "animenerd"
+        let! key = TestHelpers.createUser app.Db "animegolden"
         let! _ = TestHelpers.submitAccepted app key (load2026Sample ())
         let! _ = TestHelpers.processAll app.Db
         MalFixtures.routeSampleCatalog app.Mal

@@ -19,7 +19,7 @@ open FrunchyBackend.Tests.Infrastructure.PostgresFixture
 let private withSample () =
     task {
         let! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db
         routeSampleCatalog app.Mal
@@ -36,7 +36,7 @@ let private get (app: TestApp) (language: string) (path: string) =
 
 let private anime (app: TestApp) (language: string) (seriesId: string) =
     task {
-        let! status, html = get app language $"/u/animenerd/anime/{seriesId}"
+        let! status, html = get app language $"/u/animegolden/anime/{seriesId}"
         Assert.Equal(HttpStatusCode.OK, status)
         return html
     }
@@ -128,7 +128,7 @@ let private watched (db: DbConfig) (seriesId: string) =
                        to_char(w.watched_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS')
                 FROM watch_events w JOIN users u ON u.id = w.user_id
                 JOIN cr_episodes e ON e.id = w.cr_episode_id
-                WHERE u.username = 'animenerd' AND e.series_id = '{seriesId}' AND e.duration_ms IS NOT NULL
+                WHERE u.username = 'animegolden' AND e.series_id = '{seriesId}' AND e.duration_ms IS NOT NULL
                 """
 
         return
@@ -341,7 +341,7 @@ let ``every watched series has a page, and their episodes add up to the dashboar
             let! html = anime app "en" series
             total <- total + int (stat "episodes" html)
 
-        let! _, dashboard = get app "en" "/u/animenerd"
+        let! _, dashboard = get app "en" "/u/animegolden"
         Assert.Equal(stat "episodes" dashboard, string total)
     }
 
@@ -413,12 +413,12 @@ let ``an unknown user, a malformed id and an unwatched series are not found`` ()
         Assert.Contains(Texts.en.UserNotFoundTitle, html)
 
         for id in [ series.ToLowerInvariant(); "ABCDE"; String('A', 25); "GR-K5CNJ14"; "GRK5CNJ14%20" ] do
-            let! status, html = get app "en" $"/u/animenerd/anime/{id}"
+            let! status, html = get app "en" $"/u/animegolden/anime/{id}"
             Assert.Equal(HttpStatusCode.NotFound, status)
             Assert.Contains(Texts.en.NotFoundTitle, html)
 
         // well-formed, but not watched by this user (nobody has watched it, or only someone else)
-        for path in [ "/u/animenerd/anime/ZZZZZZZZZ"; $"/u/userb/anime/{series}" ] do
+        for path in [ "/u/animegolden/anime/ZZZZZZZZZ"; $"/u/userb/anime/{series}" ] do
             let! status, html = get app "en" path
             Assert.Equal(HttpStatusCode.NotFound, status)
             Assert.Contains(Texts.en.NotFoundTitle, html)
@@ -431,7 +431,7 @@ let ``a series whose watches are all unresolved has no page`` () =
         use app = app
         let! series = seriesOfSeason app.Db "GRK5CNJ14"
         do! Db.execute app.Db $"UPDATE cr_episodes SET duration_ms = NULL WHERE series_id = '{series}'"
-        let! status, _ = get app "en" $"/u/animenerd/anime/{series}"
+        let! status, _ = get app "en" $"/u/animegolden/anime/{series}"
         Assert.Equal(HttpStatusCode.NotFound, status)
     }
 
@@ -540,7 +540,7 @@ let ``the page is identical after re-sending and after a rebuild, and viewing ne
         let! resent = anime app "en" series
         Assert.Equal<string list>(signature before, signature resent)
 
-        let! queued = RebuildUser.rebuildUser app.Db "animenerd"
+        let! queued = RebuildUser.rebuildUser app.Db "animegolden"
         Assert.True(queued.IsSome)
         let! _ = processAll app.Db
         app.Mal.Clear()

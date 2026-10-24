@@ -37,7 +37,7 @@ let ``healthz answers 200 ok as plain text, never cached and without a cookie`` 
 let ``healthz gives the same answer for any host, language and cookies`` () =
     task {
         use! app = newApp ()
-        use! browser = signedUp app "sub-1" "animenerd"
+        use! browser = signedUp app "sub-1" "animegolden"
         Assert.NotEmpty browser.CookieNames
 
         for language in [ "en"; "es" ] do

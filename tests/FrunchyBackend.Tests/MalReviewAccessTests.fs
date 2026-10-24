@@ -46,7 +46,7 @@ let newReviewEnvWith (config: (string * string) list) (operators: string list) (
         let! app = createAppWith db config ignore
 
         if enrich then
-            let! key = createUser app.Db "animenerd"
+            let! key = createUser app.Db "animegolden"
             let! _ = submitAccepted app key (load2026Sample ())
             let! _ = processAll app.Db
             routeSampleCatalog app.Mal

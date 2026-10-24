@@ -43,12 +43,12 @@ let ``counts add up for both fixtures`` () =
 let ``submitting the same history 3 times equals submitting it once`` () =
     task {
         use! once = newApp ()
-        let! k1 = createUser once.Db "animenerd"
+        let! k1 = createUser once.Db "animegolden"
         let! _ = submitAccepted once k1 (load2022Envelope ())
         let! _ = processAll once.Db
 
         use! thrice = newApp ()
-        let! k3 = createUser thrice.Db "animenerd"
+        let! k3 = createUser thrice.Db "animegolden"
 
         for _ in 1..3 do
             let! _ = submitAccepted thrice k3 (load2022Envelope ())
@@ -69,7 +69,7 @@ let ``arrival order doesn't change the result`` () =
         let run (ordered: (string * string) list) =
             task {
                 let! app = newApp ()
-                let! key = createUser app.Db "animenerd"
+                let! key = createUser app.Db "animegolden"
 
                 for page in ordered do
                     let! _ = submitAccepted app key (envelopeOf [ page ])
@@ -93,7 +93,7 @@ let ``arrival order doesn't change the result`` () =
 let ``an unresolved episode resolves when its details arrive later`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let url = historyUrl RealAccountId
         // newest watch first arrives without details
         let! _ = submitAccepted app key (envelopeOf [ url, pageOf [ unresolvedEntry "EP1" "SER1" (at "2026-03-01T10:00:00Z") ] ])
@@ -114,7 +114,7 @@ let ``an unresolved episode resolves when its details arrive later`` () =
 let ``newer watch dates win and older ones don't overwrite`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let url = historyUrl RealAccountId
         let send (date: string) fully playhead =
             task {
@@ -138,7 +138,7 @@ let ``newer watch dates win and older ones don't overwrite`` () =
 let ``invalid entries fail individually and the import still completes`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let page = $"""{{"data":[42,{syntheticEntry "EP1" "SER1" (at "2026-01-01T00:00:00Z") true 1400}]}}"""
         let! _ = submitAccepted app key (envelopeOf [ historyUrl RealAccountId, page ])
         let! _ = processAll app.Db
@@ -150,7 +150,7 @@ let ``invalid entries fail individually and the import still completes`` () =
 let ``a stale processing claim is reclaimed`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! importId = submitAccepted app key (load2022Envelope ())
         do!
             Db.execute
@@ -165,7 +165,7 @@ let ``a stale processing claim is reclaimed`` () =
 let ``a fresh processing claim is left alone`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! importId = submitAccepted app key (load2022Envelope ())
         do! Db.execute app.Db $"UPDATE cr_imports SET status = 'processing', processing_started_at = now() WHERE id = '{importId}'"
         let! processed = processAll app.Db
@@ -177,7 +177,7 @@ let ``several pending imports of one user equal one import with all pages`` () =
     task {
         let pages = pages2026 ()
         use! split = newApp ()
-        let! k1 = createUser split.Db "animenerd"
+        let! k1 = createUser split.Db "animegolden"
 
         for page in pages do
             let! _ = submitAccepted split k1 (envelopeOf [ page ])
@@ -186,7 +186,7 @@ let ``several pending imports of one user equal one import with all pages`` () =
         let! _ = processAll split.Db
 
         use! whole = newApp ()
-        let! k2 = createUser whole.Db "animenerd"
+        let! k2 = createUser whole.Db "animegolden"
         let! _ = submitAccepted whole k2 (envelopeOf pages)
         let! _ = processAll whole.Db
 
@@ -199,7 +199,7 @@ let ``several pending imports of one user equal one import with all pages`` () =
 let ``a 64-page first sync is processed well within the target`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (envelopeOf (syntheticPages RealAccountId 64 100))
         let watch = Stopwatch.StartNew()
         let! _ = processAll app.Db

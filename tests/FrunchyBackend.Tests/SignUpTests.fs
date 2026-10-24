@@ -91,7 +91,7 @@ let ``a valid sign-up creates the account, consumes the invite and signs in`` ()
         use! app = newApp ()
         let! code = createInvite app
         use browser = app.NewBrowser()
-        let! response = submitSignUp browser "sub-1" code "AnimeNerd" "Anime Nerd"
+        let! response = submitSignUp browser "sub-1" code "AnimeGolden" "Anime Golden"
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
         Assert.Equal("/account", string response.Headers.Location)
 
@@ -99,9 +99,9 @@ let ``a valid sign-up creates the account, consumes the invite and signs in`` ()
         let! identity = Db.dump app.Db "SELECT provider, provider_user_id FROM user_identities"
         let! invite = Db.dump app.Db "SELECT u.username FROM invites i JOIN users u ON u.id = i.used_by_user_id WHERE i.used_at IS NOT NULL"
         let! events = Db.dump app.Db "SELECT event, actor FROM security_events"
-        Assert.Equal<string list>([ "animenerd|Anime Nerd|-" ], user)
+        Assert.Equal<string list>([ "animegolden|Anime Golden|-" ], user)
         Assert.Equal<string list>([ "test|sub-1" ], identity)
-        Assert.Equal<string list>([ "animenerd" ], invite)
+        Assert.Equal<string list>([ "animegolden" ], invite)
         Assert.Equal<string list>([ "account_created|user" ], events)
 
         let! account = browser.Get "/account"

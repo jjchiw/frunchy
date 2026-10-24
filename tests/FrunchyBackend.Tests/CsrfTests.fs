@@ -16,7 +16,7 @@ let private snapshot (app: TestApp) =
 let ``signed-in state-changing posts without an antiforgery token are rejected and change nothing`` () =
     task {
         use! app = newApp ()
-        use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
+        use browser = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
         let! _ = browser.Get "/account/link/test2?sub=second" // two identities, so unlink would be allowed
 
         for action, fields in
@@ -24,7 +24,7 @@ let ``signed-in state-changing posts without an antiforgery token are rejected a
               "/account/key", []
               "/account/binding/reset", []
               "/account/unlink/test2", []
-              "/account/delete", [ "confirmUsername", "animenerd" ]
+              "/account/delete", [ "confirmUsername", "animegolden" ]
               "/signout", [] ] do
             let! before = snapshot app
             let! response = browser.PostFormWithoutToken(action, fields)
@@ -59,7 +59,7 @@ let ``sign-up and claim posts without a token are rejected`` () =
 let ``the extension API needs no antiforgery token (contract v1.2 unchanged)`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! status, _ = submit app key (load2022Envelope ())
         Assert.Equal(202, status)
     }

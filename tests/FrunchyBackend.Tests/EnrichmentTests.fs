@@ -10,11 +10,11 @@ open FrunchyBackend.Tests.MalFixtures
 open FrunchyBackend.Tests.TestHelpers
 open FrunchyBackend.Tests.Infrastructure.PostgresFixture
 
-/// A fresh app with the 2026 sample imported for "animenerd"
+/// A fresh app with the 2026 sample imported for "animegolden"
 let private withSample () =
     task {
         let! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db
         return app
@@ -188,7 +188,7 @@ let ``deleting a user leaves the MyAnimeList catalog and the matches`` () =
         let! _ = enrichAll app
         let! animeBefore = Db.count app.Db "mal_anime"
         let! matchesBefore = Db.count app.Db "cr_season_matches"
-        let! deleted = FrunchyBackend.Operations.DeleteUser.run app.Db false [ "animenerd"; "--yes" ]
+        let! deleted = FrunchyBackend.Operations.DeleteUser.run app.Db false [ "animegolden"; "--yes" ]
         Assert.Equal(0, deleted)
         let! animeAfter = Db.count app.Db "mal_anime"
         let! matchesAfter = Db.count app.Db "cr_season_matches"

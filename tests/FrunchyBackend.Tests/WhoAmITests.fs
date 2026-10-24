@@ -10,14 +10,14 @@ open FrunchyBackend.Tests.Infrastructure.PostgresFixture
 let ``who am I before and after the first sync`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
 
         let! response = getWithKey app.Client (Some key) "/api/me"
         let! me = readJson response
         Assert.Equal(200, int response.StatusCode)
-        Assert.Equal("animenerd", me.GetProperty("username").GetString())
-        Assert.Equal("ANIMENERD", me.GetProperty("displayName").GetString())
-        Assert.EndsWith("/u/animenerd", me.GetProperty("dashboardUrl").GetString())
+        Assert.Equal("animegolden", me.GetProperty("username").GetString())
+        Assert.Equal("ANIMEGOLDEN", me.GetProperty("displayName").GetString())
+        Assert.EndsWith("/u/animegolden", me.GetProperty("dashboardUrl").GetString())
         Assert.StartsWith("http", me.GetProperty("dashboardUrl").GetString())
         Assert.Equal(JsonValueKind.Null, me.GetProperty("lastSyncAt").ValueKind)
         Assert.False(me.GetProperty("historyOwnerBound").GetBoolean())

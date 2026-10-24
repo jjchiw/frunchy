@@ -386,7 +386,7 @@ history gets the empty state; an unknown username gets 404.
   - **endpoint**: `GET [ routef "/u/{%s}" handler ]`.
 
   Register it in `Program.fs`. Makes T033 pass.
-- [X] T036 [US2] Manual check per `quickstart.md` section 2. Open `/u/animenerd` in a real
+- [X] T036 [US2] Manual check per `quickstart.md` section 2. Open `/u/animegolden` in a real
   browser in English and Spanish and confirm the `Intl` script turns `<time>` into relative +
   local time (e.g. "hace 2 horas · …").
 

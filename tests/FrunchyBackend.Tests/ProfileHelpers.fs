@@ -1,4 +1,4 @@
-/// Feature 017 (phase 2): what the visibility, share-link and link tests share. A private "animenerd" with the 2022
+/// Feature 017 (phase 2): what the visibility, share-link and link tests share. A private "animegolden" with the 2022
 /// history, a second user, the root operator and a signed-out browser; helpers for the account page's hooks.
 module FrunchyBackend.Tests.ProfileHelpers
 
@@ -32,12 +32,12 @@ type World =
             (this.Stranger :> IDisposable).Dispose()
             (this.App :> IAsyncDisposable).DisposeAsync()
 
-/// "animenerd" with the 2022 history, a second user "other", the root operator "boss" and a signed-out browser
+/// "animegolden" with the 2022 history, a second user "other", the root operator "boss" and a signed-out browser
 let world (extraConfig: (string * string) list) : Task<World> =
     task {
         let! db = newDatabase ()
         let! app = createAppWith db (("Frunchy:RootOperator", "boss") :: extraConfig) ignore
-        let! owner = signedUp app "sub-owner" "animenerd"
+        let! owner = signedUp app "sub-owner" "animegolden"
         let! key = connectExtension owner
         let! _ = submitAccepted app key (load2022Envelope ())
         let! _ = processAll app.Db

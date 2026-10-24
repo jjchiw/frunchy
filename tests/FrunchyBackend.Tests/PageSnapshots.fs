@@ -61,13 +61,13 @@ let ``save the HTML of the signed-in pages for a design review`` () =
         use! app =
             createAppWith
                 db
-                [ "Frunchy:RootOperator", "animenerd"
+                [ "Frunchy:RootOperator", "animegolden"
                   // members only: what a person sees when they follow a link to a profile
                   "Frunchy:Profiles:DefaultVisibility", "members" ]
                 ignore
 
         // ---- people: the root operator, a second viewer with history, a third who signed up with an invite
-        let! rootBrowser = signedUp app "sub-animenerd" "animenerd"
+        let! rootBrowser = signedUp app "sub-animegolden" "animegolden"
         let! sakuraBrowser = signedUp app "sub-sakura" "sakura"
         let! thirdBrowser = signedUp app "sub-third" "kenji"
         (thirdBrowser :> IDisposable).Dispose()
@@ -94,7 +94,7 @@ let ``save the HTML of the signed-in pages for a design review`` () =
                 app.Db
                 """SELECT e.series_id FROM watch_events w JOIN cr_episodes e ON e.id = w.cr_episode_id
                    JOIN users u ON u.id = w.user_id
-                   WHERE u.username = 'animenerd' AND e.duration_ms IS NOT NULL
+                   WHERE u.username = 'animegolden' AND e.duration_ms IS NOT NULL
                    GROUP BY e.series_id ORDER BY count(*) DESC, e.series_id LIMIT 1"""
                 []
 
@@ -129,12 +129,12 @@ let ``save the HTML of the signed-in pages for a design review`` () =
 
             // signed in as the root operator
             use root = app.NewBrowser language
-            let! _ = signInWith root "sub-animenerd"
+            let! _ = signInWith root "sub-animegolden"
 
-            do! getInto root "dashboard" language "/u/animenerd"
-            do! getInto root "dna" language "/u/animenerd/dna"
-            do! getInto root "year-2026" language "/u/animenerd/year/2026"
-            do! getInto root "anime" language $"/u/animenerd/anime/{seriesId}"
+            do! getInto root "dashboard" language "/u/animegolden"
+            do! getInto root "dna" language "/u/animegolden/dna"
+            do! getInto root "year-2026" language "/u/animegolden/year/2026"
+            do! getInto root "anime" language $"/u/animegolden/anime/{seriesId}"
             do! getInto root "compare" language "/u/sakura/compare"
             do! getInto root "account" language "/account"
             do! getInto root "review-invites" language "/review/invites"

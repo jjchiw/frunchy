@@ -34,12 +34,12 @@ type private World =
             (this.Stranger :> IDisposable).Dispose()
             (this.App :> IAsyncDisposable).DisposeAsync()
 
-/// "animenerd" with the 2022 history, a second user, the root operator ("boss") and a signed-out browser
+/// "animegolden" with the 2022 history, a second user, the root operator ("boss") and a signed-out browser
 let private world (extraConfig: (string * string) list) : Task<World> =
     task {
         let! db = newDatabase ()
         let! app = createAppWith db (("Frunchy:RootOperator", "boss") :: extraConfig) ignore
-        let! owner = signedUp app "sub-owner" "animenerd"
+        let! owner = signedUp app "sub-owner" "animegolden"
         let! key = connectExtension owner
         let! _ = submitAccepted app key (load2022Envelope ())
         let! _ = processAll app.Db
@@ -88,13 +88,13 @@ let ``a private profile is a 404 on every route for strangers, other users and t
         use! w = world [ defaultKey, "private" ]
 
         // signed out: every page that needs no sign-in (compare sends a signed-out visitor to sign in, as before)
-        for path in openPaths "animenerd" w.SeriesId do
+        for path in openPaths "animegolden" w.SeriesId do
             let! status, _ = body w.Stranger path
             Assert.True((status = HttpStatusCode.NotFound), $"signed out {path}: {status}")
 
         // signed in as someone else, and as the root operator: operators get no exception
         for browser, who in [ w.Other, "other"; w.Root, "root" ] do
-            for path in allPaths "animenerd" w.SeriesId do
+            for path in allPaths "animegolden" w.SeriesId do
                 let! status, _ = body browser path
                 Assert.True((status = HttpStatusCode.NotFound), $"{who} {path}: {status}")
     }
@@ -110,7 +110,7 @@ let ``a hidden profile cannot be told apart from an unknown username`` () =
 
         for browser in [ w.Other; w.Root ] do
             for route in routes do
-                let! hiddenStatus, hidden = body browser (route.Replace("{0}", "animenerd"))
+                let! hiddenStatus, hidden = body browser (route.Replace("{0}", "animegolden"))
                 let! unknownStatus, unknown = body browser (route.Replace("{0}", "nobodyhere"))
                 Assert.Equal(HttpStatusCode.NotFound, unknownStatus)
                 Assert.Equal(unknownStatus, hiddenStatus)
@@ -118,13 +118,13 @@ let ``a hidden profile cannot be told apart from an unknown username`` () =
 
         // signed out too (compare redirects there, so it is left out)
         for route in routes |> List.filter (fun r -> not (r.EndsWith "/compare")) do
-            let! hiddenStatus, hidden = body w.Stranger (route.Replace("{0}", "animenerd"))
+            let! hiddenStatus, hidden = body w.Stranger (route.Replace("{0}", "animegolden"))
             let! unknownStatus, unknown = body w.Stranger (route.Replace("{0}", "nobodyhere"))
             Assert.Equal(unknownStatus, hiddenStatus)
             Assert.Equal(unknown, hidden)
 
         // and it is the unknown-user page, not the plain not-found one
-        let! _, page = body w.Stranger "/u/animenerd"
+        let! _, page = body w.Stranger "/u/animegolden"
         let! _, plain = body w.Stranger "/nothing-here"
         Assert.False((plain = page))
     }
@@ -139,7 +139,7 @@ let ``the owner sees every page of their private profile with the private note``
         use! w = world [ defaultKey, "private" ]
 
         // compare redirects an owner to their own dashboard
-        for path in allPaths "animenerd" w.SeriesId do
+        for path in allPaths "animegolden" w.SeriesId do
             let! page = w.Owner.Get path
             Assert.True((page.Status = HttpStatusCode.OK), $"{path}: {page.Status}")
             Assert.Contains("data-profile-private", page.Html)
@@ -152,7 +152,7 @@ let ``the owner sees every page of their private profile with the private note``
 let ``the owner's private dashboard carries no public-profile line`` () =
     task {
         use! w = world [ defaultKey, "private" ]
-        let! page = w.Owner.Get "/u/animenerd"
+        let! page = w.Owner.Get "/u/animegolden"
         Assert.DoesNotContain("anyone with the link can see these numbers", page.Html)
     }
 
@@ -165,17 +165,17 @@ let ``with a public default everything opens, with the copy link and no private 
     task {
         use! w = world [ defaultKey, "public" ]
 
-        for path in openPaths "animenerd" w.SeriesId do
+        for path in openPaths "animegolden" w.SeriesId do
             let! page = w.Stranger.Get path
             Assert.True((page.Status = HttpStatusCode.OK), $"{path}: {page.Status}")
             Assert.DoesNotContain("data-profile-private", page.Html)
             Assert.Contains("data-copy-link", page.Html)
 
-        let! compare = w.Other.Get "/u/animenerd/compare"
+        let! compare = w.Other.Get "/u/animegolden/compare"
         Assert.Equal(HttpStatusCode.OK, compare.Status)
 
         // the owner of a public profile sees no private note either
-        let! own = w.Owner.Get "/u/animenerd"
+        let! own = w.Owner.Get "/u/animegolden"
         Assert.DoesNotContain("data-profile-private", own.Html)
     }
 
@@ -184,9 +184,9 @@ let ``the app's own default, with the setting blank, is members and no longer pr
     task {
         // the fixture sets "public"; a blank value is what an instance without the setting reads (feature 021)
         use! w = world [ defaultKey, "" ]
-        use! response = w.Stranger.GetRaw "/u/animenerd"
+        use! response = w.Stranger.GetRaw "/u/animegolden"
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
-        let! own = w.Owner.Get "/u/animenerd"
+        let! own = w.Owner.Get "/u/animegolden"
         Assert.Equal(HttpStatusCode.OK, own.Status)
         Assert.DoesNotContain("data-profile-private", own.Html)
         Assert.Contains("data-profile-members", own.Html)
@@ -211,26 +211,26 @@ let ``an invalid setting stops startup, naming the key`` () =
 [<Fact>]
 let ``a user's own choice holds against the instance default`` () =
     task {
-        // private default, but animenerd chose public
+        // private default, but animegolden chose public
         use! w = world [ defaultKey, "private" ]
 
         do!
             Db.execute
                 w.App.Db
-                "INSERT INTO profile_settings (user_id, visibility) SELECT id, 'public' FROM users WHERE username = 'animenerd'"
+                "INSERT INTO profile_settings (user_id, visibility) SELECT id, 'public' FROM users WHERE username = 'animegolden'"
 
-        let! status, _ = body w.Stranger "/u/animenerd"
+        let! status, _ = body w.Stranger "/u/animegolden"
         Assert.Equal(HttpStatusCode.OK, status)
 
-        // and the other way round: public default, but animenerd chose private
+        // and the other way round: public default, but animegolden chose private
         use! v = world [ defaultKey, "public" ]
 
         do!
             Db.execute
                 v.App.Db
-                "INSERT INTO profile_settings (user_id, visibility) SELECT id, 'private' FROM users WHERE username = 'animenerd'"
+                "INSERT INTO profile_settings (user_id, visibility) SELECT id, 'private' FROM users WHERE username = 'animegolden'"
 
-        let! hidden, _ = body v.Stranger "/u/animenerd"
+        let! hidden, _ = body v.Stranger "/u/animegolden"
         Assert.Equal(HttpStatusCode.NotFound, hidden)
     }
 
@@ -282,8 +282,8 @@ let ``user-list shows each user's effective visibility, starred when it comes fr
         let! rows = ListUsers.listUsers w.App.Db settings
         let byName name = rows |> List.find (fun r -> r.Username = name)
 
-        Assert.Equal(Profiles.Private, (byName "animenerd").Visibility)
-        Assert.True((byName "animenerd").FromDefault)
+        Assert.Equal(Profiles.Private, (byName "animegolden").Visibility)
+        Assert.True((byName "animegolden").FromDefault)
         Assert.Equal(Profiles.Public, (byName "other").Visibility)
         Assert.False((byName "other").FromDefault)
     }

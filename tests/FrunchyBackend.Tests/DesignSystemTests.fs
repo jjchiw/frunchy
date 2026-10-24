@@ -160,7 +160,7 @@ let ``every page is on the design system and keeps its test hooks`` () =
     task {
         // the owner is also the root operator, so the review pages can be checked
         let! db = newDatabase ()
-        use! app = createAppWith db [ "Frunchy:RootOperator", "animenerd" ] ignore
+        use! app = createAppWith db [ "Frunchy:RootOperator", "animegolden" ] ignore
         let problems = ResizeArray<string>()
         let assertPage name html hooks = problems.AddRange(pageProblems name html hooks)
 
@@ -181,7 +181,7 @@ let ``every page is on the design system and keeps its test hooks`` () =
         assertPage "claim" claim.Html [ "name=\"syncKey\"" ]
 
         // A signed-in owner with a history
-        use! owner = AuthHelpers.signedUp app "sub-owner" "animenerd"
+        use! owner = AuthHelpers.signedUp app "sub-owner" "animegolden"
         let! key = AuthHelpers.connectExtension owner
         let! _ = TestHelpers.submitAccepted app key (load2026Sample ())
         let! _ = TestHelpers.processAll app.Db
@@ -195,12 +195,12 @@ let ``every page is on the design system and keeps its test hooks`` () =
         let! delete = owner.Get "/account/delete"
         assertPage "delete account" delete.Html [ "name=\"confirmUsername\"" ]
 
-        let! dashboard = anonymous.Get "/u/animenerd"
+        let! dashboard = anonymous.Get "/u/animegolden"
         assertPage "dashboard" dashboard.Html [ "data-stat=\"series\""; "data-recent-item"; "data-dna-link"; "data-fr-time" ]
-        let! year = anonymous.Get $"/u/animenerd/year/{DateTime.UtcNow.Year}"
+        let! year = anonymous.Get $"/u/animegolden/year/{DateTime.UtcNow.Year}"
         assertPage "year in review" year.Html [ "data-year=\""; "data-year-picker"; "data-rewatch-note"; "data-dashboard-link"; "data-dna-link" ]
         let! seriesId = Db.scalar<string> app.Db "SELECT e.series_id FROM watch_events w JOIN cr_episodes e ON e.id = w.cr_episode_id WHERE e.duration_ms IS NOT NULL ORDER BY w.watched_at DESC, e.id LIMIT 1" []
-        let! anime = anonymous.Get $"/u/animenerd/anime/{seriesId}"
+        let! anime = anonymous.Get $"/u/animegolden/anime/{seriesId}"
         assertPage "anime page" anime.Html [ "data-anime=\""; "data-anime-totals"; "data-season="; "data-episode="; "data-dashboard-link"; "data-rewatch-note" ]
         // The episode page (feature 009): a thread with a spoiler and a comment the root hides, then the edit page
         let! episode = EpisodeHelpers.pickEpisode app.Db "e.episode_number IS NOT NULL AND e.season_id IS NOT NULL"
@@ -217,7 +217,7 @@ let ``every page is on the design system and keeps its test hooks`` () =
         assertPage "episode page (operator)" episodeOperator.Html [ "data-episode-page=\""; "data-thread=\"2\""; "data-comment=\""; "data-spoiler"; "data-spoiler-summary"; "data-hidden"; "data-comment-unhide"; "data-moderation-note"; "data-comment-form"; "data-spoiler-toggle" ]
         let! editPage = commenter.Get $"/comments/{hiddenId}/edit"
         assertPage "edit comment" editPage.Html [ "data-comment-edit-page=\""; "data-comment-form"; "data-spoiler-toggle" ]
-        let! dna = anonymous.Get "/u/animenerd/dna"
+        let! dna = anonymous.Get "/u/animegolden/dna"
         assertPage "anime DNA" dna.Html [ "data-dna-totals"; "data-dashboard-link" ]
         // The review pages, as an operator: nothing has been matched here, so the list is empty
         let! review = owner.Get "/review/mal"
@@ -225,10 +225,10 @@ let ``every page is on the design system and keeps its test hooks`` () =
         let! manual = owner.Get "/review/mal/manual"
         assertPage "review (manual)" manual.Html [ "data-review=\"manual\""; "data-review-empty" ]
         // The operators page, as the root: one operator listed, and a refusal notice
-        let! _ = TestHelpers.createUser app.Db "animenerd2"
-        let! _ = FrunchyBackend.Infrastructure.OperatorActions.add db (Some "animenerd") "animenerd2" FrunchyBackend.Infrastructure.OperatorActions.Server
+        let! _ = TestHelpers.createUser app.Db "animegolden2"
+        let! _ = FrunchyBackend.Infrastructure.OperatorActions.add db (Some "animegolden") "animegolden2" FrunchyBackend.Infrastructure.OperatorActions.Server
         let! operators = owner.Get "/review/operators?msg=is-root"
-        assertPage "operators" operators.Html [ "data-operators"; "data-operators-root=\"animenerd\""; "data-operator=\"animenerd2\""; "data-action=\"add\""; "data-action=\"remove\""; "data-operators-notice=\"is-root\"" ]
+        assertPage "operators" operators.Html [ "data-operators"; "data-operators-root=\"animegolden\""; "data-operator=\"animegolden2\""; "data-action=\"add\""; "data-action=\"remove\""; "data-operators-notice=\"is-root\"" ]
         let! empty = anonymous.Get "/u/nobody"
         assertPage "user not found" empty.Html []
 
@@ -353,7 +353,7 @@ let ``the chart pages are on the design system and keep their test hooks`` () =
 let ``the series page is on the design system and keeps its test hooks`` () =
     task {
         use! app = newApp ()
-        let! key = TestHelpers.createUser app.Db "animenerd"
+        let! key = TestHelpers.createUser app.Db "animegolden"
         let! _ = TestHelpers.submitAccepted app key (load2026Sample ())
         let! _ = TestHelpers.processAll app.Db
         MalFixtures.routeSampleCatalog app.Mal

@@ -18,7 +18,7 @@ open FrunchyBackend.Tests.Infrastructure.PostgresFixture
 let private withSample () =
     task {
         let! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db
         routeSampleCatalog app.Mal
@@ -33,7 +33,7 @@ let private get (app: TestApp) (language: string) (path: string) =
         return response.StatusCode, html
     }
 
-let private dna (app: TestApp) = task { let! _, html = get app "en" "/u/animenerd/dna" in return html }
+let private dna (app: TestApp) = task { let! _, html = get app "en" "/u/animegolden/dna" in return html }
 
 /// The data-* attributes of every element carrying data-{hook}, in document order
 let private elements (hook: string) (html: string) =
@@ -75,7 +75,7 @@ let private expected (db: DbConfig) =
                 FROM watch_events w JOIN users u ON u.id = w.user_id
                 JOIN cr_episodes e ON e.id = w.cr_episode_id
                 LEFT JOIN cr_season_matches m ON m.season_id = e.season_id AND m.status = 'matched'
-                WHERE u.username = 'animenerd' AND e.duration_ms IS NOT NULL
+                WHERE u.username = 'animegolden' AND e.duration_ms IS NOT NULL
                 """
 
         let all =
@@ -256,7 +256,7 @@ let ``the totals equal the dashboard's`` () =
         let! app, _ = withSample ()
         use app = app
         let! html = dna app
-        let! _, dashboard = get app "en" "/u/animenerd"
+        let! _, dashboard = get app "en" "/u/animegolden"
 
         for name in [ "hours"; "days"; "episodes" ] do
             let onDashboard = Regex.Match(dashboard, $"data-stat=\"{name}\"[^>]*data-value=\"([^\"]+)\"").Groups[1].Value
@@ -317,7 +317,7 @@ let ``coverage drops with unmatched seasons; with none matched only the MyAnimeL
 let ``fewer than 15 fully watched episodes shows the empty state with the count`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! html = dna app
         Assert.Equal("0", attr "value" (one "dna-empty" html))
         Assert.Empty(elements "dna-totals" html)
@@ -351,12 +351,12 @@ let ``the dashboard and the DNA page link to each other, and the page has a copy
     task {
         let! app, _ = withSample ()
         use app = app
-        let! _, dashboard = get app "en" "/u/animenerd"
-        Assert.Matches("<a href=\"/u/animenerd/dna\"[^>]*data-dna-link", dashboard)
+        let! _, dashboard = get app "en" "/u/animegolden"
+        Assert.Matches("<a href=\"/u/animegolden/dna\"[^>]*data-dna-link", dashboard)
         let! html = dna app
-        Assert.Matches("<a href=\"/u/animenerd\"[^>]*data-dashboard-link", html)
+        Assert.Matches("<a href=\"/u/animegolden\"[^>]*data-dashboard-link", html)
         Assert.Matches("data-copy-link", html)
-        Assert.Contains("data-address=\"http://localhost/u/animenerd/dna\"", html)
+        Assert.Contains("data-address=\"http://localhost/u/animegolden/dna\"", html)
     }
 
 [<Fact>]
@@ -364,8 +364,8 @@ let ``the page is localized; MyAnimeList names are not`` () =
     task {
         let! app, _ = withSample ()
         use app = app
-        let! _, en = get app "en" "/u/animenerd/dna"
-        let! _, es = get app "es-ES,es;q=0.9" "/u/animenerd/dna"
+        let! _, en = get app "en" "/u/animegolden/dna"
+        let! _, es = get app "es-ES,es;q=0.9" "/u/animegolden/dna"
         Assert.Contains("lang=\"es\"", es)
         Assert.Contains("ADN anime", es)
         Assert.Contains("Estudio favorito", es)
@@ -399,7 +399,7 @@ let ``the figures are identical after a rebuild and after re-sending the same hi
         let! resent = dna app
         Assert.Equal<string list>(signature before, signature resent)
 
-        let! queued = RebuildUser.rebuildUser app.Db "animenerd"
+        let! queued = RebuildUser.rebuildUser app.Db "animegolden"
         Assert.True(queued.IsSome)
         let! _ = processAll app.Db
         let! rebuilt = dna app
@@ -413,7 +413,7 @@ let ``viewing the page never calls MyAnimeList`` () =
         use app = app
         app.Mal.Clear()
         let! _ = dna app
-        let! _ = get app "es" "/u/animenerd/dna"
+        let! _ = get app "es" "/u/animegolden/dna"
         Assert.Empty app.Mal.Requests
     }
 

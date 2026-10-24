@@ -23,7 +23,7 @@ let private withSample () =
         let! db = newDatabase ()
         let clock = TestClock(Now = now)
         let! app = createAppWith db [] (fun (b: WebApplicationBuilder) -> b.Services.AddSingleton<TimeProvider>(clock) |> ignore)
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db
         routeSampleCatalog app.Mal
@@ -62,7 +62,7 @@ let private titleOf (db: DbConfig) (seriesId: string) =
 let private assertLeads (app: TestApp) (links: SeriesLink list) =
     task {
         for l in links do
-            Assert.Equal($"/u/animenerd/anime/{l.Id}", l.Href)
+            Assert.Equal($"/u/animegolden/anime/{l.Id}", l.Href)
             let! response = getWithLanguage app.Client "en" l.Href
             Assert.Equal(HttpStatusCode.OK, response.StatusCode)
     }
@@ -72,7 +72,7 @@ let ``the dashboard's newest episode and every recent card link to their anime p
     task {
         let! app = withSample ()
         use app = app
-        let! html = page app "/u/animenerd"
+        let! html = page app "/u/animegolden"
 
         // the cards are the six newest watches, in that order (as the dashboard's own rule)
         let! recent = Db.dump app.Db "SELECT e.series_id FROM watch_events w JOIN cr_episodes e ON e.id = w.cr_episode_id WHERE e.duration_ms IS NOT NULL ORDER BY w.watched_at DESC, e.id LIMIT 6"
@@ -96,7 +96,7 @@ let ``the DNA page's insignia anime and each genre's top anime link to their ani
     task {
         let! app = withSample ()
         use app = app
-        let! html = page app "/u/animenerd/dna"
+        let! html = page app "/u/animegolden/dna"
 
         let insignia = attrsOf "dna-insignia" html |> List.exactlyOne |> Map.find "series"
         let tops = attrsOf "top-series" html |> List.map (Map.find "top-series")
@@ -121,7 +121,7 @@ let ``the year page's top series and each genre's top anime link to their anime 
     task {
         let! app = withSample ()
         use app = app
-        let! html = page app "/u/animenerd/year/2022"
+        let! html = page app "/u/animegolden/year/2022"
 
         let top = attrsOf "year-top-series" html |> List.exactlyOne |> Map.find "series"
         let tops = attrsOf "top-series" html |> List.map (Map.find "top-series")

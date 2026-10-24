@@ -87,7 +87,7 @@ Files: Handlers/Users/Dashboard.fs, Handlers/Users/Dna.fs (titles only), Handler
 ### Tests
 
 - [x] **T008** [US2] Write `AnimeLinkTests`. With the 2026 sample:
-  - every recent card on the dashboard, and the header's newest episode, have a `data-series-link` to `/u/animenerd/anime/{id}`, where id is that card's series;
+  - every recent card on the dashboard, and the header's newest episode, have a `data-series-link` to `/u/animegolden/anime/{id}`, where id is that card's series;
   - so do the DNA insignia and every genre top anime except "Others", and the year page's top series and its genre top anime;
   - each link answers 200.
 

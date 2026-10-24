@@ -22,7 +22,7 @@ open FrunchyBackend.Tests.TestHelpers
 let private sample (federated: bool) : Task<TestApp> =
     task {
         let! app = if federated then newFederatedApp () else newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db
         routeSampleCatalog app.Mal
@@ -149,7 +149,7 @@ let ``series-handle: a handle another series or a user has is exit 4 and nothing
 
         let! otherSeries = cli app "series-handle" [ second; "taken-one" ]
         Assert.Equal(4, otherSeries)
-        let! username = cli app "series-handle" [ second; "animenerd" ]
+        let! username = cli app "series-handle" [ second; "animegolden" ]
         Assert.Equal(4, username)
 
         let! none = handleOf app second

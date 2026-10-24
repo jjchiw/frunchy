@@ -35,7 +35,7 @@ Expected: all green. These suites map to the spec:
 
 ```bash
 dotnet run --launch-profile http                    # http://localhost:5099
-dotnet run -- user-create animenerd "AnimeNerd"     # prints the sync key once → export KEY=frk_...
+dotnet run -- user-create animegolden "AnimeGolden"     # prints the sync key once → export KEY=frk_...
 ```
 
 Submit the 2026 fixture and poll its status. The fixture is the extension's export envelope; add the
@@ -56,7 +56,7 @@ curl -s http://localhost:5099/api/me -H "Authorization: Bearer $KEY"
 # → username, displayName, dashboardUrl, lastSyncAt, historyOwnerBound: true
 ```
 
-Open `http://localhost:5099/u/animenerd`:
+Open `http://localhost:5099/u/animegolden`:
 - English browser: 67 series, 298 episodes, 118.2 hours, 4.9 days; the first recent item is
   "Clevatess", Episode 13.
 - Set the browser to Spanish, or `curl -H "Accept-Language: es"`: the same figures in Spanish
@@ -74,10 +74,10 @@ Re-submit the same file 2 more times. The dashboard figures don't change (SC-005
 ## 3. Operator flows
 
 ```bash
-dotnet run -- user-rebuild animenerd                # figures identical after the worker finishes (SC-006)
-dotnet run -- user-regenerate-key animenerd         # old KEY → 401, new key works
-dotnet run -- user-reset-binding animenerd          # next accepted POST binds again
-dotnet run -- user-delete animenerd --yes           # /u/animenerd → 404; key → 401; other users unchanged
+dotnet run -- user-rebuild animegolden                # figures identical after the worker finishes (SC-006)
+dotnet run -- user-regenerate-key animegolden         # old KEY → 401, new key works
+dotnet run -- user-reset-binding animegolden          # next accepted POST binds again
+dotnet run -- user-delete animegolden --yes           # /u/animegolden → 404; key → 401; other users unchanged
 ```
 
 ## 4. With the real extension
@@ -85,7 +85,7 @@ dotnet run -- user-delete animenerd --yes           # /u/animenerd → 404; key 
 Coordinate with the extension session (see plan.md, "Extension coordination"):
 1. Point the extension at `http://localhost:5099` and paste the key. `GET /api/me` validates it.
 2. Visit crunchyroll.com/history. Pages flow in as `POST /api/imports`, one page per request.
-3. `/u/animenerd` reflects the full history after the last page (6,363 entries in the reference
+3. `/u/animegolden` reflects the full history after the last page (6,363 entries in the reference
    capture → 327 series, 5,921 episodes, ≈ 2,367.6 h).
 
 ## Validation log

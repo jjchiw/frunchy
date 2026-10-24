@@ -21,7 +21,7 @@ let private pacePage (recent: int list) =
         let clock = TestClock(Now = now)
         let! db = newDatabase ()
         let! app = createAppWith db [] (fun (b: WebApplicationBuilder) -> b.Services.AddSingleton<TimeProvider>(clock) |> ignore)
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
 
         // each entry in its own series: one episode per series never merges as a dub
         let entry (i: int) (daysAgo: float) =
@@ -32,7 +32,7 @@ let private pacePage (recent: int list) =
         let! _ = submitAccepted app key (envelopeOf [ historyUrl RealAccountId, pageOf (old @ window) ])
         let! _ = processAll app.Db
 
-        let! response = getWithLanguage app.Client "en" "/u/animenerd/dna"
+        let! response = getWithLanguage app.Client "en" "/u/animegolden/dna"
         let! html = readHtml response
         do! (app :> IAsyncDisposable).DisposeAsync()
         return Regex.Match(html, "<section[^>]*data-dna-pace=\"\"[^>]*>").Value

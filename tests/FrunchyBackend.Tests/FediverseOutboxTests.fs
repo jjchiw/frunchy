@@ -28,7 +28,7 @@ let private numberedEpisode (db: FrunchyBackend.Infrastructure.Database.DbConfig
 let private federatedSample () : Task<TestApp> =
     task {
         let! app = newFederatedApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db
         MalFixtures.routeSampleCatalog app.Mal
@@ -466,7 +466,7 @@ let ``with federation off nothing is queued`` () =
         let! _ = delete alice id
         let! _ = alice.PostForm("/account", "/account/display-name", [ "displayName", "Renamed" ])
         let! _ = alice.PostForm("/account/delete", "/account/delete", [ "confirmUsername", "alice" ])
-        let! _ = DeleteUser.deleteUser app.Db false "animenerd"
+        let! _ = DeleteUser.deleteUser app.Db false "animegolden"
 
         let! queued = Db.count app.Db "fediverse_outbox"
         Assert.Equal(0L, queued)

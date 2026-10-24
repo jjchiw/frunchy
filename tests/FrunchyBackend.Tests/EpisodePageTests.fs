@@ -182,7 +182,7 @@ let ``every episode of the anime page links to an episode page that opens`` () =
         let! app, _ = sampleApp ()
         use app = app
         let! series = Db.scalar<string> app.Db "SELECT series_id FROM cr_seasons WHERE id = 'G6MGC3778'" []
-        let! response = FrunchyBackend.Tests.Fixtures.getWithLanguage app.Client "en" $"/u/animenerd/anime/{series}"
+        let! response = FrunchyBackend.Tests.Fixtures.getWithLanguage app.Client "en" $"/u/animegolden/anime/{series}"
         let! html = FrunchyBackend.Tests.Fixtures.readHtml response
         Assert.Equal(HttpStatusCode.OK, response.StatusCode)
 

@@ -29,7 +29,7 @@ let private appWithClock () =
 let private withSample () =
     task {
         let! app = appWithClock ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db
         routeSampleCatalog app.Mal
@@ -44,7 +44,7 @@ let private get (app: TestApp) (language: string) (path: string) =
         return response.StatusCode, html
     }
 
-let private page (app: TestApp) (year: int) = task { let! _, html = get app "en" $"/u/animenerd/year/{year}" in return html }
+let private page (app: TestApp) (year: int) = task { let! _, html = get app "en" $"/u/animegolden/year/{year}" in return html }
 
 let private elements (hook: string) (html: string) =
     [ for m in Regex.Matches(html, $"<[a-z0-9]+\\b[^>]*\\bdata-{hook}(=\"[^\"]*\")?[^>]*>") ->
@@ -87,7 +87,7 @@ let private watched (db: DbConfig) =
                 FROM watch_events w JOIN users u ON u.id = w.user_id
                 JOIN cr_episodes e ON e.id = w.cr_episode_id
                 LEFT JOIN cr_season_matches m ON m.season_id = e.season_id AND m.status = 'matched'
-                WHERE u.username = 'animenerd' AND e.duration_ms IS NOT NULL
+                WHERE u.username = 'animegolden' AND e.duration_ms IS NOT NULL
                 """
 
         return
@@ -247,7 +247,7 @@ let ``every year's hours add up to the dashboard's`` () =
     task {
         let! app, _ = withSample ()
         use app = app
-        let! _, dashboard = get app "en" "/u/animenerd"
+        let! _, dashboard = get app "en" "/u/animegolden"
         let total = Decimal.Parse(stat "hours" dashboard, CultureInfo.InvariantCulture)
         let! years = Db.dump app.Db "SELECT DISTINCT extract(year FROM watched_at AT TIME ZONE 'UTC')::int FROM watch_events"
         let mutable sum = 0m
@@ -294,7 +294,7 @@ let ``coverage drops with unmatched seasons; with none matched the MyAnimeList s
 let ``a year with fewer than 15 fully watched episodes shows the empty state with the count`` () =
     task {
         use! app = appWithClock ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let at = DateTime(2025, 3, 1, 12, 0, 0, DateTimeKind.Utc)
         let entries n = [ for i in 1..n -> syntheticEntry $"Y{i:D3}" $"YS{i:D3}" (at.AddHours(float i)) true 1400 ]
 
@@ -316,13 +316,13 @@ let ``a year with fewer than 15 fully watched episodes shows the empty state wit
 [<Theory>]
 [<InlineData("/u/nobody/year/2025", "User not found")>]
 [<InlineData("/u/nobody/year", "User not found")>]
-[<InlineData("/u/animenerd/year/abc", "Page not found")>]
-[<InlineData("/u/animenerd/year/1999", "Page not found")>]
-[<InlineData("/u/animenerd/year/2027", "Page not found")>]
+[<InlineData("/u/animegolden/year/abc", "Page not found")>]
+[<InlineData("/u/animegolden/year/1999", "Page not found")>]
+[<InlineData("/u/animegolden/year/2027", "Page not found")>]
 let ``bad users and years are not found`` (path: string, text: string) =
     task {
         use! app = appWithClock ()
-        let! _ = createUser app.Db "animenerd"
+        let! _ = createUser app.Db "animegolden"
         let! status, html = get app "en" path
         Assert.Equal(HttpStatusCode.NotFound, status)
         Assert.Contains(text, html)
@@ -333,8 +333,8 @@ let ``the page is localized; month names follow the language and MyAnimeList nam
     task {
         let! app, _ = withSample ()
         use app = app
-        let! _, en = get app "en" "/u/animenerd/year/2026"
-        let! _, es = get app "es-ES,es;q=0.9" "/u/animenerd/year/2026"
+        let! _, en = get app "en" "/u/animegolden/year/2026"
+        let! _, es = get app "es-ES,es;q=0.9" "/u/animegolden/year/2026"
         Assert.Contains("lang=\"es\"", es)
         Assert.Contains("Racha más larga", es)
         Assert.Contains("Longest streak", en)
@@ -361,7 +361,7 @@ let ``the figures are identical after a rebuild and after re-sending, and viewin
         let! resent = page app 2022
         Assert.Equal<string list>(signature before, signature resent)
 
-        let! queued = RebuildUser.rebuildUser app.Db "animenerd"
+        let! queued = RebuildUser.rebuildUser app.Db "animegolden"
         Assert.True(queued.IsSome)
         let! _ = processAll app.Db
         app.Mal.Clear()

@@ -79,7 +79,7 @@ let private assertTabs (page: string) (user: string) (selected: string option) (
 let private english = [ "Dashboard"; "Anime DNA"; "Year in review" ]
 let private spanish = [ "Panel"; "ADN anime"; "Resumen del año" ]
 
-/// A world with a public "animenerd": the owner, another member and a signed-out visitor
+/// A world with a public "animegolden": the owner, another member and a signed-out visitor
 let private publicWorld () = world [ defaultKey, "public" ]
 
 [<Fact>]
@@ -88,17 +88,17 @@ let ``every profile page has the tab bar with the right tab current and one h1``
         use! w = publicWorld ()
 
         let pages =
-            [ "dashboard", "/u/animenerd", Some "dashboard"
-              "dna", "/u/animenerd/dna", Some "dna"
-              "year", "/u/animenerd/year", Some "year"
-              "year 2022", "/u/animenerd/year/2022", Some "year"
-              "anime", $"/u/animenerd/anime/{w.SeriesId}", None ]
+            [ "dashboard", "/u/animegolden", Some "dashboard"
+              "dna", "/u/animegolden/dna", Some "dna"
+              "year", "/u/animegolden/year", Some "year"
+              "year 2022", "/u/animegolden/year/2022", Some "year"
+              "anime", $"/u/animegolden/anime/{w.SeriesId}", None ]
 
         for browser, who in [ w.Stranger, "visitor"; w.Owner, "owner"; w.Other, "member" ] do
             for name, path, selected in pages do
                 let! page = browser.Get path
                 Assert.Equal(HttpStatusCode.OK, page.Status)
-                assertTabs $"{who} {name}" "animenerd" selected english "Profile pages" page.Html
+                assertTabs $"{who} {name}" "animegolden" selected english "Profile pages" page.Html
                 Assert.True((h1Count page.Html = 1), $"{who} {name}: {h1Count page.Html} h1")
                 Assert.Contains("data-profile-masthead", page.Html)
     }
@@ -108,20 +108,20 @@ let ``the masthead name is the h1 on the dashboard and a link to it everywhere e
     task {
         use! w = publicWorld ()
 
-        let! dashboard = w.Stranger.Get "/u/animenerd"
+        let! dashboard = w.Stranger.Get "/u/animegolden"
         let tag = nameTag dashboard.Html
         Assert.StartsWith("<h1", tag)
         Assert.DoesNotContain("href", tag)
-        Assert.Contains("ANIMENERD", masthead dashboard.Html)
-        Assert.Contains("@animenerd", masthead dashboard.Html)
+        Assert.Contains("ANIMEGOLDEN", masthead dashboard.Html)
+        Assert.Contains("@animegolden", masthead dashboard.Html)
 
-        for path in [ "/u/animenerd/dna"; "/u/animenerd/year"; "/u/animenerd/year/2022"; $"/u/animenerd/anime/{w.SeriesId}" ] do
+        for path in [ "/u/animegolden/dna"; "/u/animegolden/year"; "/u/animegolden/year/2022"; $"/u/animegolden/anime/{w.SeriesId}" ] do
             let! page = w.Stranger.Get path
             let tag = nameTag page.Html
             Assert.StartsWith("<a", tag)
-            Assert.Contains("href=\"/u/animenerd\"", tag)
-            Assert.Contains("ANIMENERD", masthead page.Html)
-            Assert.Contains("@animenerd", masthead page.Html)
+            Assert.Contains("href=\"/u/animegolden\"", tag)
+            Assert.Contains("ANIMEGOLDEN", masthead page.Html)
+            Assert.Contains("@animegolden", masthead page.Html)
     }
 
 [<Fact>]
@@ -129,15 +129,15 @@ let ``the DNA and year headings are the view's own and keep the person's name in
     task {
         use! w = publicWorld ()
 
-        let! dna = w.Stranger.Get "/u/animenerd/dna"
-        Assert.Matches("<h1\\b[^>]*data-dna-user=\"ANIMENERD\"[^>]*>\\s*Anime DNA\\s*</h1>", dna.Html)
+        let! dna = w.Stranger.Get "/u/animegolden/dna"
+        Assert.Matches("<h1\\b[^>]*data-dna-user=\"ANIMEGOLDEN\"[^>]*>\\s*Anime DNA\\s*</h1>", dna.Html)
 
-        let! year = w.Stranger.Get "/u/animenerd/year/2022"
-        Assert.Matches("<h1\\b[^>]*data-year-user=\"ANIMENERD\"[^>]*>\\s*2022 in review\\s*</h1>", year.Html)
+        let! year = w.Stranger.Get "/u/animegolden/year/2022"
+        Assert.Matches("<h1\\b[^>]*data-year-user=\"ANIMEGOLDEN\"[^>]*>\\s*2022 in review\\s*</h1>", year.Html)
         Assert.Contains("data-year-picker", year.Html)
         Assert.Contains("data-rewatch-note", year.Html)
 
-        let! anime = w.Stranger.Get $"/u/animenerd/anime/{w.SeriesId}"
+        let! anime = w.Stranger.Get $"/u/animegolden/anime/{w.SeriesId}"
         Assert.Matches("<h1\\b[^>]*data-anime-title", anime.Html)
         // the old "back to the dashboard" button is gone: the Dashboard tab leads back
         Assert.Equal(1, Regex.Matches(anime.Html, "data-dashboard-link").Count)
@@ -148,7 +148,7 @@ let ``the copy link and the visibility notes sit in the masthead`` () =
     task {
         use! w = publicWorld ()
 
-        for path in [ "/u/animenerd"; "/u/animenerd/dna"; "/u/animenerd/year/2022" ] do
+        for path in [ "/u/animegolden"; "/u/animegolden/dna"; "/u/animegolden/year/2022" ] do
             let! page = w.Stranger.Get path
             let top = masthead page.Html
             Assert.Contains("data-copy-link", top)
@@ -156,14 +156,14 @@ let ``the copy link and the visibility notes sit in the masthead`` () =
 
         // the owner's note about a Members profile is in the masthead too, before the copy link
         use! m = world [ defaultKey, "members" ]
-        let! own = m.Owner.Get "/u/animenerd/dna"
+        let! own = m.Owner.Get "/u/animegolden/dna"
         let top = masthead own.Html
         Assert.Contains("data-profile-members", top)
         Assert.True((top.IndexOf "data-profile-members" < top.IndexOf "data-copy-link"))
 
         // a private profile's owner sees the private note instead of the copy link
         use! p = world [ defaultKey, "private" ]
-        let! own = p.Owner.Get "/u/animenerd"
+        let! own = p.Owner.Get "/u/animegolden"
         let top = masthead own.Html
         Assert.Contains("data-profile-private", top)
         Assert.DoesNotContain("data-copy-link", top)
@@ -176,13 +176,13 @@ let ``the labels are in Spanish for a Spanish visitor`` () =
         use es = w.App.NewBrowser "es"
 
         for path, selected in
-            [ "/u/animenerd", Some "dashboard"
-              "/u/animenerd/dna", Some "dna"
-              "/u/animenerd/year/2022", Some "year"
-              $"/u/animenerd/anime/{w.SeriesId}", None ] do
+            [ "/u/animegolden", Some "dashboard"
+              "/u/animegolden/dna", Some "dna"
+              "/u/animegolden/year/2022", Some "year"
+              $"/u/animegolden/anime/{w.SeriesId}", None ] do
             let! page = es.Get path
             Assert.Equal(HttpStatusCode.OK, page.Status)
-            assertTabs path "animenerd" selected spanish "Páginas del perfil" page.Html
+            assertTabs path "animegolden" selected spanish "Páginas del perfil" page.Html
     }
 
 /// Two members with enough history for a compatibility level, "viewera" looking at "ownerb"
@@ -225,9 +225,9 @@ let ``a page for a profile that is not enough to compare still has the masthead 
         use! w = publicWorld ()
 
         // the member has no history, so the page says there is not enough: the bar is still there
-        let! page = w.Other.Get "/u/animenerd/compare"
+        let! page = w.Other.Get "/u/animegolden/compare"
         Assert.Equal(HttpStatusCode.OK, page.Status)
-        assertTabs "compare, not enough" "animenerd" None english "Profile pages" page.Html
+        assertTabs "compare, not enough" "animegolden" None english "Profile pages" page.Html
         Assert.Contains("data-compat-not-enough", page.Html)
         // The empty card's title is the page's one h1 (the masthead name is a link here)
         Assert.Equal(1, h1Count page.Html)
