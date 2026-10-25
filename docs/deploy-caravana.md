@@ -80,7 +80,7 @@ With `Deploy:Federation=true` the app is five services, and **the gateway owns t
 
 | Service | What | Domain |
 |---|---|---|
-| `gateway` | `ghcr.io/cosmic-chimps/megafono-gateway`, plain http on 8080 | `frunchy-domain` |
+| `gateway` | `ghcr.io/cosmic-chimps/megafono-gateway`, plain http on 8080, health `/healthz` | `frunchy-domain` |
 | `frunchy` | the app | none |
 | `megafono` | `ghcr.io/cosmic-chimps/megafono`; 8080 is the federation port, 8081 the internal API Frunchy calls | none |
 | `megafono-pg` | Postgres with the `megafono` database and volume | none |
@@ -142,11 +142,11 @@ come back with the same domain.
 4. `fediverse-status` shows the outbox: in Caravana's console for the `frunchy` service, run
    `dotnet /app/FrunchyBackend.dll fediverse-status`. Items stuck `waiting` or listed as `failed` say what is wrong.
 
-**Known gap in Megáfono 0.1.0.** It writes `discoverable: true` and `indexable: false` on every user actor, whatever
-Frunchy's actor lookup sends (feature 021), so until a Megáfono release passes the two flags on, Members and Private users
-are findable in Mastodon's search (their posts are not indexed). The fix is planned for Megáfono 0.2.0: the pin
-(`Megafono:ImageTag`, here and in `deploy/compose.yaml`) moves to it, and the gateway's check moves from TCP to its
-`/healthz`, before the federated release. Decide whether to release on 0.1.0 with the gap, or wait for 0.2.0.
+**Megáfono 0.2.0 or later.** From 0.2.0 an actor's `discoverable` and `indexable` come from Frunchy's actor lookup
+(feature 021: both true for Public profiles and series, both false for Members and Private), and a change of visibility
+goes out with the next profile update. 0.1.0 marked every user as discoverable, so never pin it with federation on.
+The gateway's Caravana check is HTTP `/healthz` on 8080, which 0.2.0's gateway answers itself without proxying (so
+`https://<frunchy-domain>/healthz` is the gateway's answer, not Frunchy's; Caravana checks Frunchy on its own port).
 
 ### The Aspire CLI and the image tag
 

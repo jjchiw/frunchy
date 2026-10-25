@@ -36,6 +36,10 @@ new image. Add to "Unreleased" as you work; a release renames it.
   visibility changed". Earlier entries keep their old wording. Nothing to do on upgrade.
 - In Spanish the dashboard is always "panel", the word of its tab; the home steps, sign-in, sign-up
   and account pages said "dashboard".
+- Megáfono is pinned at 0.2.0 (was 0.1.0) in the AppHost and in `deploy/compose.yaml`
+  (`MEGAFONO_VERSION`). With federation on, Members and Private profiles are now not discoverable and
+  not indexable on the fediverse, as Frunchy already asked: 0.1.0 marked every user as discoverable. A
+  self-hosted Megáfono 0.1.0 database is upgraded by Megáfono itself on start.
 
 ### Fixed
 

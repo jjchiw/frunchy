@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-24
 
-**Status**: Implemented (the federated release waits for Megáfono 0.2.0, T011)
+**Status**: Implemented (on Megáfono 0.2.0)
 
 **Input**: "I'm ready to test the fediverse on frunchy.lacalabaza.xyz. Keep the domain and start it autonomous."
 Today `aspire deploy` publishes only `frunchy` and `pg` to Caravana with federation off (feature 018). This feature
@@ -28,8 +28,9 @@ adds Megáfono, its gateway and Megáfono's database to the same Caravana app an
   service's `POSTGRES_DB`, so sharing `pg` would leave Megáfono's data out of the backups. Caravana supports two
   Postgres services with a backup each in one app.
 - Q: Which Megáfono? → A: The published images `ghcr.io/cosmic-chimps/megafono` and `megafono-gateway` at the tag
-  `Megafono:ImageTag` the AppHost already pins (`0.1.0`; `latest` and empty are refused, as in run mode). 0.1.0
-  already has the gateway's `Gateway__TrustedProxies` and the `discoverable`/`indexable` actor fields.
+  `Megafono:ImageTag` the AppHost pins, **0.2.0** (`latest` and empty are refused, as in run mode): it has the
+  gateway's `Gateway__TrustedProxies` and `/healthz`, and actors take `discoverable`/`indexable` from Frunchy's
+  lookup (0.1.0 marked every user discoverable, research R2).
 - Q: The secrets? → A: Four new secret deploy parameters, kept in Bella `frunchy/production` as
   `Parameters__<name>` like the others: `megafono-master-key` (base64 of 32 bytes, checked before anything is
   built, exactly as in run mode), `megafono-token`, `megafono-webhook-secret` and `megafono-db-password`. They

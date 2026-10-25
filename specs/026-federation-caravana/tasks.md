@@ -59,5 +59,5 @@ suite must stay green.
 
 - [x] T010 Review both diffs against the contract; run the AppHost tests and the suite; check the publish output
   if the package can write it without deploying; mark the spec Implemented.
-- [ ] T011 When Megáfono 0.2.0 is tagged: bump `Megafono:ImageTag` (AppHost and `deploy/compose.yaml`), switch the
+- [x] T011 When Megáfono 0.2.0 is tagged: bump `Megafono:ImageTag` (AppHost and `deploy/compose.yaml`), switch the
   gateway's check to HTTP `/healthz`, drop the discoverable-gap note.

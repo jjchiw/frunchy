@@ -30,7 +30,7 @@ let fakeSecrets =
 
 let private baseSettings =
     [ for name, value in fakeSecrets -> $"Parameters:{name}", value ]
-    @ [ "Megafono:ImageTag", "0.1.0" ]
+    @ [ "Megafono:ImageTag", "0.2.0" ]
 
 /// A publish-mode builder holding the base settings and then `overrides` (which win)
 let publishBuilder (overrides: (string * string) list) =

@@ -185,7 +185,7 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 ### Prerequisites
 - .NET SDK 10
 - Docker running (Aspire starts Postgres and Megáfono in containers, the tests use Testcontainers)
-- To run the whole platform: nothing more. The AppHost pulls Megáfono (the fediverse service, a separate repo) as the published images `ghcr.io/cosmic-chimps/megafono` and `megafono-gateway`, pinned by `Megafono:ImageTag` (`0.1.0`). To try an unreleased Megáfono, set `Megafono:BuildFromSource` to `true` and `Megafono:SourcePath` to a checkout (default `../../Megafono`)
+- To run the whole platform: nothing more. The AppHost pulls Megáfono (the fediverse service, a separate repo) as the published images `ghcr.io/cosmic-chimps/megafono` and `megafono-gateway`, pinned by `Megafono:ImageTag` (`0.2.0`). To try an unreleased Megáfono, set `Megafono:BuildFromSource` to `true` and `Megafono:SourcePath` to a checkout (default `../../Megafono`)
 - Optional, to sign in with Umbral (our own OpenID Connect provider, a separate repo) under the AppHost: nothing to check out: the AppHost pulls `ghcr.io/cosmic-chimps/umbral` at `Umbral:ImageTag` (`0.1.1`). To try an unreleased Umbral, set `Umbral:BuildFromSource=true` and a checkout at `../../Umbral` (or `Umbral:SourcePath`) is built from its `Dockerfile`; without the checkout the AppHost warns and runs without Umbral
 - To run Frunchy alone: PostgreSQL 14+ (locally it runs in Docker: container `postgres-postgres-1`)
 
@@ -385,7 +385,7 @@ Compose: `FRUNCHY_DATA_PROTECTION_KEY` (required) and `FRUNCHY_IMAGE` (default `
 
 ### Self-hosting with Docker Compose
 
-`Dockerfile` builds Frunchy; `deploy/compose.yaml` runs it with Postgres 18. Federation is an optional profile that adds Megáfono and its gateway (pinned `0.1.0`). `FRUNCHY_DATA_PROTECTION_KEY` is required (see above); there is no keys volume:
+`Dockerfile` builds Frunchy; `deploy/compose.yaml` runs it with Postgres 18. Federation is an optional profile that adds Megáfono and its gateway (pinned `0.2.0`). `FRUNCHY_DATA_PROTECTION_KEY` is required (see above); there is no keys volume:
 
 ```bash
 cp deploy/.env.example deploy/.env      # fill it in: every variable has its generation command

@@ -39,7 +39,8 @@ env list against v0.1.0), Megáfono's `docs/operating.md` ("Behind a TLS proxy (
   today's values; a change goes out with the next profile Update, which Frunchy's `refresh_profile` already
   triggers), with a gateway `GET /healthz`, for a release it recommends tagging **0.2.0** (main also holds its feed,
   feature 005, whose `post.*` events only fire for accounts a local user follows: nothing Frunchy does yet, so the
-  pin is safe). **Plan**: 026 is built and tested on 0.1.0; the pin moves to 0.2.0 (and the gateway's check to
+  pin is safe). **Done**: 0.2.0 was released on 2026-10-24 (image revision `915221c`, checked: actors take both flags from the
+  lookup, and the gateway maps its own `/healthz`); the pin moved to 0.2.0 (and the gateway's check to
   HTTP `/healthz`) when the tag exists, before the federated release. The owner decides whether to release on
   0.1.0 with the gap documented.
 
@@ -48,7 +49,9 @@ env list against v0.1.0), Megáfono's `docs/operating.md` ("Behind a TLS proxy (
 - Image `megafono-gateway:0.1.0`, plain http on 8080 without a certificate (it listens on 443 only when
   `Kestrel:Certificates:Default:Path` is set). Clusters: `ReverseProxy__Clusters__megafono__Destinations__primary__Address`
   → Megáfono's federation port, `ReverseProxy__Clusters__app__Destinations__primary__Address` → Frunchy.
-- No health endpoint of its own: any HTTP path is proxied (to Frunchy by default), so Caravana's check is **TCP**
+- 0.1.0 had no health endpoint of its own (any HTTP path is proxied, to Frunchy by default), so the first build
+  used a **TCP** check. 0.2.0's gateway answers `GET /healthz` itself (200 `ok`, never proxied), so the check is
+  HTTP `/healthz` on 8080. Before that:
   on 8080. Megáfono offered a gateway `/healthz` in a 0.1.x.
 
 ## R4 Caravana

@@ -69,7 +69,7 @@ let private megafonoImageTag (configuration: IConfiguration) =
         | tag -> tag.Trim()
 
     if tag = "" || tag = "latest" then
-        failwith "Set Megafono:ImageTag to a pinned Megafono release (e.g. 0.1.0, never latest), or Megafono:BuildFromSource to true."
+        failwith "Set Megafono:ImageTag to a pinned Megafono release (e.g. 0.2.0, never latest), or Megafono:BuildFromSource to true."
 
     tag
 
@@ -216,7 +216,7 @@ let publishGraph (builder: IDistributedApplicationBuilder) (repoRoot: string) =
                     .WaitFor(megafonoDb)
 
             // The single public entrance: Megafono's routes go to Megafono, everything else to Frunchy. Traefik
-            // reaches it from 10.99.0.1. It has no health endpoint of its own (any path is proxied), so the check is TCP.
+            // reaches it from 10.99.0.1. Its own /healthz (Megafono 0.2.0) answers without proxying.
             builder
                 .AddContainer("gateway", "ghcr.io/cosmic-chimps/megafono-gateway", megafonoTag)
                 .WithHttpEndpoint(targetPort = 8080, name = "http")
@@ -231,7 +231,7 @@ let publishGraph (builder: IDistributedApplicationBuilder) (repoRoot: string) =
                     frunchyBase.GetEndpoint("http")
                 )
                 .WithCaravanaDomain(caravana, frunchyDomain)
-                .WithCaravanaHealthCheck(caravana, port = 8080)
+                .WithCaravanaHealthCheck(caravana, "/healthz", 8080)
                 .WithCaravanaMemory(caravana, 64, 128)
                 .WaitFor(megafono)
                 .WaitFor(frunchyBase)

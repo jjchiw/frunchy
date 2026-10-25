@@ -8,7 +8,7 @@ What `publishGraph` must produce. The AppHost tests check every line marked **(t
 |---|---|---|---|
 | `Deploy:Federation` | setting (bool) | `true` | `false` = the 018 graph, exactly |
 | `Caravana:ContainerNetwork` | setting | `172.26.64.0/20` | Megáfono's and Frunchy's trusted proxies when federating |
-| `Megafono:ImageTag` | setting | `0.1.0` | shared with run mode; empty or `latest` refused **(test)** |
+| `Megafono:ImageTag` | setting | `0.2.0` | shared with run mode; empty or `latest` refused **(test)** |
 | `Megafono:BuildFromSource` | setting | `false` | `true` refused in publish mode with federation on **(test)** |
 | `megafono-master-key` | secret parameter | | base64 of 32 bytes, checked before the graph; the error names the parameter, never the value **(test)** |
 | `megafono-token`, `megafono-webhook-secret`, `megafono-db-password` | secret parameters | | declared only when federating **(test)** |
@@ -23,7 +23,7 @@ The 018 parameters are unchanged.
 | `pg` | Postgres, volume `frunchy-pg`, `POSTGRES_DB=frunchydb` | | as today | Postgres `0 3 * * *`, 14 | 256/512 |
 | `megafono-pg` | Postgres, password `megafono-db-password`, volume `megafono-pg`, `POSTGRES_DB=megafono` | | TCP | Postgres `30 3 * * *`, 14 **(test)** | 128/256 |
 | `megafono` | `ghcr.io/cosmic-chimps/megafono:<tag>`, endpoints `federation` 8080 and `internal` 8081 | none **(test)** | HTTP `/health` on 8081 **(test)** | | 256/512 |
-| `gateway` | `ghcr.io/cosmic-chimps/megafono-gateway:<tag>`, one http endpoint 8080 | `frunchy-domain` **(test)** | TCP on 8080 | | 64/128 |
+| `gateway` | `ghcr.io/cosmic-chimps/megafono-gateway:<tag>`, one http endpoint 8080 | `frunchy-domain` **(test)** | HTTP `/healthz` on 8080 **(test)** | | 64/128 |
 
 Only `gateway` has a Caravana domain **(test)**.
 

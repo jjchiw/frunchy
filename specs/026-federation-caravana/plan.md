@@ -41,7 +41,7 @@ environment variables.
      8081, memory 256/512, `WaitFor(megafono-db)`;
    - `gateway`: container `ghcr.io/cosmic-chimps/megafono-gateway:<tag>`, one http endpoint (8080), external,
      the two cluster addresses (Megáfono's `federation` endpoint, Frunchy's `http` endpoint),
-     `Gateway__TrustedProxies=10.99.0.1`, `WithCaravanaDomain(caravana, frunchyDomain)`, Caravana health check TCP,
+     `Gateway__TrustedProxies=10.99.0.1`, `WithCaravanaDomain(caravana, frunchyDomain)`, Caravana health check HTTP `/healthz` on 8080 (Megáfono 0.2.0),
      memory 64/128, `WaitFor` both;
    - `frunchy`: everything 018 sets, except no domain and no external endpoint, `Frunchy__TrustedProxies` =
      `Caravana:ContainerNetwork`, plus `Frunchy__Federation__Enabled=true`, `Frunchy__Federation__Domain`,

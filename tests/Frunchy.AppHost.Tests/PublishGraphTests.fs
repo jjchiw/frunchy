@@ -49,7 +49,7 @@ let ``the AppHost settings turn federation on and name Caravana's container netw
 
     Assert.True(settings.GetValue<bool>("Deploy:Federation"))
     Assert.Equal("172.26.64.0/20", settings["Caravana:ContainerNetwork"])
-    Assert.Equal("0.1.0", settings["Megafono:ImageTag"])
+    Assert.Equal("0.2.0", settings["Megafono:ImageTag"])
     Assert.False(settings.GetValue<bool>("Megafono:BuildFromSource"))
 
 [<Fact>]
@@ -175,9 +175,9 @@ let ``health checks, backups and memory match the contract`` () =
     Assert.Equal("/health", string megafonoHealth.Properties["Path"])
     Assert.Equal(Nullable 8081, unbox<Nullable<int>> megafonoHealth.Properties["Port"])
 
-    // gateway: TCP on 8080
+    // gateway: HTTP /healthz on 8080 (its own endpoint since Megafono 0.2.0, never proxied)
     let gatewayHealth = only builder "Health" "gateway"
-    Assert.Null(gatewayHealth.Properties["Path"])
+    Assert.Equal("/healthz", string gatewayHealth.Properties["Path"])
     Assert.Equal(Nullable 8080, unbox<Nullable<int>> gatewayHealth.Properties["Port"])
 
     // Backups: Postgres dumps for the two databases, nothing else
@@ -207,15 +207,15 @@ let ``health checks, backups and memory match the contract`` () =
 
 [<Fact>]
 let ``the Megafono and gateway images are the published ones at the pinned tag, never latest`` () =
-    let builder = buildGraph [ "Megafono:ImageTag", " 0.1.0 " ]
+    let builder = buildGraph [ "Megafono:ImageTag", " 0.2.0 " ]
 
-    Assert.Equal(("ghcr.io/cosmic-chimps/megafono", "0.1.0"), image (service builder "megafono"))
-    Assert.Equal(("ghcr.io/cosmic-chimps/megafono-gateway", "0.1.0"), image (service builder "gateway"))
+    Assert.Equal(("ghcr.io/cosmic-chimps/megafono", "0.2.0"), image (service builder "megafono"))
+    Assert.Equal(("ghcr.io/cosmic-chimps/megafono-gateway", "0.2.0"), image (service builder "gateway"))
 
     // The tag follows the setting, for both images
-    let next = buildGraph [ "Megafono:ImageTag", "0.2.0" ]
-    Assert.Equal("0.2.0", snd (image (service next "megafono")))
-    Assert.Equal("0.2.0", snd (image (service next "gateway")))
+    let next = buildGraph [ "Megafono:ImageTag", "0.3.0" ]
+    Assert.Equal("0.3.0", snd (image (service next "megafono")))
+    Assert.Equal("0.3.0", snd (image (service next "gateway")))
 
     for name in [ "megafono"; "gateway"; "pg"; "megafono-pg" ] do
         Assert.NotEqual<string>("latest", snd (image (service builder name)))
