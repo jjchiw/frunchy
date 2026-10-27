@@ -35,6 +35,10 @@ let waitForDatabase (config: DbConfig) (maxWait: TimeSpan) (log: string -> unit)
         let clock = Stopwatch.StartNew()
         let mutable attempt = 0
         let mutable ready = false
+        // Set once a wait was cut short to end at the limit: the attempt after it is the last. Without it a timer
+        // that fires a moment early (it does on Linux) leaves a sliver of time, and the loop retried several times
+        // in the last millisecond.
+        let mutable lastChance = false
 
         while not ready do
             attempt <- attempt + 1
@@ -48,7 +52,7 @@ let waitForDatabase (config: DbConfig) (maxWait: TimeSpan) (log: string -> unit)
             with ex ->
                 let remaining = maxWait - clock.Elapsed
 
-                if remaining <= TimeSpan.Zero then
+                if lastChance || remaining <= TimeSpan.Zero then
                     raise (
                         InvalidOperationException(
                             $"The database did not answer within {int maxWait.TotalSeconds}s ({attempt} attempt(s))",
@@ -60,6 +64,10 @@ let waitForDatabase (config: DbConfig) (maxWait: TimeSpan) (log: string -> unit)
                     $"Waiting for the database ({attempt}, {int clock.Elapsed.TotalSeconds}s): {ex.GetType().Name}: {ex.Message}"
 
                 let step = TimeSpan.FromSeconds(float (min attempt 3))
+
+                if step >= remaining then
+                    lastChance <- true
+
                 do! Task.Delay(if step < remaining then step else remaining)
     }
 
