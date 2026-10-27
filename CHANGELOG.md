@@ -10,6 +10,8 @@ new image. Add to "Unreleased" as you work; a release renames it.
 
 ## Unreleased
 
+## 0.6.0 - 2026-10-27
+
 ### Added
 
 - The fediverse on the Caravana deploy. `aspire deploy` now publishes Megáfono, its gateway and its own
