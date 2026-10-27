@@ -384,18 +384,28 @@ let coverageNote (text: string) =
         span() { text }
     }
 
+/// The coverage note of a taste card that counts watched seasons (feature 027): `data-coverage-seasons="41/45"`,
+/// the seasons it is based on over all watched seasons
+let seasonCoverageNote (text: string) (basedOn: int64) (total: int64) =
+    (coverageNote text).data("coverage-seasons", $"{basedOn}/{total}")
+
 let notEnough (t: Texts) =
     p(class' = "text-body-md text-on-surface-variant").data("not-enough", "") { t.DnaSectionNotEnough }
 
-/// A titled card for one figure; MyAnimeList-based ones carry data-coverage
-let figureSection (hook: string) (title: string) (coverage: decimal option) (extra: string) =
+/// A titled card for one figure whose hook carries a value (`data-dna-long-run="SERIESID"`); MyAnimeList-based ones
+/// carry data-coverage
+let figureSectionWith (hook: string) (value: string) (title: string) (coverage: decimal option) (extra: string) =
     let el =
-        section(class' = $"fr-card flex flex-col gap-5 {extra}").data(hook, "")
+        section(class' = $"fr-card flex flex-col gap-5 {extra}").data(hook, value)
 
     match coverage with
     | Some c -> el.data("coverage", inv c)
     | None -> el
     |> fun el -> el.attr("aria-label", title)
+
+/// A titled card for one figure; MyAnimeList-based ones carry data-coverage
+let figureSection (hook: string) (title: string) (coverage: decimal option) (extra: string) =
+    figureSectionWith hook "" title coverage extra
 
 let sectionHeading (title: string) =
     h2(class' = "text-headline-md text-on-surface") { title }

@@ -92,7 +92,7 @@ let ``the dashboard's newest episode and every recent card link to their anime p
     }
 
 [<Fact>]
-let ``the DNA page's insignia anime and each genre's top anime link to their anime page`` () =
+let ``the DNA page's insignia, each genre's top anime and every season's shows link to their anime page`` () =
     task {
         let! app = withSample ()
         use app = app
@@ -102,9 +102,16 @@ let ``the DNA page's insignia anime and each genre's top anime link to their ani
         let tops = attrsOf "top-series" html |> List.map (Map.find "top-series")
         Assert.NotEmpty tops
 
+        // feature 027: the long-run card's title (the sample's One Piece has only 13 fully watched episodes, so no card
+        // here; DnaSeasonsTests covers its link) would come after the insignia, and the shows of "Your seasons" close
+        // the page
+        let longRun = attrsOf "dna-long-run" html |> List.map (Map.find "dna-long-run")
+        let seasonShows = attrsOf "season-show" html |> List.map (Map.find "season-show")
+        Assert.NotEmpty seasonShows
+
         // exactly those: no link on "Others", none on a genre without a top
         let links = seriesLinks html
-        Assert.Equal<string list>(insignia :: tops, links |> List.map _.Id)
+        Assert.Equal<string list>(insignia :: longRun @ tops @ seasonShows, links |> List.map _.Id)
 
         for l in links do
             let! expected = titleOf app.Db l.Id

@@ -65,11 +65,14 @@ let private signature (html: string) =
 type private Watched =
     { Id: string
       Series: string
+      /// The original season (a dub's shared_from), else the season, else the series: an unmatched show's watched season
+      Season: string
       Key: string
       Ms: int64
       Fully: bool
       At: DateTime
-      Mal: int option }
+      Mal: int option
+      Aired: DateTime option }
 
 let private round1 (d: decimal) = Math.Round(d, 1, MidpointRounding.AwayFromZero)
 let private pct (part: int64) (whole: int64) = if whole = 0L then 0m else round1 (100m * decimal part / decimal whole)
@@ -83,7 +86,8 @@ let private watched (db: DbConfig) =
                 """
                 SELECT e.id, e.series_id, coalesce(m.shared_from, e.season_id, ''), coalesce(e.episode_number::text, ''),
                        w.fully_watched, w.playhead_s, e.duration_ms, coalesce(m.mal_id::text, ''),
-                       to_char(w.watched_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS')
+                       to_char(w.watched_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS'),
+                       coalesce(to_char(e.aired_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS'), '')
                 FROM watch_events w JOIN users u ON u.id = w.user_id
                 JOIN cr_episodes e ON e.id = w.cr_episode_id
                 LEFT JOIN cr_season_matches m ON m.season_id = e.season_id AND m.status = 'matched'
@@ -93,17 +97,19 @@ let private watched (db: DbConfig) =
         return
             [ for row in rows ->
                   match row.Split '|' with
-                  | [| id; series; original; number; fully; playhead; duration; mal; at |] ->
+                  | [| id; series; original; number; fully; playhead; duration; mal; at; aired |] ->
                       let fully = Boolean.Parse fully
                       let duration = int64 duration
 
                       { Id = id
                         Series = series
+                        Season = (if original = "" then series else original)
                         Key = (if number = "" || original = "" then id else $"{original}#{number}")
                         Ms = (if fully then duration else min (int64 playhead * 1000L) duration)
                         Fully = fully
                         At = DateTime.Parse(at, CultureInfo.InvariantCulture)
-                        Mal = (if mal = "" then None else Some(int mal)) }
+                        Mal = (if mal = "" then None else Some(int mal))
+                        Aired = (if aired = "" then None else Some(DateTime.Parse(aired, CultureInfo.InvariantCulture))) }
                   | _ -> failwith row ]
     }
 
@@ -111,7 +117,17 @@ let private expected (db: DbConfig) (year: int) =
     task {
         let! all = watched db
         let inYear = all |> List.filter (fun w -> w.At.Year = year)
-        let dedup = inYear |> List.groupBy _.Key |> List.map (fun (_, xs) -> xs |> List.sortBy (fun x -> -x.Ms, x.Id) |> List.head)
+        // a dub and its original are one episode: the best watch stands for it, it aired when its earliest version
+        // did and was fully watched when any version was
+        let groups =
+            inYear
+            |> List.groupBy _.Key
+            |> List.map (fun (_, xs) ->
+                xs |> List.sortBy (fun x -> -x.Ms, x.Id) |> List.head,
+                xs |> List.choose _.Aired |> List.sort |> List.tryHead,
+                xs |> List.exists _.Fully)
+
+        let dedup = groups |> List.map (fun (best, _, _) -> best)
 
         let! tags = Db.dump db "SELECT at.mal_id, at.kind, t.name FROM mal_anime_tags at JOIN mal_tags t ON t.kind = at.kind AND t.tag_id = at.tag_id"
         let tags = [ for r in tags -> let p = r.Split '|' in int p[0], p[1], p[2] ]
@@ -120,16 +136,34 @@ let private expected (db: DbConfig) (year: int) =
         let! titles = Db.dump db "SELECT e.series_id, coalesce(max(s.title), min(e.series_title), e.series_id) FROM cr_episodes e LEFT JOIN cr_series s ON s.id = e.series_id GROUP BY e.series_id"
         let titles = titles |> List.map (fun r -> let p = r.Split '|' in p[0], p[1]) |> Map.ofList
 
-        let matched = dedup |> List.filter _.Mal.IsSome
-        let matchedMs = matched |> List.sumBy _.Ms
-        let ranked (xs: (string * int64) list) = xs |> List.sortBy (fun (n, ms) -> -ms, n)
+        // watched seasons of the year: a MyAnimeList entry in an airing season (year * 4 + quarter, None undated)
+        let seasonNo (d: DateTime) = d.Year * 4 + (d.Month - 1) / 3
 
-        let byTag kind =
-            [ for w in matched do
-                  for mal, k, name in tags do
-                      if k = kind && Some mal = w.Mal then yield name, w ]
+        let watchedSeasons =
+            groups
+            |> List.filter (fun (best, _, full) -> full && best.Mal.IsSome)
+            |> List.map (fun (best, aired, _) -> best.Mal.Value, aired |> Option.map seasonNo)
+            |> List.distinct
 
-        let genres = byTag "genre" |> List.groupBy fst |> List.map (fun (n, ws) -> n, ws |> List.sumBy (snd >> _.Ms)) |> ranked
+        let unmatchedSeasons =
+            groups
+            |> List.filter (fun (best, _, full) -> full && best.Mal.IsNone)
+            |> List.map (fun (best, aired, _) -> best.Season, aired |> Option.map seasonNo)
+            |> List.distinct
+
+        let seasonsMatched = int64 watchedSeasons.Length
+        let seasonsTotal = seasonsMatched + int64 unmatchedSeasons.Length
+        let ranked (xs: (string * int64) list) = xs |> List.sortBy (fun (n, c) -> -c, n)
+
+        let counted kind =
+            [ for mal, sn in watchedSeasons do
+                  for m, k, name in tags do
+                      if k = kind && m = mal then yield name, (mal, sn) ]
+            |> List.groupBy fst
+            |> List.map (fun (n, xs) -> n, int64 xs.Length)
+            |> ranked
+
+        let genres = counted "genre"
         let genreTotal = genres |> List.sumBy snd
 
         let fullyDays = inYear |> List.filter _.Fully |> List.map (fun w -> DateOnly.FromDateTime w.At) |> List.distinct |> List.sort
@@ -164,22 +198,18 @@ let private expected (db: DbConfig) (year: int) =
                Continued = seriesYear |> List.filter (fun s -> firstYear s < year) |> List.length
                Months = [ for m in 1..12 -> string ((inYear |> List.filter (fun w -> w.At.Month = m) |> List.sumBy _.Ms) / 60_000L) ]
                Streak = streak
-               Genres = genres |> List.truncate 5 |> List.map (fun (n, ms) -> n, inv (pct ms genreTotal))
-               Studios =
-                byTag "studio"
-                |> List.groupBy fst
-                |> List.map (fun (n, ws) -> n, ws |> List.sumBy (snd >> _.Ms))
-                |> ranked
-                |> List.truncate 3
-                |> List.map (fun (n, ms) -> n, inv (pct ms matchedMs))
+               Genres = genres |> List.truncate 5 |> List.map (fun (n, c) -> n, inv (pct c genreTotal), c)
+               Studios = counted "studio" |> List.truncate 3 |> List.map (fun (n, c) -> n, inv (pct c seasonsMatched), c)
                Formats =
-                matched
-                |> List.choose (fun w -> types.TryFind w.Mal.Value |> Option.filter ((<>) "") |> Option.map (fun t -> t, w.Ms))
-                |> List.groupBy fst
-                |> List.map (fun (f, xs) -> f, xs |> List.sumBy snd)
+                watchedSeasons
+                |> List.choose (fun (mal, _) -> types.TryFind mal |> Option.filter ((<>) ""))
+                |> List.countBy id
+                |> List.map (fun (f, c) -> f, int64 c)
                 |> ranked
-                |> List.map (fun (f, ms) -> f, inv (pct ms matchedMs))
-               Coverage = inv (pct matchedMs (dedup |> List.sumBy _.Ms))
+                |> List.map (fun (f, c) -> f, inv (pct c seasonsMatched), c)
+               SeasonsMatched = seasonsMatched
+               SeasonsTotal = seasonsTotal
+               Coverage = inv (pct seasonsMatched seasonsTotal)
                Top = top |}
     }
 
@@ -220,19 +250,31 @@ let ``every figure of a year equals an independent count over the same data`` ()
                 Assert.Equal(to'.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), attr "to" s)
             | None -> failwith $"{year} should have a streak"
 
-            let genres = elements "genre" html |> List.filter (fun m -> attr "genre" m <> "others") |> List.map (fun m -> attr "genre" m, attr "share" m)
-            Assert.Equal<(string * string) list>(e.Genres, genres)
+            let genres =
+                elements "genre" html
+                |> List.filter (fun m -> attr "genre" m <> "others")
+                |> List.map (fun m -> attr "genre" m, attr "share" m, int64 (attr "genre-seasons" m))
+
+            Assert.Equal<(string * string * int64) list>(e.Genres, genres)
             let genreTotal = elements "genre" html |> List.sumBy (fun m -> Decimal.Parse(attr "share" m, CultureInfo.InvariantCulture))
             Assert.InRange(genreTotal, 99.5m, 100.5m)
 
-            let studios = elements "rank" html |> List.map (fun m -> attr "name" m, attr "share" m)
-            Assert.Equal<(string * string) list>(e.Studios, studios)
+            let studios = elements "rank" html |> List.map (fun m -> attr "name" m, attr "share" m, int64 (attr "studio-seasons" m))
+            Assert.Equal<(string * string * int64) list>(e.Studios, studios)
             Assert.True(studios.Length <= 3)
 
-            let formats = elements "format" html |> List.map (fun m -> attr "format" m, attr "share" m)
-            Assert.Equal<(string * string) list>(e.Formats, formats)
+            let formats = elements "format" html |> List.map (fun m -> attr "format" m, attr "share" m, int64 (attr "format-seasons" m))
+            Assert.Equal<(string * string * int64) list>(e.Formats, formats)
 
+            // every taste card says which seasons it is based on
             Assert.Equal(e.Coverage, attr "coverage" (one "year-genres" html))
+            Assert.Equal(e.Coverage, attr "coverage" (one "year-studios" html))
+            Assert.Equal(e.Coverage, attr "coverage" (one "year-formats" html))
+
+            // (a card with no rows says "not enough" instead, so a year may have fewer than three notes)
+            let notes = elements "coverage-seasons" html |> List.map (attr "coverage-seasons")
+            Assert.NotEmpty notes
+            Assert.All(notes, fun n -> Assert.Equal($"{e.SeasonsMatched}/{e.SeasonsTotal}", n))
 
             let series, _, fully = e.Top
             let top = one "year-top-series" html

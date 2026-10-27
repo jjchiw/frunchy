@@ -61,6 +61,7 @@
     <Compile Include="EpisodeHelpers.fs" />
     <Compile Include="DesignSystemTests.fs" />
     <Compile Include="DnaTests.fs" />
+    <Compile Include="DnaSeasonsTests.fs" />
     <Compile Include="DnaPaceTests.fs" />
     <Compile Include="YearTests.fs" />
     <Compile Include="YearNavigationTests.fs" />
