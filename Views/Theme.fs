@@ -181,7 +181,10 @@ let componentCss =
   .fr-btn, .fr-input, .fr-link, .fr-nav-link, .fr-tab { transition: background-color 160ms cubic-bezier(0.16, 1, 0.3, 1), border-color 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms; }
   .fr-btn-primary:hover { box-shadow: var(--glow-primary); }
   .fr-fill { transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1); }
+  .fr-expand { transition: rotate 160ms cubic-bezier(0.16, 1, 0.3, 1); }
 }
+/* The chevron of a collapsible season row (feature 027) turns over while its row is open */
+details[open] > summary .fr-expand { rotate: 180deg; }
 .fr-btn-primary:hover { @apply bg-primary-fixed; }
 .fr-btn-secondary:hover { @apply bg-surface-container-high; }
 .fr-btn-ghost:hover { @apply text-on-surface bg-surface-container; }
@@ -204,6 +207,7 @@ type Icon =
     | ContentCopy
     | DeleteForever
     | ErrorMark
+    | ExpandMore
     | ExploreOff
     | Extension
     | Fingerprint
@@ -220,6 +224,7 @@ type Icon =
     | OpenInNew
     | ProgressActivity
     | Schedule
+    | Sensors
     | Settings
     | Shield
     | Star
@@ -242,6 +247,7 @@ type Icon =
         | ContentCopy -> "content_copy"
         | DeleteForever -> "delete_forever"
         | ErrorMark -> "error"
+        | ExpandMore -> "expand_more"
         | ExploreOff -> "explore_off"
         | Extension -> "extension"
         | Fingerprint -> "fingerprint"
@@ -258,6 +264,7 @@ type Icon =
         | OpenInNew -> "open_in_new"
         | ProgressActivity -> "progress_activity"
         | Schedule -> "schedule"
+        | Sensors -> "sensors"
         | Settings -> "settings"
         | Shield -> "shield"
         | Star -> "star"

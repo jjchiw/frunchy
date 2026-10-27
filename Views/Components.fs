@@ -16,6 +16,10 @@ open FrunchyBackend.Views.Texts
 let icon (i: Icon) =
     span(class' = "material-symbols-outlined").attr("aria-hidden", "true") { i.Name }
 
+/// An icon with extra classes (a colour, the chevron's turn)
+let iconWith (extra: string) (i: Icon) =
+    span(class' = $"material-symbols-outlined {extra}").attr("aria-hidden", "true") { i.Name }
+
 /// The mark (an inline SVG) next to the wordmark
 let brand (siteName: string) =
     // On phones only the mark shows, so the header fits; the link keeps the name as its label

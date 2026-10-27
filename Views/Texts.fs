@@ -84,7 +84,8 @@ type Texts =
       DnaDaysOfLife: decimal -> string
       DnaCoverageTile: string
       DnaCoverageCaption: string
-      /// "Based on 41 of 45 seasons." (matched, total watched seasons); the taste figures count seasons (feature 027)
+      /// "Based on the 41 of 45 watched seasons with MyAnimeList details." (matched, total watched seasons); the taste figures
+      /// count seasons (feature 027)
       DnaCoverage: int64 -> int64 -> string
       DnaSectionNotEnough: string
       DnaStudioTitle: string
@@ -110,16 +111,22 @@ type Texts =
       /// "7 seasons" beside a share (feature 027)
       DnaSeasonsCount: int64 -> string
       DnaLongRunTitle: string
-      /// "Episodes from Fall 1999 to Fall 2026" from the two season labels (one label when they are the same)
+      /// "aired Fall 1999 to Fall 2026" from the two season labels (one label when they are the same); it follows a middot
       DnaLongRunSpan: string -> string -> string
       DnaSeasonsTitle: string
       DnaSeasonsIntro: string
-      /// "Top season" before its label (the show count follows with `DnaSeasonShows`)
-      DnaTopSeason: string
-      DnaSeasonShows: int -> string
+      /// "Your busiest season: 26 shows, 24 of them watched while airing." (shows, those watched while airing; the clause
+      /// goes when there are none)
+      DnaTopSeasonLine: int -> int -> string
+      /// "18 shows · 14 while airing" in a season row's summary (shows, watched while airing; the second part goes at 0)
+      DnaSeasonSummary: int -> int -> string
+      /// "Show all 26 shows"
+      DnaShowAll: int -> string
+      /// "5 ep." under a show's title
       DnaShowEpisodes: int64 -> string
+      /// The hidden text of the airing mark on a show
       DnaWhileAiring: string
-      /// How many older airing seasons the list leaves out
+      /// "Plus 18 earlier seasons." the airing seasons the list leaves out
       DnaEarlierSeasons: int -> string
       DnaOthers: string
       /// "Top:" before a genre's top anime, which is a link
@@ -664,7 +671,9 @@ let en =
       DnaDaysOfLife = fun d -> $"""{d.ToString("N1", CultureInfo.GetCultureInfo "en")} days of life"""
       DnaCoverageTile = "MyAnimeList coverage"
       DnaCoverageCaption = "of the watch time has MyAnimeList details"
-      DnaCoverage = fun matched total -> $"""Based on {matched.ToString("N0", CultureInfo.GetCultureInfo "en")} of {total.ToString("N0", CultureInfo.GetCultureInfo "en")} seasons."""
+      DnaCoverage =
+        fun matched total ->
+            $"""Based on the {matched.ToString("N0", CultureInfo.GetCultureInfo "en")} of {total.ToString("N0", CultureInfo.GetCultureInfo "en")} watched seasons with MyAnimeList details."""
       DnaSectionNotEnough = "Not enough MyAnimeList data yet."
       DnaStudioTitle = "Favourite studio"
       DnaRunnerUp = "Runner-up"
@@ -672,7 +681,7 @@ let en =
       DnaDecade = fun y -> $"{y}s"
       DnaDecadeCoverage =
         fun known total ->
-            $"""Based on {known.ToString("N0", CultureInfo.GetCultureInfo "en")} of {total.ToString("N0", CultureInfo.GetCultureInfo "en")} seasons, the ones with a known airing or release year."""
+            $"""Based on the {known.ToString("N0", CultureInfo.GetCultureInfo "en")} of {total.ToString("N0", CultureInfo.GetCultureInfo "en")} watched seasons with MyAnimeList details and a known airing year."""
       DnaPaceTitle = "Viewing pace, last 90 days"
       DnaPaceUnit = "episodes a day"
       DnaSteady = "Steady"
@@ -699,14 +708,21 @@ let en =
       DnaGenresNote = "By seasons watched. An anime counts in each of its genres."
       DnaSeasonsCount = fun n -> if n = 1L then "1 season" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} seasons"""
       DnaLongRunTitle = "Long run"
-      DnaLongRunSpan = fun first last -> if first = last then $"Episodes from {first}" else $"Episodes from {first} to {last}"
+      DnaLongRunSpan = fun first last -> if first = last then $"aired {first}" else $"aired {first} to {last}"
       DnaSeasonsTitle = "Your seasons"
       DnaSeasonsIntro = "The shows you watched, by the season they aired in."
-      DnaTopSeason = "Top season"
-      DnaSeasonShows = fun n -> if n = 1 then "1 show" else $"{n} shows"
-      DnaShowEpisodes = fun n -> if n = 1L then "1 episode" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} episodes"""
+      DnaTopSeasonLine =
+        fun n a ->
+            let shows = if n = 1 then "1 show" else $"{n} shows"
+            if a = 0 then $"Your busiest season: {shows}." else $"Your busiest season: {shows}, {a} of them watched while airing."
+      DnaSeasonSummary =
+        fun n a ->
+            let shows = if n = 1 then "1 show" else $"{n} shows"
+            if a = 0 then shows else $"{shows} · {a} while airing"
+      DnaShowAll = fun n -> $"Show all {n} shows"
+      DnaShowEpisodes = fun n -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} ep."""
       DnaWhileAiring = "Watched while airing"
-      DnaEarlierSeasons = fun n -> if n = 1 then "1 earlier season is not shown." else $"{n} earlier seasons are not shown."
+      DnaEarlierSeasons = fun n -> if n = 1 then "Plus 1 earlier season." else $"Plus {n} earlier seasons."
       DnaOthers = "Others"
       TopAnimePrefix = "Top:"
       DnaFormatsTitle = "Formats"
@@ -1415,7 +1431,9 @@ let es =
       DnaDaysOfLife = fun d -> $"""{d.ToString("N1", CultureInfo.GetCultureInfo "es")} días de vida"""
       DnaCoverageTile = "Cobertura de MyAnimeList"
       DnaCoverageCaption = "del tiempo visto tiene datos de MyAnimeList"
-      DnaCoverage = fun matched total -> $"""Basado en {matched.ToString("N0", CultureInfo.GetCultureInfo "es")} de {total.ToString("N0", CultureInfo.GetCultureInfo "es")} temporadas."""
+      DnaCoverage =
+        fun matched total ->
+            $"""Basado en las {matched.ToString("N0", CultureInfo.GetCultureInfo "es")} de {total.ToString("N0", CultureInfo.GetCultureInfo "es")} temporadas vistas con datos de MyAnimeList."""
       DnaSectionNotEnough = "Aún no hay suficientes datos de MyAnimeList."
       DnaStudioTitle = "Estudio favorito"
       DnaRunnerUp = "Segundo"
@@ -1423,7 +1441,7 @@ let es =
       DnaDecade = fun y -> $"Años {y}"
       DnaDecadeCoverage =
         fun known total ->
-            $"""Basado en {known.ToString("N0", CultureInfo.GetCultureInfo "es")} de {total.ToString("N0", CultureInfo.GetCultureInfo "es")} temporadas, las que tienen año de emisión o de estreno conocido."""
+            $"""Basado en las {known.ToString("N0", CultureInfo.GetCultureInfo "es")} de {total.ToString("N0", CultureInfo.GetCultureInfo "es")} temporadas vistas con datos de MyAnimeList y año de emisión conocido."""
       DnaPaceTitle = "Ritmo, últimos 90 días"
       DnaPaceUnit = "episodios al día"
       DnaSteady = "Constante"
@@ -1450,14 +1468,21 @@ let es =
       DnaGenresNote = "Por temporadas vistas. Un anime cuenta en cada uno de sus géneros."
       DnaSeasonsCount = fun n -> if n = 1L then "1 temporada" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} temporadas"""
       DnaLongRunTitle = "Larga duración"
-      DnaLongRunSpan = fun first last -> if first = last then $"Episodios de {first}" else $"Episodios de {first} a {last}"
+      DnaLongRunSpan = fun first last -> if first = last then $"emitido en {first}" else $"emitido de {first} a {last}"
       DnaSeasonsTitle = "Tus temporadas"
       DnaSeasonsIntro = "Las series que viste, según la temporada en que se emitieron."
-      DnaTopSeason = "Mejor temporada"
-      DnaSeasonShows = fun n -> if n = 1 then "1 serie" else $"{n} series"
-      DnaShowEpisodes = fun n -> if n = 1L then "1 episodio" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} episodios"""
+      DnaTopSeasonLine =
+        fun n a ->
+            let shows = if n = 1 then "1 serie" else $"{n} series"
+            if a = 0 then $"Tu temporada con más series: {shows}." else $"Tu temporada con más series: {shows}, {a} de ellas vistas en emisión."
+      DnaSeasonSummary =
+        fun n a ->
+            let shows = if n = 1 then "1 serie" else $"{n} series"
+            if a = 0 then shows else $"{shows} · {a} en emisión"
+      DnaShowAll = fun n -> $"Ver las {n} series"
+      DnaShowEpisodes = fun n -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} ep."""
       DnaWhileAiring = "Visto en emisión"
-      DnaEarlierSeasons = fun n -> if n = 1 then "1 temporada anterior no se muestra." else $"{n} temporadas anteriores no se muestran."
+      DnaEarlierSeasons = fun n -> if n = 1 then "Y 1 temporada anterior." else $"Y {n} temporadas anteriores."
       DnaOthers = "Otros"
       TopAnimePrefix = "Destacado:"
       DnaFormatsTitle = "Formatos"

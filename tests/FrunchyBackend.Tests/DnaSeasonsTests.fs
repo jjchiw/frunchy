@@ -474,8 +474,8 @@ let ``a show is watched while airing within 7 days of an episode's air date, not
         Assert.True airing["QUICKWATCH"]
         Assert.False airing["SLOWWATCH"]
 
-        // the hook is only present on the show that has it
-        Assert.Equal(1, elements "while-airing" html |> List.length)
+        // the hook is only present on the show that has it (the top block repeats the season's tiles, so within the row)
+        Assert.Equal(1, shows |> List.filter (fun (_, _, w) -> w) |> List.length)
     }
 
 [<Fact>]
@@ -614,3 +614,202 @@ let ``foldSeasons ranks by shows, then newer, lists eight and counts the rest`` 
     Assert.Equal(("summer", 2025), (section.Top.Name, section.Top.Year))
     Assert.Equal<(string * int) list>([ "summer", 2025; "spring", 2025; "fall", 2024 ], section.Listed |> List.map (fun s -> s.Name, s.Year))
     Assert.Equal(0, section.Earlier)
+
+// ---------------------------------------------------------------------------
+// The design review: a collapsed timeline, the top block, airing marks (specs/027-seasons/design-direction.md).
+// Hooks and attributes only, never classes.
+// ---------------------------------------------------------------------------
+
+/// Whether each listed season's <details> carries the `open` attribute: (key, open), in page order
+let private seasonRowsOpen (html: string) =
+    [ for m in Regex.Matches(html, "<details\\b[^>]*\\sdata-season=\"([^\"]*)\"[^>]*>") ->
+          m.Groups[1].Value, Regex.IsMatch(m.Value, "\\sopen(=\"[^\"]*\")?(?=[\\s>/])") ]
+
+let private innerText (html: string) =
+    Regex.Replace(Regex.Replace(html, "<[^>]+>", " "), "\\s+", " ").Trim()
+
+/// The text of a season row's <summary>, without its heading and the chevron icon: (key, text)
+let private seasonSummaries (html: string) =
+    [ for m in Regex.Matches(html, "<details\\b[^>]*\\sdata-season=\"([^\"]*)\"[^>]*>\\s*<summary\\b[^>]*>(.*?)</summary>", RegexOptions.Singleline) ->
+          let withoutHeading = Regex.Replace(m.Groups[2].Value, "<h3\\b.*?</h3>", "", RegexOptions.Singleline)
+          let withoutIcon = Regex.Replace(withoutHeading, "<span[^>]*material-symbols-outlined[^>]*>[^<]*</span>", "")
+          m.Groups[1].Value, innerText withoutIcon ]
+
+[<Fact>]
+let ``the newest season row starts open and the others closed, every show inside`` () =
+    task {
+        let! app, _ =
+            build [ weekly "FALLTWENTYFIVE" 800 "Studio A" (day 2025 10 5) 6 1
+                    weekly "WINTERSHOW" 801 "Studio B" (day 2026 1 8) 8 1
+                    weekly "WINTERSHOWTWO" 802 "Studio B" (day 2026 1 9) 3 1
+                    weekly "FALLTWENTYSIX" 803 "Studio A" (day 2026 10 4) 2 1 ]
+
+        use app = app
+        let! html = dna app
+
+        Assert.Equal<(string * bool) list>([ "fall-2026", true; "winter-2026", false; "fall-2025", false ], seasonRowsOpen html)
+
+        // closed rows still hold every show: nothing leaves the page, it only collapses
+        let _, _, winterShows = (listedSeasons html)[1]
+        Assert.Equal<string list>([ "WINTERSHOW"; "WINTERSHOWTWO" ], winterShows |> List.map (fun (s, _, _) -> s))
+    }
+
+[<Fact>]
+let ``the top season shows six tiles, then the rest behind a Show all details`` () =
+    task {
+        // eight shows aired in Winter 2026 (the top season), one in Fall 2025
+        let winter = [ for i in 1..8 -> weekly $"TOPSHOW{i}" (1000 + i) "Studio A" (day 2026 1 8) 2 1 ]
+        let! app, _ = build (weekly "OLDSHOW" 1100 "Studio B" (day 2025 10 5) 2 1 :: winter)
+        use app = app
+        let! html = dna app
+
+        let topStart = fst (List.exactlyOne (tagsWith "top-season" html))
+        let seasonStart = tagsWith "season" html |> List.head |> fst
+        let region = html.Substring(topStart, seasonStart - topStart)
+
+        // the first six sit before the details, the other two inside it
+        let detailsStart = region.IndexOf "<details"
+        Assert.True(detailsStart > 0)
+        let before = region.Substring(0, detailsStart)
+        let inside = region.Substring detailsStart
+        Assert.Equal(6, (tagsWith "season-show" before).Length)
+        Assert.Equal(2, (tagsWith "season-show" inside).Length)
+
+        Assert.Equal<string list>(
+            [ "TOPSHOW1"; "TOPSHOW2"; "TOPSHOW3"; "TOPSHOW4"; "TOPSHOW5"; "TOPSHOW6" ],
+            elements "season-show" before |> List.map (attr "season-show")
+        )
+
+        // closed by default (no `open`), and its summary names the whole count
+        Assert.DoesNotMatch("^<details[^>]*\\sopen", inside)
+        Assert.Contains("Show all 8 shows", innerText (Regex.Match(inside, "<summary.*?</summary>", RegexOptions.Singleline).Value))
+
+        let! es = get app "es-ES,es;q=0.9"
+        Assert.Contains("Ver las 8 series", es)
+    }
+
+[<Fact>]
+let ``a top season of six shows or fewer has no Show all details`` () =
+    task {
+        let! app, _ = build [ for i in 1..6 -> weekly $"SIXSHOW{i}" (1200 + i) "Studio A" (day 2026 1 8) 3 1 ]
+        use app = app
+        let! html = dna app
+
+        let topStart = fst (List.exactlyOne (tagsWith "top-season" html))
+        let seasonStart = tagsWith "season" html |> List.head |> fst
+        let region = html.Substring(topStart, seasonStart - topStart)
+        Assert.DoesNotContain("<details", region)
+        Assert.Equal(6, (tagsWith "season-show" region).Length)
+    }
+
+/// Winter 2026: one show watched within a day of airing, one a month later; Fall 2025: one watched late
+let private airingWorld () =
+    [ weekly "QUICKWATCH" 810 "Studio A" (day 2026 1 8) 3 1
+      weekly "SLOWWATCH" 811 "Studio B" (day 2026 1 8) 3 30
+      weekly "OLDSLOW" 812 "Studio B" (day 2025 10 5) 10 30 ]
+
+[<Fact>]
+let ``a season's summary counts its shows and those watched while airing, in both languages`` () =
+    task {
+        let! app, _ = build (airingWorld ())
+        use app = app
+        let! en = get app "en"
+        let! es = get app "es-ES,es;q=0.9"
+
+        Assert.Equal<(string * string) list>([ "winter-2026", "2 shows · 1 while airing"; "fall-2025", "1 show" ], seasonSummaries en)
+        Assert.Equal<(string * string) list>([ "winter-2026", "2 series · 1 en emisión"; "fall-2025", "1 serie" ], seasonSummaries es)
+
+        // the top season (two shows against one) says the same in its own line
+        Assert.Contains("Your busiest season: 2 shows, 1 of them watched while airing.", en)
+        Assert.Contains("Tu temporada con más series: 2 series, 1 de ellas vistas en emisión.", es)
+    }
+
+[<Fact>]
+let ``a top season with nothing watched while airing drops the clause`` () =
+    task {
+        let! app, _ = build [ weekly "SLOWONE" 820 "Studio A" (day 2026 1 8) 8 30; weekly "SLOWTWO" 821 "Studio B" (day 2026 1 8) 8 30 ]
+        use app = app
+        let! en = get app "en"
+
+        Assert.Contains("Your busiest season: 2 shows.", en)
+        Assert.DoesNotContain("while airing", en)
+    }
+
+[<Fact>]
+let ``the earlier line says one season or many, in both languages`` () =
+    task {
+        let seasonal count =
+            [ for q in 0 .. count - 1 ->
+                  let aired = DateTime(2023 + q / 4, (q % 4) * 3 + 2, 10, 0, 0, 0, DateTimeKind.Utc)
+                  weekly $"EARLIER{q:D2}" (1300 + q) "Studio A" aired 2 1 ]
+
+        let earlier (html: string) =
+            let g = Regex.Match(html, "data-earlier-seasons=\"(\\d+)\"[^>]*>([^<]*)<").Groups
+            g[1].Value, g[2].Value
+
+        // nine seasons: eight listed, one earlier
+        let! one, _ = build (seasonal 9)
+        use one = one
+        let! en1 = get one "en"
+        let! es1 = get one "es-ES,es;q=0.9"
+        Assert.Equal(("1", "Plus 1 earlier season."), earlier en1)
+        Assert.Equal(("1", "Y 1 temporada anterior."), earlier es1)
+
+        // eleven: three earlier
+        let! many, _ = build (seasonal 11)
+        use many = many
+        let! en3 = get many "en"
+        let! es3 = get many "es-ES,es;q=0.9"
+        Assert.Equal(("3", "Plus 3 earlier seasons."), earlier en3)
+        Assert.Equal(("3", "Y 3 temporadas anteriores."), earlier es3)
+    }
+
+[<Fact>]
+let ``the hidden airing text sits only on shows that have the airing hook`` () =
+    task {
+        let! app, _ = build (airingWorld ())
+        use app = app
+        let! en = get app "en"
+        let! es = get app "es-ES,es;q=0.9"
+
+        for html, text in [ en, "Watched while airing"; es, "Visto en emisión" ] do
+            let tiles =
+                [ for m in Regex.Matches(html, "<li\\b[^>]*\\sdata-season-show=\"([^\"]*)\"[^>]*>.*?</li>", RegexOptions.Singleline) ->
+                      let hidden = Regex.Match(m.Value, "<span[^>]*\\bclass=\"sr-only\"[^>]*>([^<]*)</span>")
+                      m.Groups[1].Value, m.Value.Contains "data-while-airing", hidden.Success && hidden.Groups[1].Value = text ]
+
+            Assert.NotEmpty tiles
+
+            for series, airing, hasText in tiles do
+                Assert.True((airing = hasText), $"{series}: while-airing hook {airing}, hidden text {hasText}")
+
+            // QUICKWATCH is in the top block and in its row; both carry the mark, nothing else does
+            Assert.Equal<string list>([ "QUICKWATCH"; "QUICKWATCH" ], tiles |> List.filter (fun (_, a, _) -> a) |> List.map (fun (s, _, _) -> s))
+
+            // the text exists nowhere else on the page (no pill, no legend)
+            Assert.Equal(2, Regex.Matches(html, Regex.Escape text).Count)
+    }
+
+[<Fact>]
+let ``foldSeasons counts the shows watched while airing and breaks episode ties by title, then id`` () =
+    let show id title eps airing : Dna.SeasonShow =
+        { SeriesId = id
+          Title = title
+          Poster = None
+          Episodes = eps
+          WhileAiring = airing }
+
+    let rows =
+        [ 8101, show "ID3" "Beta" 4L true
+          8101, show "ID2" "Alpha" 4L false
+          8101, show "ID1" "Alpha" 4L true
+          8101, show "ID4" "Zed" 9L false
+          8102, show "ID5" "Solo" 1L false ]
+
+    let section = (Dna.foldSeasons rows).Value
+    let spring = section.Listed |> List.find (fun s -> s.Name = "spring")
+    Assert.Equal<string list>([ "ID4"; "ID1"; "ID2"; "ID3" ], spring.Shows |> List.map _.SeriesId)
+    Assert.Equal(2, spring.Airing)
+    Assert.Equal(0, (section.Listed |> List.find (fun s -> s.Name = "summer")).Airing)
+    // the top season (4 shows) carries its own count
+    Assert.Equal(2, section.Top.Airing)

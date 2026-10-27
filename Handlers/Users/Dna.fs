@@ -24,6 +24,9 @@ let minimumEpisodes = 15L
 /// The "Your seasons" section lists this many airing seasons, the newest first; older ones are only counted
 let listedSeasons = 8
 
+/// The top season shows this many tiles before its "Show all" details
+let topSeasonTiles = 6
+
 /// A named share of a whole, in percent with 1 decimal. The whole is watched seasons (feature 027): a MyAnimeList
 /// entry watched in one airing season is one, so a long show weighs one per season it aired in, not its minutes.
 type ShareRow = { Name: string; Share: decimal; Seasons: int64 }
@@ -72,7 +75,10 @@ type SeasonShow =
 type AiringSeason =
     { Name: string
       Year: int
-      Shows: SeasonShow list }
+      /// Most episodes first, then title, then series id
+      Shows: SeasonShow list
+      /// How many of the shows were watched while airing
+      Airing: int }
 
 type SeasonsSection =
     { /// Airing seasons with at least one fully watched episode
@@ -209,31 +215,36 @@ let private insignia (t: Texts) (username: string) (i: Insignia) =
 /// A season's label as the page shows it ("Fall 2026" / "Otoño 2026")
 let private seasonLabel (t: Texts) (name: string, year: int) = t.DnaSeason name year
 
-let private longRun (t: Texts) (username: string) (l: LongRun) =
-    (figureSectionWith "dna-long-run" l.SeriesId t.DnaLongRunTitle None "lg:col-span-12") {
+/// One wide line, your marathon (the flagship above it is a tall card). With no flagship it takes the flagship's
+/// slot (7 columns, the pace card keeps its 5); otherwise it spans the grid.
+let private longRun (t: Texts) (username: string) (hasFlagship: bool) (l: LongRun) =
+    let extra = if hasFlagship then "lg:col-span-12" else "lg:col-span-7"
+
+    (figureSectionWith "dna-long-run" l.SeriesId t.DnaLongRunTitle None extra) {
         sectionHeading t.DnaLongRunTitle
 
-        div(class' = "flex flex-col gap-5 sm:flex-row") {
-            match l.Poster with
-            | Some url -> poster (Some url) "aspect-[2/3] w-24 shrink-0 rounded-md sm:w-28"
-            | None -> Fragment()
+        div(class' = "flex items-center gap-4") {
+            poster l.Poster "aspect-[2/3] w-16 shrink-0 rounded-md sm:w-20"
 
-            div(class' = "flex min-w-0 flex-col gap-3") {
-                p(class' = "text-headline-lg text-on-surface text-balance") { seriesLink username l.SeriesId l.Title }
-
-                p(class' = "text-body-lg text-on-surface").data("long-run-episodes", string l.FullyWatched) {
-                    t.DnaInsigniaEpisodes l.FullyWatched None
+            div(class' = "flex min-w-0 flex-col gap-1") {
+                p(class' = "text-headline-md text-on-surface text-balance [overflow-wrap:anywhere]") {
+                    seriesLink username l.SeriesId l.Title
                 }
 
-                p(class' = "text-body-md text-on-surface-variant") { t.DnaInsigniaHours l.Hours }
+                p(class' = "flex flex-wrap items-baseline gap-x-2 text-body-md text-on-surface-variant") {
+                    span().data("long-run-episodes", string l.FullyWatched) { t.DnaInsigniaEpisodes l.FullyWatched None }
+                    span().attr("aria-hidden", "true") { "·" }
+                    span() { t.DnaInsigniaHours l.Hours }
 
-                match l.Span with
-                | Some(first, last) ->
-                    p(class' = "text-body-md text-on-surface-variant")
-                        .data("long-run-span", $"{Seasons.key (fst first) (snd first)}/{Seasons.key (fst last) (snd last)}") {
-                        t.DnaLongRunSpan (seasonLabel t first) (seasonLabel t last)
-                    }
-                | None -> Fragment()
+                    match l.Span with
+                    | Some(first, last) ->
+                        span().attr("aria-hidden", "true") { "·" }
+
+                        span().data("long-run-span", $"{Seasons.key (fst first) (snd first)}/{Seasons.key (fst last) (snd last)}") {
+                            t.DnaLongRunSpan (seasonLabel t first) (seasonLabel t last)
+                        }
+                    | None -> Fragment()
+                }
             }
         }
     }
@@ -413,40 +424,78 @@ let private formats (t: Texts) (f: Figures) =
             seasonCoverageNote (t.DnaCoverage f.SeasonsMatched f.SeasonsTotal) f.SeasonsMatched f.SeasonsTotal
         }
 
+/// A show's poster box in a tile: the quiet empty slot when there is no poster (nothing inside it)
+let private tilePoster (url: string option) =
+    match url with
+    | Some _ -> poster url "aspect-[2/3] w-full rounded-md"
+    | None -> span(class' = "block aspect-[2/3] w-full rounded-md bg-surface-container").attr("style", "border: var(--border-micro)")
+
 let private seasonShow (username: string) (t: Texts) (show: SeasonShow) =
     let row =
-        li(class' = "flex items-center gap-3")
+        li(class' = "flex min-w-0 flex-col gap-1.5")
             .data("season-show", show.SeriesId)
             .data("show-episodes", string show.Episodes)
 
     (if show.WhileAiring then row.data("while-airing", "") else row) {
-        poster show.Poster "aspect-[2/3] w-10 shrink-0 rounded-sm"
+        tilePoster show.Poster
 
-        div(class' = "flex min-w-0 flex-col gap-1") {
-            p(class' = "text-body-md font-semibold text-on-surface") { seriesLink username show.SeriesId show.Title }
+        p(class' = "line-clamp-2 text-label-md [overflow-wrap:anywhere]") { seriesLink username show.SeriesId show.Title }
 
-            div(class' = "flex flex-wrap items-center gap-x-2 gap-y-1") {
-                span(class' = "text-label-md font-normal text-on-surface-variant") { t.DnaShowEpisodes show.Episodes }
+        p(class' = "flex items-center gap-1 text-label-md font-normal text-on-surface-variant") {
+            if show.WhileAiring then
+                iconWith "text-primary" Theme.Sensors
+                span(class' = "sr-only") { t.DnaWhileAiring }
 
-                if show.WhileAiring then
-                    pill TertiaryTone t.DnaWhileAiring
-            }
+            span() { t.DnaShowEpisodes show.Episodes }
         }
     }
 
-let private airingSeason (username: string) (t: Texts) (s: AiringSeason) =
-    div(class' = "space-y-3 border-t border-outline-variant/50 pt-4")
-        .data("season", Seasons.key s.Name s.Year)
-        .data("season-shows", string s.Shows.Length) {
-        div(class' = "flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1") {
+let private tileGrid (username: string) (t: Texts) (shows: SeasonShow list) =
+    ul(class' = "grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6") {
+        for show in shows do
+            seasonShow username t show
+    }
+
+/// The newest listed season starts open, the others closed: a native <details>, no script
+let private airingSeason (username: string) (t: Texts) (isOpen: bool) (s: AiringSeason) =
+    let row =
+        details(class' = "border-t border-outline-variant/50")
+            .data("season", Seasons.key s.Name s.Year)
+            .data("season-shows", string s.Shows.Length)
+
+    (if isOpen then row.attr("open", "") else row) {
+        summary(class' = "flex cursor-pointer list-none flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3 [&::-webkit-details-marker]:hidden") {
             h3(class' = "text-headline-md text-on-surface") { t.DnaSeason s.Name s.Year }
-            span(class' = "text-label-md font-normal text-on-surface-variant") { t.DnaSeasonShows s.Shows.Length }
+
+            span(class' = "flex items-center gap-1 text-label-md font-normal text-on-surface-variant") {
+                t.DnaSeasonSummary s.Shows.Length s.Airing
+                iconWith "fr-expand" Theme.ExpandMore
+            }
         }
 
-        ul(class' = "grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2") {
-            for show in s.Shows do
-                seasonShow username t show
+        div(class' = "pb-4") { tileGrid username t s.Shows }
+    }
+
+/// The busiest season in full view: the first tiles, the rest behind "Show all"
+let private topSeason (username: string) (t: Texts) (s: AiringSeason) =
+    let first, rest = s.Shows |> List.splitAt (min topSeasonTiles s.Shows.Length)
+
+    div(class' = "space-y-3").data("top-season", Seasons.key s.Name s.Year) {
+        div(class' = "space-y-1") {
+            h3(class' = "text-headline-lg text-primary") { t.DnaSeason s.Name s.Year }
+            p(class' = "text-body-md text-on-surface-variant") { t.DnaTopSeasonLine s.Shows.Length s.Airing }
         }
+
+        tileGrid username t first
+
+        if not rest.IsEmpty then
+            details() {
+                summary(class' = $"{btnSm Ghost} -ml-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden") {
+                    t.DnaShowAll s.Shows.Length
+                }
+
+                div(class' = "pt-3") { tileGrid username t rest }
+            }
     }
 
 let private seasonsSection (t: Texts) (username: string) (s: SeasonsSection) =
@@ -456,15 +505,11 @@ let private seasonsSection (t: Texts) (username: string) (s: SeasonsSection) =
             p(class' = "text-body-md text-on-surface-variant") { t.DnaSeasonsIntro }
         }
 
-        p(class' = "text-body-lg text-on-surface").data("top-season", Seasons.key s.Top.Name s.Top.Year) {
-            $"{t.DnaTopSeason}: "
-            span(class' = "font-semibold text-primary") { t.DnaSeason s.Top.Name s.Top.Year }
-            $" · {t.DnaSeasonShows s.Top.Shows.Length}"
-        }
+        topSeason username t s.Top
 
-        div(class' = "space-y-4") {
-            for season in s.Listed do
-                airingSeason username t season
+        div() {
+            for i, season in List.indexed s.Listed do
+                airingSeason username t (i = 0) season
         }
 
         if s.Earlier > 0 then
@@ -505,11 +550,16 @@ let view (ctx: HttpContext) (t: Texts) (m: DnaModel) =
                 | Some i -> insignia t m.Username i
                 | None -> Fragment()
 
+                // without a flagship the long-run strip takes its slot, so the pace card still sits beside it
+                match f.Insignia, f.LongRun with
+                | None, Some l -> longRun t m.Username false l
+                | _ -> Fragment()
+
                 pace t f.Pace
 
-                match f.LongRun with
-                | Some l -> longRun t m.Username l
-                | None -> Fragment()
+                match f.Insignia, f.LongRun with
+                | Some _, Some l -> longRun t m.Username true l
+                | _ -> Fragment()
 
                 studios t f
                 decades t f
@@ -541,10 +591,13 @@ let foldSeasons (rows: (int * SeasonShow) list) : SeasonsSection option =
         |> List.map (fun (number, shows) ->
             let name, year = Seasons.ofOrder number
 
+            let ordered = shows |> List.map snd |> List.sortBy (fun s -> -s.Episodes, s.Title, s.SeriesId)
+
             number,
             { Name = name
               Year = year
-              Shows = shows |> List.map snd |> List.sortBy (fun s -> -s.Episodes, s.Title, s.SeriesId) })
+              Shows = ordered
+              Airing = ordered |> List.filter _.WhileAiring |> List.length })
         |> List.sortByDescending fst
 
     match seasons with

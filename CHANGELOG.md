@@ -41,7 +41,7 @@ new image. Add to "Unreleased" as you work; a release renames it.
 - The Anime DNA and the year in review count seasons, not minutes, for the favourite studio, genres, dominant
   decade and formats: one watched season is a MyAnimeList entry in one airing season, so a 1,000-episode show
   weighs a dozen seasons, not a thousand hours. A decade is the airing year of the watched season. The notes
-  say "Based on 41 of 45 seasons". Hours, episodes, the viewing pace, charts and compatibility are unchanged.
+  say "Based on the 41 of 45 watched seasons with MyAnimeList details". Hours, episodes, the viewing pace, charts and compatibility are unchanged.
   The year in review has no decade card, so it changes its studio, genre and format cards only.
 - The Anime insignia skips long runners (more than 100 episodes); they have their own "Long run" card.
 - Changing a profile's visibility now records which level it became ("Profile made public", "Profile
