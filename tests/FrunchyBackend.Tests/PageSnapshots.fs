@@ -78,6 +78,28 @@ let ``save the HTML of the signed-in pages for a design review`` () =
         let! sakuraKey = connectExtension sakuraBrowser
         let! _ = submitAccepted app sakuraKey (samplePages "profile-sakura" 2)
         let! _ = processAll app.Db
+
+        // feature 027: the sample's One Piece has 13 fully watched episodes, short of the long-run card's 24. Watch 24
+        // more, one every three weeks from January 2025, so the card shows and the seasons section has recent seasons,
+        // some of its shows watched while airing (within 7 days) and some later.
+        let! onePiece =
+            Db.scalar<string>
+                app.Db
+                "SELECT e.series_id || '|' || e.season_id FROM cr_episodes e WHERE e.series_title = 'One Piece' AND e.season_id IS NOT NULL ORDER BY e.id LIMIT 1"
+                []
+
+        let seriesOfOnePiece, seasonOfOnePiece = (let p = onePiece.Split '|' in p[0], p[1])
+
+        let moreOnePiece =
+            [ for i in 0..23 ->
+                  let aired = DateTime(2025, 1, 5, 0, 0, 0, DateTimeKind.Utc).AddDays(21.0 * float i)
+                  let watched = aired.AddDays(if i % 2 = 0 then 2.0 else 20.0).AddHours 12.0
+                  // the catalog keeps the show's real title: the entry names it like the sample does
+                  (datedEntry $"SNAPOP{i:D3}" seriesOfOnePiece seasonOfOnePiece (1201 + i) (Some aired) watched true)
+                      .Replace($"Series {seriesOfOnePiece}", "One Piece") ]
+
+        let! _ = submitAccepted app rootKey (envelopeForProfile MainProfile [ historyUrl RealAccountId, pageOf moreOnePiece ])
+        let! _ = processAll app.Db
         (rootBrowser :> IDisposable).Dispose()
         (sakuraBrowser :> IDisposable).Dispose()
 
