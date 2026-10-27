@@ -38,6 +38,12 @@ new image. Add to "Unreleased" as you work; a release renames it.
   not indexable on the fediverse, as Frunchy already asked: 0.1.0 marked every user as discoverable. A
   self-hosted Megáfono 0.1.0 database is upgraded by Megáfono itself on start.
 
+### Fixed
+
+- The Anime insignia no longer says "48 of 12 episodes watched" for a show whose seasons are separate
+  MyAnimeList entries: the total now adds up every entry of the show you watched, and is left out when one of
+  them has no episode count yet (still airing) or no MyAnimeList match.
+
 ### Upgrade
 
 - Air dates are filled in from the history already stored, once, when the new version starts: nothing to run and
