@@ -9,10 +9,11 @@
 #
 # Two ways to start it:
 #   - Run workflow (preferred): Actions > Release > Run workflow on `main`, with the version (X.Y.Z, no v). The job
-#     `changelog` then does what used to be done by hand, on main: it turns "## Unreleased" into the version's section,
-#     commits that to main as github-actions[bot], tags the commit vX.Y.Z and pushes both in one atomic push. It runs
-#     only after the tests passed on that commit of main, so red tests never leave a tag. The tag therefore always
-#     contains its own changelog section, and main is renamed before anything else can merge.
+#     `changelog` then does what used to be done by hand, on main: it gathers the notes in changelog.d/ into the
+#     version's section of CHANGELOG.md (deleting those files), commits that to main as github-actions[bot], tags the
+#     commit vX.Y.Z and pushes both in one atomic push. It runs only after the tests passed on that commit of main, so
+#     red tests never leave a tag. The tag therefore always contains its own changelog section, and the notes are
+#     gone from changelog.d/ before anything else can merge (a branch that adds its own file never conflicts).
 #   - Pushing a tag by hand works when the tagged commit already holds its section: .github/scripts/changelog.sh
 #     prepare X.Y.Z, commit, tag that commit, push main and the tag together (--atomic). A tag without it is refused.
 # Every later job takes the version and the tag from the outputs of `changelog` (never from GITHUB_REF_NAME, which is
@@ -49,10 +50,10 @@ permissions:
   contents: read
 
 jobs:
-  # First: decide the version and, on a dispatch, cut the release. The notes come from CHANGELOG.md (the same script
-  # and flow as Umbral). A release turns "## Unreleased" into the version's section and fails the whole run when
-  # Unreleased is empty, so nothing is built or deployed without notes. A pre-release writes preview notes and leaves
-  # CHANGELOG.md alone.
+  # First: decide the version and, on a dispatch, cut the release. The notes come from changelog.d/ (one file per
+  # change) and CHANGELOG.md (the same script as Umbral). A release gathers the files into the version's section of
+  # CHANGELOG.md, deletes them, and fails the whole run when changelog.d/ has no notes, so nothing is built or
+  # deployed without notes. A pre-release writes preview notes and leaves CHANGELOG.md and changelog.d/ alone.
   changelog:
     # The tests come first: a dispatch tags only a commit whose tests passed, and a failing test leaves no tag
     needs: test
@@ -121,7 +122,7 @@ jobs:
               echo "Prerelease $VERSION: a version to try, not a release. Its self-host image is published by tag only, it is not deployed, and the changelog stays as it was."
               if [ -n "$(.github/scripts/changelog.sh unreleased)" ]; then
                 echo
-                echo "What is on its way, from the changelog's \"Unreleased\" section:"
+                echo "What is on its way, from the notes waiting in changelog.d:"
                 echo
                 .github/scripts/changelog.sh unreleased
               fi
@@ -133,8 +134,12 @@ jobs:
               echo "::error::The tag v$VERSION has no \"## $VERSION\" section in its CHANGELOG.md. Release with Actions > Release > Run workflow, or by hand: .github/scripts/changelog.sh prepare $VERSION, commit, tag that commit, then git push --atomic origin main v$VERSION. Delete this tag first: git push --delete origin v$VERSION."
               exit 1
             fi
+            # Re-running a dispatch for a version whose section already exists reuses it; otherwise `prepare`
+            # gathers changelog.d/ into it (and deletes the files, committed below), and it fails the run with
+            # "no notes in changelog.d" when there is nothing to release
             .github/scripts/changelog.sh notes "$VERSION" >/dev/null 2>&1 ||
-              .github/scripts/changelog.sh prepare "$VERSION"
+              .github/scripts/changelog.sh prepare "$VERSION" ||
+              { echo "::error::Nothing to release: no notes in changelog.d (each change adds a file there; see changelog.d/README.md), or a note file is malformed (.github/scripts/changelog.sh check)."; exit 1; }
             .github/scripts/changelog.sh notes "$VERSION" > out/notes.md
             cp CHANGELOG.md out/CHANGELOG.md
           fi
@@ -154,8 +159,13 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if [ "$PRERELEASE" != "true" ] && ! git diff --quiet -- CHANGELOG.md; then
-            git commit -m "chore(release): $VERSION" -- CHANGELOG.md
+          if [ "$PRERELEASE" != "true" ]; then
+            # `prepare` rewrote CHANGELOG.md and deleted the fragments in changelog.d/: stage both (-A takes the
+            # deletions), then ask the index, so a deleted file counts as a change. Nothing else is staged.
+            git add -A -- CHANGELOG.md changelog.d
+            if ! git diff --cached --quiet -- CHANGELOG.md changelog.d; then
+              git commit -m "chore(release): $VERSION"
+            fi
           fi
           git tag -a "$TAG" -m "$TAG"
           if [ "$PRERELEASE" = "true" ]; then
