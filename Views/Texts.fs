@@ -124,6 +124,8 @@ type Texts =
       DnaShowAll: int -> string
       /// "5 ep." under a show's title
       DnaShowEpisodes: int64 -> string
+      /// "37 episodes" on the long-run strip
+      DnaEpisodesPlain: int64 -> string
       /// The hidden text of the airing mark on a show
       DnaWhileAiring: string
       /// "Plus 18 earlier seasons." the airing seasons the list leaves out
@@ -721,6 +723,7 @@ let en =
             if a = 0 then shows else $"{shows} · {a} while airing"
       DnaShowAll = fun n -> $"Show all {n} shows"
       DnaShowEpisodes = fun n -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} ep."""
+      DnaEpisodesPlain = fun n -> if n = 1L then "1 episode" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} episodes"""
       DnaWhileAiring = "Watched while airing"
       DnaEarlierSeasons = fun n -> if n = 1 then "Plus 1 earlier season." else $"Plus {n} earlier seasons."
       DnaOthers = "Others"
@@ -1481,6 +1484,7 @@ let es =
             if a = 0 then shows else $"{shows} · {a} en emisión"
       DnaShowAll = fun n -> $"Ver las {n} series"
       DnaShowEpisodes = fun n -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} ep."""
+      DnaEpisodesPlain = fun n -> if n = 1L then "1 episodio" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} episodios"""
       DnaWhileAiring = "Visto en emisión"
       DnaEarlierSeasons = fun n -> if n = 1 then "Y 1 temporada anterior." else $"Y {n} temporadas anteriores."
       DnaOthers = "Otros"

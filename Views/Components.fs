@@ -434,8 +434,8 @@ let shareLine (name: string) (detail: HtmlElement option) (share: decimal) (t: T
 /// A poster or thumbnail. The box (`sizeClasses` carries its size, aspect ratio and rounding) is the placeholder
 /// colour, so a missing URL shows just the box, and an image that fails to load removes itself and leaves it: never
 /// the browser's broken-image icon. Decorative (`alt=""`): the title is always beside it.
-let poster (url: string option) (sizeClasses: string) =
-    span(class' = $"relative block overflow-hidden bg-surface-container-high {sizeClasses}") {
+let posterOn (background: string) (url: string option) (sizeClasses: string) =
+    span(class' = $"relative block overflow-hidden {background} {sizeClasses}") {
         match url with
         | Some url ->
             img(src = url, alt = "", class' = "absolute inset-0 h-full w-full object-cover")
@@ -444,6 +444,9 @@ let poster (url: string option) (sizeClasses: string) =
                 .attr("style", "box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4)")
         | None -> Fragment()
     }
+
+let poster (url: string option) (sizeClasses: string) =
+    posterOn "bg-surface-container-high" url sizeClasses
 
 /// A series title that leads to its anime page (feature 006)
 let seriesLink (username: string) (seriesId: string) (title: string) =

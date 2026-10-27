@@ -95,3 +95,17 @@ The per-show pill, the "N shows" span on the right of an always-open heading (it
 
 The flagship reads "48 of 12 episodes watched" (Eyeshield 21): watched exceeds the MyAnimeList count. Pre-existing;
 its own small task.
+
+## Second look (2026-10-26)
+
+1. Tile size: every season tile grid is `grid gap-3 grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))]` (the fixed 3/4/6
+   column classes are dropped), in the top block, its "Show all" content and the timeline rows.
+2. Missing poster: the quiet slot uses `surface-container-lowest` with the `--border-micro` border, nothing inside. No
+   text-only tiles, no Crunchyroll thumbnails.
+3. Long-run text: `DnaEpisodesPlain` ("37 episodes" / "1 episode", es "37 episodios" / "1 episodio") replaces the
+   "episodes watched" wording on the strip, so it reads "37 episodes · 14.6 hours · aired Winter 2023 to Summer 2026".
+   `data-long-run-episodes` stays on that span with the same value.
+4. Open by default means capped: whatever is open by default shows at most 6 tiles. The newest timeline row starts open
+   but shows its first 6 tiles, then a nested `<details>` "Show all N shows" (the `DnaShowAll` text and summary styling
+   of the top block) with the rest. The other seven rows show everything when opened. `data-season`,
+   `data-season-shows` and every show's hooks are kept; a show in the nested details is still in the DOM.

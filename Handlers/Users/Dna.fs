@@ -232,7 +232,7 @@ let private longRun (t: Texts) (username: string) (hasFlagship: bool) (l: LongRu
                 }
 
                 p(class' = "flex flex-wrap items-baseline gap-x-2 text-body-md text-on-surface-variant") {
-                    span().data("long-run-episodes", string l.FullyWatched) { t.DnaInsigniaEpisodes l.FullyWatched None }
+                    span().data("long-run-episodes", string l.FullyWatched) { t.DnaEpisodesPlain l.FullyWatched }
                     span().attr("aria-hidden", "true") { "·" }
                     span() { t.DnaInsigniaHours l.Hours }
 
@@ -426,9 +426,8 @@ let private formats (t: Texts) (f: Figures) =
 
 /// A show's poster box in a tile: the quiet empty slot when there is no poster (nothing inside it)
 let private tilePoster (url: string option) =
-    match url with
-    | Some _ -> poster url "aspect-[2/3] w-full rounded-md"
-    | None -> span(class' = "block aspect-[2/3] w-full rounded-md bg-surface-container").attr("style", "border: var(--border-micro)")
+    // the micro border is always there, so the slot looks the same whether there is no poster or the image failed to load
+    posterOn "bg-surface-container-lowest [border:var(--border-micro)]" url "aspect-[2/3] w-full rounded-md"
 
 let private seasonShow (username: string) (t: Texts) (show: SeasonShow) =
     let row =
@@ -451,9 +450,27 @@ let private seasonShow (username: string) (t: Texts) (show: SeasonShow) =
     }
 
 let private tileGrid (username: string) (t: Texts) (shows: SeasonShow list) =
-    ul(class' = "grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6") {
+    ul(class' = "grid gap-3 grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))]") {
         for show in shows do
             seasonShow username t show
+    }
+
+/// What is open by default shows at most `topSeasonTiles` tiles: the first ones, then the rest behind a nested
+/// "Show all N shows" <details> (every show stays in the page)
+let private cappedTiles (username: string) (t: Texts) (shows: SeasonShow list) =
+    let first, rest = shows |> List.splitAt (min topSeasonTiles shows.Length)
+
+    Fragment() {
+        tileGrid username t first
+
+        if not rest.IsEmpty then
+            details() {
+                summary(class' = $"{btnSm Ghost} -ml-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden") {
+                    t.DnaShowAll shows.Length
+                }
+
+                div(class' = "pt-3") { tileGrid username t rest }
+            }
     }
 
 /// The newest listed season starts open, the others closed: a native <details>, no script
@@ -473,29 +490,21 @@ let private airingSeason (username: string) (t: Texts) (isOpen: bool) (s: Airing
             }
         }
 
-        div(class' = "pb-4") { tileGrid username t s.Shows }
+        // the open row is capped like the top block; a row the reader opens shows everything
+        div(class' = "space-y-3 pb-4") {
+            if isOpen then cappedTiles username t s.Shows else tileGrid username t s.Shows
+        }
     }
 
 /// The busiest season in full view: the first tiles, the rest behind "Show all"
 let private topSeason (username: string) (t: Texts) (s: AiringSeason) =
-    let first, rest = s.Shows |> List.splitAt (min topSeasonTiles s.Shows.Length)
-
     div(class' = "space-y-3").data("top-season", Seasons.key s.Name s.Year) {
         div(class' = "space-y-1") {
             h3(class' = "text-headline-lg text-primary") { t.DnaSeason s.Name s.Year }
             p(class' = "text-body-md text-on-surface-variant") { t.DnaTopSeasonLine s.Shows.Length s.Airing }
         }
 
-        tileGrid username t first
-
-        if not rest.IsEmpty then
-            details() {
-                summary(class' = $"{btnSm Ghost} -ml-3.5 cursor-pointer list-none [&::-webkit-details-marker]:hidden") {
-                    t.DnaShowAll s.Shows.Length
-                }
-
-                div(class' = "pt-3") { tileGrid username t rest }
-            }
+        cappedTiles username t s.Shows
     }
 
 let private seasonsSection (t: Texts) (username: string) (s: SeasonsSection) =

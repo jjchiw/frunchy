@@ -813,3 +813,75 @@ let ``foldSeasons counts the shows watched while airing and breaks episode ties 
     Assert.Equal(0, (section.Listed |> List.find (fun s -> s.Name = "summer")).Airing)
     // the top season (4 shows) carries its own count
     Assert.Equal(2, section.Top.Airing)
+
+// ---------------------------------------------------------------------------
+// The second look: open by default means at most six tiles; the long-run strip's plain episodes text
+// ---------------------------------------------------------------------------
+
+/// The html of one listed season row (from its tag to the next row's, or the end of the page)
+let private seasonRow (key: string) (html: string) =
+    let rows = tagsWith "season" html
+    let i = rows |> List.findIndex (fun (_, m) -> attr "season" m = key)
+    let start = fst rows[i]
+    let stop = if i + 1 < rows.Length then fst rows[i + 1] else html.Length
+    html.Substring(start, stop - start)
+
+/// What follows the row's own <summary>: its content
+let private rowContent (row: string) = row.Substring(row.IndexOf "</summary>")
+
+[<Fact>]
+let ``the open newest row shows six tiles, then a nested Show all with the rest; closed rows show everything`` () =
+    task {
+        // Fall 2026 (the newest, open) has eight shows; Winter 2026 (the top season, closed) has ten
+        let fall = [ for i in 1..8 -> weekly $"NEWEST{i:D2}" (1400 + i) "Studio A" (day 2026 10 4) 2 1 ]
+        let winter = [ for i in 1..10 -> weekly $"OLDER{i:D2}" (1420 + i) "Studio B" (day 2026 1 8) 2 1 ]
+        let! app, _ = build (fall @ winter)
+        use app = app
+        let! html = dna app
+
+        Assert.Equal<(string * bool) list>([ "fall-2026", true; "winter-2026", false ], seasonRowsOpen html)
+
+        let open' = rowContent (seasonRow "fall-2026" html)
+        let nested = open'.IndexOf "<details"
+        Assert.True(nested > 0)
+        Assert.Equal(6, (tagsWith "season-show" (open'.Substring(0, nested))).Length)
+        Assert.Equal(2, (tagsWith "season-show" (open'.Substring nested)).Length)
+        Assert.Contains("Show all 8 shows", innerText (Regex.Match(open'.Substring nested, "<summary.*?</summary>", RegexOptions.Singleline).Value))
+        // the nested details is closed, and the row still counts all eight
+        Assert.DoesNotMatch("^<details[^>]*\\sopen", open'.Substring nested)
+        Assert.Equal("8", attr "season-shows" (snd (tagsWith "season" html |> List.head)))
+
+        // a closed row, once opened, holds all its tiles and no nested details
+        let closed = rowContent (seasonRow "winter-2026" html)
+        Assert.DoesNotContain("<details", closed)
+        Assert.Equal(10, (tagsWith "season-show" closed).Length)
+    }
+
+[<Fact>]
+let ``the open newest row has no nested Show all at six shows or fewer`` () =
+    task {
+        let fall = [ for i in 1..6 -> weekly $"NEWSIX{i}" (1500 + i) "Studio A" (day 2026 10 4) 2 1 ]
+        let winter = [ for i in 1..8 -> weekly $"OLDEIGHT{i}" (1520 + i) "Studio B" (day 2026 1 8) 2 1 ]
+        let! app, _ = build (fall @ winter)
+        use app = app
+        let! html = dna app
+
+        let open' = rowContent (seasonRow "fall-2026" html)
+        Assert.DoesNotContain("<details", open')
+        Assert.Equal(6, (tagsWith "season-show" open').Length)
+    }
+
+[<Fact>]
+let ``the long-run strip says plain episodes, in both languages`` () =
+    task {
+        let! app, _ = build (longAndShort ())
+        use app = app
+        let! en = get app "en"
+        let! es = get app "es-ES,es;q=0.9"
+
+        let text (html: string) =
+            Regex.Match(html, "data-long-run-episodes=\"264\"[^>]*>([^<]*)<").Groups[1].Value
+
+        Assert.Equal("264 episodes", text en)
+        Assert.Equal("264 episodios", text es)
+    }
