@@ -483,7 +483,9 @@ let private airingSeason (username: string) (t: Texts) (isOpen: bool) (s: Airing
             .data("season-shows", string s.Shows.Length)
 
     (if isOpen then row.attr("open", "") else row) {
-        summary(class' = "flex cursor-pointer list-none flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-3 [&::-webkit-details-marker]:hidden") {
+        // Always the name over its counts, like the top block: a short name on one line with its counts would break
+        // the column the other rows' counts form
+        summary(class' = "flex cursor-pointer list-none flex-col items-start gap-0.5 py-3 [&::-webkit-details-marker]:hidden") {
             h3(class' = "text-headline-md text-on-surface") { t.DnaSeason s.Name s.Year }
 
             span(class' = "flex items-center gap-1 text-label-md font-normal text-on-surface-variant") {

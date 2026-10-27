@@ -46,4 +46,4 @@
 
 ## Phase 4: Review and design (main session)
 
-- [ ] T014 Review, suite, screenshots to the designer; design fixes; spec Implemented.
+- [x] T014 Review, suite, screenshots to the designer; design fixes; spec Implemented.

@@ -109,3 +109,9 @@ its own small task.
    but shows its first 6 tiles, then a nested `<details>` "Show all N shows" (the `DnaShowAll` text and summary styling
    of the top block) with the rest. The other seven rows show everything when opened. `data-season`,
    `data-season-shows` and every show's hooks are kept; a show in the nested details is still in the DOM.
+
+## Sign-off (2026-10-26)
+
+Approved at the state of the snap027d screenshots, plus: the season summary always stacks (name over counts,
+`flex-col items-start gap-0.5`, no `flex-wrap`/`justify-between`/`items-baseline`), the chevron at the end of the
+counts line. Phones get three equal tile columns (`grid-cols-3`), the capped auto-fill from `sm` up.

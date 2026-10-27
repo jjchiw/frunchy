@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-26
 
-**Status**: Draft
+**Status**: Implemented (designer approved 2026-10-26)
 
 **Input**: "The stats look awesome, but One Piece and Toei are on top because they are long anime. One Piece has
 1,000 episodes and The Apothecary Diaries only 12 a season. We should tell that apart, maybe with seasonals:
