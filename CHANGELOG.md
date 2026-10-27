@@ -10,27 +10,14 @@ new image. Add to "Unreleased" as you work; a release renames it.
 
 ## Unreleased
 
-## 0.5.0 - 2026-10-24
-
 ### Added
 
-- A public install guide at `/guide`, in English and Spanish, for people who got an invite: installing the
-  extension, signing up with the invite, connecting the extension, syncing the history, the dashboard and
-  the Anime DNA, profile visibility and deleting the account, with screenshots. The home, sign-up and
-  sync-key pages link to it. Frunchy now serves the files in `wwwroot` (the guide's screenshots) with a
-  one-day browser cache.
-- "What to watch next" at `/next`, for signed-in people with at least 15 fully watched episodes: the series
-  that the people with the most similar taste (level "Good" or better, from the profiles they can already
-  open) watched through and they haven't started, with who watched it through and the MyAnimeList score
-  and genres. A private profile only counts for someone holding its current share link. Your dashboard
-  links to it. Nothing to do on upgrade.
 - The fediverse on the Caravana deploy. `aspire deploy` now publishes Megáfono, its gateway and its own
   Postgres next to Frunchy and its Postgres, with federation on, so people on Mastodon and other servers
   can follow a Public profile and an anime, and see and answer comments on episodes. The gateway takes
   over the domain: it sends Megáfono's routes to Megáfono and everything else to Frunchy. **The domain
   becomes permanent once someone has followed**: changing it breaks every follow. `Deploy:Federation=false`
   keeps the deploy as it was. See "Upgrade" below and `docs/deploy-caravana.md`.
-
 - "Your seasons" on the Anime DNA: the shows you watched, by the season they aired in (Winter, Spring, Summer
   or Fall of the year of each episode's air date), your top season, and a mark on the shows you watched
   while they aired (an episode fully watched within 7 days of airing). The 8 newest seasons are listed and the
@@ -46,15 +33,50 @@ new image. Add to "Unreleased" as you work; a release renames it.
   say "Based on the 41 of 45 watched seasons with MyAnimeList details". Hours, episodes, the viewing pace, charts and compatibility are unchanged.
   The year in review has no decade card, so it changes its studio, genre and format cards only.
 - The Anime insignia skips long runners (more than 100 episodes); they have their own "Long run" card.
+- Megáfono is pinned at 0.2.0 (was 0.1.0) in the AppHost and in `deploy/compose.yaml`
+  (`MEGAFONO_VERSION`). With federation on, Members and Private profiles are now not discoverable and
+  not indexable on the fediverse, as Frunchy already asked: 0.1.0 marked every user as discoverable. A
+  self-hosted Megáfono 0.1.0 database is upgraded by Megáfono itself on start.
+
+### Upgrade
+
+- Air dates are filled in from the history already stored, once, when the new version starts: nothing to run and
+  nobody needs to sync again. A second start changes nothing.
+- Before releasing a deploy with federation (the default now), add four secrets to Bella
+  `frunchy/production` as `Parameters__<name>` keys: `megafono-master-key` (`openssl rand -base64 32`),
+  and `megafono-token`, `megafono-webhook-secret` and `megafono-db-password` (each `openssl rand -hex 32`).
+  The release stops, naming the parameter, if the master key is missing or is not base64 of 32 bytes.
+- Back up the master key apart from the database: it encrypts every actor's private key in Megáfono's
+  database, and Caravana's backups do not include secrets.
+- Check the Caravana host's memory first: the app now reserves about 960 MB (up to about 2.2 GB at its
+  ceilings), up from 512 MB.
+- The domain is permanent from the first follow: never change `frunchy-domain`, never wipe Megáfono's
+  database, and never run a test instance on the production domain.
+- To stay without federation, set `Deploy__Federation=false` for the deploy: the app is `frunchy` and `pg`
+  again, with no new secrets needed.
+
+## 0.5.0 - 2026-10-24
+
+### Added
+
+- A public install guide at `/guide`, in English and Spanish, for people who got an invite: installing the
+  extension, signing up with the invite, connecting the extension, syncing the history, the dashboard and
+  the Anime DNA, profile visibility and deleting the account, with screenshots. The home, sign-up and
+  sync-key pages link to it. Frunchy now serves the files in `wwwroot` (the guide's screenshots) with a
+  one-day browser cache.
+- "What to watch next" at `/next`, for signed-in people with at least 15 fully watched episodes: the series
+  that the people with the most similar taste (level "Good" or better, from the profiles they can already
+  open) watched through and they haven't started, with who watched it through and the MyAnimeList score
+  and genres. A private profile only counts for someone holding its current share link. Your dashboard
+  links to it. Nothing to do on upgrade.
+
+### Changed
+
 - Changing a profile's visibility now records which level it became ("Profile made public", "Profile
   set to members", "Profile made private") in the account's security activity, instead of "Profile
   visibility changed". Earlier entries keep their old wording. Nothing to do on upgrade.
 - In Spanish the dashboard is always "panel", the word of its tab; the home steps, sign-in, sign-up
   and account pages said "dashboard".
-- Megáfono is pinned at 0.2.0 (was 0.1.0) in the AppHost and in `deploy/compose.yaml`
-  (`MEGAFONO_VERSION`). With federation on, Members and Private profiles are now not discoverable and
-  not indexable on the fediverse, as Frunchy already asked: 0.1.0 marked every user as discoverable. A
-  self-hosted Megáfono 0.1.0 database is upgraded by Megáfono itself on start.
 
 ### Fixed
 
@@ -73,23 +95,6 @@ new image. Add to "Unreleased" as you work; a release renames it.
   such a comment sees "Not sent to the fediverse; it's still here on Frunchy." under it. Network
   errors, 5xx, 408, 409, 429 and 401 are still retried. The outbox gains the `failed` state, added
   automatically on start.
-
-### Upgrade
-
-- Air dates are filled in from the history already stored, once, when the new version starts: nothing to run and
-  nobody needs to sync again. A second start changes nothing.
-- Before releasing a deploy with federation (the default now), add four secrets to Bella
-  `frunchy/production` as `Parameters__<name>` keys: `megafono-master-key` (`openssl rand -base64 32`),
-  and `megafono-token`, `megafono-webhook-secret` and `megafono-db-password` (each `openssl rand -hex 32`).
-  The release stops, naming the parameter, if the master key is missing or is not base64 of 32 bytes.
-- Back up the master key apart from the database: it encrypts every actor's private key in Megáfono's
-  database, and Caravana's backups do not include secrets.
-- Check the Caravana host's memory first: the app now reserves about 960 MB (up to about 2.2 GB at its
-  ceilings), up from 512 MB.
-- The domain is permanent from the first follow: never change `frunchy-domain`, never wipe Megáfono's
-  database, and never run a test instance on the production domain.
-- To stay without federation, set `Deploy__Federation=false` for the deploy: the app is `frunchy` and `pg`
-  again, with no new secrets needed.
 
 ## 0.4.0 - 2026-10-22
 
