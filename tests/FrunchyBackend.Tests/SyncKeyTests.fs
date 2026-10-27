@@ -10,7 +10,7 @@ open FrunchyBackend.Tests.Infrastructure.PostgresFixture
 let ``connect extension shows a working key exactly once`` () =
     task {
         use! app = newApp ()
-        use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
+        use browser = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
         let! confirm = browser.Get "/account/key"
         Assert.Contains("action=\"/account/key\"", confirm.Html)
 
@@ -28,7 +28,7 @@ let ``connect extension shows a working key exactly once`` () =
 let ``a new key revokes the previous one and is recorded`` () =
     task {
         use! app = newApp ()
-        use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
+        use browser = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
         let! first = connectExtension browser
         let! second = connectExtension browser
         let! old = getWithKey app.Client (Some first) "/api/me"
@@ -43,7 +43,7 @@ let ``a new key revokes the previous one and is recorded`` () =
 let ``the extension contract is unchanged for keys made on the website`` () =
     task {
         use! app = newApp ()
-        use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
+        use browser = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
         let! key = connectExtension browser
         let! status, _ = FrunchyBackend.Tests.TestHelpers.submit app key (load2022Envelope ())
         Assert.Equal(202, status)

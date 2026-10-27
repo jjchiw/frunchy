@@ -47,11 +47,11 @@ let ``an unknown identity goes to sign-up and nothing is created`` () =
 let ``a linked identity signs in and returns to a local returnUrl only`` () =
     task {
         use! app = newApp ()
-        use first = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
+        use first = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
         let! _ = createUser app.Db "other" // unrelated
         use browser = app.NewBrowser()
-        let! page = browser.Get "/signin/test?sub=sub-1&returnUrl=%2Fu%2Fanimenerd"
-        Assert.Equal("/u/animenerd", page.Path)
+        let! page = browser.Get "/signin/test?sub=sub-1&returnUrl=%2Fu%2Fanimegolden"
+        Assert.Equal("/u/animegolden", page.Path)
 
         use evil = app.NewBrowser()
         let! landing = evil.Get "/signin/test?sub=sub-1&returnUrl=%2F%2Fevil.example%2Fx"
@@ -74,7 +74,7 @@ let ``session cookie is HttpOnly, SameSite=Lax and lasts about 30 days`` () =
         use! app = newApp ()
         let! invite = createInvite app
         use browser = app.NewBrowser()
-        let! response = submitSignUp browser "sub-1" invite "animenerd" "AnimeNerd"
+        let! response = submitSignUp browser "sub-1" invite "animegolden" "AnimeGolden"
         let cookie = response.Headers.GetValues "Set-Cookie" |> Seq.find (fun c -> c.StartsWith "frunchy.session=")
         Assert.Contains("httponly", cookie.ToLowerInvariant())
         Assert.Contains("samesite=lax", cookie.ToLowerInvariant())
@@ -86,7 +86,7 @@ let ``session cookie is HttpOnly, SameSite=Lax and lasts about 30 days`` () =
 let ``signing in records last use and a signed_in event`` () =
     task {
         use! app = newApp ()
-        use _ = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
+        use _ = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
         do! Db.execute app.Db "UPDATE user_identities SET last_used_at = now() - interval '1 day'"
         use browser = app.NewBrowser()
         let! _ = signInWith browser "sub-1"
@@ -100,7 +100,7 @@ let ``signing in records last use and a signed_in event`` () =
 let ``signing out ends only that browser's session`` () =
     task {
         use! app = newApp ()
-        use a = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
+        use a = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
         use b = app.NewBrowser()
         let! _ = signInWith b "sub-1"
 
@@ -126,11 +126,11 @@ let ``a cancelled provider sign-in shows the failure message`` () =
 let ``signed-in navbar shows the display name, account and sign out`` () =
     task {
         use! app = newApp ()
-        use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
+        use browser = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
         let! page = browser.Get "/"
-        Assert.Contains("data-nav=\"user\">ANIMENERD<", page.Html)
+        Assert.Contains("data-nav=\"user\">ANIMEGOLDEN<", page.Html)
         // the name leads to the user's public dashboard
-        Assert.Matches("<a href=\"/u/animenerd\"[^>]*data-nav=\"user\">", page.Html)
+        Assert.Matches("<a href=\"/u/animegolden\"[^>]*data-nav=\"user\">", page.Html)
         Assert.Contains("href=\"/account\"", page.Html)
         Assert.Contains("action=\"/signout\"", page.Html)
     }

@@ -29,7 +29,7 @@ let private authorTags (html: string) =
 
 let private hasHref (tag: string) = Regex.IsMatch(tag, "\\bhref=\"")
 
-/// A world with a private "animenerd" who has commented on a numbered episode, and the episode's page
+/// A world with a private "animegolden" who has commented on a numbered episode, and the episode's page
 let private withComment (config: (string * string) list) =
     task {
         let! w = world config
@@ -52,23 +52,23 @@ let ``a private author is plain text for a stranger, and a link for the owner an
             let tags = authorTags p.Html
             Assert.Equal(1, tags.Length)
             Assert.False(hasHref tags.Head, $"{who} got a link: {tags.Head}")
-            Assert.Contains("ANIMENERD", p.Html)
-            Assert.DoesNotContain("/u/animenerd", p.Html)
+            Assert.Contains("ANIMEGOLDEN", p.Html)
+            Assert.DoesNotContain("/u/animegolden", p.Html)
 
         // the owner follows their own profile
         let! own = w.Owner.Get page
-        Assert.Contains("href=\"/u/animenerd\"", authorTag own.Html)
+        Assert.Contains("href=\"/u/animegolden\"", authorTag own.Html)
 
         // a browser that followed the share link does too, signed in or not
         let! path, _ = createShareLink w.Owner
         use friend = w.App.NewBrowser()
         use! _ = friend.GetRaw path
         let! holder = friend.Get page
-        Assert.Contains("href=\"/u/animenerd\"", authorTag holder.Html)
+        Assert.Contains("href=\"/u/animegolden\"", authorTag holder.Html)
 
         use! _ = w.Other.GetRaw path
         let! otherHolder = w.Other.Get page
-        Assert.Contains("href=\"/u/animenerd\"", authorTag otherHolder.Html)
+        Assert.Contains("href=\"/u/animegolden\"", authorTag otherHolder.Html)
 
         // until the link is replaced
         let! _ = createShareLink w.Owner
@@ -82,7 +82,7 @@ let ``a public author is linked for everyone`` () =
         let! w, page = withComment [ defaultKey, "public" ]
         use _ = w
         let! p = w.Stranger.Get page
-        Assert.Contains("href=\"/u/animenerd\"", authorTag p.Html)
+        Assert.Contains("href=\"/u/animegolden\"", authorTag p.Html)
 
         // and plain again once the author goes private
         let! _ = setVisibility w.Owner "private"
@@ -99,24 +99,24 @@ let ``compare and the card follow the profile: hidden is a 404, shared works`` (
     task {
         use! w = world [ defaultKey, "private" ]
 
-        let! hidden = statusOf w.Other "/u/animenerd/compare"
+        let! hidden = statusOf w.Other "/u/animegolden/compare"
         Assert.Equal(HttpStatusCode.NotFound, hidden)
 
         let! path, _ = createShareLink w.Owner
         use! _ = w.Other.GetRaw path
 
-        let! compare = w.Other.Get "/u/animenerd/compare"
+        let! compare = w.Other.Get "/u/animegolden/compare"
         Assert.Equal(HttpStatusCode.OK, compare.Status)
 
         // the card is on the dashboard of a profile the viewer can see, for a signed-in non-owner only
-        let! dashboard = w.Other.Get "/u/animenerd"
+        let! dashboard = w.Other.Get "/u/animegolden"
         Assert.Contains("data-compat-card", dashboard.Html)
-        let! own = w.Owner.Get "/u/animenerd"
+        let! own = w.Owner.Get "/u/animegolden"
         Assert.DoesNotContain("data-compat-card", own.Html)
 
         // the link ended: the card and the page go with it
         let! _ = createShareLink w.Owner
-        let! gone = statusOf w.Other "/u/animenerd/compare"
+        let! gone = statusOf w.Other "/u/animegolden/compare"
         Assert.Equal(HttpStatusCode.NotFound, gone)
     }
 
@@ -130,10 +130,10 @@ let ``a private viewer sees the card and compare on a public profile`` () =
         let! status = statusOf w.Stranger "/u/other"
         Assert.Equal(HttpStatusCode.NotFound, status)
 
-        let! dashboard = w.Other.Get "/u/animenerd"
+        let! dashboard = w.Other.Get "/u/animegolden"
         Assert.Equal(HttpStatusCode.OK, dashboard.Status)
         Assert.Contains("data-compat-card", dashboard.Html)
-        let! compare = w.Other.Get "/u/animenerd/compare"
+        let! compare = w.Other.Get "/u/animegolden/compare"
         Assert.Equal(HttpStatusCode.OK, compare.Status)
     }
 
@@ -149,8 +149,8 @@ let ``the MyAnimeList review links seasons to series pages, never into a history
         for path in [ "/review/mal?status=ambiguous"; "/review/mal"; "/review/mal/manual" ] do
             let! page = env.Boss.Get path
             Assert.Equal(HttpStatusCode.OK, page.Status)
-            // animenerd is the only person with history; nothing points at them
-            Assert.DoesNotContain("/u/animenerd", page.Html)
+            // animegolden is the only person with history; nothing points at them
+            Assert.DoesNotContain("/u/animegolden", page.Html)
 
         let! page = env.Boss.Get "/review/mal?status=ambiguous"
         Assert.Contains($"href=\"/anime/{slimeSeries}\"", page.Html)
@@ -174,7 +174,7 @@ let ``with federation on a stranger gets the 404 and no Link header, and the own
 
         // strangers: the plain unknown-user 404, nothing advertised
         for browser in [ w.Stranger; w.Other; w.Root ] do
-            use! response = browser.GetRaw "/u/animenerd"
+            use! response = browser.GetRaw "/u/animegolden"
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode)
             Assert.Equal(None, linkHeader response)
             let! html = response.Content.ReadAsStringAsync()
@@ -182,18 +182,18 @@ let ``with federation on a stranger gets the 404 and no Link header, and the own
             Assert.DoesNotContain("activity+json", html)
 
         // the owner's page still advertises the actor and shows the handle
-        use! own = w.Owner.GetRaw "/u/animenerd"
+        use! own = w.Owner.GetRaw "/u/animegolden"
         Assert.Equal(HttpStatusCode.OK, own.StatusCode)
         Assert.True((linkHeader own).IsSome)
         Assert.Contains("activity+json", (linkHeader own).Value)
         let! ownHtml = own.Content.ReadAsStringAsync()
-        Assert.Contains("data-fediverse-handle=\"@animenerd@frunchy.test\"", ownHtml)
+        Assert.Contains("data-fediverse-handle=\"@animegolden@frunchy.test\"", ownHtml)
 
         // so does a page opened through the share link
         let! path, _ = createShareLink w.Owner
         use friend = w.App.NewBrowser()
         use! _ = friend.GetRaw path
-        use! shared = friend.GetRaw "/u/animenerd"
+        use! shared = friend.GetRaw "/u/animegolden"
         Assert.Equal(HttpStatusCode.OK, shared.StatusCode)
         Assert.True((linkHeader shared).IsSome)
     }

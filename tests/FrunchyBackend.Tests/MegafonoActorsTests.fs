@@ -39,11 +39,11 @@ let private ok (status: HttpStatusCode, json: JsonElement option) =
     Assert.Equal(HttpStatusCode.OK, status)
     json.Value
 
-/// A federated app with a user "animenerd" and the 2026 sample imported
+/// A federated app with a user "animegolden" and the 2026 sample imported
 let private sampleApp () : Task<TestApp> =
     task {
         let! app = newFederatedApp ()
-        let! key = TestHelpers.createUser app.Db "animenerd"
+        let! key = TestHelpers.createUser app.Db "animegolden"
         let! _ = TestHelpers.submitAccepted app key (load2026Sample ())
         let! _ = TestHelpers.processAll app.Db
         return app
@@ -84,14 +84,14 @@ let private handleOf (app: TestApp) (seriesId: string) =
 let ``a user is found by handle with every field`` () =
     task {
         use! app = sampleApp ()
-        let! id = userId app "animenerd"
-        let! result = lookup app "/megafono/actors?handle=animenerd"
+        let! id = userId app "animegolden"
+        let! result = lookup app "/megafono/actors?handle=animegolden"
         let json = ok result
 
         Assert.Equal(string id, text json "id")
-        Assert.Equal("animenerd", text json "handle")
-        Assert.Equal("ANIMENERD", text json "name")
-        Assert.Equal("https://frunchy.test/u/animenerd", text json "profileUrl")
+        Assert.Equal("animegolden", text json "handle")
+        Assert.Equal("ANIMEGOLDEN", text json "name")
+        Assert.Equal("https://frunchy.test/u/animegolden", text json "profileUrl")
         Assert.Equal("Person", text json "type")
         Assert.False(json.GetProperty("locked").GetBoolean())
         Assert.False(json.TryGetProperty("iconUrl") |> fst)
@@ -101,8 +101,8 @@ let ``a user is found by handle with every field`` () =
 let ``a user is found by id and the answer is the same`` () =
     task {
         use! app = sampleApp ()
-        let! id = userId app "animenerd"
-        let! byHandle = lookup app "/megafono/actors?handle=animenerd"
+        let! id = userId app "animegolden"
+        let! byHandle = lookup app "/megafono/actors?handle=animegolden"
         let! byId = lookup app $"/megafono/actors/{id}"
         Assert.Equal((ok byHandle).GetRawText(), (ok byId).GetRawText())
     }
@@ -111,8 +111,8 @@ let ``a user is found by id and the answer is the same`` () =
 let ``the handle is matched without regard to case`` () =
     task {
         use! app = sampleApp ()
-        let! result = lookup app "/megafono/actors?handle=AnimeNerd"
-        Assert.Equal("animenerd", text (ok result) "handle")
+        let! result = lookup app "/megafono/actors?handle=AnimeGolden"
+        Assert.Equal("animegolden", text (ok result) "handle")
     }
 
 [<Fact>]
@@ -152,14 +152,14 @@ let ``a username with a trailing dash cannot federate`` () =
 let ``a deleted user is 404 by handle and by id`` () =
     task {
         use! app = sampleApp ()
-        let! id = userId app "animenerd"
-        let! before, _ = lookup app "/megafono/actors?handle=animenerd"
+        let! id = userId app "animegolden"
+        let! before, _ = lookup app "/megafono/actors?handle=animegolden"
         Assert.Equal(HttpStatusCode.OK, before)
 
         let! deleted = AccountActions.deleteUser app.Db false id
         Assert.True deleted.IsSome
 
-        let! byHandle, _ = lookup app "/megafono/actors?handle=animenerd"
+        let! byHandle, _ = lookup app "/megafono/actors?handle=animegolden"
         let! byId, _ = lookup app $"/megafono/actors/{id}"
         Assert.Equal(HttpStatusCode.NotFound, byHandle)
         Assert.Equal(HttpStatusCode.NotFound, byId)
@@ -305,11 +305,11 @@ let ``the icon is the MyAnimeList poster and only over https on MyAnimeList`` ()
 let ``a missing, wrong or padded token is 401 on every route, whatever is asked`` () =
     task {
         use! app = sampleApp ()
-        let! id = userId app "animenerd"
+        let! id = userId app "animegolden"
         let token = FakeMegafono.Token
 
         let paths =
-            [ "/megafono/actors?handle=animenerd"
+            [ "/megafono/actors?handle=animegolden"
               "/megafono/actors?handle=nobody"
               $"/megafono/actors/{id}"
               "/megafono/actors/series-ZZZZZZZZ" ]
@@ -348,11 +348,11 @@ let ``a missing, wrong or padded token is 401 on every route, whatever is asked`
 let ``with federation off every actor route is 404, even with the right header`` () =
     task {
         use! app = newApp ()
-        let! key = TestHelpers.createUser app.Db "animenerd"
+        let! key = TestHelpers.createUser app.Db "animegolden"
         ignore key
-        let! id = userId app "animenerd"
+        let! id = userId app "animegolden"
 
-        for path in [ "/megafono/actors?handle=animenerd"; $"/megafono/actors/{id}"; "/megafono/actors/series-ABCDEFGH" ] do
+        for path in [ "/megafono/actors?handle=animegolden"; $"/megafono/actors/{id}"; "/megafono/actors/series-ABCDEFGH" ] do
             for authorization in [ None; Some bearer ] do
                 let! status, _ = get app authorization path
                 Assert.True((status = HttpStatusCode.NotFound), $"{path} answered {status}")

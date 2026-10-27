@@ -3,12 +3,13 @@
 ## Deploying with `aspire deploy` (feature 018)
 
 The AppHost (`AppHost/AppHost.fs`) has two graphs. `aspire run` builds the local platform. `aspire deploy` runs in
-publish mode and builds `publishGraph`: **frunchy** and **pg** (Postgres 18 with the `frunchy-pg` volume), published
-as one Caravana app with the NuGet package `CosmicChimps.Aspire.Hosting.Caravana`. Federation is off (Megafono, its
-gateway and its database are not in this graph) and Umbral is its own Caravana app. It builds the Frunchy image,
-pushes it to the registry, sends the app to Caravana, waits until it is healthy and prints Caravana's warnings.
-The image is linux/amd64 whatever machine builds it (`ContainerRuntimeIdentifier` in `FrunchyBackend.fsproj`,
-read only by container publishing).
+publish mode and builds `publishGraph`, published as one Caravana app with the NuGet package
+`CosmicChimps.Aspire.Hosting.Caravana`. With federation on (the default, `Deploy:Federation`, feature 026) the app has
+five services: **frunchy**, **pg** (Postgres 18 with the `frunchy-pg` volume), **megafono-pg** (Megáfono's own Postgres),
+**megafono** and **gateway**. With `Deploy:Federation=false` it has the first two only, as before feature 026. Umbral is
+its own Caravana app. It builds the Frunchy image, pushes it to the registry, sends the app to Caravana, waits until it
+is healthy and prints Caravana's warnings. The image is linux/amd64 whatever machine builds it
+(`ContainerRuntimeIdentifier` in `FrunchyBackend.fsproj`, read only by container publishing).
 
 ### Parameters
 
@@ -20,7 +21,7 @@ Aspire prompts for any that is missing. Secret ones are marked.
 | `caravana-token` | yes | An API token (`cvat_...`) |
 | `registry-endpoint` | no | Where the image is pushed, e.g. `ghcr.io` |
 | `registry-repository` | no | The owner or namespace, e.g. `jjchiw` |
-| `frunchy-domain` | no | Frunchy's public host, no scheme. Never the Caravana console's domain |
+| `frunchy-domain` | no | Frunchy's public host, no scheme. Never the Caravana console's domain. **Permanent once federation is on** (see below) |
 | `db-password` | yes | Postgres password (not the dev `pg-password`) |
 | `data-protection-key` | yes | Base64 of 32 bytes (`openssl rand -base64 32`); encrypts the data protection keys in Postgres |
 | `umbral-authority` | no | `https://` URL of the production Umbral |
@@ -28,9 +29,20 @@ Aspire prompts for any that is missing. Secret ones are marked.
 | `umbral-client-secret` | yes | Same |
 | `mal-client-id` | yes | The MyAnimeList client id |
 | `root-operator` | no | The username of the root operator |
+| `megafono-master-key` | yes | Federation only. Base64 of 32 bytes (`openssl rand -base64 32`); encrypts every actor's private key in Megáfono |
+| `megafono-token` | yes | Federation only. `openssl rand -hex 32`; the bearer token between Frunchy and Megáfono |
+| `megafono-webhook-secret` | yes | Federation only. `openssl rand -hex 32`; signs Megáfono's webhooks to Frunchy |
+| `megafono-db-password` | yes | Federation only. `openssl rand -hex 32`; Megáfono's Postgres password (hex keeps it safe in a connection string) |
 
-Two plain settings, in `AppHost/appsettings.json`: `Caravana:Project` (`frunchy`) and `Caravana:Environment`
-(`production`).
+The four `megafono-*` parameters are declared only while `Deploy:Federation` is true, so a deploy without federation is
+never asked for them. The master key is checked before anything is built: a missing or malformed one stops the deploy,
+naming the parameter and never printing the value.
+
+Plain settings, in `AppHost/appsettings.json`: `Caravana:Project` (`frunchy`), `Caravana:Environment` (`production`),
+`Deploy:Federation` (`true`), `Caravana:ContainerNetwork` (`172.26.64.0/20`, see "Trusted addresses") and
+`Megafono:ImageTag` (the pinned Megáfono release, shared with `aspire run`; empty or `latest` is refused).
+`Megafono:BuildFromSource=true` is for `aspire run` only: with federation on, `aspire deploy` refuses it, because the
+deploy always uses the published images.
 
 Where to set them:
 - **A local deploy**: AppHost user secrets, `dotnet user-secrets set "Parameters:caravana-token" "..." --project AppHost`
@@ -39,7 +51,7 @@ Where to set them:
   `Parameters__db-password`, ...), then `bella run -- aspire deploy`.
 - **CI**: the same `Parameters__<name>` environment variables.
 
-Keep `data-protection-key` and `db-password` in Bella. Losing the key signs everyone out (the sessions' keys are in the
+Keep `data-protection-key`, `db-password` and the four `megafono-*` secrets in Bella. Losing the key signs everyone out (the sessions' keys are in the
 database, encrypted with it, and the dump alone can't forge a session). Losing the password means no way to reach the
 data. Caravana's backups do not include secrets.
 
@@ -52,7 +64,7 @@ data. Caravana's backups do not include secrets.
 3. With a **deploy token** (scoped to one app), create the project `frunchy` and the environment `production` in
    Caravana first: it can't create them. A full token creates them.
 4. Set the **backup destination** in Caravana (Settings > Backup destination); without it the deploy is refused
-   (Postgres is backed up nightly at 03:00 UTC, 14 kept).
+   (Postgres is backed up nightly at 03:00 UTC, 14 kept; with federation, Megáfono's database at 03:30).
 5. **Umbral in production**: register Frunchy as an app in the production Umbral with the redirect URI
    `https://<frunchy-domain>/signin-umbral`, and put its client id and secret in `umbral-client-id` and
    `umbral-client-secret`.
@@ -61,6 +73,80 @@ data. Caravana's backups do not include secrets.
 
 Then `aspire deploy`. Run it again and the same app is updated (the AppHost is the source of truth: what you change in
 the console for things the AppHost describes is replaced on the next deploy).
+
+### Federation (feature 026)
+
+With `Deploy:Federation=true` the app is five services, and **the gateway owns the domain**:
+
+| Service | What | Domain |
+|---|---|---|
+| `gateway` | `ghcr.io/cosmic-chimps/megafono-gateway`, plain http on 8080, health `/healthz` | `frunchy-domain` |
+| `frunchy` | the app | none |
+| `megafono` | `ghcr.io/cosmic-chimps/megafono`; 8080 is the federation port, 8081 the internal API Frunchy calls | none |
+| `megafono-pg` | Postgres with the `megafono` database and volume | none |
+| `pg` | Postgres with `frunchydb` | none |
+
+Traefik sends the whole host to the gateway. The gateway sends Megáfono's routes (WebFinger, the actor and inbox URLs)
+to Megáfono's federation port and everything else to Frunchy. Megáfono's port 8081 never goes through the gateway.
+
+Both images are pinned to `Megafono:ImageTag` (never `latest`) and come from GHCR (`ghcr.io/cosmic-chimps`), the
+same ones `deploy/compose.yaml` pulls; `aspire deploy` pushes only the Frunchy image. Each Postgres has its own nightly dump (Frunchy's at 03:00 UTC, Megáfono's at 03:30,
+14 kept each).
+
+**Before the first federated release**
+
+1. **Add the four Bella keys** to `frunchy/production`: `Parameters__megafono-master-key` (`openssl rand -base64 32`),
+   and `Parameters__megafono-token`, `Parameters__megafono-webhook-secret`, `Parameters__megafono-db-password` (each
+   `openssl rand -hex 32`). The release stops at once if the master key is missing or is not base64 of 32 bytes.
+2. **Back up the master key apart from the database.** It encrypts every actor's private key in Megáfono's database.
+   Caravana's backups do not include secrets, so without a copy of the key a restored dump cannot sign anything.
+3. **The domain is permanent.** Once an instance has been followed, every actor is `@name@<frunchy-domain>` and remote
+   servers store that. Changing it later breaks every follow and every thread; the old identities cannot be moved.
+   Never wipe Megáfono's database after the first follow, and never use the production domain for a test instance
+   (a second instance on the same domain would sign with different keys).
+4. **Check the host's memory.** The app reserves about 960 MB with ceilings up to about 2.2 GB (frunchy 256/768, pg
+   256/512, megafono-pg 128/256, megafono 256/512, gateway 64/128). Compare with what the host has free (`nomad node
+   status -self`, Reserved against Allocated, or each app's Running tab) before releasing.
+
+**Trusted addresses**
+
+- The gateway trusts `10.99.0.1` (`Gateway__TrustedProxies`): Traefik runs in host networking and reaches the gateway
+  through its host port, so its requests come from Caravana's own address.
+- Megáfono (`Megafono__TrustedProxies`) and Frunchy (`Frunchy__TrustedProxies`) trust `Caravana:ContainerNetwork`,
+  `172.26.64.0/20`. Inside one app the services reach each other by name over Nomad's bridge, so Megáfono sees the
+  gateway's own container address, which changes on every deploy and always sits in that range. Installer-made hosts keep
+  Nomad's default bridge subnet; if yours does not, change the setting.
+- **Accepted risk:** every app on the host shares that bridge, so a container of another app can reach Megáfono or
+  Frunchy directly and send its own `X-Forwarded-For`. It gets to pick its rate-limit bucket and the address in the
+  logs; no session, sign-in or data comes with it. Caravana's rule is that apps on one host trust each other, and it has
+  network isolation between apps on its backlog. Never add `172.26.64.1` to the range: traffic from other apps through a
+  host port arrives masqueraded as that address.
+- **Port 8081 has no domain, and its bearer token (`megafono-token`) is its only lock on Caravana**: there are no private
+  networks between apps yet, so another app on the host could reach it. Keep the token long and secret.
+
+**Staying off.** `Deploy:Federation=false` (for example `Deploy__Federation=false` in the environment of the deploy) brings
+back the graph from before feature 026: `frunchy` with the domain and `pg`, no Megáfono parameters needed. Frunchy's
+federation switch stays off and every federation route answers the plain 404. Check in Caravana that the `megafono-pg`
+volume is still there before turning federation on again: its identities (and the master key that unlocks them) must
+come back with the same domain.
+
+**After the deploy**
+
+1. WebFinger answers through the gateway:
+   `curl -s "https://<frunchy-domain>/.well-known/webfinger?resource=acct:<username>@<frunchy-domain>"` returns JSON
+   with a `self` link.
+2. From a Mastodon account, search `@<username>@<frunchy-domain>` and follow. Only **Public** profiles are meant to be
+   found there (Members and Private ones should not be discoverable).
+3. Comment on an episode page as that user and check that the post shows up in Mastodon; reply from Mastodon and check
+   that the reply shows on the episode page.
+4. `fediverse-status` shows the outbox: in Caravana's console for the `frunchy` service, run
+   `dotnet /app/FrunchyBackend.dll fediverse-status`. Items stuck `waiting` or listed as `failed` say what is wrong.
+
+**Megáfono 0.2.0 or later.** From 0.2.0 an actor's `discoverable` and `indexable` come from Frunchy's actor lookup
+(feature 021: both true for Public profiles and series, both false for Members and Private), and a change of visibility
+goes out with the next profile update. 0.1.0 marked every user as discoverable, so never pin it with federation on.
+The gateway's Caravana check is HTTP `/healthz` on 8080, which 0.2.0's gateway answers itself without proxying (so
+`https://<frunchy-domain>/healthz` is the gateway's answer, not Frunchy's; Caravana checks Frunchy on its own port).
 
 ### The Aspire CLI and the image tag
 
@@ -162,7 +248,10 @@ anything else merges) but doesn't remove it.
 - `POSTGRES_DB=frunchydb` applies only while the data volume is empty (the image creates the database on first start).
   On an existing volume, create it once on the pg copy: `psql -U postgres -c 'create database frunchydb'`.
 - The Frunchy image must be reachable by Caravana (step 2 above).
-- `Frunchy__TrustedProxies` is `10.99.0.1`, Traefik's address on installer-made hosts.
+- `Frunchy__TrustedProxies` is `10.99.0.1` (Traefik's address on installer-made hosts) only without federation; with it,
+  Frunchy is behind the gateway and trusts `Caravana:ContainerNetwork` (see "Trusted addresses").
+- `POSTGRES_DB=megafono` has the same first-start rule as Frunchy's: on an existing `megafono-pg` volume, create the
+  database once on that copy.
 - To see what would be sent without deploying: `aspire publish -o <dir>` writes `docker-compose.yaml` and `.env` and
   contacts nothing. The domain, health checks, backup and memory are not in that file: the publisher sends them in the
   request.

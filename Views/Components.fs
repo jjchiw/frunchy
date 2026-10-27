@@ -16,6 +16,10 @@ open FrunchyBackend.Views.Texts
 let icon (i: Icon) =
     span(class' = "material-symbols-outlined").attr("aria-hidden", "true") { i.Name }
 
+/// An icon with extra classes (a colour, the chevron's turn)
+let iconWith (extra: string) (i: Icon) =
+    span(class' = $"material-symbols-outlined {extra}").attr("aria-hidden", "true") { i.Name }
+
 /// The mark (an inline SVG) next to the wordmark
 let brand (siteName: string) =
     // On phones only the mark shows, so the header fits; the link keeps the name as its label
@@ -384,18 +388,28 @@ let coverageNote (text: string) =
         span() { text }
     }
 
+/// The coverage note of a taste card that counts watched seasons (feature 027): `data-coverage-seasons="41/45"`,
+/// the seasons it is based on over all watched seasons
+let seasonCoverageNote (text: string) (basedOn: int64) (total: int64) =
+    (coverageNote text).data("coverage-seasons", $"{basedOn}/{total}")
+
 let notEnough (t: Texts) =
     p(class' = "text-body-md text-on-surface-variant").data("not-enough", "") { t.DnaSectionNotEnough }
 
-/// A titled card for one figure; MyAnimeList-based ones carry data-coverage
-let figureSection (hook: string) (title: string) (coverage: decimal option) (extra: string) =
+/// A titled card for one figure whose hook carries a value (`data-dna-long-run="SERIESID"`); MyAnimeList-based ones
+/// carry data-coverage
+let figureSectionWith (hook: string) (value: string) (title: string) (coverage: decimal option) (extra: string) =
     let el =
-        section(class' = $"fr-card flex flex-col gap-5 {extra}").data(hook, "")
+        section(class' = $"fr-card flex flex-col gap-5 {extra}").data(hook, value)
 
     match coverage with
     | Some c -> el.data("coverage", inv c)
     | None -> el
     |> fun el -> el.attr("aria-label", title)
+
+/// A titled card for one figure; MyAnimeList-based ones carry data-coverage
+let figureSection (hook: string) (title: string) (coverage: decimal option) (extra: string) =
+    figureSectionWith hook "" title coverage extra
 
 let sectionHeading (title: string) =
     h2(class' = "text-headline-md text-on-surface") { title }
@@ -420,8 +434,8 @@ let shareLine (name: string) (detail: HtmlElement option) (share: decimal) (t: T
 /// A poster or thumbnail. The box (`sizeClasses` carries its size, aspect ratio and rounding) is the placeholder
 /// colour, so a missing URL shows just the box, and an image that fails to load removes itself and leaves it: never
 /// the browser's broken-image icon. Decorative (`alt=""`): the title is always beside it.
-let poster (url: string option) (sizeClasses: string) =
-    span(class' = $"relative block overflow-hidden bg-surface-container-high {sizeClasses}") {
+let posterOn (background: string) (url: string option) (sizeClasses: string) =
+    span(class' = $"relative block overflow-hidden {background} {sizeClasses}") {
         match url with
         | Some url ->
             img(src = url, alt = "", class' = "absolute inset-0 h-full w-full object-cover")
@@ -430,6 +444,9 @@ let poster (url: string option) (sizeClasses: string) =
                 .attr("style", "box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4)")
         | None -> Fragment()
     }
+
+let poster (url: string option) (sizeClasses: string) =
+    posterOn "bg-surface-container-high" url sizeClasses
 
 /// A series title that leads to its anime page (feature 006)
 let seriesLink (username: string) (seriesId: string) (title: string) =

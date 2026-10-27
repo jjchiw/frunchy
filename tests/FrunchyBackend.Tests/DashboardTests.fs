@@ -34,7 +34,7 @@ let private dashboard (app: TestApp) (language: string) (username: string) =
 let private withHistory (json: string) =
     task {
         let! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key json
         let! _ = processAll app.Db
         return app, key
@@ -45,7 +45,7 @@ let ``2022 sample figures in English`` () =
     task {
         let! app, _ = withHistory (load2022Envelope ())
         use app = app
-        let! code, html = dashboard app "en-US" "animenerd"
+        let! code, html = dashboard app "en-US" "animegolden"
         Assert.Equal(HttpStatusCode.OK, code)
         Assert.Contains("lang=\"en\"", html)
         Assert.Equal("29", stat html "series")
@@ -60,7 +60,7 @@ let ``Spanish dashboard uses Spanish text and number format`` () =
     task {
         let! app, _ = withHistory (load2022Envelope ())
         use app = app
-        let! _, html = dashboard app "es-ES,es;q=0.9" "animenerd"
+        let! _, html = dashboard app "es-ES,es;q=0.9" "animegolden"
         Assert.Contains("lang=\"es\"", html)
         Assert.Equal("39,3", statText html "hours")
         Assert.Contains("Episodios vistos", html)
@@ -72,7 +72,7 @@ let ``recent list is newest first and marks partial watches`` () =
     task {
         let! app, _ = withHistory (load2022Envelope ())
         use app = app
-        let! _, html = dashboard app "en" "animenerd"
+        let! _, html = dashboard app "en" "animegolden"
         let items = recentItems html
         Assert.Equal(6, items.Length)
         Assert.Contains("The Vampire Dies in No Time", items[0])
@@ -93,7 +93,7 @@ let ``2026 sample figures and newest episode`` () =
     task {
         let! app, _ = withHistory (load2026Sample ())
         use app = app
-        let! _, html = dashboard app "en" "animenerd"
+        let! _, html = dashboard app "en" "animegolden"
         Assert.Equal("67", stat html "series")
         Assert.Equal("298", stat html "episodes")
         Assert.Equal("118.2", stat html "hours")
@@ -112,8 +112,8 @@ let ``specials are labelled`` () =
 
         let! app, _ = withHistory (envelopeOf [ historyUrl RealAccountId, pageOf [ special ] ])
         use app = app
-        let! _, en = dashboard app "en" "animenerd"
-        let! _, es = dashboard app "es" "animenerd"
+        let! _, en = dashboard app "en" "animegolden"
+        let! _, es = dashboard app "es" "animegolden"
         Assert.Contains("Special", (recentItems en)[0])
         Assert.Contains("Especial", (recentItems es)[0])
     }
@@ -136,7 +136,7 @@ let ``only unresolved history still shows the empty state`` () =
         let page = pageOf [ unresolvedEntry "U1" "SER1" (DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)) ]
         let! app, _ = withHistory (envelopeOf [ historyUrl RealAccountId, page ])
         use app = app
-        let! _, html = dashboard app "en" "animenerd"
+        let! _, html = dashboard app "en" "animegolden"
         Assert.DoesNotContain("data-stat", html)
     }
 
@@ -146,11 +146,11 @@ let ``a pending import shows the sync-in-progress notice`` () =
         let! app, key = withHistory (load2022Envelope ())
         use app = app
         let! _ = submitAccepted app key (envelopeOf [ historyUrl RealAccountId, pageOf [ syntheticEntry "N1" "SER9" DateTime.UtcNow true 1400 ] ])
-        let! _, html = dashboard app "en" "animenerd"
+        let! _, html = dashboard app "en" "animegolden"
         Assert.Contains("data-sync-in-progress", html)
         Assert.Equal("96", stat html "episodes") // figures processed so far
         let! _ = processAll app.Db
-        let! _, after = dashboard app "en" "animenerd"
+        let! _, after = dashboard app "en" "animegolden"
         Assert.DoesNotContain("data-sync-in-progress", after)
     }
 
@@ -162,7 +162,7 @@ let ``each dashboard shows only its own user`` () =
         let! keyB = createUser app.Db "userb"
         let! _ = submitAccepted app keyB (envelopeOf (syntheticPages otherAccount 1 10))
         let! _ = processAll app.Db
-        let! _, a = dashboard app "en" "animenerd"
+        let! _, a = dashboard app "en" "animegolden"
         let! _, b = dashboard app "en" "userb"
         Assert.Equal("96", stat a "episodes")
         Assert.Equal("10", stat b "episodes")
@@ -176,7 +176,7 @@ let ``dashboard never exposes keys, import ids or issues`` () =
         let! app, key = withHistory (load2022Envelope ())
         use app = app
         let! importId = Db.scalar<Guid> app.Db "SELECT id FROM cr_imports LIMIT 1" []
-        let! _, html = dashboard app "en" "animenerd"
+        let! _, html = dashboard app "en" "animegolden"
         Assert.DoesNotContain(key, html)
         Assert.DoesNotContain(string importId, html)
         Assert.DoesNotContain("panel missing", html)
@@ -201,7 +201,7 @@ let ``username lookup is case-insensitive`` () =
     task {
         let! app, _ = withHistory (load2022Envelope ())
         use app = app
-        let! code, html = dashboard app "en" "AnimeNerd"
+        let! code, html = dashboard app "en" "AnimeGolden"
         Assert.Equal(HttpStatusCode.OK, code)
         Assert.Equal("96", stat html "episodes")
     }

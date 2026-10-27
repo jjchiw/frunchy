@@ -61,6 +61,7 @@
     <Compile Include="EpisodeHelpers.fs" />
     <Compile Include="DesignSystemTests.fs" />
     <Compile Include="DnaTests.fs" />
+    <Compile Include="DnaSeasonsTests.fs" />
     <Compile Include="DnaPaceTests.fs" />
     <Compile Include="YearTests.fs" />
     <Compile Include="YearNavigationTests.fs" />
@@ -81,6 +82,7 @@
     <Compile Include="CommentModerationTests.fs" />
     <Compile Include="CompatibilityScoreTests.fs" />
     <Compile Include="CompatibilityTests.fs" />
+    <Compile Include="SeasonsUnitTests.fs" />
     <Compile Include="ChartsUnitTests.fs" />
     <Compile Include="ChartsTests.fs" />
     <Compile Include="SeriesPageTests.fs" />

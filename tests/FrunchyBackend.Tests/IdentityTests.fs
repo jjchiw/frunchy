@@ -4,8 +4,8 @@ open Xunit
 open FrunchyBackend.Domains.Identity
 
 [<Theory>]
-[<InlineData("animenerd", "animenerd")>]
-[<InlineData("AnimeNerd", "animenerd")>]
+[<InlineData("animegolden", "animegolden")>]
+[<InlineData("AnimeGolden", "animegolden")>]
 [<InlineData("  jj_chiw-01 ", "jj_chiw-01")>]
 [<InlineData("abc", "abc")>]
 let ``valid usernames are accepted and lowercased`` (raw: string, expected: string) =

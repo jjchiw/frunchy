@@ -14,7 +14,7 @@ open FrunchyBackend.Tests.Infrastructure.PostgresFixture
 let private withSample () =
     task {
         let! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db
         return app
@@ -22,7 +22,7 @@ let private withSample () =
 
 let private page (app: TestApp) (language: string) =
     task {
-        let! response = getWithLanguage app.Client language "/u/animenerd"
+        let! response = getWithLanguage app.Client language "/u/animegolden"
         return! readHtml response
     }
 

@@ -27,6 +27,8 @@ type EpisodeFacts =
       EpisodeLabel: string option
       DurationMs: int
       ThumbnailUrl: string option
+      /// episode_metadata.episode_air_date: when the episode first aired (None when absent or not a date)
+      AiredAt: DateTimeOffset option
       WatchedAt: DateTimeOffset
       PlayheadS: int
       FullyWatched: bool }
@@ -164,6 +166,7 @@ let private parseEntry (entry: JsonElement) : ParsedEntry =
                               EpisodeLabel = meta "episode"
                               DurationMs = duration
                               ThumbnailUrl = thumbnail panel
+                              AiredAt = metadata |> Option.bind (fun m -> tryDate m "episode_air_date")
                               WatchedAt = watchedAt
                               PlayheadS = playhead
                               FullyWatched = fullyWatched }

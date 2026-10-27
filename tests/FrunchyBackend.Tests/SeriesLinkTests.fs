@@ -156,7 +156,7 @@ let ``a person's anime page links to the series page`` () =
 
         for language in [ "en"; "es" ] do
             let t = if language = "es" then Texts.es else Texts.en
-            let! response = getWithLanguage app.Client language $"/u/animenerd/anime/{series}"
+            let! response = getWithLanguage app.Client language $"/u/animegolden/anime/{series}"
             Assert.Equal(HttpStatusCode.OK, response.StatusCode)
             let! html = readHtml response
 
@@ -171,5 +171,5 @@ let ``a person's anime page links to the series page`` () =
         let! html = readHtml page
         Assert.Contains($"data-series-page=\"{series}\"", html)
         // the public page names nobody: it never links back to a person
-        Assert.DoesNotContain("animenerd", html)
+        Assert.DoesNotContain("animegolden", html)
     }

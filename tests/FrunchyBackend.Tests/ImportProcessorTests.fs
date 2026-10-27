@@ -43,12 +43,12 @@ let ``counts add up for both fixtures`` () =
 let ``submitting the same history 3 times equals submitting it once`` () =
     task {
         use! once = newApp ()
-        let! k1 = createUser once.Db "animenerd"
+        let! k1 = createUser once.Db "animegolden"
         let! _ = submitAccepted once k1 (load2022Envelope ())
         let! _ = processAll once.Db
 
         use! thrice = newApp ()
-        let! k3 = createUser thrice.Db "animenerd"
+        let! k3 = createUser thrice.Db "animegolden"
 
         for _ in 1..3 do
             let! _ = submitAccepted thrice k3 (load2022Envelope ())
@@ -69,7 +69,7 @@ let ``arrival order doesn't change the result`` () =
         let run (ordered: (string * string) list) =
             task {
                 let! app = newApp ()
-                let! key = createUser app.Db "animenerd"
+                let! key = createUser app.Db "animegolden"
 
                 for page in ordered do
                     let! _ = submitAccepted app key (envelopeOf [ page ])
@@ -93,7 +93,7 @@ let ``arrival order doesn't change the result`` () =
 let ``an unresolved episode resolves when its details arrive later`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let url = historyUrl RealAccountId
         // newest watch first arrives without details
         let! _ = submitAccepted app key (envelopeOf [ url, pageOf [ unresolvedEntry "EP1" "SER1" (at "2026-03-01T10:00:00Z") ] ])
@@ -114,7 +114,7 @@ let ``an unresolved episode resolves when its details arrive later`` () =
 let ``newer watch dates win and older ones don't overwrite`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let url = historyUrl RealAccountId
         let send (date: string) fully playhead =
             task {
@@ -138,7 +138,7 @@ let ``newer watch dates win and older ones don't overwrite`` () =
 let ``invalid entries fail individually and the import still completes`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let page = $"""{{"data":[42,{syntheticEntry "EP1" "SER1" (at "2026-01-01T00:00:00Z") true 1400}]}}"""
         let! _ = submitAccepted app key (envelopeOf [ historyUrl RealAccountId, page ])
         let! _ = processAll app.Db
@@ -150,7 +150,7 @@ let ``invalid entries fail individually and the import still completes`` () =
 let ``a stale processing claim is reclaimed`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! importId = submitAccepted app key (load2022Envelope ())
         do!
             Db.execute
@@ -165,7 +165,7 @@ let ``a stale processing claim is reclaimed`` () =
 let ``a fresh processing claim is left alone`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! importId = submitAccepted app key (load2022Envelope ())
         do! Db.execute app.Db $"UPDATE cr_imports SET status = 'processing', processing_started_at = now() WHERE id = '{importId}'"
         let! processed = processAll app.Db
@@ -177,7 +177,7 @@ let ``several pending imports of one user equal one import with all pages`` () =
     task {
         let pages = pages2026 ()
         use! split = newApp ()
-        let! k1 = createUser split.Db "animenerd"
+        let! k1 = createUser split.Db "animegolden"
 
         for page in pages do
             let! _ = submitAccepted split k1 (envelopeOf [ page ])
@@ -186,7 +186,7 @@ let ``several pending imports of one user equal one import with all pages`` () =
         let! _ = processAll split.Db
 
         use! whole = newApp ()
-        let! k2 = createUser whole.Db "animenerd"
+        let! k2 = createUser whole.Db "animegolden"
         let! _ = submitAccepted whole k2 (envelopeOf pages)
         let! _ = processAll whole.Db
 
@@ -199,7 +199,7 @@ let ``several pending imports of one user equal one import with all pages`` () =
 let ``a 64-page first sync is processed well within the target`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (envelopeOf (syntheticPages RealAccountId 64 100))
         let watch = Stopwatch.StartNew()
         let! _ = processAll app.Db
@@ -207,4 +207,95 @@ let ``a 64-page first sync is processed well within the target`` () =
         let! events = Db.count app.Db "watch_events"
         Assert.Equal(6400L, events)
         Assert.True(watch.Elapsed < TimeSpan.FromSeconds 60.0, $"took {watch.Elapsed}")
+    }
+
+// Feature 027: the air date is stored with the episode
+
+let private airedAtOf (db) (episodeId: string) =
+    Db.scalar<obj> db $"SELECT aired_at FROM cr_episodes WHERE id = '{episodeId}'" []
+
+/// An envelope whose page says when it was captured (the catalog's freshness rule reads it)
+let private capturedEnvelope (capturedAt: string) (body: string) =
+    withProfile MainProfile $"""{{"pages":[{{"url":"{historyUrl RealAccountId}","capturedAt":"{capturedAt}","body":{body}}}]}}"""
+
+[<Fact>]
+let ``an import stores the episode's air date and an absent one stays empty`` () =
+    task {
+        use! app = newApp ()
+        let! key = createUser app.Db "animegolden"
+        let url = historyUrl RealAccountId
+
+        let page =
+            pageOf
+                [ datedEntry "EPA" "SER1" "SER1S1" 1 (Some(at "2026-10-04T15:30:00Z")) (at "2026-10-05T10:00:00Z") true
+                  datedEntry "EPB" "SER1" "SER1S1" 2 None (at "2026-10-06T10:00:00Z") true ]
+
+        let! _ = submitAccepted app key (envelopeOf [ url, page ])
+        let! _ = processAll app.Db
+
+        let! a = airedAtOf app.Db "EPA"
+        Assert.Equal(at "2026-10-04T15:30:00Z", (a :?> DateTime).ToUniversalTime())
+        let! b = airedAtOf app.Db "EPB"
+        Assert.Equal(box DBNull.Value, b)
+    }
+
+[<Fact>]
+let ``an unresolved entry doesn't touch a known air date`` () =
+    task {
+        use! app = newApp ()
+        let! key = createUser app.Db "animegolden"
+        let url = historyUrl RealAccountId
+        let dated = datedEntry "EPA" "SER1" "SER1S1" 1 (Some(at "2026-10-04T15:30:00Z")) (at "2026-10-05T10:00:00Z") true
+        let! _ = submitAccepted app key (envelopeOf [ url, pageOf [ dated ] ])
+        let! _ = processAll app.Db
+        let! _ = submitAccepted app key (envelopeOf [ url, pageOf [ unresolvedEntry "EPA" "SER1" (at "2026-10-09T10:00:00Z") ] ])
+        let! _ = processAll app.Db
+        let! a = airedAtOf app.Db "EPA"
+        Assert.Equal(at "2026-10-04T15:30:00Z", (a :?> DateTime).ToUniversalTime())
+    }
+
+[<Fact>]
+let ``the newest capture's air date wins whatever the arrival order`` () =
+    task {
+        let entry (airedAt: string) =
+            datedEntry "EPA" "SER1" "SER1S1" 1 (Some(at airedAt)) (at "2026-02-01T10:00:00Z") true
+
+        let olderCapture = capturedEnvelope "2026-03-01T00:00:00Z" (pageOf [ entry "2026-01-01T00:00:00Z" ])
+        let newerCapture = capturedEnvelope "2026-06-01T00:00:00Z" (pageOf [ entry "2026-04-01T00:00:00Z" ])
+
+        let run (envelopes: string list) =
+            task {
+                use! app = newApp ()
+                let! key = createUser app.Db "animegolden"
+
+                for envelope in envelopes do
+                    let! _ = submitAccepted app key envelope
+                    ()
+
+                let! _ = processAll app.Db
+                let! value = airedAtOf app.Db "EPA"
+                return (value :?> DateTime).ToUniversalTime()
+            }
+
+        let! forward = run [ olderCapture; newerCapture ]
+        let! reverse = run [ newerCapture; olderCapture ]
+        Assert.Equal(at "2026-04-01T00:00:00Z", forward)
+        Assert.Equal(forward, reverse)
+    }
+
+[<Fact>]
+let ``a rebuild gives the same air dates`` () =
+    task {
+        use! app = newApp ()
+        let! key = createUser app.Db "animegolden"
+        let! _ = submitAccepted app key (load2026Sample ())
+        let! _ = processAll app.Db
+        let! before = episodesTable app.Db
+        let! dated = Db.scalar<int64> app.Db "SELECT count(*) FROM cr_episodes WHERE aired_at IS NOT NULL" []
+        Assert.True(dated > 100L, $"the sample should carry air dates, found {dated}")
+
+        let! _ = FrunchyBackend.Operations.RebuildUser.rebuildUser app.Db "animegolden"
+        let! _ = processAll app.Db
+        let! after = episodesTable app.Db
+        Assert.Equal<string list>(before, after)
     }

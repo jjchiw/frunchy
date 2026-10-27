@@ -145,7 +145,7 @@ its own.
 ### Tests for User Story 1 (REQUIRED, Principle V)
 
 - [X] T008 [P] [US1] Write `tests/FrunchyBackend.Tests/DnaTests.fs` (contract `dna-page.md`).
-  Helper: a user `animenerd` with the 2026 sample imported (`submitAccepted`, `processAll`),
+  Helper: a user `animegolden` with the 2026 sample imported (`submitAccepted`, `processAll`),
   `routeSampleCatalog`, `enrichAll`. Read the page with `readHtml` and parse the `data-*` hooks.
   - **Figures**: each one equals an expected value computed in the test by its own simple SQL over
     `watch_events` / `cr_episodes` / `cr_season_matches` / `mal_anime` / `mal_anime_tags`, written

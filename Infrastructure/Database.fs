@@ -152,6 +152,7 @@ let private schema =
         episode_label  text NULL,
         duration_ms    int NULL, -- NULL = unresolved (no details received yet)
         thumbnail_url  text NULL,
+        aired_at       timestamptz NULL, -- panel.episode_metadata.episode_air_date (feature 027)
         source_at      timestamptz NULL
     );
 
@@ -482,6 +483,57 @@ let private upgrades =
             ALTER TABLE fediverse_outbox
                 ADD CONSTRAINT fediverse_outbox_state_check
                 CHECK (state IN ('pending', 'done', 'failed'));
+        END IF;
+    END $$;
+
+    -- Feature 027: cr_episodes.aired_at, the episode's air date. A database from before it has the column added and
+    -- filled once from the stored pages (they are only read): per episode, the entry of the newest page wins, as the
+    -- catalog's freshness rule does for every other detail, and only an entry the importer would have resolved (an
+    -- episode panel with a duration) counts. A value that is not a timestamp stays NULL. Once the column exists
+    -- the block does nothing, so a second start changes nothing.
+    DO $$
+    BEGIN
+        IF NOT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = current_schema() AND table_name = 'cr_episodes' AND column_name = 'aired_at'
+        ) THEN
+            ALTER TABLE cr_episodes ADD COLUMN aired_at timestamptz NULL;
+
+            -- A temporary helper (dropped below): a cast that gives NULL instead of failing on a malformed value.
+            -- A value with no time zone is read as UTC, like the importer does.
+            CREATE FUNCTION pg_temp.try_air_date(value text) RETURNS timestamptz AS $fn$
+            BEGIN
+                IF value IS NULL OR value !~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}' THEN
+                    RETURN NULL;
+                END IF;
+                IF value ~ '[0-9]:[0-9]{2}(:[0-9]{2}(\.[0-9]+)?)?\s*(Z|[+-][0-9]{2}(:?[0-9]{2})?)$' THEN
+                    RETURN value::timestamptz;
+                END IF;
+                RETURN value::timestamp AT TIME ZONE 'UTC';
+            EXCEPTION WHEN others THEN
+                RETURN NULL;
+            END
+            $fn$ LANGUAGE plpgsql;
+
+            UPDATE cr_episodes c
+            SET aired_at = n.aired_at
+            FROM (
+                SELECT DISTINCT ON (entry.item ->> 'id')
+                       entry.item ->> 'id' AS id,
+                       pg_temp.try_air_date(entry.item -> 'panel' -> 'episode_metadata' ->> 'episode_air_date') AS aired_at
+                FROM cr_import_pages p
+                JOIN cr_imports i ON i.id = p.import_id
+                CROSS JOIN LATERAL json_array_elements(
+                    CASE WHEN json_typeof(p.body -> 'data') = 'array' THEN p.body -> 'data' ELSE '[]'::json END
+                ) WITH ORDINALITY AS entry(item, position)
+                WHERE entry.item -> 'panel' ->> 'type' = 'episode'
+                  AND entry.item -> 'panel' -> 'episode_metadata' ->> 'duration_ms' ~ '^[1-9][0-9]*$'
+                ORDER BY entry.item ->> 'id', coalesce(p.captured_at, i.received_at) DESC, i.received_at DESC,
+                         p.import_id DESC, p.page_index DESC, entry.position DESC
+            ) n
+            WHERE c.id = n.id AND n.aired_at IS NOT NULL;
+
+            DROP FUNCTION pg_temp.try_air_date(text);
         END IF;
     END $$;
     """

@@ -13,7 +13,7 @@ let private otherAccount = "11111111-2222-3333-4444-555555555555"
 let ``accepted submission returns 202 and stores the page verbatim`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! status, body = submit app key (load2022Envelope ())
 
         Assert.Equal(202, status)
@@ -33,9 +33,9 @@ let ``accepted submission returns 202 and stores the page verbatim`` () =
 let ``first accepted submission binds the user to its history owner`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (load2026Sample ())
-        let! account = Db.scalar<string> app.Db "SELECT cr_account_id FROM users WHERE username = 'animenerd'" []
+        let! account = Db.scalar<string> app.Db "SELECT cr_account_id FROM users WHERE username = 'animegolden'" []
         Assert.Equal(RealAccountId, account)
     }
 
@@ -56,7 +56,7 @@ let private assertRejected (app: TestApp) (key: string option) (json: string) (e
 let ``missing or unknown key is unauthorized and stores nothing`` () =
     task {
         use! app = newApp ()
-        let! _ = createUser app.Db "animenerd"
+        let! _ = createUser app.Db "animegolden"
         do! assertRejected app None (load2022Envelope ()) 401 "unauthorized"
         do! assertRejected app (Some "frk_not-a-real-key") (load2022Envelope ()) 401 "unauthorized"
     }
@@ -65,7 +65,7 @@ let ``missing or unknown key is unauthorized and stores nothing`` () =
 let ``malformed submissions are invalid and store nothing`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let url = historyUrl RealAccountId
         let page = pageOf [ syntheticEntry "E1" "S1" DateTime.UtcNow true 1400 ]
         let hundredAndOne = envelopeOf [ for _ in 1..101 -> url, page ]
@@ -89,7 +89,7 @@ let ``malformed submissions are invalid and store nothing`` () =
 let ``pages without an identifiable history owner are rejected`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let page = pageOf [ syntheticEntry "E1" "S1" DateTime.UtcNow true 1400 ]
         do! assertRejected app (Some key) (envelopeOf [ "https://www.crunchyroll.com/history", page ]) 400 "history_owner_missing"
         do! assertRejected app (Some key) (envelopeOf [ historyUrl RealAccountId, page; historyUrl otherAccount, page ]) 400 "history_owner_missing"
@@ -99,7 +99,7 @@ let ``pages without an identifiable history owner are rejected`` () =
 let ``a bound user can't submit another history owner`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (load2022Envelope ())
         let page = pageOf [ syntheticEntry "E1" "S1" DateTime.UtcNow true 1400 ]
         do! assertRejected app (Some key) (envelopeOf [ historyUrl otherAccount, page ]) 409 "history_owner_mismatch"
@@ -119,7 +119,7 @@ let ``a history owner bound to one user can't be used by another`` () =
 let ``bodies over 30,000,000 bytes are too large and store nothing`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let padding = String('x', 30_000_001)
         let json = $"""{{"pages":[{{"url":"{historyUrl RealAccountId}","body":{{"data":[],"pad":"{padding}"}}}}]}}"""
         do! assertRejected app (Some key) json 413 "payload_too_large"
@@ -129,7 +129,7 @@ let ``bodies over 30,000,000 bytes are too large and store nothing`` () =
 let ``re-sending an accepted page is accepted again (dedup happens in processing)`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! first = submitAccepted app key (load2022Envelope ())
         let! second = submitAccepted app key (load2022Envelope ())
         Assert.NotEqual(first, second)
@@ -139,7 +139,7 @@ let ``re-sending an accepted page is accepted again (dedup happens in processing
 let ``a submission without profileId is rejected because the url doesn't identify the profile`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let page = pageOf [ syntheticEntry "E1" "S1" DateTime.UtcNow true 1400 ]
         do! assertRejected app (Some key) (envelopeWithoutProfile [ historyUrl RealAccountId, page ]) 400 "history_owner_missing"
         do! assertRejected app (Some key) (load2026SampleRaw ()) 400 "history_owner_missing"

@@ -407,7 +407,7 @@ let ``user-rebuild and re-sending the sample leave the comments byte-identical``
         let! resent = rawCommentRows app.Db
         Assert.Equal<string list>(before, resent)
 
-        let! queued = RebuildUser.rebuildUser app.Db "animenerd"
+        let! queued = RebuildUser.rebuildUser app.Db "animegolden"
         Assert.True(queued.IsSome)
         let! _ = processAll app.Db
         let! rebuilt = rawCommentRows app.Db

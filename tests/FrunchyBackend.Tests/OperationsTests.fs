@@ -35,22 +35,22 @@ let private userRows (db) (table: string) (username: string) =
 let ``rebuild reproduces identical figures and leaves raw pages untouched`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = submitAccepted app key (load2022Envelope ())
         let! _ = processAll app.Db
 
-        let! beforeCode, beforeStats, beforeRecent = dashboardSummary app "animenerd"
+        let! beforeCode, beforeStats, beforeRecent = dashboardSummary app "animegolden"
         let! beforeEvents = watchEvents app.Db
         let! beforePages = Db.dump app.Db "SELECT import_id, page_index, md5(body::text), url FROM cr_import_pages ORDER BY 1, 2"
 
-        let! queued = RebuildUser.rebuildUser app.Db "animenerd"
+        let! queued = RebuildUser.rebuildUser app.Db "animegolden"
         Assert.Equal(Some 2, queued)
         let! cleared = Db.count app.Db "watch_events"
         Assert.Equal(0L, cleared)
         let! _ = processAll app.Db
 
-        let! afterCode, afterStats, afterRecent = dashboardSummary app "animenerd"
+        let! afterCode, afterStats, afterRecent = dashboardSummary app "animegolden"
         let! afterEvents = watchEvents app.Db
         let! afterPages = Db.dump app.Db "SELECT import_id, page_index, md5(body::text), url FROM cr_import_pages ORDER BY 1, 2"
         Assert.Equal(HttpStatusCode.OK, beforeCode)
@@ -66,8 +66,8 @@ let ``rebuild reproduces identical figures and leaves raw pages untouched`` () =
 let ``regenerating a key revokes the old one`` () =
     task {
         use! app = newApp ()
-        let! oldKey = createUser app.Db "animenerd"
-        let! newKey = RegenerateKey.regenerateKey app.Db "AnimeNerd"
+        let! oldKey = createUser app.Db "animegolden"
+        let! newKey = RegenerateKey.regenerateKey app.Db "AnimeGolden"
         Assert.True newKey.IsSome
         let! oldResponse = getWithKey app.Client (Some oldKey) "/api/me"
         let! newResponse = getWithKey app.Client newKey "/api/me"
@@ -79,14 +79,14 @@ let ``regenerating a key revokes the old one`` () =
 let ``resetting the binding lets another history owner bind and keeps history`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (load2022Envelope ())
         let! _ = processAll app.Db
         let other = envelopeOf (syntheticPages otherAccount 1 5)
         let! status, _ = submit app key other
         Assert.Equal(409, status)
 
-        let! reset = ResetBinding.resetBinding app.Db "animenerd"
+        let! reset = ResetBinding.resetBinding app.Db "animegolden"
         Assert.True reset
         let! _ = submitAccepted app key other
         let! _ = processAll app.Db
@@ -163,16 +163,16 @@ let ``deleting frees the history owner and the username`` () =
 let ``cli exit codes`` () =
     task {
         let! db = newDatabase ()
-        let! created = CreateUser.run db [ "animenerd"; "AnimeNerd" ]
-        let! taken = CreateUser.run db [ "AnimeNerd"; "Other" ]
+        let! created = CreateUser.run db [ "animegolden"; "AnimeGolden" ]
+        let! taken = CreateUser.run db [ "AnimeGolden"; "Other" ]
         let! invalid = CreateUser.run db [ "a b"; "X" ]
-        let! refuse = DeleteUser.run db false [ "animenerd" ]
+        let! refuse = DeleteUser.run db false [ "animegolden" ]
         let! stillThere = Db.count db "users"
         let! unknownRegen = RegenerateKey.run db [ "nobody" ]
         let! unknownReset = ResetBinding.run db [ "nobody" ]
         let! unknownRebuild = RebuildUser.run db [ "nobody" ]
         let! unknownDelete = DeleteUser.run db false [ "nobody"; "--yes" ]
-        let! deleted = DeleteUser.run db false [ "animenerd"; "--yes" ]
+        let! deleted = DeleteUser.run db false [ "animegolden"; "--yes" ]
         let! gone = Db.count db "users"
         Assert.Equal(0, created)
         Assert.Equal(3, taken)

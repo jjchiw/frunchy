@@ -47,12 +47,12 @@ let ``by default a signed-in user, an operator included, opens every page of a p
         use! w = world [ defaultKey, "" ]
 
         for browser, who in [ w.Other, "other user"; w.Root, "root operator" ] do
-            for path in openPaths "animenerd" w.SeriesId do
+            for path in openPaths "animegolden" w.SeriesId do
                 let! page = browser.Get path
                 Assert.True((page.Status = HttpStatusCode.OK), $"{who} {path}: {page.Status}")
-                Assert.True((page.Path = path || path = "/u/animenerd/year"), $"{who} {path} ended on {page.Path}")
+                Assert.True((page.Path = path || path = "/u/animegolden/year"), $"{who} {path} ended on {page.Path}")
 
-            let! compare = browser.Get "/u/animenerd/compare"
+            let! compare = browser.Get "/u/animegolden/compare"
             Assert.Equal(HttpStatusCode.OK, compare.Status)
     }
 
@@ -61,7 +61,7 @@ let ``a signed-out visitor to a members profile is sent to sign in, with the req
     task {
         use! w = world [ defaultKey, "" ]
 
-        for path in allPaths "animenerd" w.SeriesId do
+        for path in allPaths "animegolden" w.SeriesId do
             use! response = w.Stranger.GetRaw path
             Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
             Assert.Equal(signInFor path, locationOf response)
@@ -71,11 +71,11 @@ let ``a signed-out visitor to a members profile is sent to sign in, with the req
 let ``the returnUrl keeps the query string, and signing in lands on the page`` () =
     task {
         use! w = world [ defaultKey, "members" ]
-        let path = "/u/animenerd/year/2022?from=email&x=1"
+        let path = "/u/animegolden/year/2022?from=email&x=1"
 
         use! response = w.Stranger.GetRaw path
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
-        Assert.Equal("/signin?returnUrl=%2Fu%2Fanimenerd%2Fyear%2F2022%3Ffrom%3Demail%26x%3D1", locationOf response)
+        Assert.Equal("/signin?returnUrl=%2Fu%2Fanimegolden%2Fyear%2F2022%3Ffrom%3Demail%26x%3D1", locationOf response)
 
         // the fake provider's round trip honours a local returnUrl: an existing member lands on the page
         let! landing = w.Stranger.Get $"/signin/test?sub=sub-other&returnUrl={Uri.EscapeDataString path}"
@@ -89,7 +89,7 @@ let ``a signed-in user is never redirected from a members profile`` () =
     task {
         use! w = world [ defaultKey, "members" ]
 
-        for path in allPaths "animenerd" w.SeriesId do
+        for path in allPaths "animegolden" w.SeriesId do
             use! response = w.Other.GetRaw path
             // /year goes on to the newest year; nothing ever goes to sign-in
             Assert.True((response.StatusCode = HttpStatusCode.OK || path.EndsWith "/year"), $"{path}: {response.StatusCode}")
@@ -107,14 +107,14 @@ let ``a private profile still answers like an unknown username, signed out inclu
 
         for browser in [ w.Stranger; w.Other; w.Root ] do
             for route in routes do
-                let! hiddenStatus, hidden = body browser (route.Replace("{0}", "animenerd"))
+                let! hiddenStatus, hidden = body browser (route.Replace("{0}", "animegolden"))
                 let! unknownStatus, unknown = body browser (route.Replace("{0}", "nobodyhere"))
                 Assert.Equal(HttpStatusCode.NotFound, hiddenStatus)
                 Assert.Equal(unknownStatus, hiddenStatus)
                 Assert.Equal(unknown, hidden)
 
         // a signed-in viewer's compare is the same 404 as for an unknown name
-        let! hiddenStatus, hidden = body w.Other "/u/animenerd/compare"
+        let! hiddenStatus, hidden = body w.Other "/u/animegolden/compare"
         let! unknownStatus, unknown = body w.Other "/u/nobodyhere/compare"
         Assert.Equal(unknownStatus, hiddenStatus)
         Assert.Equal(unknown, hidden)
@@ -127,13 +127,13 @@ let ``a share link opens a members profile for a signed-out browser`` () =
         let! path, _ = createShareLink w.Owner
 
         use friend = w.App.NewBrowser()
-        use! before = friend.GetRaw "/u/animenerd"
+        use! before = friend.GetRaw "/u/animegolden"
         Assert.Equal(HttpStatusCode.Redirect, before.StatusCode)
 
         use! opened = friend.GetRaw path
         Assert.Equal(HttpStatusCode.SeeOther, opened.StatusCode)
 
-        for p in openPaths "animenerd" w.SeriesId do
+        for p in openPaths "animegolden" w.SeriesId do
             let! page = friend.Get p
             Assert.True((page.Status = HttpStatusCode.OK), $"{p}: {page.Status}")
     }
@@ -141,19 +141,19 @@ let ``a share link opens a members profile for a signed-out browser`` () =
 [<Fact>]
 let ``a choice outlives a change of the default`` () =
     task {
-        // the default is members, but animenerd chose private; another instance default doesn't change that
+        // the default is members, but animegolden chose private; another instance default doesn't change that
         use! w = world [ defaultKey, "members" ]
         let! saved = setVisibility w.Owner "private"
         Assert.Equal(HttpStatusCode.Redirect, saved.StatusCode)
 
-        let! hidden = statusOf w.Other "/u/animenerd"
+        let! hidden = statusOf w.Other "/u/animegolden"
         Assert.Equal(HttpStatusCode.NotFound, hidden)
 
         // the same database under a public default: the choice still holds
         use! again = createAppWith w.App.Db [ defaultKey, "public" ] ignore
         use other = again.NewBrowser()
         let! _ = signInWith other "sub-other"
-        let! stillHidden = statusOf other "/u/animenerd"
+        let! stillHidden = statusOf other "/u/animegolden"
         Assert.Equal(HttpStatusCode.NotFound, stillHidden)
     }
 
@@ -211,14 +211,14 @@ let ``choosing members is stored, recorded, and shown`` () =
         Assert.Equal("/account?msg=visibility-saved#visibility", locationOf saved)
 
         let! stored =
-            Db.scalar<string> w.App.Db "SELECT visibility FROM profile_settings p JOIN users u ON u.id = p.user_id WHERE u.username = 'animenerd'" []
+            Db.scalar<string> w.App.Db "SELECT visibility FROM profile_settings p JOIN users u ON u.id = p.user_id WHERE u.username = 'animegolden'" []
 
         Assert.Equal("members", stored)
 
         let! events =
             Db.scalar<int64>
                 w.App.Db
-                "SELECT count(*) FROM security_events e JOIN users u ON u.id = e.user_id WHERE u.username = 'animenerd' AND e.event = 'profile_made_members'"
+                "SELECT count(*) FROM security_events e JOIN users u ON u.id = e.user_id WHERE u.username = 'animegolden' AND e.event = 'profile_made_members'"
                 []
 
         Assert.Equal(1L, events)
@@ -228,7 +228,7 @@ let ``choosing members is stored, recorded, and shown`` () =
         Assert.Equal("choice", source)
 
         // and it now opens for another member under a private default
-        let! status = statusOf w.Other "/u/animenerd"
+        let! status = statusOf w.Other "/u/animegolden"
         Assert.Equal(HttpStatusCode.OK, status)
     }
 
@@ -256,17 +256,17 @@ let ``the owner of a members profile sees the members note and the copy link, ot
     task {
         use! w = world [ defaultKey, "members" ]
 
-        for path in allPaths "animenerd" w.SeriesId do
+        for path in allPaths "animegolden" w.SeriesId do
             let! page = w.Owner.Get path
             Assert.True((page.Status = HttpStatusCode.OK), $"{path}: {page.Status}")
             Assert.Contains("data-profile-members", page.Html)
             Assert.Contains("/account#visibility", page.Html)
             Assert.DoesNotContain("data-profile-private", page.Html)
 
-        let! own = w.Owner.Get "/u/animenerd"
+        let! own = w.Owner.Get "/u/animegolden"
         Assert.Contains("data-copy-link", own.Html)
 
-        for path in openPaths "animenerd" w.SeriesId do
+        for path in openPaths "animegolden" w.SeriesId do
             let! page = w.Other.Get path
             Assert.DoesNotContain("data-profile-members", page.Html)
             Assert.Contains("data-copy-link", page.Html)
@@ -309,8 +309,8 @@ let ``user-list shows members, starred when it comes from the default`` () =
         let! rows = ListUsers.listUsers w.App.Db settings
         let byName name = rows |> List.find (fun r -> r.Username = name)
 
-        Assert.Equal(Profiles.Members, (byName "animenerd").Visibility)
-        Assert.True((byName "animenerd").FromDefault)
+        Assert.Equal(Profiles.Members, (byName "animegolden").Visibility)
+        Assert.True((byName "animegolden").FromDefault)
         Assert.Equal(Profiles.Members, (byName "other").Visibility)
         Assert.False((byName "other").FromDefault)
         Assert.Equal("members", Profiles.Visibility.toDb Profiles.Members)
@@ -329,12 +329,12 @@ let ``a members author is linked for a signed-in reader and plain text for a sig
             Regex.Match(html, "<[a-zA-Z0-9]+\\b[^>]*\\bdata-comment-author\\b[^>]*>").Value
 
         let! signedIn = w.Other.Get page
-        Assert.Contains("href=\"/u/animenerd\"", authorTag signedIn.Html)
+        Assert.Contains("href=\"/u/animegolden\"", authorTag signedIn.Html)
 
         let! signedOut = w.Stranger.Get page
         Assert.Equal(HttpStatusCode.OK, signedOut.Status)
         Assert.DoesNotContain("href=", authorTag signedOut.Html)
-        Assert.DoesNotContain("/u/animenerd", signedOut.Html)
+        Assert.DoesNotContain("/u/animegolden", signedOut.Html)
     }
 
 // ---------------------------------------------------------------------------

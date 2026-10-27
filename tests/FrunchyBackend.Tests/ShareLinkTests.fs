@@ -20,7 +20,7 @@ let private open' (browser: Browser) (path: string) : Task<Net.Http.HttpResponse
 let private eventCount (w: World) (name: string) =
     Db.scalar<int64>
         w.App.Db
-        "SELECT count(*) FROM security_events e JOIN users u ON u.id = e.user_id WHERE u.username = 'animenerd' AND e.event = @event"
+        "SELECT count(*) FROM security_events e JOIN users u ON u.id = e.user_id WHERE u.username = 'animegolden' AND e.event = @event"
         [ "event", box name ]
 
 let private tokenOf (path: string) = path.Substring "/s/".Length
@@ -34,12 +34,12 @@ let ``a link opens every page of the profile in the browser that follows it`` ()
 
         // a fresh browser sees nothing until it follows the link
         use friend = w.App.NewBrowser()
-        let! before = statusOf friend "/u/animenerd"
+        let! before = statusOf friend "/u/animegolden"
         Assert.Equal(HttpStatusCode.NotFound, before)
 
         use! response = open' friend path
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode)
-        Assert.Equal("/u/animenerd", string response.Headers.Location)
+        Assert.Equal("/u/animegolden", string response.Headers.Location)
         Assert.Contains("frunchy.shares", friend.CookieNames)
 
         // the cookie is HttpOnly, SameSite=Lax, with an expiry, and not Secure over http
@@ -55,17 +55,17 @@ let ``a link opens every page of the profile in the browser that follows it`` ()
 
         let! landed = friend.Get path
         Assert.Equal(HttpStatusCode.OK, landed.Status)
-        Assert.Equal("/u/animenerd", landed.Path)
+        Assert.Equal("/u/animegolden", landed.Path)
         // a link holder gets no private note and no copy-link of an address that opens nothing for others
         Assert.DoesNotContain("data-profile-private", landed.Html)
         Assert.DoesNotContain("data-copy-link", landed.Html)
 
-        for p in openPaths "animenerd" w.SeriesId do
+        for p in openPaths "animegolden" w.SeriesId do
             let! page = friend.Get p
             Assert.True((page.Status = HttpStatusCode.OK), $"{p}: {page.Status}")
 
         // and anyone else is still locked out
-        let! stranger = statusOf w.Stranger "/u/animenerd"
+        let! stranger = statusOf w.Stranger "/u/animegolden"
         Assert.Equal(HttpStatusCode.NotFound, stranger)
     }
 
@@ -100,14 +100,14 @@ let ``replacing the link ends the old one for every browser, and the new one wor
 
         use friend = w.App.NewBrowser()
         use! _ = open' friend oldPath
-        let! allowed = statusOf friend "/u/animenerd"
+        let! allowed = statusOf friend "/u/animegolden"
         Assert.Equal(HttpStatusCode.OK, allowed)
 
         let! newPath, _ = createShareLink w.Owner
         Assert.NotEqual<string>(oldPath, newPath)
 
         // the browser's grant names a link that no longer exists
-        for p in openPaths "animenerd" w.SeriesId do
+        for p in openPaths "animegolden" w.SeriesId do
             let! status = statusOf friend p
             Assert.True((status = HttpStatusCode.NotFound), $"after replace {p}: {status}")
 
@@ -120,7 +120,7 @@ let ``replacing the link ends the old one for every browser, and the new one wor
         // the new one opens it, in the browser that had the old grant too
         use! fresh = open' friend newPath
         Assert.Equal(HttpStatusCode.SeeOther, fresh.StatusCode)
-        let! again = statusOf friend "/u/animenerd"
+        let! again = statusOf friend "/u/animegolden"
         Assert.Equal(HttpStatusCode.OK, again)
 
         let! created = eventCount w "share_link_created"
@@ -137,14 +137,14 @@ let ``turning the link off ends access and offers a new one`` () =
 
         use friend = w.App.NewBrowser()
         use! _ = open' friend path
-        let! allowed = statusOf friend "/u/animenerd"
+        let! allowed = statusOf friend "/u/animegolden"
         Assert.Equal(HttpStatusCode.OK, allowed)
 
         let! response = revokeShareLink w.Owner
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
         Assert.Equal("/account?msg=share-link-revoked#visibility", string response.Headers.Location)
 
-        let! status = statusOf friend "/u/animenerd"
+        let! status = statusOf friend "/u/animegolden"
         Assert.Equal(HttpStatusCode.NotFound, status)
         use! dead = open' w.Stranger path
         Assert.Equal(HttpStatusCode.NotFound, dead.StatusCode)
@@ -177,7 +177,7 @@ let ``a grant for one user opens nothing of another`` () =
         use friend = w.App.NewBrowser()
         use! _ = open' friend path
 
-        let! mine = statusOf friend "/u/animenerd"
+        let! mine = statusOf friend "/u/animegolden"
         let! theirs = statusOf friend "/u/other"
         Assert.Equal(HttpStatusCode.OK, mine)
         Assert.Equal(HttpStatusCode.NotFound, theirs)
@@ -186,7 +186,7 @@ let ``a grant for one user opens nothing of another`` () =
         let! otherPath, _ = createShareLink w.Other
         use! _ = open' friend otherPath
         let! both = statusOf friend "/u/other"
-        let! first = statusOf friend "/u/animenerd"
+        let! first = statusOf friend "/u/animegolden"
         Assert.Equal(HttpStatusCode.OK, both)
         Assert.Equal(HttpStatusCode.OK, first)
     }
@@ -228,13 +228,13 @@ let ``a tampered or foreign grant cookie is ignored`` () =
 
         use friend = w.App.NewBrowser()
         use! _ = open' friend path
-        let! allowed = statusOf friend "/u/animenerd"
+        let! allowed = statusOf friend "/u/animegolden"
         Assert.Equal(HttpStatusCode.OK, allowed)
 
         for garbage in [ "garbage"; "CfDJ8AAAAAAAAAAAAAAAAAAAAAA"; "e30" ] do
             use tampered = w.App.NewBrowser()
             tampered.Cookies.SetCookies(Uri "http://localhost/", $"frunchy.shares={garbage}; path=/")
-            let! status = statusOf tampered "/u/animenerd"
+            let! status = statusOf tampered "/u/animegolden"
             Assert.True((status = HttpStatusCode.NotFound), $"{garbage}: {status}")
 
         // a cookie from the one grant with one character changed
@@ -242,7 +242,7 @@ let ``a tampered or foreign grant cookie is ignored`` () =
         let flipped = (if original.Value.EndsWith "A" then "B" else "A")
         use forged = w.App.NewBrowser()
         forged.Cookies.SetCookies(Uri "http://localhost/", $"frunchy.shares={original.Value.Substring(0, original.Value.Length - 1)}{flipped}; path=/")
-        let! status = statusOf forged "/u/animenerd"
+        let! status = statusOf forged "/u/animegolden"
         Assert.Equal(HttpStatusCode.NotFound, status)
     }
 
@@ -254,7 +254,7 @@ let ``the owner opening their own link is just redirected`` () =
 
         use! response = open' w.Owner path
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode)
-        Assert.Equal("/u/animenerd", string response.Headers.Location)
+        Assert.Equal("/u/animegolden", string response.Headers.Location)
         // no grant needed
         Assert.False(setsCookie response)
     }
@@ -266,7 +266,7 @@ let ``a link and a public profile both work`` () =
         let! path, _ = createShareLink w.Owner
         let! _ = setVisibility w.Owner "public"
 
-        let! opened = statusOf w.Stranger "/u/animenerd"
+        let! opened = statusOf w.Stranger "/u/animegolden"
         Assert.Equal(HttpStatusCode.OK, opened)
 
         use friend = w.App.NewBrowser()
@@ -275,8 +275,8 @@ let ``a link and a public profile both work`` () =
 
         // the link matters again when the profile goes private
         let! _ = setVisibility w.Owner "private"
-        let! holder = statusOf friend "/u/animenerd"
-        let! outsider = statusOf w.Stranger "/u/animenerd"
+        let! holder = statusOf friend "/u/animegolden"
+        let! outsider = statusOf w.Stranger "/u/animegolden"
         Assert.Equal(HttpStatusCode.OK, holder)
         Assert.Equal(HttpStatusCode.NotFound, outsider)
     }
@@ -287,12 +287,12 @@ let ``a signed-in user who follows the link sees the whole profile too`` () =
         use! w = world [ defaultKey, "private" ]
         let! path, _ = createShareLink w.Owner
 
-        let! before = statusOf w.Other "/u/animenerd/compare"
+        let! before = statusOf w.Other "/u/animegolden/compare"
         Assert.Equal(HttpStatusCode.NotFound, before)
 
         use! _ = open' w.Other path
 
-        for p in openPaths "animenerd" w.SeriesId @ [ "/u/animenerd/compare" ] do
+        for p in openPaths "animegolden" w.SeriesId @ [ "/u/animegolden/compare" ] do
             let! page = w.Other.Get p
             Assert.True((page.Status = HttpStatusCode.OK), $"{p}: {page.Status}")
     }

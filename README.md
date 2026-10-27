@@ -185,7 +185,7 @@ Errors are `{ "error": "<code>", "message": "…" }` with codes `unauthorized` 4
 ### Prerequisites
 - .NET SDK 10
 - Docker running (Aspire starts Postgres and Megáfono in containers, the tests use Testcontainers)
-- To run the whole platform: nothing more. The AppHost pulls Megáfono (the fediverse service, a separate repo) as the published images `ghcr.io/cosmic-chimps/megafono` and `megafono-gateway`, pinned by `Megafono:ImageTag` (`0.1.0`). To try an unreleased Megáfono, set `Megafono:BuildFromSource` to `true` and `Megafono:SourcePath` to a checkout (default `../../Megafono`)
+- To run the whole platform: nothing more. The AppHost pulls Megáfono (the fediverse service, a separate repo) as the published images `ghcr.io/cosmic-chimps/megafono` and `megafono-gateway`, pinned by `Megafono:ImageTag` (`0.2.0`). To try an unreleased Megáfono, set `Megafono:BuildFromSource` to `true` and `Megafono:SourcePath` to a checkout (default `../../Megafono`)
 - Optional, to sign in with Umbral (our own OpenID Connect provider, a separate repo) under the AppHost: nothing to check out: the AppHost pulls `ghcr.io/cosmic-chimps/umbral` at `Umbral:ImageTag` (`0.1.1`). To try an unreleased Umbral, set `Umbral:BuildFromSource=true` and a checkout at `../../Umbral` (or `Umbral:SourcePath`) is built from its `Dockerfile`; without the checkout the AppHost warns and runs without Umbral
 - To run Frunchy alone: PostgreSQL 14+ (locally it runs in Docker: container `postgres-postgres-1`)
 
@@ -234,7 +234,7 @@ A provider's redirect URI under the AppHost is the gateway's: `http://localhost:
 
 ### Deploy to Caravana
 
-The same AppHost deploys Frunchy and its Postgres to [Caravana](https://github.com/Cosmic-Chimps/caravana) with `aspire deploy` (publish mode builds a smaller graph than `aspire run`; federation stays off). The parameters, the registry login and the one-time Caravana and Umbral setup are in [docs/deploy-caravana.md](docs/deploy-caravana.md).
+The same AppHost deploys Frunchy and its Postgres to [Caravana](https://github.com/Cosmic-Chimps/caravana) with `aspire deploy` (publish mode builds its own graph: Frunchy, its Postgres and, with federation on by default, Megáfono, its gateway and its database; `Deploy:Federation=false` keeps the first two only). The parameters, the registry login and the one-time Caravana and Umbral setup are in [docs/deploy-caravana.md](docs/deploy-caravana.md).
 
 **The first account on a new deploy.** While there are no accounts, every start prints a one-time **setup invite** in the console output (feature 023). Open the app's logs (in Caravana: the app (`frunchy--production--frunchy`) > Logs, on the **`frunchy`** copy, not `pg`; with Docker, `docker logs`), copy the invite from the banner, sign in at `/signin`, and enter it on the sign-up page. That account becomes an operator, so from then on it creates invites in the browser on `/review/invites` (linked from `/account`). Choose the username you set as `root-operator` (`Parameters__root-operator`) to become the root as well, who can also open sign-up on `/review/settings`.
 
@@ -302,14 +302,14 @@ docker exec postgres-postgres-1 dropdb -U postgres megafono   # if it exists
 **Operator commands against the AppHost's database.** The commands read `ConnectionStrings__Database`: copy the `frunchydb` connection string from the Aspire dashboard (resource `pg`, database `frunchydb`) into that variable for the command:
 ```bash
 ConnectionStrings__Database="Host=localhost;Port=<port>;Username=postgres;Password=<password>;Database=frunchydb" \
-  dotnet run -- user-create animenerd "AnimeNerd"
+  dotnet run -- user-create animegolden "AnimeGolden"
 ```
 
 ### Federation under Aspire (feature 015)
 
 With the platform running (`dotnet run --project AppHost`, federation on, domain `frunchy.test`), Frunchy is on the fediverse through Megáfono. Check it step by step:
 
-1. **Accounts.** Create a user (`dotnet run -- user-create animenerd "AnimeNerd"` against the AppHost's database) and ask the gateway for it: `curl "https://frunchy.test/.well-known/webfinger?resource=acct:animenerd@frunchy.test"` (resolve `frunchy.test` to the gateway, or send a `Host` header). A series answers the same way by its handle, which is made the first time its page is shown (`/anime/{seriesId}` shows it as "Follow on the fediverse") or set with `series-handle`.
+1. **Accounts.** Create a user (`dotnet run -- user-create animegolden "AnimeGolden"` against the AppHost's database) and ask the gateway for it: `curl "https://frunchy.test/.well-known/webfinger?resource=acct:animegolden@frunchy.test"` (resolve `frunchy.test` to the gateway, or send a `Host` header). A series answers the same way by its handle, which is made the first time its page is shown (`/anime/{seriesId}` shows it as "Follow on the fediverse") or set with `series-handle`.
 2. **A comment becomes a thread and a reply.** Sign in, comment on an episode page, then look at the queue with `fediverse-status`: a thread and the comment are sent within seconds (the worker polls every 5 seconds and retries with backoff when Megáfono is down). Megáfono's database then holds the series' thread post and the user's reply to it, and the episode page carries the thread as its ActivityPub alternate link.
 3. **Replies in.** A reply to the thread from another server reaches `POST /megafono/webhooks` and shows on the episode page with its author's handle and server; content warnings become spoilers. Remote peers need Megáfono's dev-fediverse kit, which doesn't exist yet.
 4. **Blocks.** `/account` lists the blocks of the signed-in user with a form to add one (a handle, an actor address or a server name); operators manage instance blocks on `/review/fediverse`.
@@ -337,7 +337,7 @@ No Aspire, no Megáfono: Frunchy is a complete web app without federation (`Frun
 
 2. **Create a user**, which prints their sync key once (paste it in the extension):
    ```bash
-   dotnet run -- user-create animenerd "AnimeNerd"
+   dotnet run -- user-create animegolden "AnimeGolden"
    ```
 
 3. **Run** on `http://localhost:5099` (the URL the extension uses in development):
@@ -385,7 +385,7 @@ Compose: `FRUNCHY_DATA_PROTECTION_KEY` (required) and `FRUNCHY_IMAGE` (default `
 
 ### Self-hosting with Docker Compose
 
-`Dockerfile` builds Frunchy; `deploy/compose.yaml` runs it with Postgres 18. Federation is an optional profile that adds Megáfono and its gateway (pinned `0.1.0`). `FRUNCHY_DATA_PROTECTION_KEY` is required (see above); there is no keys volume:
+`Dockerfile` builds Frunchy; `deploy/compose.yaml` runs it with Postgres 18. Federation is an optional profile that adds Megáfono and its gateway (pinned `0.2.0`). `FRUNCHY_DATA_PROTECTION_KEY` is required (see above); there is no keys volume:
 
 ```bash
 cp deploy/.env.example deploy/.env      # fill it in: every variable has its generation command

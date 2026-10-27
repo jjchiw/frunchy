@@ -97,7 +97,7 @@ let ``record the 2026 sample from the real MyAnimeList API`` () =
                         .SetHandlerLifetime(Threading.Timeout.InfiniteTimeSpan)
                     |> ignore)
 
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db
         try
@@ -115,7 +115,7 @@ let ``the 2026 sample against recorded MyAnimeList responses`` () =
     task {
         Assert.True(recorded, "record JsonSamples/mal first (see the recording test above)")
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db
         app.Mal.LoadRecorded "mal" |> ignore

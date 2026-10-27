@@ -15,7 +15,7 @@ open FrunchyBackend.Tests.Infrastructure.PostgresFixture
 let private enriched () =
     task {
         let! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db
         routeSampleCatalog app.Mal

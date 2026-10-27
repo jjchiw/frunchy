@@ -58,6 +58,38 @@ let ``thumbnail picks the 320px variant`` () =
     let first = parse (load2022PageBody ()) |> episodes |> List.head
     Assert.Contains("320x180", first.ThumbnailUrl.Value)
 
+let private airDateField (value: string) = $",\"episode_air_date\":\"{value}\""
+
+let private entryWithAirDate (airDate: string) =
+    $"""{{"id":"AIR1","date_played":"2025-01-01T00:00:00Z","parent_id":"S1","playhead":10,"fully_watched":true,
+        "panel":{{"id":"AIR1","type":"episode","episode_metadata":{{"series_id":"S1","duration_ms":1400000{airDate}}}}}}}"""
+
+[<Fact>]
+let ``the episode air date is read as a UTC instant`` () =
+    match parse (pageOf [ entryWithAirDate (airDateField "2026-10-04T15:30:00+02:00") ]) with
+    | [ Episode e ] -> Assert.Equal(Some(DateTimeOffset(2026, 10, 4, 13, 30, 0, TimeSpan.Zero)), e.AiredAt)
+    | other -> failwith $"unexpected {other}"
+
+[<Fact>]
+let ``an absent air date is None`` () =
+    match parse (pageOf [ entryWithAirDate "" ]) with
+    | [ Episode e ] -> Assert.Equal(None, e.AiredAt)
+    | other -> failwith $"unexpected {other}"
+
+[<Theory>]
+[<InlineData("not a date")>]
+[<InlineData("")>]
+[<InlineData("2026-13-45T00:00:00Z")>]
+let ``an air date that is not a date is None and the entry still parses`` (value: string) =
+    match parse (pageOf [ entryWithAirDate (airDateField value) ]) with
+    | [ Episode e ] -> Assert.Equal(None, e.AiredAt)
+    | other -> failwith $"unexpected {other}"
+
+[<Fact>]
+let ``the 2026 sample carries air dates on its episodes`` () =
+    let withDate = pages2026 () |> List.collect (snd >> parse) |> episodes |> List.filter (fun e -> e.AiredAt.IsSome)
+    Assert.NotEmpty withDate
+
 [<Fact>]
 let ``franchise movie counts under its parent series and doesn't name it`` () =
     let movie =

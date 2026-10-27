@@ -78,7 +78,7 @@ The copy below is the site's real copy; keep it or propose better wording.
 > [context] Shown after a first sign-in. Title "Create your account", text "First time here with
 > this account. Enter your invite code and choose how you'll appear." Fields: Invite code;
 > Username with hint "Your public dashboard address: 3-30 characters, a-z 0-9 _ -. It can't be
-> changed later." (show the resulting URL live, e.g. frunchy.app/u/animenerd); Display name.
+> changed later." (show the resulting URL live, e.g. frunchy.app/u/animegolden); Display name.
 > Button "Create account"; link "I already have a Frunchy account". Variant with field errors:
 > "This invite code isn't valid.", "That username is already taken."
 
@@ -122,7 +122,7 @@ The copy below is the site's real copy; keep it or propose better wording.
 > [context] A destructive confirmation. Title "Delete your account", a warning listing what goes
 > (account, synced history including the original submissions, dashboard, sign-in methods and
 > security activity) and that it can't be undone. Field
-> "Type your username (animenerd) to confirm", destructive button "Delete my account forever",
+> "Type your username (animegolden) to confirm", destructive button "Delete my account forever",
 > cancel link. Error: "That username doesn't match your account."
 
 ### 4.9 Message pages (404, error, rate limit, expired form)

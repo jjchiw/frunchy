@@ -111,7 +111,7 @@ Links into a profile appear only for viewers who can follow them.
 
 ### Edge Cases
 
-- A username that changes case in the address (`/u/AnimeNerd` vs `animenerd`) resolves as today; the rule applies to the user found.
+- A username that changes case in the address (`/u/AnimeGolden` vs `animegolden`) resolves as today; the rule applies to the user found.
 - A deleted user: their grants point at nothing; 404 as today.
 - A grant cookie that's tampered with or from another instance: rejected (data protection), treated as no grant.
 - More than 20 grants in one browser: the oldest is dropped.

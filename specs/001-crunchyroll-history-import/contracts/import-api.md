@@ -102,9 +102,9 @@ Returns the status only to the owning user's key. Any other key, or an unknown i
 
 ```json
 {
-  "username": "animenerd",
-  "displayName": "AnimeNerd",
-  "dashboardUrl": "http://localhost:5099/u/animenerd",
+  "username": "animegolden",
+  "displayName": "AnimeGolden",
+  "dashboardUrl": "http://localhost:5099/u/animegolden",
   "lastSyncAt": "2026-10-02T08:45:01Z",
   "historyOwnerBound": true
 }

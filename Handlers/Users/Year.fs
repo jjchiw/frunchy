@@ -24,12 +24,14 @@ let minimumEpisodes = 15L
 /// Years before this are never valid (FR-003)
 let firstYear = 2000
 
-type ShareRow = { Name: string; Share: decimal }
+/// A named share of the year's watched seasons (feature 027), in percent with 1 decimal
+type ShareRow = { Name: string; Share: decimal; Seasons: int64 }
 
 type GenreRow =
     { Name: string
       Share: decimal
-      /// (Crunchyroll series id, title) with the most minutes in the genre; None on "Others" and on a genre without one
+      Seasons: int64
+      /// (Crunchyroll series id, title) with the most watched seasons in the genre; None on "Others" and on a genre without one
       Top: (string * string) option
       /// The closing "Others" row, which stands for every genre outside the top five
       IsOthers: bool }
@@ -47,7 +49,10 @@ type Figures =
       Days: decimal
       Episodes: int64
       Series: int64
-      Coverage: decimal
+      /// Watched seasons of the year, with and without a MyAnimeList entry (what the cards' notes are based on)
+      SeasonsTotal: int64
+      /// Watched seasons with a MyAnimeList entry: the whole of the studio and format shares
+      SeasonsMatched: int64
       /// Minutes per month, index 0 = January
       Months: int64 array
       TopSeries: TopSeries option
@@ -220,8 +225,11 @@ let private streak (t: Texts) (f: Figures) =
             p(class' = "text-body-md text-on-surface-variant") { t.YearStreakNone }
         }
 
+let private seasonCoverage (f: Figures) =
+    if f.SeasonsTotal = 0L then 0m else Math.Round(100m * decimal f.SeasonsMatched / decimal f.SeasonsTotal, 1, MidpointRounding.AwayFromZero)
+
 let private genres (t: Texts) (username: string) (f: Figures) =
-    let el = figureSection "year-genres" t.YearGenresTitle (Some f.Coverage) ""
+    let el = figureSection "year-genres" t.YearGenresTitle (Some(seasonCoverage f)) ""
 
     if f.Genres.IsEmpty then
         el {
@@ -237,7 +245,11 @@ let private genres (t: Texts) (username: string) (f: Figures) =
 
             div(class' = "space-y-4") {
                 for g in f.Genres do
-                    let row = div().data("genre", (if g.IsOthers then "others" else g.Name)).data("share", inv g.Share)
+                    let row =
+                        div()
+                            .data("genre", (if g.IsOthers then "others" else g.Name))
+                            .data("share", inv g.Share)
+                            .data("genre-seasons", string g.Seasons)
 
                     if g.IsOthers then
                         row { shareLine t.DnaOthers None g.Share t }
@@ -248,11 +260,11 @@ let private genres (t: Texts) (username: string) (f: Figures) =
                         | None -> row { shareLine g.Name None g.Share t }
             }
 
-            coverageNote (t.DnaCoverage f.Coverage)
+            seasonCoverageNote (t.DnaCoverage f.SeasonsMatched f.SeasonsTotal) f.SeasonsMatched f.SeasonsTotal
         }
 
-let private shareSection (t: Texts) (hook: string) (rowHook: string) (title: string) (rows: ShareRow list) (coverage: decimal) (span': string) =
-    let el = figureSection hook title (Some coverage) span'
+let private shareSection (t: Texts) (hook: string) (rowHook: string) (title: string) (rows: ShareRow list) (f: Figures) (span': string) =
+    let el = figureSection hook title (Some(seasonCoverage f)) span'
 
     if rows.IsEmpty then
         el {
@@ -265,11 +277,18 @@ let private shareSection (t: Texts) (hook: string) (rowHook: string) (title: str
 
             div(class' = "space-y-4") {
                 for i, x in List.indexed rows do
-                    let row = div().data(rowHook, (if rowHook = "rank" then string (i + 1) else x.Name)).data("share", inv x.Share)
-                    (if rowHook = "rank" then row.data("name", x.Name) else row) { shareLine x.Name None x.Share t }
+                    let row =
+                        div()
+                            .data(rowHook, (if rowHook = "rank" then string (i + 1) else x.Name))
+                            .data("share", inv x.Share)
+                            .data((if rowHook = "rank" then "studio-seasons" else "format-seasons"), string x.Seasons)
+
+                    (if rowHook = "rank" then row.data("name", x.Name) else row) {
+                        shareLine x.Name (Some(span() { t.DnaSeasonsCount x.Seasons })) x.Share t
+                    }
             }
 
-            coverageNote (t.DnaCoverage coverage)
+            seasonCoverageNote (t.DnaCoverage f.SeasonsMatched f.SeasonsTotal) f.SeasonsMatched f.SeasonsTotal
         }
 
 let private empty (t: Texts) (m: YearModel) =
@@ -295,7 +314,7 @@ let view (ctx: HttpContext) (t: Texts) (m: YearModel) =
                 div(class' = "flex flex-col gap-4 lg:col-span-7") {
                     months t m.Year m.FirstFutureMonth f
                     genres t m.Username f
-                    shareSection t "year-formats" "format" t.YearFormatsTitle f.Formats f.Coverage ""
+                    shareSection t "year-formats" "format" t.YearFormatsTitle f.Formats f ""
                 }
 
                 div(class' = "flex flex-col gap-4 lg:col-span-5") {
@@ -304,7 +323,7 @@ let view (ctx: HttpContext) (t: Texts) (m: YearModel) =
                     | None -> Fragment()
 
                     streak t f
-                    shareSection t "year-studios" "rank" t.YearStudiosTitle f.Studios f.Coverage ""
+                    shareSection t "year-studios" "rank" t.YearStudiosTitle f.Studios f ""
                 }
             }
     }
@@ -312,7 +331,8 @@ let view (ctx: HttpContext) (t: Texts) (m: YearModel) =
 
 // ---------------------------------------------------------------------------
 // Data access (research R1–R6). The year is UTC. Totals follow the dashboard (not deduplicated),
-// so every year adds up to it; MyAnimeList figures use the DNA page's deduplicated minutes.
+// so every year adds up to it; the MyAnimeList figures (studio, genre, format) count the DNA page's watched seasons
+// (feature 027), here the seasons of the episodes watched in the year.
 // ---------------------------------------------------------------------------
 
 let private round1 (value: decimal) =
@@ -383,7 +403,7 @@ let private loadYear (connection: NpgsqlConnection) (userId: Guid) (year: int) :
                 """
                 WITH w AS (
                     SELECT e.id, e.series_id, e.series_title, e.thumbnail_url, e.episode_number, e.season_id,
-                           w.fully_watched, w.watched_at, (w.watched_at AT TIME ZONE 'UTC') AS utc,
+                           e.aired_at, w.fully_watched, w.watched_at, (w.watched_at AT TIME ZONE 'UTC') AS utc,
                            CASE WHEN w.fully_watched THEN e.duration_ms::bigint
                                 ELSE least(w.playhead_s::bigint * 1000, e.duration_ms) END AS ms,
                            m.mal_id, coalesce(m.shared_from, e.season_id) AS original_season
@@ -393,29 +413,74 @@ let private loadYear (connection: NpgsqlConnection) (userId: Guid) (year: int) :
                     WHERE w.user_id = @user_id AND e.duration_ms IS NOT NULL
                 ),
                 y AS (SELECT * FROM w WHERE extract(year FROM utc) = @year),
+                keyed AS (
+                    SELECT y.*, CASE WHEN y.episode_number IS NULL OR y.original_season IS NULL THEN y.id
+                                     ELSE y.original_season || '#' || y.episode_number END AS dedup_key
+                    FROM y
+                ),
+                -- A dub and its original are one episode: it aired when its earliest version did, and it was
+                -- fully watched when any version was
+                timed AS (
+                    SELECT k.*, min(k.aired_at) OVER (PARTITION BY k.dedup_key) AS group_aired,
+                           bool_or(k.fully_watched) OVER (PARTITION BY k.dedup_key) AS group_full
+                    FROM keyed k
+                ),
+                -- season_no = year * 4 + quarter (0 = winter), the UTC quarter of the group's air date
                 dna AS (
-                    SELECT DISTINCT ON (dedup_key) *
-                    FROM (SELECT y.*, CASE WHEN y.episode_number IS NULL OR y.original_season IS NULL THEN y.id
-                                          ELSE y.original_season || '#' || y.episode_number END AS dedup_key
-                          FROM y) k
-                    ORDER BY dedup_key, ms DESC, id
+                    SELECT DISTINCT ON (t.dedup_key) t.*,
+                           (extract(year FROM t.group_aired AT TIME ZONE 'UTC')::int * 4
+                            + (extract(month FROM t.group_aired AT TIME ZONE 'UTC')::int - 1) / 3) AS season_no
+                    FROM timed t
+                    ORDER BY t.dedup_key, t.ms DESC, t.id
                 ),
                 titles AS (
                     SELECT d.series_id, coalesce(max(s.title), min(d.series_title), d.series_id) AS title
                     FROM dna d LEFT JOIN cr_series s ON s.id = d.series_id
                     GROUP BY d.series_id
                 ),
-                genre_series AS (
-                    SELECT tg.name, d.series_id, sum(d.ms)::bigint AS ms
+                series_ms AS (SELECT d.series_id, sum(d.ms)::bigint AS ms FROM dna d GROUP BY d.series_id),
+                -- A watched season: a MyAnimeList entry in an airing season (NULL only when none of its watched episodes has a date) in
+                -- which the person fully watched an episode that year; unmatched ones count only in the totals
+                ws AS (
+                    SELECT DISTINCT d.mal_id, d.season_no FROM dna d
+                    WHERE d.group_full AND d.mal_id IS NOT NULL
+                      AND (d.season_no IS NOT NULL
+                           OR NOT EXISTS (SELECT 1 FROM dna x WHERE x.group_full AND x.mal_id = d.mal_id AND x.season_no IS NOT NULL))
+                ),
+                ws_unmatched AS (
+                    SELECT DISTINCT coalesce(d.original_season, d.series_id) AS cr_season, d.season_no
                     FROM dna d
-                    JOIN mal_anime_tags at ON at.mal_id = d.mal_id AND at.kind = 'genre'
+                    WHERE d.group_full AND d.mal_id IS NULL
+                      AND (d.season_no IS NOT NULL
+                           OR NOT EXISTS (SELECT 1 FROM dna x WHERE x.group_full AND x.mal_id IS NULL AND x.season_no IS NOT NULL
+                                          AND coalesce(x.original_season, x.series_id) = coalesce(d.original_season, d.series_id)))
+                ),
+                series_seasons AS (
+                    SELECT DISTINCT d.series_id, d.mal_id, d.season_no FROM dna d
+                    WHERE d.group_full AND d.mal_id IS NOT NULL
+                      AND (d.season_no IS NOT NULL
+                           OR NOT EXISTS (SELECT 1 FROM dna x WHERE x.group_full AND x.mal_id = d.mal_id AND x.season_no IS NOT NULL))
+                ),
+                genre_count AS (
+                    SELECT tg.name, count(*)::bigint AS seasons
+                    FROM ws
+                    JOIN mal_anime_tags at ON at.mal_id = ws.mal_id AND at.kind = 'genre'
                     JOIN mal_tags tg ON tg.kind = at.kind AND tg.tag_id = at.tag_id
-                    GROUP BY tg.name, d.series_id
+                    GROUP BY tg.name
+                ),
+                genre_series AS (
+                    SELECT tg.name, ss.series_id, count(*)::bigint AS seasons
+                    FROM series_seasons ss
+                    JOIN mal_anime_tags at ON at.mal_id = ss.mal_id AND at.kind = 'genre'
+                    JOIN mal_tags tg ON tg.kind = at.kind AND tg.tag_id = at.tag_id
+                    GROUP BY tg.name, ss.series_id
                 ),
                 genre_top AS (
                     SELECT DISTINCT ON (g.name) g.name, g.series_id, ti.title
-                    FROM genre_series g JOIN titles ti ON ti.series_id = g.series_id
-                    ORDER BY g.name, g.ms DESC, ti.title, g.series_id
+                    FROM genre_series g
+                    JOIN titles ti ON ti.series_id = g.series_id
+                    JOIN series_ms sm ON sm.series_id = g.series_id
+                    ORDER BY g.name, g.seasons DESC, sm.ms DESC, ti.title, g.series_id
                 ),
                 top_series AS (
                     SELECT d.series_id, ti.title, sum(d.ms)::bigint AS ms, count(*) FILTER (WHERE d.fully_watched) AS n
@@ -454,18 +519,20 @@ let private loadYear (connection: NpgsqlConnection) (userId: Guid) (year: int) :
                 (SELECT 'streak', NULL, NULL, count(*)::bigint, NULL, NULL, min(d)::text, max(d)::text
                  FROM runs GROUP BY g ORDER BY count(*) DESC, min(d) LIMIT 1)
                 UNION ALL
-                (SELECT 'studio', tg.name, sum(d.ms)::bigint, NULL, NULL, NULL, NULL, NULL
-                 FROM dna d
-                 JOIN mal_anime_tags at ON at.mal_id = d.mal_id AND at.kind = 'studio'
+                SELECT 'seasons', NULL, ((SELECT count(*) FROM ws) + (SELECT count(*) FROM ws_unmatched))::bigint,
+                       (SELECT count(*) FROM ws)::bigint, NULL, NULL, NULL, NULL
+                UNION ALL
+                (SELECT 'studio', tg.name, count(*)::bigint, NULL, NULL, NULL, NULL, NULL
+                 FROM ws
+                 JOIN mal_anime_tags at ON at.mal_id = ws.mal_id AND at.kind = 'studio'
                  JOIN mal_tags tg ON tg.kind = at.kind AND tg.tag_id = at.tag_id
-                 GROUP BY tg.name ORDER BY sum(d.ms) DESC, tg.name LIMIT 3)
+                 GROUP BY tg.name ORDER BY count(*) DESC, tg.name LIMIT 3)
                 UNION ALL
-                SELECT 'genre', g.name, sum(g.ms)::bigint, NULL, NULL, NULL, gt.series_id, gt.title
-                FROM genre_series g JOIN genre_top gt ON gt.name = g.name
-                GROUP BY g.name, gt.series_id, gt.title
+                SELECT 'genre', g.name, g.seasons, NULL, NULL, NULL, gt.series_id, gt.title
+                FROM genre_count g JOIN genre_top gt ON gt.name = g.name
                 UNION ALL
-                SELECT 'format', a.type, sum(d.ms)::bigint, NULL, NULL, NULL, NULL, NULL
-                FROM dna d JOIN mal_anime a ON a.mal_id = d.mal_id
+                SELECT 'format', a.type, count(*)::bigint, NULL, NULL, NULL, NULL, NULL
+                FROM ws JOIN mal_anime a ON a.mal_id = ws.mal_id
                 WHERE a.type IS NOT NULL
                 GROUP BY a.type
                 UNION ALL
@@ -500,44 +567,56 @@ let private loadYear (connection: NpgsqlConnection) (userId: Guid) (year: int) :
         let ofKind kind =
             rows |> List.filter (fun (k, _, _, _, _, _) -> k = kind)
 
-        let allMs, fullyWatched, dedupMs, matchedMs, series =
+        let allMs, fullyWatched, series =
             match ofKind "totals" with
-            | (_, _, Some all, Some n, (Some dedup, Some matched), (Some series, _)) :: _ -> all, n, dedup, matched, int64 series
-            | _ -> 0L, 0L, 0L, 0L, 0L
+            | (_, _, Some all, Some n, _, (Some series, _)) :: _ -> all, n, int64 series
+            | _ -> 0L, 0L, 0L
+
+        let seasonsTotal, seasonsMatched =
+            match ofKind "seasons" with
+            | (_, _, Some total, Some matched, _, _) :: _ -> total, matched
+            | _ -> 0L, 0L
 
         if fullyWatched < minimumEpisodes then
             return fullyWatched, None
         else
+            // Shares over a whole of watched seasons, ranked by seasons, then name
             let shares kind whole =
                 ofKind kind
-                |> List.choose (fun (_, name, ms, _, _, _) ->
-                    match name, ms with
-                    | Some n, Some ms -> Some(n, ms)
+                |> List.choose (fun (_, name, seasons, _, _, _) ->
+                    match name, seasons with
+                    | Some n, Some seasons -> Some(n, seasons)
                     | _ -> None)
-                |> List.sortBy (fun (n, ms) -> -ms, n)
-                |> List.map (fun (n, ms) -> { Name = n; Share = percent ms whole })
+                |> List.sortBy (fun (n, seasons) -> -seasons, n)
+                |> List.map (fun (n, seasons) -> { Name = n; Share = percent seasons whole; Seasons = seasons })
 
-            // Genres: shares over the sum of genre minutes, top 5 + "Others" (as on the DNA page)
+            // Genres: shares over the sum of genre seasons, top 5 + "Others" (as on the DNA page)
             let genreRows =
                 ofKind "genre"
-                |> List.choose (fun (_, name, ms, _, _, (top, title)) ->
-                    match name, ms with
-                    | Some n, Some ms -> Some(n, ms, Option.map2 (fun a b -> a, b) top title)
+                |> List.choose (fun (_, name, seasons, _, _, (top, title)) ->
+                    match name, seasons with
+                    | Some n, Some seasons -> Some(n, seasons, Option.map2 (fun a b -> a, b) top title)
                     | _ -> None)
-                |> List.sortBy (fun (n, ms, _) -> -ms, n)
+                |> List.sortBy (fun (n, seasons, _) -> -seasons, n)
 
-            let genreTotal = genreRows |> List.sumBy (fun (_, ms, _) -> ms)
+            let genreTotal = genreRows |> List.sumBy (fun (_, seasons, _) -> seasons)
             let top5 = genreRows |> List.truncate 5
-            let others = genreTotal - (top5 |> List.sumBy (fun (_, ms, _) -> ms))
+            let others = genreTotal - (top5 |> List.sumBy (fun (_, seasons, _) -> seasons))
 
             let genres =
-                [ for n, ms, top in top5 ->
+                [ for n, seasons, top in top5 ->
                       { Name = n
-                        Share = percent ms genreTotal
+                        Share = percent seasons genreTotal
+                        Seasons = seasons
                         Top = top
                         IsOthers = false }
                   if others > 0L then
-                      yield { Name = "others"; Share = percent others genreTotal; Top = None; IsOthers = true } ]
+                      yield
+                          { Name = "others"
+                            Share = percent others genreTotal
+                            Seasons = others
+                            Top = None
+                            IsOthers = true } ]
 
             let monthsMs = Array.zeroCreate<int64> 12
 
@@ -572,15 +651,16 @@ let private loadYear (connection: NpgsqlConnection) (userId: Guid) (year: int) :
                       Days = round1 (hours / 24m)
                       Episodes = fullyWatched
                       Series = series
-                      Coverage = percent matchedMs dedupMs
+                      SeasonsTotal = seasonsTotal
+                      SeasonsMatched = seasonsMatched
                       Months = monthsMs
                       TopSeries = topSeries
                       NewSeries = newSeries
                       ContinuedSeries = continued
                       Streak = streak
                       Genres = genres
-                      Studios = shares "studio" matchedMs
-                      Formats = shares "format" matchedMs }
+                      Studios = shares "studio" seasonsMatched
+                      Formats = shares "format" seasonsMatched }
     }
 
 // ---------------------------------------------------------------------------

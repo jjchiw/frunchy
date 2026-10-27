@@ -27,7 +27,7 @@ let private appWithClock () =
 let private withTwoYears () =
     task {
         let! app = appWithClock ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
 
         let entries (year: int) =
             [ for i in 1..20 -> syntheticEntry $"N{year}{i:D3}" $"NS{year}{i:D3}" (DateTime(year, 5, 1, 12, 0, 0, DateTimeKind.Utc).AddHours(float i)) true 1400 ]
@@ -54,18 +54,18 @@ let ``the dashboard and the DNA page link to the year page`` () =
     task {
         use! app = withTwoYears ()
 
-        for path in [ "/u/animenerd"; "/u/animenerd/dna" ] do
+        for path in [ "/u/animegolden"; "/u/animegolden/dna" ] do
             let! _, html = raw app path
-            Assert.Matches("<a href=\"/u/animenerd/year\"[^>]*data-year-link", html)
+            Assert.Matches("<a href=\"/u/animegolden/year\"[^>]*data-year-link", html)
     }
 
 [<Fact>]
 let ``the address without a year goes to the newest year with history`` () =
     task {
         use! app = withTwoYears ()
-        let! response, _ = raw app "/u/animenerd/year"
+        let! response, _ = raw app "/u/animegolden/year"
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
-        Assert.Equal(Some "/u/animenerd/year/2025", location response)
+        Assert.Equal(Some "/u/animegolden/year/2025", location response)
     }
 
 [<Fact>]
@@ -86,23 +86,23 @@ let ``a user without history goes to the current year, which shows the empty sta
 let ``a year without history goes back to the address without a year`` () =
     task {
         use! app = withTwoYears ()
-        let! response, _ = raw app "/u/animenerd/year/2024"
+        let! response, _ = raw app "/u/animegolden/year/2024"
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode)
-        Assert.Equal(Some "/u/animenerd/year", location response)
+        Assert.Equal(Some "/u/animegolden/year", location response)
     }
 
 [<Fact>]
 let ``the picker lists exactly the years with history, newest first, marking the shown one`` () =
     task {
         use! app = withTwoYears ()
-        let! _, html = raw app "/u/animenerd/year/2023"
+        let! _, html = raw app "/u/animegolden/year/2023"
         let options = [ for m in Regex.Matches(html, "<a [^>]*data-year-option=\"(\\d+)\"[^>]*>") -> m.Groups[1].Value, m.Value ]
         Assert.Equal<string list>([ "2025"; "2023" ], options |> List.map fst)
 
         for year, tag in options do
-            Assert.Contains($"href=\"/u/animenerd/year/{year}\"", tag)
+            Assert.Contains($"href=\"/u/animegolden/year/{year}\"", tag)
             Assert.Equal((year = "2023"), tag.Contains "aria-current=\"page\"")
 
-        Assert.Matches("<a href=\"/u/animenerd\"[^>]*data-dashboard-link", html)
-        Assert.Matches("<a href=\"/u/animenerd/dna\"[^>]*data-dna-link", html)
+        Assert.Matches("<a href=\"/u/animegolden\"[^>]*data-dashboard-link", html)
+        Assert.Matches("<a href=\"/u/animegolden/dna\"[^>]*data-dna-link", html)
     }

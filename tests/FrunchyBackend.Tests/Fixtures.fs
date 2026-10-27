@@ -58,6 +58,26 @@ let syntheticEntry (episodeId: string) (seriesId: string) (datePlayed: DateTime)
 
     $"""{{"id":"{episodeId}","date_played":"{date}","parent_id":"{seriesId}","parent_type":"series","playhead":{playhead},"fully_watched":{(if fullyWatched then "true" else "false")},"panel":{{"id":"{episodeId}","type":"episode","title":"Episode {episodeId}","images":{{"thumbnail":[[{{"width":320,"height":180,"source":"https://img.example/{episodeId}/320.jpg","type":"thumbnail"}},{{"width":640,"height":360,"source":"https://img.example/{episodeId}/640.jpg","type":"thumbnail"}}]]}},"episode_metadata":{{"series_id":"{seriesId}","series_title":"Series {seriesId}","season_id":"{seriesId}S1","season_number":1,"season_title":"Series {seriesId}","episode":"1","episode_number":1,"duration_ms":1420000}}}}}}"""
 
+/// An episode entry with the details feature 027 reads: its season id, episode number and `episode_air_date`
+/// (None leaves the field out). Fully watched or not, 23m40s, the series titled "Series {seriesId}".
+let datedEntry
+    (episodeId: string)
+    (seriesId: string)
+    (seasonId: string)
+    (episodeNumber: int)
+    (airedAt: DateTime option)
+    (datePlayed: DateTime)
+    (fullyWatched: bool)
+    =
+    let played = datePlayed.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+
+    let airDate =
+        match airedAt with
+        | Some d -> ",\"episode_air_date\":\"" + d.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ") + "\""
+        | None -> ""
+
+    $"""{{"id":"{episodeId}","date_played":"{played}","parent_id":"{seriesId}","parent_type":"series","playhead":{(if fullyWatched then 1400 else 300)},"fully_watched":{(if fullyWatched then "true" else "false")},"panel":{{"id":"{episodeId}","type":"episode","title":"Episode {episodeId}","episode_metadata":{{"series_id":"{seriesId}","series_title":"Series {seriesId}","season_id":"{seasonId}","season_number":1,"season_title":"Series {seriesId}","episode":"{episodeNumber}","episode_number":{episodeNumber},"duration_ms":1420000{airDate}}}}}}}"""
+
 /// An entry without panel (unresolved)
 let unresolvedEntry (episodeId: string) (seriesId: string) (datePlayed: DateTime) =
     let date = datePlayed.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")

@@ -280,3 +280,144 @@ let ``a fresh database accepts failed outbox items and the upgrade leaves it alo
         let! after = outboxChecks db
         Assert.Equal<string list>(before, after)
     }
+
+// ---------------------------------------------------------------------------
+// Feature 027: cr_episodes.aired_at, filled from the stored pages
+// ---------------------------------------------------------------------------
+
+let private user027 = Guid.Parse "00000000-0000-0000-0000-0000000000c1"
+
+/// A page whose entries are (episode id, episode_air_date text or None, with panel)
+let private pageOf027 (entries: (string * string option) list) =
+    let entry (id: string, airDate: string option) =
+        let field =
+            airDate |> Option.map (fun d -> $",\"episode_air_date\":\"{d}\"") |> Option.defaultValue ""
+
+        $"""{{"id":"{id}","date_played":"2026-01-01T00:00:00Z","parent_id":"SER1","playhead":10,"fully_watched":true,"panel":{{"id":"{id}","type":"episode","episode_metadata":{{"series_id":"SER1","duration_ms":1400000{field}}}}}}}"""
+
+    $"""{{"data":[{String.Join(",", entries |> List.map entry)}]}}"""
+
+let private storePage (db: DbConfig) (importId: Guid) (receivedAt: string) (capturedAt: string) (body: string) =
+    task {
+        do!
+            Db.execute
+                db
+                $"""INSERT INTO cr_imports (id, user_id, received_at, status, page_count, entries_received)
+                    VALUES ('{importId}', '{user027}', '{receivedAt}', 'completed', 1, 1);
+                    INSERT INTO cr_import_pages (import_id, page_index, url, captured_at, body)
+                    VALUES ('{importId}', 0, 'https://x/content/v2/a/watch-history', '{capturedAt}', '{body}'::json)"""
+    }
+
+/// A database from before feature 027: no `aired_at`, three catalog episodes, three stored pages. E1 is on two pages
+/// (the newer capture says 2026-04-01, the older 2026-01-01, and the newer one was received first), E2 has a date
+/// that is not one, E3 has none, E4 is a page-less stub, E5 is in the page with a time zone offset.
+let private databaseBefore027 () : Task<DbConfig> =
+    task {
+        let! db = newEmptyDatabase ()
+        do! initializeSchema db
+        do! Db.execute db "ALTER TABLE cr_episodes DROP COLUMN aired_at"
+
+        do! Db.execute db $"INSERT INTO users (id, username, display_name) VALUES ('{user027}', 'dates', 'dates')"
+
+        for id in [ "E1"; "E2"; "E3"; "E4"; "E5" ] do
+            do!
+                Db.execute
+                    db
+                    $"INSERT INTO cr_episodes (id, series_id, duration_ms, source_at) VALUES ('{id}', 'SER1', 1400000, now())"
+
+        do!
+            storePage
+                db
+                (Guid.Parse "00000000-0000-0000-0000-0000000000d1")
+                "2026-06-01T00:00:00Z"
+                "2026-06-01T00:00:00Z"
+                (pageOf027 [ "E1", Some "2026-01-01T00:00:00Z"; "E2", Some "not a date"; "E3", None ])
+
+        do!
+            storePage
+                db
+                (Guid.Parse "00000000-0000-0000-0000-0000000000d2")
+                "2026-05-01T00:00:00Z"
+                "2026-09-01T00:00:00Z"
+                (pageOf027 [ "E1", Some "2026-04-01T00:00:00Z"; "E5", Some "2026-10-04T15:30:00+02:00" ])
+
+        return db
+    }
+
+let private airedAt (db: DbConfig) =
+    Db.dump
+        db
+        "SELECT id || '|' || coalesce(to_char(aired_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI'), '<null>') FROM cr_episodes ORDER BY id"
+
+let private airedAtColumn (db: DbConfig) =
+    Db.dump
+        db
+        "SELECT data_type || '|' || is_nullable FROM information_schema.columns WHERE table_name = 'cr_episodes' AND column_name = 'aired_at'"
+
+[<Fact>]
+let ``a catalog without aired_at gets the column and the dates from the stored pages, newest capture wins`` () =
+    task {
+        let! db = databaseBefore027 ()
+        let! column = airedAtColumn db
+        Assert.Empty column
+
+        do! initializeSchema db
+
+        let! column = airedAtColumn db
+        Assert.Equal<string list>([ "timestamp with time zone|YES" ], column)
+
+        let! dates = airedAt db
+
+        Assert.Equal<string list>(
+            [ "E1|2026-04-01T00:00" // the newer capture wins although the older page was received later
+              "E2|<null>" // not a date
+              "E3|<null>" // no date in the page
+              "E4|<null>" // in no page at all
+              "E5|2026-10-04T13:30" ], // read as an instant
+            dates
+        )
+    }
+
+[<Fact>]
+let ``the second start changes nothing, even when a later page would give another date`` () =
+    task {
+        let! db = databaseBefore027 ()
+        do! initializeSchema db
+        let! first = airedAt db
+
+        // a page stored after the upgrade is not read by it: only the importer sets dates from then on
+        do!
+            storePage
+                db
+                (Guid.Parse "00000000-0000-0000-0000-0000000000d3")
+                "2026-12-01T00:00:00Z"
+                "2026-12-01T00:00:00Z"
+                (pageOf027 [ "E1", Some "2026-11-11T00:00:00Z"; "E3", Some "2026-03-03T00:00:00Z" ])
+
+        do! initializeSchema db
+        do! initializeSchema db
+        let! second = airedAt db
+        Assert.Equal<string list>(first, second)
+    }
+
+[<Fact>]
+let ``a fresh database has the column and the upgrade leaves it alone`` () =
+    task {
+        let! db = newEmptyDatabase ()
+        do! initializeSchema db
+        let! column = airedAtColumn db
+        Assert.Equal<string list>([ "timestamp with time zone|YES" ], column)
+        do! initializeSchema db
+        let! again = airedAtColumn db
+        Assert.Equal<string list>(column, again)
+    }
+
+[<Fact>]
+let ``copies starting together on a catalog without aired_at all succeed and date it once`` () =
+    task {
+        let! db = databaseBefore027 ()
+        let! results = Task.WhenAll [| for _ in 1..6 -> initializeSchema db |]
+        Assert.Equal(6, results.Length)
+        let! dates = airedAt db
+        Assert.Contains("E1|2026-04-01T00:00", dates)
+    }

@@ -13,9 +13,9 @@ let private events (db) =
 let ``operator key regeneration and binding reset are recorded with actor operator`` () =
     task {
         use! app = newApp ()
-        let! _ = createUser app.Db "animenerd"
-        let! _ = RegenerateKey.regenerateKey app.Db "animenerd"
-        let! _ = ResetBinding.resetBinding app.Db "animenerd"
+        let! _ = createUser app.Db "animegolden"
+        let! _ = RegenerateKey.regenerateKey app.Db "animegolden"
+        let! _ = ResetBinding.resetBinding app.Db "animegolden"
         let! rows = events app.Db
         Assert.Equal<string list>([ "sync_key_generated|-|operator"; "binding_reset|-|operator" ], rows)
     }
@@ -53,9 +53,9 @@ let ``user-create refuses a trailing dash with the bad-username code and creates
 let ``deleting a user removes their security events`` () =
     task {
         use! app = newApp ()
-        let! _ = createUser app.Db "animenerd"
-        let! _ = RegenerateKey.regenerateKey app.Db "animenerd"
-        let! _ = DeleteUser.deleteUser app.Db false "animenerd"
+        let! _ = createUser app.Db "animegolden"
+        let! _ = RegenerateKey.regenerateKey app.Db "animegolden"
+        let! _ = DeleteUser.deleteUser app.Db false "animegolden"
         let! remaining = Db.count app.Db "security_events"
         Assert.Equal(0L, remaining)
     }
@@ -66,10 +66,10 @@ let ``deleting a user removes their security events`` () =
 let ``signed-out navbar offers sign in on home and dashboards`` (language: string, expected: string) =
     task {
         use! app = newApp ()
-        let! _ = createUser app.Db "animenerd"
+        let! _ = createUser app.Db "animegolden"
         use browser = app.NewBrowser language
         let! home = browser.Get "/"
-        let! dashboard = browser.Get "/u/animenerd"
+        let! dashboard = browser.Get "/u/animegolden"
         Assert.Contains($">{expected}<", home.Html)
         Assert.Contains($">{expected}<", dashboard.Html)
         Assert.Contains("href=\"/signin\"", home.Html)

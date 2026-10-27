@@ -27,7 +27,7 @@ let ``a stale session must re-confirm before generating a key, then continues`` 
     task {
         let! app, clock = appWithClock ()
         use app = app
-        use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
+        use browser = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
         clock.Now <- clock.Now.AddMinutes 11.0
 
         let! blocked = browser.GetRaw "/account/key"
@@ -50,7 +50,7 @@ let ``re-confirming with a different identity doesn't count`` () =
     task {
         let! app, clock = appWithClock ()
         use app = app
-        use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
+        use browser = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
         clock.Now <- clock.Now.AddMinutes 11.0
         let! page = browser.Get "/signin/reconfirm?returnUrl=%2Faccount%2Fkey&sub=somebody-else"
         Assert.Equal("/account?msg=reconfirm-failed", page.Path)
@@ -63,7 +63,7 @@ let ``cancelling the re-confirmation changes nothing and keeps the session`` () 
     task {
         let! app, clock = appWithClock ()
         use app = app
-        use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
+        use browser = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
         clock.Now <- clock.Now.AddMinutes 11.0
         let! _ = browser.Get "/signin/reconfirm?returnUrl=%2Faccount%2Fkey&fail=1"
         let! account = browser.GetRaw "/account"
@@ -77,7 +77,7 @@ let ``a fresh session goes straight to the confirmation`` () =
     task {
         let! app, clock = appWithClock ()
         use app = app
-        use browser = signedUp app "sub-1" "animenerd" |> fun t -> t.Result
+        use browser = signedUp app "sub-1" "animegolden" |> fun t -> t.Result
         clock.Now <- clock.Now.AddMinutes 9.0
         let! page = browser.GetRaw "/account/key"
         Assert.Equal(HttpStatusCode.OK, page.StatusCode)

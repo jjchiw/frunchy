@@ -41,7 +41,7 @@ let private newEnv () : Task<Env> =
     task {
         let! db = newDatabase ()
         let! app = createAppWith db [ "Frunchy:RootOperator", "boss" ] ignore
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db
         let! ep = pickEpisode app.Db "e.episode_number IS NOT NULL AND e.season_id IS NOT NULL AND e.title IS NOT NULL"

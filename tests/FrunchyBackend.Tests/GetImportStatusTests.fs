@@ -17,7 +17,7 @@ let private status (app: TestApp) (key: string) (importId: Guid) =
 let ``status is pending until processed, then completed with counts and issues`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! importId = submitAccepted app key (load2022Envelope ())
 
         let! code, pending = status app key importId
@@ -49,7 +49,7 @@ let ``status is pending until processed, then completed with counts and issues``
 let ``2026 sample completes with 400 = 309 + 91`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! importId = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db
         let! _, body = status app key importId
@@ -76,7 +76,7 @@ let ``another user's import is not disclosed`` () =
 let ``unknown import is not found and a bad key is unauthorized`` () =
     task {
         use! app = newApp ()
-        let! key = createUser app.Db "animenerd"
+        let! key = createUser app.Db "animegolden"
         let! code, _ = status app key (Guid.NewGuid())
         Assert.Equal(404, code)
         let! response = getWithKey app.Client (Some "frk_wrong") $"/api/imports/{Guid.NewGuid()}"

@@ -11,7 +11,7 @@ open FrunchyBackend.Tests.Infrastructure.PostgresFixture
 let private eventCount (w: World) (name: string) =
     Db.scalar<int64>
         w.App.Db
-        "SELECT count(*) FROM security_events e JOIN users u ON u.id = e.user_id WHERE u.username = 'animenerd' AND e.event = @event"
+        "SELECT count(*) FROM security_events e JOIN users u ON u.id = e.user_id WHERE u.username = 'animegolden' AND e.event = @event"
         [ "event", box name ]
 
 let private rowCount (w: World) =
@@ -48,24 +48,24 @@ let ``the account page shows the effective state and where it comes from`` () =
 let ``choosing public opens the profile to strangers and choosing private hides it again`` () =
     task {
         use! w = world [ defaultKey, "private" ]
-        let! before = statusOf w.Stranger "/u/animenerd"
+        let! before = statusOf w.Stranger "/u/animegolden"
         Assert.Equal(HttpStatusCode.NotFound, before)
 
         let! _ = setVisibility w.Owner "public"
 
-        for path in openPaths "animenerd" w.SeriesId do
+        for path in openPaths "animegolden" w.SeriesId do
             let! status = statusOf w.Stranger path
             // the year redirect answers 302 to a year page when it can see it
             Assert.True((status = HttpStatusCode.OK || status = HttpStatusCode.Redirect), $"public {path}: {status}")
 
         let! _ = setVisibility w.Owner "private"
 
-        for path in openPaths "animenerd" w.SeriesId do
+        for path in openPaths "animegolden" w.SeriesId do
             let! status = statusOf w.Stranger path
             Assert.True((status = HttpStatusCode.NotFound), $"private again {path}: {status}")
 
         // the owner still sees it, with the private note
-        let! own = w.Owner.Get "/u/animenerd"
+        let! own = w.Owner.Get "/u/animegolden"
         Assert.Contains("data-profile-private", own.Html)
     }
 
@@ -78,12 +78,12 @@ let ``the choice outlives a change of the instance default`` () =
         // the same database, now served by an instance whose default is public
         use! other = createAppWith w.App.Db [ defaultKey, "public" ] ignore
         use stranger = other.NewBrowser()
-        let! hidden = statusOf stranger "/u/animenerd"
+        let! hidden = statusOf stranger "/u/animegolden"
         Assert.Equal(HttpStatusCode.NotFound, hidden)
 
         // while a user who never chose follows the new default
         do! Db.execute w.App.Db "DELETE FROM profile_settings"
-        let! followed = statusOf stranger "/u/animenerd"
+        let! followed = statusOf stranger "/u/animegolden"
         Assert.Equal(HttpStatusCode.OK, followed)
     }
 
@@ -113,7 +113,7 @@ let ``an invalid value, a missing token and a signed-out post change nothing`` (
         Assert.Equal(0L, rows)
         let! changed = eventCount w "profile_made_public"
         Assert.Equal(0L, changed)
-        let! status = statusOf w.Stranger "/u/animenerd"
+        let! status = statusOf w.Stranger "/u/animegolden"
         Assert.Equal(HttpStatusCode.NotFound, status)
     }
 
@@ -153,7 +153,7 @@ let ``the account page names the level each change set, in English and Spanish``
         let! _ =
             Db.scalar<int64>
                 w.App.Db
-                "WITH ins AS (INSERT INTO security_events (user_id, event, actor) SELECT id, 'profile_visibility_changed', 'user' FROM users WHERE username = 'animenerd' RETURNING 1) SELECT count(*) FROM ins"
+                "WITH ins AS (INSERT INTO security_events (user_id, event, actor) SELECT id, 'profile_visibility_changed', 'user' FROM users WHERE username = 'animegolden' RETURNING 1) SELECT count(*) FROM ins"
                 []
 
         let! english = w.Owner.Get "/account"

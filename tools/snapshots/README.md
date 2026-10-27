@@ -3,7 +3,7 @@
 Screenshots of Frunchy's pages, signed in where they need it, at 1280 and 360 wide in English and Spanish. A designer
 session can look at them without signing in anywhere. Both steps are opt-in: a normal `dotnet test` skips the test.
 
-1. Save the pages' HTML (needs Docker, like every test). One app with a root operator `animenerd` (the 2026 sample,
+1. Save the pages' HTML (needs Docker, like every test). One app with a root operator `animegolden` (the 2026 sample,
    enriched with the scripted MyAnimeList catalog), a second user `sakura` with a shorter history, a third who signed up
    with an invite, and active and used invites:
 
