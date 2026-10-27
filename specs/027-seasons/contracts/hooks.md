@@ -16,7 +16,10 @@
 ## Definitions (all per person, at request time, on the DNA dedup rules)
 
 - Dedup group air date = min(aired_at) in the group.
-- Watched season = distinct (mal_id, airing season or NULL) over fully watched dedup rows with a mal_id.
+- Watched season = distinct (mal_id, airing season or NULL) over fully watched dedup rows with a mal_id. An undated
+  episode counts as (mal_id, NULL) only when its entry has no dated fully watched episode; otherwise it belongs to the
+  entry's dated seasons and adds nothing (on the year page, "dated" means within that year's rows). Unmatched shows
+  follow the same rule, keyed on the Crunchyroll season.
 - Long runner (per Crunchyroll series) = any matched season's `mal_anime.episodes > 100`, or any `cr_episodes` of
   the series with `episode_number > 100`. The threshold is one named constant (100), the long-run minimum another (24).
 - While airing = `watched_at - aired_at` between 0 and 7 days, on a fully watched row.

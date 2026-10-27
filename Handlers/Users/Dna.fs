@@ -650,17 +650,27 @@ let private tryLoad
                         JOIN mal_anime a ON a.mal_id = m.mal_id
                         WHERE a.episodes > @long_runner_episodes AND sea.series_id IN (SELECT series_id FROM w)
                     ),
-                    -- A watched season: a MyAnimeList entry in an airing season (NULL when no episode has a date) in
+                    -- A watched season: a MyAnimeList entry in an airing season (NULL only when none of its watched episodes has a date) in
                     -- which the person fully watched an episode; unmatched ones count only in the totals
                     ws AS (
-                        SELECT DISTINCT d.mal_id, d.season_no FROM dna d WHERE d.group_full AND d.mal_id IS NOT NULL
+                        SELECT DISTINCT d.mal_id, d.season_no FROM dna d
+                        WHERE d.group_full AND d.mal_id IS NOT NULL
+                          AND (d.season_no IS NOT NULL
+                               OR NOT EXISTS (SELECT 1 FROM dna x WHERE x.group_full AND x.mal_id = d.mal_id AND x.season_no IS NOT NULL))
                     ),
                     ws_unmatched AS (
                         SELECT DISTINCT coalesce(d.original_season, d.series_id) AS cr_season, d.season_no
-                        FROM dna d WHERE d.group_full AND d.mal_id IS NULL
+                        FROM dna d
+                        WHERE d.group_full AND d.mal_id IS NULL
+                          AND (d.season_no IS NOT NULL
+                               OR NOT EXISTS (SELECT 1 FROM dna x WHERE x.group_full AND x.mal_id IS NULL AND x.season_no IS NOT NULL
+                                              AND coalesce(x.original_season, x.series_id) = coalesce(d.original_season, d.series_id)))
                     ),
                     series_seasons AS (
-                        SELECT DISTINCT d.series_id, d.mal_id, d.season_no FROM dna d WHERE d.group_full AND d.mal_id IS NOT NULL
+                        SELECT DISTINCT d.series_id, d.mal_id, d.season_no FROM dna d
+                        WHERE d.group_full AND d.mal_id IS NOT NULL
+                          AND (d.season_no IS NOT NULL
+                               OR NOT EXISTS (SELECT 1 FROM dna x WHERE x.group_full AND x.mal_id = d.mal_id AND x.season_no IS NOT NULL))
                     ),
                     genre_count AS (
                         SELECT tg.name, count(*)::bigint AS seasons

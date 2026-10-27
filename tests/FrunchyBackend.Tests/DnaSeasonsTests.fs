@@ -265,6 +265,63 @@ let ``a season whose episodes have no air date counts once, its decade from the 
         Assert.Equal<string list>([ "winter-2024" ], seasons |> List.map (fun (k, _, _) -> k))
     }
 
+/// A show with 3 episodes that have an air date (one airing season) and 2 that don't
+let private mixedDates (series: string) (mal: int) (studio: string) =
+    let dated = weekly series mal studio (day 2025 1 8) 3 1
+
+    let undated =
+        [ for i in 4..5 ->
+              { Number = i
+                Aired = None
+                Watched = day 2025 2 12
+                Full = true } ]
+
+    { dated with Eps = dated.Eps @ undated }
+
+[<Fact>]
+let ``an undated episode adds no season when its anime has dated ones`` () =
+    task {
+        // 3 dated + 2 undated episodes of one anime are one watched season, not two
+        let! app, _ = build [ mixedDates "MIXED" 980 "Studio A"; weekly "FILLER" 981 "Studio B" (day 2025 4 5) 12 1 ]
+        use app = app
+        let! html = dna app
+
+        let studios = elements "rank" html |> List.map (fun r -> attr "name" r, attr "studio-seasons" r)
+        Assert.Equal<(string * string) list>([ "Studio A", "1"; "Studio B", "1" ], studios |> List.sortBy fst)
+        Assert.Equal<string list>(List.replicate 4 "2/2", elements "coverage-seasons" html |> List.map (attr "coverage-seasons"))
+
+        // the airing seasons list the dated episodes only
+        Assert.Equal<string list>([ "spring-2025"; "winter-2025" ], listedSeasons html |> List.map (fun (k, _, _) -> k))
+    }
+
+[<Fact>]
+let ``an anime with only undated episodes is still one watched season`` () =
+    task {
+        let undated = withUndated (weekly "ALLUNDATED" 982 "Studio A" (day 2025 1 8) 5 1)
+        let! app, _ = build [ undated; weekly "FILLER" 983 "Studio B" (day 2025 4 5) 12 1 ]
+        use app = app
+        let! html = dna app
+
+        let studios = elements "rank" html |> List.map (fun r -> attr "name" r, attr "studio-seasons" r)
+        Assert.Equal<(string * string) list>([ "Studio A", "1"; "Studio B", "1" ], studios |> List.sortBy fst)
+        Assert.Equal<string list>(List.replicate 4 "2/2", elements "coverage-seasons" html |> List.map (attr "coverage-seasons"))
+    }
+
+[<Fact>]
+let ``the year page follows the same rule within the year's rows`` () =
+    task {
+        let! app, _ = build [ mixedDates "MIXED" 984 "Studio A"; weekly "FILLER" 985 "Studio B" (day 2025 4 5) 12 1 ]
+        use app = app
+        let! response = getWithLanguage app.Client "en" "/u/animegolden/year/2025"
+        let! html = readHtml response
+
+        let studios = elements "rank" html |> List.map (fun r -> attr "name" r, attr "studio-seasons" r)
+        Assert.Equal<(string * string) list>([ "Studio A", "1"; "Studio B", "1" ], studios |> List.sortBy fst)
+        let notes = elements "coverage-seasons" html |> List.map (attr "coverage-seasons")
+        Assert.NotEmpty notes
+        Assert.All(notes, fun n -> Assert.Equal("2/2", n))
+    }
+
 [<Fact>]
 let ``a dub and its original are one watched season`` () =
     task {
