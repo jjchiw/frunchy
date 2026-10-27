@@ -120,7 +120,7 @@ order doesn't matter. Indexes `(user_id, watched_at DESC)` and, for the charts o
 |---|---|---|
 | `cr_series` | `id` = entry `parent_id` | title only from entries where `series_id = parent_id` (franchise movies don't rename the series), so a season's series can have **no row** when only its movies or specials were watched; code joining it must `LEFT JOIN` |
 | `cr_seasons` | `id` = `season_id` | dub variants are separate seasons |
-| `cr_episodes` | `id` = entry `id` | `duration_ms IS NULL` means **unresolved**: a stub created from an entry without panel, filled in when details arrive |
+| `cr_episodes` | `id` = entry `id` | `duration_ms IS NULL` means **unresolved**: a stub created from an entry without panel, filled in when details arrive. `aired_at` (feature 027, `timestamptz` NULL) is the episode's air date from `panel.episode_metadata.episode_air_date`, NULL when the page has none; it follows the same freshness rule as the other details (a newer page's value, absent or not, replaces it). A database from before the column gets it from a guarded block in `upgrades`, filled once from the stored `cr_import_pages` (newest capture wins; a value that isn't a timestamp stays NULL), so nobody re-syncs |
 
 Catalog rows keep `source_at` (page `capturedAt`, else the import's `received_at`) and are only
 overwritten by data at least as recent.
@@ -149,7 +149,8 @@ are fetched again by the worker. Manual rows are operator input and are kept.
 
 No table. `GET /u/{username}/dna` reads `watch_events`, `cr_episodes`, `cr_series` (LEFT JOIN),
 `cr_season_matches`, `mal_anime`, `mal_anime_tags` and `mal_tags` at request time, so it is always
-consistent with `user-rebuild` and `mal-rebuild`.
+consistent with `user-rebuild` and `mal-rebuild`. Since feature 027 its taste figures count watched seasons
+(a MyAnimeList entry and an airing season, from `cr_episodes.aired_at`), and it has a "Your seasons" section.
 
 ## Year in review (feature 005)
 

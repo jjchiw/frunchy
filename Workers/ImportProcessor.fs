@@ -47,12 +47,12 @@ let private upsertSeason =
 
 let private upsertEpisode =
     """INSERT INTO cr_episodes (id, series_id, season_id, series_title, title, episode_number, episode_label,
-                                duration_ms, thumbnail_url, source_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                                duration_ms, thumbnail_url, aired_at, source_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        ON CONFLICT (id) DO UPDATE SET series_id = excluded.series_id, season_id = excluded.season_id,
            series_title = excluded.series_title, title = excluded.title, episode_number = excluded.episode_number,
            episode_label = excluded.episode_label, duration_ms = excluded.duration_ms,
-           thumbnail_url = excluded.thumbnail_url, source_at = excluded.source_at
+           thumbnail_url = excluded.thumbnail_url, aired_at = excluded.aired_at, source_at = excluded.source_at
        WHERE cr_episodes.source_at IS NULL OR excluded.source_at >= cr_episodes.source_at"""
 
 /// Unresolved entry: make sure the episode exists without touching details another entry provided (R8)
@@ -124,6 +124,8 @@ let private entryCommands userId importId (sourceAt: DateTime) page index (entry
                 text e.EpisodeLabel
                 parameter NpgsqlDbType.Integer e.DurationMs
                 text e.ThumbnailUrl
+                // like every detail, the newest page's value wins, so an absent date replaces an older one too
+                parameter NpgsqlDbType.TimestampTz (e.AiredAt |> Option.map (fun d -> box d.UtcDateTime) |> Option.toObj)
                 parameter NpgsqlDbType.TimestampTz sourceAt ]
           watchCommand userId importId e.EpisodeId e.WatchedAt e.PlayheadS e.FullyWatched ],
         EntryOutcome.Processed

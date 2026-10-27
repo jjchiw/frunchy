@@ -7,18 +7,18 @@
 
 ## Phase 1: Air dates (US4)
 
-- [ ] T001 Parser: `AiredAt` from `panel.episode_metadata.episode_air_date`; parser tests (present, absent, invalid)
+- [x] T001 Parser: `AiredAt` from `panel.episode_metadata.episode_air_date`; parser tests (present, absent, invalid)
   · Infrastructure/CrunchyrollPage.fs, tests
-- [ ] T002 Schema: `aired_at` in `CREATE TABLE cr_episodes`; the guarded upgrade with the backfill from stored pages
+- [x] T002 Schema: `aired_at` in `CREATE TABLE cr_episodes`; the guarded upgrade with the backfill from stored pages
   (contract); `SCHEMA.md`; `SchemaUpgradeTests` (previous shape + a stored page → dated; second run no-op; newest
   capture wins); `SchemaBootstrapTests` still pass · Infrastructure/Database.fs, SCHEMA.md, tests
-- [ ] T003 Import: `upsertEpisode` writes `aired_at` under the `source_at` rule; tests: import sets it, order
+- [x] T003 Import: `upsertEpisode` writes `aired_at` under the `source_at` rule; tests: import sets it, order
   independence and `user-rebuild` equality still hold · Workers/ImportProcessor.fs, tests
-- [ ] T004 `Infrastructure/Seasons.fs`: airing season of an instant (UTC quarter), key `fall-2026`, ordering, named
+- [x] T004 `Infrastructure/Seasons.fs`: airing season of an instant (UTC quarter), key `fall-2026`, ordering, named
   constants `LongRunnerEpisodes = 100`, `LongRunMinimum = 24`, `WhileAiringDays = 7`; `Charts.seasonOf` uses it;
   unit tests · Infrastructure/Seasons.fs, Infrastructure/Charts.fs, FrunchyBackend.fsproj, tests
-- [ ] T005 Fixtures: synthetic pages can carry `episode_air_date` and episode numbers above 100 · tests/Fixtures.fs
-- [ ] T006 Commit 1: `feat(027): store each episode's air date, filled in from the stored pages`
+- [x] T005 Fixtures: synthetic pages can carry `episode_air_date` and episode numbers above 100 · tests/Fixtures.fs
+- [x] T006 Commit 1: `feat(027): store each episode's air date, filled in from the stored pages`
 
 ## Phase 2: Figures and UI (US1, US2, US3)
 

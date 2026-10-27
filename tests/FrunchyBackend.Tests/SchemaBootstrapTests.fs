@@ -349,10 +349,15 @@ let ``the clean bootstrap builds the schema the old bootstrap built`` () =
         Assert.True(oldConstraints.Length > 30, $"only {oldConstraints.Length} constraints found")
         Assert.True(oldIndexes.Length > 15, $"only {oldIndexes.Length} indexes found")
 
-        // Feature 023 added invites.is_setup after the old bootstrap was frozen: it is the one column the new
-        // schema has on an older table, so check it by itself and compare the rest
+        // Feature 023 added invites.is_setup and feature 027 cr_episodes.aired_at after the old bootstrap was frozen:
+        // they are the two columns the new schema has on older tables, so check them by themselves and compare the rest
         Assert.Contains("invites|is_setup|boolean|NO|false", newColumns)
-        Assert.Equal<string list>(oldColumns, withoutFediverse newColumns |> List.filter (fun l -> not (l.StartsWith "invites|is_setup|")))
+        Assert.Contains("cr_episodes|aired_at|timestamp with time zone|YES|<none>", newColumns)
+
+        let afterTheOldBootstrap (l: string) =
+            l.StartsWith "invites|is_setup|" || l.StartsWith "cr_episodes|aired_at|"
+
+        Assert.Equal<string list>(oldColumns, withoutFediverse newColumns |> List.filter (afterTheOldBootstrap >> not))
         Assert.Equal<string list>(oldConstraints, withoutFediverse newConstraints)
         Assert.Equal<string list>(oldIndexes, withoutFediverse newIndexes)
 

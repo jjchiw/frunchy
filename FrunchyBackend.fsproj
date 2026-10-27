@@ -43,6 +43,7 @@
     <Compile Include="Infrastructure/MalActions.fs" />
     <Compile Include="Infrastructure/Compatibility.fs" />
     <Compile Include="Infrastructure/Recommendations.fs" />
+    <Compile Include="Infrastructure/Seasons.fs" />
     <Compile Include="Infrastructure/Charts.fs" />
     <Compile Include="Views/Texts.fs" />
     <Compile Include="Infrastructure/CommentRules.fs" />

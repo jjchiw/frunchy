@@ -99,4 +99,4 @@ let watchEvents (db: DbConfig) =
     Db.dump db "SELECT u.username, w.cr_episode_id, w.watched_at, w.playhead_s, w.fully_watched FROM watch_events w JOIN users u ON u.id = w.user_id ORDER BY 1, 2"
 
 let episodesTable (db: DbConfig) =
-    Db.dump db "SELECT id, series_id, coalesce(season_id,'-'), coalesce(series_title,'-'), coalesce(title,'-'), coalesce(episode_number::text,'-'), coalesce(duration_ms::text,'-'), coalesce(thumbnail_url,'-') FROM cr_episodes ORDER BY id"
+    Db.dump db "SELECT id, series_id, coalesce(season_id,'-'), coalesce(series_title,'-'), coalesce(title,'-'), coalesce(episode_number::text,'-'), coalesce(duration_ms::text,'-'), coalesce(thumbnail_url,'-'), coalesce(aired_at::text,'-') FROM cr_episodes ORDER BY id"

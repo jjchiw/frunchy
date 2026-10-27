@@ -208,3 +208,94 @@ let ``a 64-page first sync is processed well within the target`` () =
         Assert.Equal(6400L, events)
         Assert.True(watch.Elapsed < TimeSpan.FromSeconds 60.0, $"took {watch.Elapsed}")
     }
+
+// Feature 027: the air date is stored with the episode
+
+let private airedAtOf (db) (episodeId: string) =
+    Db.scalar<obj> db $"SELECT aired_at FROM cr_episodes WHERE id = '{episodeId}'" []
+
+/// An envelope whose page says when it was captured (the catalog's freshness rule reads it)
+let private capturedEnvelope (capturedAt: string) (body: string) =
+    withProfile MainProfile $"""{{"pages":[{{"url":"{historyUrl RealAccountId}","capturedAt":"{capturedAt}","body":{body}}}]}}"""
+
+[<Fact>]
+let ``an import stores the episode's air date and an absent one stays empty`` () =
+    task {
+        use! app = newApp ()
+        let! key = createUser app.Db "animegolden"
+        let url = historyUrl RealAccountId
+
+        let page =
+            pageOf
+                [ datedEntry "EPA" "SER1" "SER1S1" 1 (Some(at "2026-10-04T15:30:00Z")) (at "2026-10-05T10:00:00Z") true
+                  datedEntry "EPB" "SER1" "SER1S1" 2 None (at "2026-10-06T10:00:00Z") true ]
+
+        let! _ = submitAccepted app key (envelopeOf [ url, page ])
+        let! _ = processAll app.Db
+
+        let! a = airedAtOf app.Db "EPA"
+        Assert.Equal(at "2026-10-04T15:30:00Z", (a :?> DateTime).ToUniversalTime())
+        let! b = airedAtOf app.Db "EPB"
+        Assert.Equal(box DBNull.Value, b)
+    }
+
+[<Fact>]
+let ``an unresolved entry doesn't touch a known air date`` () =
+    task {
+        use! app = newApp ()
+        let! key = createUser app.Db "animegolden"
+        let url = historyUrl RealAccountId
+        let dated = datedEntry "EPA" "SER1" "SER1S1" 1 (Some(at "2026-10-04T15:30:00Z")) (at "2026-10-05T10:00:00Z") true
+        let! _ = submitAccepted app key (envelopeOf [ url, pageOf [ dated ] ])
+        let! _ = processAll app.Db
+        let! _ = submitAccepted app key (envelopeOf [ url, pageOf [ unresolvedEntry "EPA" "SER1" (at "2026-10-09T10:00:00Z") ] ])
+        let! _ = processAll app.Db
+        let! a = airedAtOf app.Db "EPA"
+        Assert.Equal(at "2026-10-04T15:30:00Z", (a :?> DateTime).ToUniversalTime())
+    }
+
+[<Fact>]
+let ``the newest capture's air date wins whatever the arrival order`` () =
+    task {
+        let entry (airedAt: string) =
+            datedEntry "EPA" "SER1" "SER1S1" 1 (Some(at airedAt)) (at "2026-02-01T10:00:00Z") true
+
+        let olderCapture = capturedEnvelope "2026-03-01T00:00:00Z" (pageOf [ entry "2026-01-01T00:00:00Z" ])
+        let newerCapture = capturedEnvelope "2026-06-01T00:00:00Z" (pageOf [ entry "2026-04-01T00:00:00Z" ])
+
+        let run (envelopes: string list) =
+            task {
+                use! app = newApp ()
+                let! key = createUser app.Db "animegolden"
+
+                for envelope in envelopes do
+                    let! _ = submitAccepted app key envelope
+                    ()
+
+                let! _ = processAll app.Db
+                let! value = airedAtOf app.Db "EPA"
+                return (value :?> DateTime).ToUniversalTime()
+            }
+
+        let! forward = run [ olderCapture; newerCapture ]
+        let! reverse = run [ newerCapture; olderCapture ]
+        Assert.Equal(at "2026-04-01T00:00:00Z", forward)
+        Assert.Equal(forward, reverse)
+    }
+
+[<Fact>]
+let ``a rebuild gives the same air dates`` () =
+    task {
+        use! app = newApp ()
+        let! key = createUser app.Db "animegolden"
+        let! _ = submitAccepted app key (load2026Sample ())
+        let! _ = processAll app.Db
+        let! before = episodesTable app.Db
+        let! dated = Db.scalar<int64> app.Db "SELECT count(*) FROM cr_episodes WHERE aired_at IS NOT NULL" []
+        Assert.True(dated > 100L, $"the sample should carry air dates, found {dated}")
+
+        let! _ = FrunchyBackend.Operations.RebuildUser.rebuildUser app.Db "animegolden"
+        let! _ = processAll app.Db
+        let! after = episodesTable app.Db
+        Assert.Equal<string list>(before, after)
+    }

@@ -79,18 +79,7 @@ let minPeople (config: IConfiguration) : int =
 
 /// The MyAnimeList season of an instant, by UTC quarter: (lowercase name, year, the quarter's first
 /// instant at 00:00 UTC). Winter is January to March.
-let seasonOf (now: DateTimeOffset) : string * int * DateTimeOffset =
-    let utc = now.UtcDateTime
-    let quarter = (utc.Month - 1) / 3
-
-    let name =
-        match quarter with
-        | 0 -> "winter"
-        | 1 -> "spring"
-        | 2 -> "summer"
-        | _ -> "fall"
-
-    name, utc.Year, DateTimeOffset(DateTime(utc.Year, quarter * 3 + 1, 1, 0, 0, 0, DateTimeKind.Utc))
+let seasonOf (now: DateTimeOffset) : string * int * DateTimeOffset = Seasons.ofInstant now
 
 /// How a series moved against last week: its previous rank (1-based) against its current one.
 /// A series missing from the previous ranks (it was below the minimum, or unwatched) is new.
