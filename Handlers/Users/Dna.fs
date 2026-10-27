@@ -449,8 +449,10 @@ let private seasonShow (username: string) (t: Texts) (show: SeasonShow) =
         }
     }
 
+/// Tiles capped at about 104 px from `sm` up; on a phone the card is too narrow for three of those, so it is three
+/// equal columns (about 84 px each at 360) rather than two large ones
 let private tileGrid (username: string) (t: Texts) (shows: SeasonShow list) =
-    ul(class' = "grid gap-3 grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))]") {
+    ul(class' = "grid gap-3 grid-cols-3 sm:grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))]") {
         for show in shows do
             seasonShow username t show
     }
