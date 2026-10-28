@@ -1,14 +1,15 @@
 # Changelog
 
 What changed in each release, for people who run Frunchy. Newest first. A release's notes on
-GitHub are its section here: `.github/scripts/changelog.sh notes <version>` prints it, and the
-release workflow refuses a tag when there is nothing under Unreleased to release.
+GitHub are its section here: `.github/scripts/changelog.sh notes <version>` prints it.
+
+Notes are not written here. Each change adds one file in `changelog.d/` (see its README), and the
+release gathers those files into the new version's section below and deletes them, so this file holds
+released sections only. The release workflow refuses to release when `changelog.d/` has no notes.
 
 Each section has the changes that matter to whoever runs Frunchy, in this order and only as
 needed: Added, Changed, Fixed, Security, then Upgrade when an upgrade needs more than deploying the
-new image. Add to "Unreleased" as you work; a release renames it.
-
-## Unreleased
+new image.
 
 ## 0.6.0 - 2026-10-27
 
@@ -39,12 +40,6 @@ new image. Add to "Unreleased" as you work; a release renames it.
   (`MEGAFONO_VERSION`). With federation on, Members and Private profiles are now not discoverable and
   not indexable on the fediverse, as Frunchy already asked: 0.1.0 marked every user as discoverable. A
   self-hosted Megáfono 0.1.0 database is upgraded by Megáfono itself on start.
-
-### Fixed
-
-- The Anime insignia no longer says "48 of 12 episodes watched" for a show whose seasons are separate
-  MyAnimeList entries: the total now adds up every entry of the show you watched, and is left out when one of
-  them has no episode count yet (still airing) or no MyAnimeList match.
 
 ### Upgrade
 
