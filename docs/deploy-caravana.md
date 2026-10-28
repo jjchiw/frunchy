@@ -164,10 +164,11 @@ The gateway's Caravana check is HTTP `/healthz` on 8080, which 0.2.0's gateway a
 
 **Preferred: the button.** In GitHub, Actions > Release > Run workflow, branch `main`, and type the version in
 `version` (`0.2.2`, no `v`; a pre-release such as `0.3.0-rc.1` works too). The workflow runs the tests on `main` as
-it is; only when they pass does it prepare the changelog, commit it as github-actions[bot] (`chore(release): 0.2.2`),
-tag that commit `v0.2.2` and push both in one atomic push (refused, and nothing tagged, if `main` moved during the
-tests). Then the image, the deploy and the GitHub Release run on the tagged commit. The tag therefore always contains
-its own changelog section, red tests never leave a tag behind, and `main` is renamed before anything else can merge.
+it is; only when they pass does it gather the notes in `changelog.d/` into the changelog, commit that (the new
+section and the deleted note files) as github-actions[bot] (`chore(release): 0.2.2`), tag that commit `v0.2.2` and
+push both in one atomic push (refused, and nothing tagged, if `main` moved during the tests). Then the image, the
+deploy and the GitHub Release run on the tagged commit. The tag therefore always contains its own changelog section
+and red tests never leave a tag behind.
 A tag that already exists is refused with the commands to delete it. Nothing is tagged locally.
 
 **By hand: prepare, commit, then tag.** `.github/scripts/changelog.sh prepare 0.2.2`, commit it
@@ -175,11 +176,18 @@ A tag that already exists is refused with the commands to delete it. Nothing is 
 `--atomic`. The workflow refuses a pushed tag whose commit doesn't hold its own `## 0.2.2` section, so every release
 tag records its notes.
 
-**Released notes are protected.** CI runs `.github/scripts/changelog.sh released` on every push: each `## X.Y.Z`
-section must read exactly as in its tag. A branch started before a release that, once merged, puts its entries inside
-that release's section fails CI at once (move them under `## Unreleased`), instead of the next release finding
-Unreleased empty. Releases from before this rule (0.1.0, 0.2.0) don't hold their section in their tag and aren't
-checked.
+**Notes are files, and released notes are protected.** Nothing is written in `CHANGELOG.md` for a change: each
+change adds one file in `changelog.d/` (see its README), and the release gathers them. CI runs three things on every
+push:
+
+- `.github/scripts/changelog.sh check`: every note file is well formed (a lowercase-dashes `.md` name, only
+  `### Added|Changed|Fixed|Security|Upgrade` subsections of `- ` bullets, not empty), and `CHANGELOG.md` has no
+  `## Unreleased` section. The error names the file and line.
+- `.github/scripts/changelog.sh released`: each `## X.Y.Z` section must read exactly as in its tag. Releases from
+  before this rule (0.1.0, 0.2.0) don't hold their section in their tag and aren't checked.
+- `.github/scripts/changelog-test.sh`: tests for the script itself, in a temporary tree.
+
+`changelog.sh unreleased` prints what the next release would say.
 
 Either way `release.yml` runs the tests, then the job `deploy`, which runs `bella run -- dotnet aspire deploy
 --non-interactive` with GitHub's OIDC token exchanged for a short-lived Bella key. No deploy secret is stored in
@@ -214,27 +222,29 @@ One-time setup, done by the owner:
 
 The order of the jobs:
 1. `changelog` first. It decides the version and the tag and hands them to every later job as outputs (`version`,
-   `tag`, `prerelease`; no job reads `GITHUB_REF_NAME`, which is `main` on a dispatch). A release turns
-   `## Unreleased` in `CHANGELOG.md` into `## X.Y.Z - <date>` and fails the run when Unreleased is empty, so nothing
-   builds or deploys without notes. On a dispatch it also commits that to `main`, tags the commit and pushes both.
+   `tag`, `prerelease`; no job reads `GITHUB_REF_NAME`, which is `main` on a dispatch). A release gathers
+   `changelog.d/*.md` into `## X.Y.Z - <date>` in `CHANGELOG.md` (one subsection per kind) and fails the run when
+   there are no notes in `changelog.d`, so nothing builds or deploys without notes. On a dispatch it also commits
+   that (the section and the deleted files) to `main`, tags the commit and pushes both.
 2. `test` (the same tests as every push, on the tagged commit), then `image` (self-host) and `deploy` (Caravana),
    each checking out the tag.
 3. `release` last: the GitHub Release (the version's section plus GitHub's commit list). On a tag push it also
-   commits the renamed `CHANGELOG.md` to `main` as github-actions[bot], only if `main` is still the tagged commit;
+   commits the changed `CHANGELOG.md` to `main` as github-actions[bot], only if `main` is still the tagged commit;
    otherwise a warning tells you to run `.github/scripts/changelog.sh prepare X.Y.Z` on `main`. It runs only when the
    deploy succeeded or was skipped, so a failed rollout leaves the tag without a release.
 
 If a run fails after the tag was pushed (the image or a failed rollout; red tests stop a button run before tagging),
 the changelog commit and the tag already exist. Re-run the failed jobs of that run (the tag and notes are kept), or delete the tag and run the workflow again
-with the same version (the renamed changelog is reused, it is not renamed twice).
+with the same version (the version's section is reused, it is not made twice).
 
-The changelog is written by hand (the same script and flow as Umbral and Caravana): every branch that changes
-something for whoever runs Frunchy adds its bullets under `## Unreleased` in the same branch; nobody edits a
-released section. **The trap**: a feature branch made before a release carries the old `## Unreleased` text, and
-merging it after the release can put its entries under the wrong heading or resurrect a released section's entries.
-Before releasing, and when merging `main` into a branch made earlier, check that the branch's entries are under
-`## Unreleased` and the released sections are untouched. The button reduces the risk (`main` is renamed before
-anything else merges) but doesn't remove it.
+The notes are written by hand (the same script as Umbral and Caravana): every branch that changes something for
+whoever runs Frunchy adds one file in `changelog.d/`, in the same branch (`changelog.d/027-seasons.md`; the branch
+or feature name is a good file name); nobody edits `CHANGELOG.md` or a released section. **The old trap is gone**:
+notes used to sit under a shared `## Unreleased` heading, which a release renamed, so a branch started before a
+release and merged after it could have git put its bullets inside the released section. Now no two changes edit the
+same lines, and `CHANGELOG.md` has no heading for a stale branch to land under. A branch that still carries the
+old `## Unreleased` section (started before this rule) fails `changelog.sh check` in CI with what to do: move its
+bullets into a new `changelog.d/<name>.md` and delete the section. Nothing needs checking by hand before a release.
 
 - The tests gate the deploy: a red test run means no deploy (and no self-host image).
 - A pre-release (`0.2.0-rc.1`, by the button or by tag) builds the self-host image but does not deploy; the button

@@ -37,10 +37,19 @@ jobs:
           ref: ${{ inputs.ref }}
           fetch-depth: 0 # the release tags, for the changelog check
 
-      # A branch started before a release can put its entries inside that release's section when merged (git can't
-      # tell); this fails the push instead of the next release (.github/scripts/changelog.sh, "released")
+      # Released notes are never edited (a stale merge could still put text inside a released section); this
+      # fails the push instead of the next release (.github/scripts/changelog.sh, "released")
       - name: Released changelog sections are unchanged
         run: .github/scripts/changelog.sh released
+
+      # Notes live one file per change in changelog.d/, so a merge never touches a shared section. This fails a
+      # push with a bad fragment or a "## Unreleased" section (a branch started before that rule), and the next
+      # step tests the script itself
+      - name: Release notes in changelog.d are well formed
+        run: .github/scripts/changelog.sh check
+
+      - name: Changelog script tests
+        run: bash .github/scripts/changelog-test.sh
 
       - uses: actions/setup-dotnet@v4
         with:
