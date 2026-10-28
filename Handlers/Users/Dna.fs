@@ -772,6 +772,14 @@ let private tryLoad
                         WHERE d.mal_id IS NOT NULL
                         GROUP BY d.mal_id ORDER BY sum(d.ms) DESC, d.mal_id LIMIT 1
                     ),
+                    -- "of N" counts what the watched number counts: the episodes of every MyAnimeList entry of the
+                    -- series the person watched, unknown (NULL) when one of them is unmatched or has no count yet
+                    insignia_total AS (
+                        SELECT CASE WHEN bool_and(coalesce(x.episodes, 0) > 0) THEN sum(x.episodes)::bigint END AS episodes
+                        FROM (SELECT DISTINCT d.mal_id, a.episodes
+                              FROM dna d JOIN insignia i ON i.series_id = d.series_id
+                              LEFT JOIN mal_anime a ON a.mal_id = d.mal_id) x
+                    ),
                     longrun AS (
                         SELECT d.series_id, ti.title, sum(d.ms)::bigint AS ms, count(*) FILTER (WHERE d.group_full) AS n,
                                min(d.season_no) FILTER (WHERE d.group_full) AS first_season,
@@ -833,7 +841,7 @@ let private tryLoad
                     WHERE a.type IS NOT NULL
                     GROUP BY a.type
                     UNION ALL
-                    SELECT 'insignia', i.title, i.ms, i.n, a.episodes::bigint, a.year::bigint, NULL, i.series_id,
+                    SELECT 'insignia', i.title, i.ms, i.n, (SELECT episodes FROM insignia_total), a.year::bigint, NULL, i.series_id,
                            coalesce(a.image_url,
                                     (SELECT d.thumbnail_url FROM dna d
                                      WHERE d.series_id = i.series_id AND d.thumbnail_url IS NOT NULL
@@ -961,7 +969,8 @@ let private tryLoad
                           Season = season
                           Year = year |> Option.map int
                           FullyWatched = n
-                          MalEpisodes = episodes |> Option.map int |> Option.filter (fun e -> e > 0)
+                          // never "48 of 12": a total below the watched count is no total
+                          MalEpisodes = episodes |> Option.filter (fun e -> e > 0L && e >= n) |> Option.map int
                           Hours = round1 (decimal ms / 3_600_000m) }
                 | _ -> None
 

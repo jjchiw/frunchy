@@ -431,6 +431,42 @@ let ``no long runner: the flagship is as before and there is no long-run card`` 
         Assert.False(has "dna-long-run" html)
     }
 
+/// One series in two Crunchyroll seasons, each its own MyAnimeList entry of 12 episodes, all 24 fully watched
+let private twoEntries (series: string) (mal: int) =
+    let first = weekly series mal "Studio A" (day 2025 1 1) 12 1
+
+    [ first
+      { weekly series (mal + 1) "Studio A" (day 2025 4 1) 12 1 with Season = series + "S2" } ]
+
+/// The flagship's "N of M episodes watched" line
+let private insigniaEpisodes (html: string) =
+    Regex.Match(html, "(?s)data-dna-insignia.*?>([0-9,]+( of [0-9,]+)? episodes? watched)<").Groups[1].Value
+
+[<Fact>]
+let ``the flagship's total adds up every MyAnimeList entry of the series`` () =
+    task {
+        let! app, _ = build (twoEntries "TWOPART" 820)
+        use app = app
+        let! html = dna app
+
+        Assert.Equal("TWOPART", attr "insignia-series" (List.exactlyOne (elements "dna-insignia" html)))
+        // 24 watched of 12 + 12, never "24 of 12"
+        Assert.Equal("24 of 24 episodes watched", insigniaEpisodes html)
+    }
+
+[<Fact>]
+let ``the flagship has no total when one of its entries has no episode count`` () =
+    task {
+        let! app, _ = build (twoEntries "AIRING" 830)
+        use app = app
+        // the second entry is still airing: MyAnimeList doesn't know how many episodes it will have
+        do! Db.execute app.Db "UPDATE mal_anime SET episodes = NULL WHERE mal_id = 831"
+        let! html = dna app
+
+        Assert.Equal("AIRING", attr "insignia-series" (List.exactlyOne (elements "dna-insignia" html)))
+        Assert.Equal("24 episodes watched", insigniaEpisodes html)
+    }
+
 // ---------------------------------------------------------------------------
 // User story 3: your seasons
 // ---------------------------------------------------------------------------
