@@ -34,6 +34,7 @@
     <Compile Include="Infrastructure/LanguagePreference.fs" />
     <Compile Include="Infrastructure/WebAuth.fs" />
     <Compile Include="Infrastructure/Profiles.fs" />
+    <Compile Include="Infrastructure/WatchUpdates.fs" />
     <Compile Include="Infrastructure/MalModel.fs" />
     <Compile Include="Infrastructure/JikanModel.fs" />
     <Compile Include="Infrastructure/MalApiModel.fs" />
@@ -90,6 +91,7 @@
     <Compile Include="Handlers/Account/Visibility.fs" />
     <Compile Include="Handlers/Account/ShareLink.fs" />
     <Compile Include="Handlers/Account/Blocks.fs" />
+    <Compile Include="Handlers/Account/WatchUpdates.fs" />
     <Compile Include="Handlers/Account/ResetBinding.fs" />
     <Compile Include="Handlers/Account/Logins.fs" />
     <Compile Include="Handlers/Account/DeleteAccount.fs" />

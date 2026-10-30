@@ -150,6 +150,9 @@ type SecurityEventType =
     | ProfileMadePublic
     | ProfileMadeMembers
     | ProfileMadePrivate
+    /// Feature 028: the user turned watch updates on or off
+    | WatchUpdatesEnabled
+    | WatchUpdatesDisabled
 
 module SecurityEventType =
     let toDb =
@@ -184,6 +187,8 @@ module SecurityEventType =
         | SecurityEventType.ProfileMadePublic -> "profile_made_public"
         | SecurityEventType.ProfileMadeMembers -> "profile_made_members"
         | SecurityEventType.ProfileMadePrivate -> "profile_made_private"
+        | SecurityEventType.WatchUpdatesEnabled -> "watch_updates_enabled"
+        | SecurityEventType.WatchUpdatesDisabled -> "watch_updates_disabled"
 
     let all =
         [ SecurityEventType.AccountCreated; SecurityEventType.SignedIn; SecurityEventType.Claimed
@@ -196,6 +201,7 @@ module SecurityEventType =
           SecurityEventType.ProfileVisibilityChanged; SecurityEventType.ShareLinkCreated
           SecurityEventType.ShareLinkReplaced; SecurityEventType.ShareLinkRevoked
           SecurityEventType.InviteCreated; SecurityEventType.InviteRevoked; SecurityEventType.SignUpModeChanged
-          SecurityEventType.ProfileMadePublic; SecurityEventType.ProfileMadeMembers; SecurityEventType.ProfileMadePrivate ]
+          SecurityEventType.ProfileMadePublic; SecurityEventType.ProfileMadeMembers; SecurityEventType.ProfileMadePrivate
+          SecurityEventType.WatchUpdatesEnabled; SecurityEventType.WatchUpdatesDisabled ]
 
     let tryFromDb (value: string) = all |> List.tryFind (fun e -> toDb e = value)

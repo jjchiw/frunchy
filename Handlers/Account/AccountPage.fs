@@ -52,6 +52,9 @@ let private notice (t: Texts) (msg: string) =
     | "visibility-saved" -> Some(false, t.VisibilitySaved)
     | "visibility-invalid" -> Some(true, t.VisibilityInvalid)
     | "share-link-revoked" -> Some(false, t.ShareLinkRevoked)
+    | "watch-updates-on"
+    | "watch-updates-off" -> Some(false, t.WatchUpdatesNotice msg)
+    | "watch-updates-invalid" -> Some(true, t.WatchUpdatesNotice msg)
     | "binding-reset" -> Some(false, t.BindingResetDone)
     | "linked" -> Some(false, t.IdentityLinkedNotice)
     | "unlinked" -> Some(false, t.IdentityUnlinkedNotice)
@@ -322,6 +325,30 @@ let private blocksSection (ctx: HttpContext) (t: Texts) (msg: string) (listing: 
     }
     |> accountSection "blocks" Theme.Block t.BlocksTitle
 
+/// Feature 028 (federation on, a username that can federate): the switch for watch updates. `data-watch-updates-state` is
+/// `on` or `off`; `data-watch-updates-not-public` shows while the profile isn't public (nothing is posted then).
+let private watchUpdatesSection (ctx: HttpContext) (t: Texts) (isOn: bool) (m: AccountModel) =
+    div(class' = "space-y-5") {
+        p(class' = "max-w-prose text-body-md text-on-surface-variant") { t.WatchUpdatesIntro }
+
+        p(class' = "text-body-md text-on-surface").data("watch-updates-state", (if isOn then "on" else "off")) {
+            if isOn then t.WatchUpdatesStateOn else t.WatchUpdatesStateOff
+        }
+
+        if m.Visibility <> Profiles.Public then
+            p(class' = "max-w-prose text-body-md text-secondary").data("watch-updates-not-public", "") { t.WatchUpdatesNotPublic }
+
+        form(method = "post", action = "/account/watch-updates") {
+            ctx.GetAntiforgeryInput()
+            input(type' = "hidden", name = "enabled", value = (if isOn then "off" else "on"))
+
+            button(type' = "submit", class' = btn Secondary) { if isOn then t.WatchUpdatesTurnOff else t.WatchUpdatesTurnOn }
+        }
+
+        p(class' = "max-w-prose text-body-md text-on-surface-variant") { t.WatchUpdatesDeleteNote }
+    }
+    |> accountSection "watch-updates" Theme.Sensors t.WatchUpdatesTitle
+
 let private securityActivity (t: Texts) (providerName: string -> string) (m: AccountModel) =
     ul(class' = "divide-y divide-outline-variant/40") {
         for event in m.Events do
@@ -357,7 +384,8 @@ let private dangerZone (t: Texts) =
     }
 
 /// `federated`: federation is on (operators get the link to the instance blocks); `blocks`: the user's own blocks,
-/// only when they can federate (None otherwise, and no section)
+/// only when they can federate (None otherwise, and no section); `watchUpdates`: whether watch updates are on, under
+/// the same condition (feature 028)
 let view
     (ctx: HttpContext)
     (t: Texts)
@@ -367,6 +395,7 @@ let view
     (isRoot: bool)
     (federated: bool)
     (blocks: BlockActions.Listing option)
+    (watchUpdates: bool option)
     (m: AccountModel)
     =
     let providerName (name: string) =
@@ -426,6 +455,10 @@ let view
 
         match blocks with
         | Some listing -> blocksSection ctx t msg listing
+        | None -> Fragment()
+
+        match watchUpdates with
+        | Some isOn -> watchUpdatesSection ctx t isOn m
         | None -> Fragment()
 
         securityActivity t providerName m
@@ -561,9 +594,31 @@ let handler: EndpointHandler =
                     else
                         Task.FromResult None
 
+                // The watch updates switch is shown under the same condition (feature 028)
+                let! watchUpdates =
+                    if federated && Fediverse.isValidHandle model.Username then
+                        task {
+                            use connection = getConnection (ctx.GetService<DbConfig>())
+                            do! connection.OpenAsync()
+                            let! isOn = WatchUpdates.isOn connection userId
+                            return Some isOn
+                        }
+                    else
+                        Task.FromResult None
+
                 return!
                     ctx.WriteHtmlView(
-                        view ctx (Texts.current ()) providers msg (WebAuth.isOperator ctx) (WebAuth.isRoot ctx) federated blocks model
+                        view
+                            ctx
+                            (Texts.current ())
+                            providers
+                            msg
+                            (WebAuth.isOperator ctx)
+                            (WebAuth.isRoot ctx)
+                            federated
+                            blocks
+                            watchUpdates
+                            model
                     )
             | None ->
                 do! WebAuth.signOut ctx

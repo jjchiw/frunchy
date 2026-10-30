@@ -8,10 +8,12 @@ open System.Threading
 open System.Threading.Tasks
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
+open Microsoft.Extensions.Logging.Abstractions
 open Npgsql
 open NpgsqlTypes
 open FrunchyBackend.Domains.Tracking
 open FrunchyBackend.Infrastructure.CrunchyrollPage
+open FrunchyBackend.Infrastructure
 open FrunchyBackend.Infrastructure.Database
 
 /// A claim older than this is assumed to belong to a crashed worker and is retried
@@ -182,7 +184,7 @@ let private claimNext (db: DbConfig) : Task<Guid option> =
     }
 
 /// Normalize every page of one claimed import in a single transaction
-let private processImport (db: DbConfig) (importId: Guid) : Task<unit> =
+let private processImport (logger: ILogger) (db: DbConfig) (watchUpdates: WatchUpdates.Policy option) (importId: Guid) : Task<unit> =
     task {
         use connection = getConnection db
         do! connection.OpenAsync()
@@ -266,6 +268,22 @@ let private processImport (db: DbConfig) (importId: Guid) : Task<unit> =
             complete.Parameters.AddWithValue("unsupported", countOf EntryOutcome.Unsupported) |> ignore
             complete.Parameters.AddWithValue("failed", countOf EntryOutcome.Failed) |> ignore
             let! _ = complete.ExecuteNonQueryAsync()
+
+            // Feature 028: with federation on, the import may have finished episodes worth a watch update; queued here,
+            // in the import's own transaction, so a failed import queues nothing. Behind a savepoint: the watch history
+            // is the core asset, so a failure here is logged and undone alone, and the import still completes.
+            match watchUpdates with
+            | Some policy ->
+                do! tx.SaveAsync "watch_update"
+
+                try
+                    do! WatchUpdates.queueAfterImport connection tx policy userId
+                    do! tx.ReleaseAsync "watch_update"
+                with ex ->
+                    logger.LogError(ex, "Watch update for import {ImportId} failed; the import completes without it", importId)
+                    do! tx.RollbackAsync "watch_update"
+            | None -> ()
+
             do! tx.CommitAsync()
     }
 
@@ -286,29 +304,34 @@ let private markFailed (db: DbConfig) (importId: Guid) (error: string) : Task<un
         ()
     }
 
-/// Process the next pending import, if any. Returns true when one was processed (or failed).
-let processNext (db: DbConfig) : Task<bool> =
+/// Process the next pending import, if any. Returns true when one was processed (or failed). With a watch update
+/// policy (federation on), a completed import may queue the user's watch update (feature 028).
+let processNextWith (logger: ILogger) (db: DbConfig) (watchUpdates: WatchUpdates.Policy option) : Task<bool> =
     task {
         match! claimNext db with
         | None -> return false
         | Some importId ->
             try
-                do! processImport db importId
+                do! processImport logger db watchUpdates importId
             with ex ->
                 do! markFailed db importId ex.Message
 
             return true
     }
 
+/// `processNextWith` without watch updates (what the tests and the CLI mostly call)
+let processNext (db: DbConfig) : Task<bool> = processNextWith NullLogger.Instance db None
+
 /// Polls for pending imports; sleeps only when there is nothing to do
-type ImportProcessorService(db: DbConfig, logger: ILogger<ImportProcessorService>) =
+type ImportProcessorService
+    (db: DbConfig, federation: Federation.FederationSettings, profiles: Profiles.ProfileSettings, logger: ILogger<ImportProcessorService>) =
     inherit BackgroundService()
 
     override _.ExecuteAsync(stoppingToken: CancellationToken) : Task =
         task {
             while not stoppingToken.IsCancellationRequested do
                 try
-                    let! worked = processNext db
+                    let! worked = processNextWith logger db (WatchUpdates.policyOf federation profiles)
 
                     if not worked then
                         do! Task.Delay(TimeSpan.FromSeconds 2.0, stoppingToken)

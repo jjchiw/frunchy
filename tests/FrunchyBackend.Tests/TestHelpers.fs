@@ -58,6 +58,27 @@ let processAll (db: DbConfig) : Task<int> =
         return processed
     }
 
+/// `processAll` for an app with the app's own settings, so a completed import queues watch updates when federation is on
+/// (feature 028)
+let processAllFor (app: TestApp) : Task<int> =
+    task {
+        let policy =
+            FrunchyBackend.Infrastructure.WatchUpdates.policyOf
+                (app.Services.GetRequiredService<FrunchyBackend.Infrastructure.Federation.FederationSettings>())
+                (app.Services.GetRequiredService<FrunchyBackend.Infrastructure.Profiles.ProfileSettings>())
+
+        let mutable processed = 0
+        let mutable more = true
+
+        while more do
+            let! worked =
+                FrunchyBackend.Workers.ImportProcessor.processNextWith Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance app.Db policy
+            more <- worked
+            if worked then processed <- processed + 1
+
+        return processed
+    }
+
 /// Run the fediverse outbox worker (feature 015) as of `now` until nothing is due; returns how many items it processed.
 /// The test app's worker stays off, so tests drive it here against `app.Megafono`.
 let drainOutboxAt (app: TestApp) (now: DateTimeOffset) : Task<int> =
@@ -70,11 +91,14 @@ let drainOutboxAt (app: TestApp) (now: DateTimeOffset) : Task<int> =
             | FrunchyBackend.Infrastructure.Federation.Enabled values -> values
             | FrunchyBackend.Infrastructure.Federation.Disabled -> failwith "federation is off in this app"
 
+        let defaultVisibility =
+            services.GetRequiredService<FrunchyBackend.Infrastructure.Profiles.ProfileSettings>().DefaultVisibility
+
         let mutable processed = 0
         let mutable more = true
 
         while more && processed < 1000 do
-            let! worked = FrunchyBackend.Workers.FediverseOutbox.processNext app.Db client values now
+            let! worked = FrunchyBackend.Workers.FediverseOutbox.processNext app.Db client values defaultVisibility now
             more <- worked
             if worked then processed <- processed + 1
 

@@ -93,6 +93,8 @@
     <Compile Include="MegafonoWebhooksTests.fs" />
     <Compile Include="RemoteCommentsTests.fs" />
     <Compile Include="FediverseBlocksTests.fs" />
+    <Compile Include="WatchUpdateHtmlTests.fs" />
+    <Compile Include="WatchUpdatesTests.fs" />
     <Compile Include="FediversePagesTests.fs" />
     <Compile Include="FediverseOperationsTests.fs" />
     <Compile Include="ProfileRulesTests.fs" />

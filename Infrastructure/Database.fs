@@ -293,7 +293,8 @@ let private schema =
     CREATE TABLE IF NOT EXISTS fediverse_outbox (
         id              bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         kind            text NOT NULL CHECK (kind IN ('ensure_thread', 'publish_comment', 'update_comment', 'delete_comment',
-                                                       'delete_actor', 'refresh_profile')),
+                                                       'delete_actor', 'refresh_profile', 'post_watch_update',
+                                                       'delete_watch_updates')),
         subject         text NOT NULL,
         state           text NOT NULL DEFAULT 'pending' CHECK (state IN ('pending', 'done', 'failed')),
         attempts        int NOT NULL DEFAULT 0,
@@ -305,6 +306,31 @@ let private schema =
     );
 
     CREATE INDEX IF NOT EXISTS ix_fediverse_outbox_pending ON fediverse_outbox (next_attempt_at, id) WHERE state = 'pending';
+
+    -- Watch updates (feature 028): a row in watch_update_settings means the user turned them on (off by default);
+    -- enabled_at is the first moment they did, nothing watched before it is ever posted.
+    CREATE TABLE IF NOT EXISTS watch_update_settings (
+        user_id    uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        enabled_at timestamptz NOT NULL DEFAULT now()
+    );
+
+    -- One watch update per user and UTC day: the window it covers on watched_at, and, once Megafono has published it,
+    -- the object. The worker builds the text from watch_events at its first attempt and keeps it (content, url).
+    CREATE TABLE IF NOT EXISTS watch_updates (
+        user_id         uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        day             date NOT NULL,
+        covered_from    timestamptz NOT NULL,
+        covered_until   timestamptz NOT NULL,
+        state           text NOT NULL DEFAULT 'pending' CHECK (state IN ('pending', 'published', 'skipped', 'deleted')),
+        object_id       text NULL,
+        object_url      text NULL,
+        -- The request, frozen at the first attempt: Megafono answers 409 when an Idempotency-Key comes back with a
+        -- different body, so every retry sends these exact values (NULL until the worker first builds them)
+        content         text NULL,
+        url             text NULL,
+        created_at      timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (user_id, day)
+    );
 
     -- Profile visibility and share link (feature 017, 'members' added by 021): one row per user who chose a visibility or made a link.
     -- No row means the instance default applies and there is no link. Only the link's hash is stored.
@@ -491,6 +517,34 @@ let private upgrades =
             ALTER TABLE fediverse_outbox
                 ADD CONSTRAINT fediverse_outbox_state_check
                 CHECK (state IN ('pending', 'done', 'failed'));
+        END IF;
+    END $$;
+
+    -- Feature 028: fediverse_outbox.kind accepts 'post_watch_update' and 'delete_watch_updates'. An older database has
+    -- the six-kind check under whatever name Postgres gave it; find it by what it says (it names kind and lacks
+    -- 'post_watch_update'), drop it by that real name, and add the eight-kind check.
+    DO $$
+    DECLARE
+        old_check text;
+        replaced  boolean := false;
+    BEGIN
+        FOR old_check IN
+            SELECT c.conname
+            FROM pg_constraint c
+            WHERE c.conrelid = 'fediverse_outbox'::regclass
+              AND c.contype = 'c'
+              AND pg_get_constraintdef(c.oid) LIKE '%kind%'
+              AND pg_get_constraintdef(c.oid) NOT LIKE '%post_watch_update%'
+        LOOP
+            EXECUTE format('ALTER TABLE fediverse_outbox DROP CONSTRAINT %I', old_check);
+            replaced := true;
+        END LOOP;
+
+        IF replaced THEN
+            ALTER TABLE fediverse_outbox
+                ADD CONSTRAINT fediverse_outbox_kind_check
+                CHECK (kind IN ('ensure_thread', 'publish_comment', 'update_comment', 'delete_comment', 'delete_actor',
+                                'refresh_profile', 'post_watch_update', 'delete_watch_updates'));
         END IF;
     END $$;
 

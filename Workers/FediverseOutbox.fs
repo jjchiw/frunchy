@@ -400,7 +400,360 @@ let private deleteComment (connection: NpgsqlConnection) (client: HttpClient) (i
         | _ -> return Finished None
     }
 
-let private run (db: DbConfig) (client: HttpClient) (domain: string) (item: Item) : Task<Outcome> =
+// ---------------------------------------------------------------------------
+// Watch updates (feature 028)
+// ---------------------------------------------------------------------------
+
+/// One series of a watch update: its id and title, how many episodes were watched (deduplicated, numbered or not),
+/// and the numbered ones as `(number, episodeId)`
+type WatchedSeries =
+    { SeriesId: string
+      Title: string
+      EpisodeCount: int
+      Episodes: (int * string) list }
+
+/// At most this many series are named in a post, then "and N more series"
+[<Literal>]
+let private MaxPostSeries = 5
+
+/// At most this many episode numbers are listed per series, then an ellipsis
+[<Literal>]
+let private MaxPostEpisodes = 6
+
+let private dayText (day: DateOnly) = day.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)
+
+let private enc (value: string) = System.Net.WebUtility.HtmlEncode value
+
+/// "a", "a and b", "a, b and c"
+let private joinWithAnd (andWord: string) (parts: string list) : string =
+    match List.rev parts with
+    | [] -> ""
+    | [ only ] -> only
+    | last :: restReversed -> String.Join(", ", List.rev restReversed) + $" {andWord} {last}"
+
+/// The Note's HTML (research of feature 028): "Watched 3 episodes of Frieren (5, 6, 7) and 1 episode of The Apothecary
+/// Diaries (12)." Series titles link to the public series page and episode numbers to the public episode page, both
+/// absolute under `https://{domain}`. At most 5 series (most episodes first, then title), then "and N more series"; at
+/// most 6 episode numbers per series, ascending, then an ellipsis; an episode without a number is counted but not
+/// listed. English like the episode threads; titles and numbers are escaped, and no episode title is ever used.
+let watchUpdateHtml (domain: string) (series: WatchedSeries list) : string =
+    let t = Texts.en
+
+    let ordered =
+        series |> List.sortBy (fun s -> -s.EpisodeCount, s.Title, s.SeriesId)
+
+    let shown = ordered |> List.truncate MaxPostSeries
+    let hidden = ordered.Length - shown.Length
+
+    let numbersOf (s: WatchedSeries) =
+        let sorted = s.Episodes |> List.sortBy fst
+        let listed = sorted |> List.truncate MaxPostEpisodes
+
+        let link (number: int, episodeId: string) =
+            let href = enc (episodeUrl domain s.SeriesId episodeId)
+            "<a href=\"" + href + "\">" + string number + "</a>"
+
+        let links = listed |> List.map link
+
+        let all =
+            if sorted.Length > listed.Length then
+                links @ [ enc t.WatchUpdatePostMoreNumbers ]
+            else
+                links
+
+        if all.IsEmpty then "" else " (" + String.Join(", ", all) + ")"
+
+    let part (s: WatchedSeries) =
+        let href = enc ("https://" + domain + "/anime/" + s.SeriesId)
+        let title = "<a href=\"" + href + "\">" + enc s.Title + "</a>"
+        enc (t.WatchUpdatePostEpisodes s.EpisodeCount) + " " + enc t.WatchUpdatePostOf + " " + title + numbersOf s
+
+    let parts =
+        (shown |> List.map part)
+        @ (if hidden > 0 then [ enc (t.WatchUpdatePostMoreSeries hidden) ] else [])
+
+    "<p>" + enc t.WatchUpdatePostWatched + " " + joinWithAnd (enc t.WatchUpdatePostAnd) parts + ".</p>"
+
+/// What the worker re-reads about the user before every attempt
+type private Poster =
+    { Username: string
+      OptedIn: bool
+      Visibility: Profiles.Visibility }
+
+let private loadPoster (connection: NpgsqlConnection) (defaultVisibility: Profiles.Visibility) (userId: Guid) : Task<Poster option> =
+    task {
+        use cmd =
+            new NpgsqlCommand(
+                """
+                SELECT u.username, EXISTS (SELECT 1 FROM watch_update_settings st WHERE st.user_id = u.id), ps.visibility
+                FROM users u
+                LEFT JOIN profile_settings ps ON ps.user_id = u.id
+                WHERE u.id = @user_id
+                """,
+                connection
+            )
+
+        param cmd "user_id" userId
+        use! reader = cmd.ExecuteReaderAsync()
+
+        if reader.Read() then
+            let choice = text reader 2 |> Option.bind Profiles.Visibility.tryParse
+
+            return
+                Some
+                    { Username = reader.GetString 0
+                      OptedIn = reader.GetBoolean 1
+                      Visibility = Profiles.effective defaultVisibility choice }
+        else
+            return None
+    }
+
+/// The days of the user's `pending` updates, oldest first
+let private pendingDays (connection: NpgsqlConnection) (userId: Guid) : Task<DateOnly list> =
+    task {
+        use cmd =
+            new NpgsqlCommand("SELECT day FROM watch_updates WHERE user_id = @user_id AND state = 'pending' ORDER BY day", connection)
+
+        param cmd "user_id" userId
+        use! reader = cmd.ExecuteReaderAsync()
+        let days = ResizeArray()
+
+        while reader.Read() do
+            days.Add(reader.GetFieldValue<DateOnly> 0)
+
+        return List.ofSeq days
+    }
+
+let private setUpdateState (connection: NpgsqlConnection) (userId: Guid) (day: DateOnly) (fromState: string) (toState: string) : Task<unit> =
+    task {
+        use cmd =
+            new NpgsqlCommand(
+                "UPDATE watch_updates SET state = @to_state WHERE user_id = @user_id AND day = @day AND state = @from_state",
+                connection
+            )
+
+        param cmd "user_id" userId
+        param cmd "day" day
+        param cmd "from_state" fromState
+        param cmd "to_state" toState
+        let! _ = cmd.ExecuteNonQueryAsync()
+        ()
+    }
+
+/// The update's series and episodes: fully watched with a known length in the row's window, a dub and its original
+/// counted once (the DNA key). Empty when nothing qualifies any more.
+let private loadWatched (connection: NpgsqlConnection) (userId: Guid) (day: DateOnly) : Task<WatchedSeries list> =
+    task {
+        use cmd =
+            new NpgsqlCommand(
+                """
+                SELECT DISTINCT ON (e.series_id, k.key)
+                       e.series_id, coalesce(s.title, e.series_title, e.series_id), e.episode_number, e.id
+                FROM watch_updates r
+                JOIN watch_events w ON w.user_id = r.user_id
+                                   AND w.watched_at > r.covered_from AND w.watched_at <= r.covered_until
+                JOIN cr_episodes e ON e.id = w.cr_episode_id
+                LEFT JOIN cr_series s ON s.id = e.series_id
+                LEFT JOIN cr_season_matches m ON m.season_id = e.season_id AND m.status = 'matched'
+                CROSS JOIN LATERAL (
+                    SELECT CASE WHEN e.season_id IS NOT NULL AND e.episode_number IS NOT NULL
+                                THEN coalesce(m.shared_from, e.season_id) || '#' || e.episode_number::text
+                                ELSE e.id END AS key
+                ) k
+                WHERE r.user_id = @user_id AND r.day = @day
+                  AND w.fully_watched
+                  AND e.duration_ms IS NOT NULL
+                ORDER BY e.series_id, k.key, w.watched_at, e.id
+                """,
+                connection
+            )
+
+        param cmd "user_id" userId
+        param cmd "day" day
+        use! reader = cmd.ExecuteReaderAsync()
+        let rows = ResizeArray<string * string * int option * string>()
+
+        while reader.Read() do
+            rows.Add((reader.GetString 0, reader.GetString 1, (if reader.IsDBNull 2 then None else Some(reader.GetInt32 2)), reader.GetString 3))
+
+        return
+            rows
+            |> Seq.groupBy (fun (seriesId, _, _, _) -> seriesId)
+            |> Seq.map (fun (seriesId, episodes) ->
+                let list = List.ofSeq episodes
+                let _, title, _, _ = list.Head
+
+                { SeriesId = seriesId
+                  Title = title
+                  EpisodeCount = list.Length
+                  Episodes = [ for _, _, number, episodeId in list do
+                                   match number with
+                                   | Some n -> n, episodeId
+                                   | None -> () ] })
+            |> List.ofSeq
+    }
+
+/// The request frozen on the row, when it has one
+let private loadFrozen (connection: NpgsqlConnection) (userId: Guid) (day: DateOnly) : Task<(string * string) option> =
+    task {
+        use cmd = new NpgsqlCommand("SELECT content, url FROM watch_updates WHERE user_id = @user_id AND day = @day", connection)
+        param cmd "user_id" userId
+        param cmd "day" day
+        use! reader = cmd.ExecuteReaderAsync()
+
+        if reader.Read() && not (reader.IsDBNull 0) && not (reader.IsDBNull 1) then
+            return Some(reader.GetString 0, reader.GetString 1)
+        else
+            return None
+    }
+
+/// `post_watch_update`: for each of the user's pending updates, oldest first, send the Note. The conditions are checked
+/// again here (else the updates become `skipped`). The content and url are built once and stored on the row before
+/// the call, and every retry sends the stored values: Megáfono answers 409 when a key returns with a different body.
+let private postWatchUpdate
+    (connection: NpgsqlConnection)
+    (client: HttpClient)
+    (domain: string)
+    (defaultVisibility: Profiles.Visibility)
+    (userSubject: string)
+    : Task<Outcome> =
+    task {
+        match Guid.TryParse userSubject with
+        | false, _ -> return Finished(Some "bad subject")
+        | true, userId ->
+            let! poster = loadPoster connection defaultVisibility userId
+            let! days = pendingDays connection userId
+
+            let eligible =
+                match poster with
+                | Some p -> p.OptedIn && p.Visibility = Profiles.Public && Fediverse.isValidHandle p.Username
+                | None -> false
+
+            let mutable outcome = Finished None
+
+            for day in days do
+                if outcome = Finished None then
+                    match poster with
+                    | Some p when eligible ->
+                        let! frozen =
+                            task {
+                                match! loadFrozen connection userId day with
+                                | Some values -> return Some values
+                                | None ->
+                                    match! loadWatched connection userId day with
+                                    | [] -> return None
+                                    | watched ->
+                                        use store =
+                                            new NpgsqlCommand(
+                                                """
+                                                UPDATE watch_updates SET content = @content, url = @url
+                                                WHERE user_id = @user_id AND day = @day AND content IS NULL
+                                                """,
+                                                connection
+                                            )
+
+                                        param store "content" (watchUpdateHtml domain watched)
+                                        param store "url" $"https://{domain}/u/{p.Username}#watched-{dayText day}"
+                                        param store "user_id" userId
+                                        param store "day" day
+                                        let! _ = store.ExecuteNonQueryAsync()
+                                        // Read back: another worker may have frozen it first, and its values win
+                                        return! loadFrozen connection userId day
+                            }
+
+                        match frozen with
+                        | None -> do! setUpdateState connection userId day "pending" "skipped" // nothing qualifies any more
+                        | Some(content, url) ->
+                            let note =
+                                { Audience = "unlisted"
+                                  Content = content
+                                  Url = url
+                                  InReplyTo = None
+                                  Summary = None
+                                  Sensitive = false }
+
+                            let! result = publish client userSubject $"watch:{userSubject}:{dayText day}" note
+
+                            match publishedOf result with
+                            | Some(objectId, objectUrl) ->
+                                // Stored whatever the row's state, so the object is never lost; `published` only from `pending`
+                                use storeObject =
+                                    new NpgsqlCommand(
+                                        """
+                                        UPDATE watch_updates
+                                        SET object_id = @object_id, object_url = @object_url,
+                                            state = CASE WHEN state = 'pending' THEN 'published' ELSE state END
+                                        WHERE user_id = @user_id AND day = @day
+                                        """,
+                                        connection
+                                    )
+
+                                param storeObject "object_id" objectId
+                                param storeObject "object_url" objectUrl
+                                param storeObject "user_id" userId
+                                param storeObject "day" day
+                                let! _ = storeObject.ExecuteNonQueryAsync()
+                                ()
+                            | None when result.IsSuccess -> outcome <- Retry "unreadable answer"
+                            | None ->
+                                match classify [] result with
+                                | Refused reason ->
+                                    // A permanent refusal: this update will never go out
+                                    do! setUpdateState connection userId day "pending" "skipped"
+                                    outcome <- Refused reason
+                                | other -> outcome <- other
+                    | _ -> do! setUpdateState connection userId day "pending" "skipped"
+
+            return outcome
+    }
+
+/// `delete_watch_updates`: delete every object of the user's updates that isn't deleted yet. 2xx, 404 and 410 mark the
+/// row `deleted`; a transient answer retries the item (rows already done stay done); another 4xx is a refusal.
+let private deleteWatchUpdates (connection: NpgsqlConnection) (client: HttpClient) (userSubject: string) : Task<Outcome> =
+    task {
+        match Guid.TryParse userSubject with
+        | false, _ -> return Finished(Some "bad subject")
+        | true, userId ->
+            use listCmd =
+                new NpgsqlCommand(
+                    "SELECT day, object_id FROM watch_updates WHERE user_id = @user_id AND object_id IS NOT NULL AND state <> 'deleted' ORDER BY day",
+                    connection
+                )
+
+            param listCmd "user_id" userId
+
+            let! rows =
+                task {
+                    use! reader = listCmd.ExecuteReaderAsync()
+                    let found = ResizeArray<DateOnly * string>()
+
+                    while reader.Read() do
+                        found.Add((reader.GetFieldValue<DateOnly> 0, reader.GetString 1))
+
+                    return List.ofSeq found
+                }
+
+            let mutable outcome = Finished None
+
+            for day, objectId in rows do
+                if outcome = Finished None then
+                    let! result = deleteObject client objectId
+
+                    match classify [ 404; 410 ] result with
+                    | Finished _ -> 
+                        use mark =
+                            new NpgsqlCommand("UPDATE watch_updates SET state = 'deleted' WHERE user_id = @user_id AND day = @day", connection)
+
+                        param mark "user_id" userId
+                        param mark "day" day
+                        let! _ = mark.ExecuteNonQueryAsync()
+                        ()
+                    | other -> outcome <- other
+
+            return outcome
+    }
+
+let private run (db: DbConfig) (client: HttpClient) (domain: string) (defaultVisibility: Profiles.Visibility) (item: Item) : Task<Outcome> =
     task {
         use connection = getConnection db
         do! connection.OpenAsync()
@@ -416,6 +769,8 @@ let private run (db: DbConfig) (client: HttpClient) (domain: string) (item: Item
         | "refresh_profile" ->
             let! result = refreshProfile client item.Subject
             return classify [ 404; 410 ] result
+        | "post_watch_update" -> return! postWatchUpdate connection client domain defaultVisibility item.Subject
+        | "delete_watch_updates" -> return! deleteWatchUpdates connection client item.Subject
         | other -> return Refused $"unknown kind {other}"
     }
 
@@ -424,7 +779,14 @@ let private run (db: DbConfig) (client: HttpClient) (domain: string) (item: Item
 // ---------------------------------------------------------------------------
 
 /// Process the next due item, if any, at `now`. Returns true when one was processed (done, refused or rescheduled).
-let processNextWith (logger: ILogger) (db: DbConfig) (client: HttpClient) (values: Federation.FederationValues) (now: DateTimeOffset) : Task<bool> =
+let processNextWith
+    (logger: ILogger)
+    (db: DbConfig)
+    (client: HttpClient)
+    (values: Federation.FederationValues)
+    (defaultVisibility: Profiles.Visibility)
+    (now: DateTimeOffset)
+    : Task<bool> =
     task {
         match! claimNext db now with
         | None -> return false
@@ -432,7 +794,7 @@ let processNextWith (logger: ILogger) (db: DbConfig) (client: HttpClient) (value
             let! outcome =
                 task {
                     try
-                        return! run db client values.Domain item
+                        return! run db client values.Domain defaultVisibility item
                     with ex ->
                         // The exception goes to the log; only its type is kept on the row
                         logger.LogError(ex, "Fediverse outbox item {Id} ({Kind}) failed", item.Id, item.Kind)
@@ -449,12 +811,25 @@ let processNextWith (logger: ILogger) (db: DbConfig) (client: HttpClient) (value
     }
 
 /// `processNextWith` without a logger (the tests drive the worker through this)
-let processNext (db: DbConfig) (client: HttpClient) (values: Federation.FederationValues) (now: DateTimeOffset) : Task<bool> =
-    processNextWith NullLogger.Instance db client values now
+let processNext
+    (db: DbConfig)
+    (client: HttpClient)
+    (values: Federation.FederationValues)
+    (defaultVisibility: Profiles.Visibility)
+    (now: DateTimeOffset)
+    : Task<bool> =
+    processNextWith NullLogger.Instance db client values defaultVisibility now
 
 /// Polls the outbox: drains while there is work, sleeps 5 seconds when idle. Program registers it only with federation on.
 type FediverseOutboxService
-    (db: DbConfig, factory: IHttpClientFactory, settings: Federation.FederationSettings, time: TimeProvider, logger: ILogger<FediverseOutboxService>) =
+    (
+        db: DbConfig,
+        factory: IHttpClientFactory,
+        settings: Federation.FederationSettings,
+        profiles: Profiles.ProfileSettings,
+        time: TimeProvider,
+        logger: ILogger<FediverseOutboxService>
+    ) =
     inherit BackgroundService()
 
     override _.ExecuteAsync(stoppingToken: CancellationToken) : Task =
@@ -465,7 +840,7 @@ type FediverseOutboxService
                 while not stoppingToken.IsCancellationRequested do
                     try
                         let client = factory.CreateClient MegafonoClient.ClientName
-                        let! worked = processNextWith logger db client values (time.GetUtcNow())
+                        let! worked = processNextWith logger db client values profiles.DefaultVisibility (time.GetUtcNow())
 
                         if not worked then
                             do! Task.Delay(TimeSpan.FromSeconds 5.0, stoppingToken)

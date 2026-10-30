@@ -282,6 +282,72 @@ let ``a fresh database accepts failed outbox items and the upgrade leaves it alo
     }
 
 // ---------------------------------------------------------------------------
+// fediverse_outbox.kind gains post_watch_update and delete_watch_updates (feature 028)
+// ---------------------------------------------------------------------------
+
+let private kindChecks (db: DbConfig) =
+    Db.dump
+        db
+        "SELECT oid::text || '|' || conname || '|' || pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid = 'fediverse_outbox'::regclass AND contype = 'c' AND pg_get_constraintdef(oid) LIKE '%kind%'"
+
+let private insertWatchKinds (db: DbConfig) =
+    Db.execute db "INSERT INTO fediverse_outbox (kind, subject) VALUES ('post_watch_update', 'u1'), ('delete_watch_updates', 'u1')"
+
+[<Fact>]
+let ``the upgrade lets an older outbox hold the watch update kinds, keeps its rows, and the second run changes nothing`` () =
+    task {
+        let! db = newEmptyDatabase ()
+        do! initializeSchema db
+        // the six-kind shape (state already has failed), as a database from before feature 028 has it
+        do!
+            Db.execute
+                db
+                (outboxShapeBefore.Replace("CHECK (state IN ('pending', 'done'))", "CHECK (state IN ('pending', 'done', 'failed'))"))
+
+        do! Db.execute db "INSERT INTO fediverse_outbox (kind, subject, state) VALUES ('refresh_profile', 's1', 'pending'), ('delete_actor', 's2', 'done')"
+
+        let! error = Assert.ThrowsAnyAsync<PostgresException>(fun () -> insertWatchKinds db :> Task)
+        Assert.Equal("23514", error.SqlState)
+
+        do! initializeSchema db
+        do! insertWatchKinds db
+
+        let! error2 = Assert.ThrowsAnyAsync<PostgresException>(fun () -> Db.execute db "INSERT INTO fediverse_outbox (kind, subject) VALUES ('nonsense', 'u1')" :> Task)
+        Assert.Equal("23514", error2.SqlState)
+
+        let! rows = Db.dump db "SELECT kind || '|' || subject || '|' || state FROM fediverse_outbox ORDER BY id"
+
+        Assert.Equal<string list>(
+            [ "refresh_profile|s1|pending"
+              "delete_actor|s2|done"
+              "post_watch_update|u1|pending"
+              "delete_watch_updates|u1|pending" ],
+            rows
+        )
+
+        // the next starts leave the constraint alone
+        let! before = kindChecks db
+        do! initializeSchema db
+        do! initializeSchema db
+        let! after = kindChecks db
+        Assert.Equal<string list>(before, after)
+        Assert.Equal(1, after.Length)
+        Assert.Contains("fediverse_outbox_kind_check", after[0])
+    }
+
+[<Fact>]
+let ``a fresh database accepts the watch update kinds and the upgrade leaves it alone`` () =
+    task {
+        let! db = newEmptyDatabase ()
+        do! initializeSchema db
+        let! before = kindChecks db
+        do! insertWatchKinds db
+        do! initializeSchema db
+        let! after = kindChecks db
+        Assert.Equal<string list>(before, after)
+    }
+
+// ---------------------------------------------------------------------------
 // Feature 027: cr_episodes.aired_at, filled from the stored pages
 // ---------------------------------------------------------------------------
 

@@ -103,6 +103,8 @@ let federationEndpoints (settings: Federation.FederationSettings) =
           yield! Handlers.Megafono.Webhooks.endpoint
           // Blocks: a user's own (account page) and the instance's (operators, 404 for everyone else)
           yield! Handlers.Account.Blocks.endpoint
+          // Feature 028: the switch for watch updates on the fediverse
+          yield! Handlers.Account.WatchUpdates.endpoint
           yield! Handlers.Review.FediverseBlocks.endpoint ]
     | Federation.Disabled -> []
 

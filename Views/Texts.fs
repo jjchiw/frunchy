@@ -372,6 +372,25 @@ type Texts =
       InstanceBlocksLoadFailed: string
       ReviewFediverseLink: string
 
+      // Watch updates (feature 028): the account page's section, and the words of the post itself (the post is always
+      // written with the English values, like the episode threads; the Spanish ones are kept in step)
+      WatchUpdatesTitle: string
+      WatchUpdatesIntro: string
+      WatchUpdatesStateOn: string
+      WatchUpdatesStateOff: string
+      WatchUpdatesTurnOn: string
+      WatchUpdatesTurnOff: string
+      WatchUpdatesDeleteNote: string
+      WatchUpdatesNotPublic: string
+      /// The notice for a `msg` key (watch-updates-on, watch-updates-off, watch-updates-invalid)
+      WatchUpdatesNotice: string -> string
+      WatchUpdatePostWatched: string
+      WatchUpdatePostEpisodes: int -> string
+      WatchUpdatePostOf: string
+      WatchUpdatePostAnd: string
+      WatchUpdatePostMoreSeries: int -> string
+      WatchUpdatePostMoreNumbers: string
+
       // Episode page and comments (feature 009)
       /// Page title from the series title and the episode label
       EpisodePageTitle: string -> string -> string
@@ -847,6 +866,8 @@ let en =
             | "invite_created" -> "Invite created"
             | "invite_revoked" -> "Invite revoked"
             | "signup_mode_changed" -> "Sign-up mode changed"
+            | "watch_updates_enabled" -> "Watch updates turned on"
+            | "watch_updates_disabled" -> "Watch updates turned off"
             | other -> other
       ByOperator = "by the operator"
 
@@ -1048,6 +1069,30 @@ let en =
       InstanceBlocksEmpty = "No instance blocks."
       InstanceBlocksLoadFailed = "We can't load the instance blocks right now. Try again in a minute."
       ReviewFediverseLink = "Manage fediverse blocks"
+
+      WatchUpdatesTitle = "Watch updates"
+      WatchUpdatesIntro =
+        "Once a day at most, post what you finished watching to your fediverse followers: the series and episode numbers, with links to Frunchy. Only watching from after you turn this on is posted, never an old history, and nothing else about you."
+      WatchUpdatesStateOn = "Watch updates are on."
+      WatchUpdatesStateOff = "Watch updates are off."
+      WatchUpdatesTurnOn = "Turn on watch updates"
+      WatchUpdatesTurnOff = "Turn off watch updates"
+      WatchUpdatesDeleteNote =
+        "Turning this off, or making your profile anything but public, deletes the updates already posted. Copies other servers already fetched may stay there."
+      WatchUpdatesNotPublic = "Your profile isn't public, so nothing is posted until you make it public."
+      WatchUpdatesNotice =
+        fun key ->
+            match key with
+            | "watch-updates-on" -> "Watch updates are on."
+            | "watch-updates-off" -> "Watch updates are off. Earlier updates are being deleted."
+            | "watch-updates-invalid" -> "That choice isn't valid. Nothing changed."
+            | other -> other
+      WatchUpdatePostWatched = "Watched"
+      WatchUpdatePostEpisodes = fun n -> if n = 1 then "1 episode" else $"{n} episodes"
+      WatchUpdatePostOf = "of"
+      WatchUpdatePostAnd = "and"
+      WatchUpdatePostMoreSeries = fun n -> $"{n} more series"
+      WatchUpdatePostMoreNumbers = "…"
 
       EpisodePageTitle = fun series label -> $"{series}, {label}"
       EpisodeWatchOnCrunchyroll = "Watch on Crunchyroll"
@@ -1608,6 +1653,8 @@ let es =
             | "invite_created" -> "Invitación creada"
             | "invite_revoked" -> "Invitación revocada"
             | "signup_mode_changed" -> "Modo de registro cambiado"
+            | "watch_updates_enabled" -> "Novedades de visionado activadas"
+            | "watch_updates_disabled" -> "Novedades de visionado desactivadas"
             | other -> other
       ByOperator = "por el operador"
 
@@ -1809,6 +1856,30 @@ let es =
       InstanceBlocksEmpty = "No hay bloqueos del sitio."
       InstanceBlocksLoadFailed = "No podemos cargar los bloqueos del sitio ahora mismo. Inténtalo en un minuto."
       ReviewFediverseLink = "Gestionar bloqueos del fediverso"
+
+      WatchUpdatesTitle = "Novedades de visionado"
+      WatchUpdatesIntro =
+        "Como mucho una vez al día, publica para tus seguidores del fediverso lo que has terminado de ver: las series y los números de episodio, con enlaces a Frunchy. Solo se publica lo que veas después de activarlo, nunca un historial antiguo, y nada más sobre ti."
+      WatchUpdatesStateOn = "Las novedades de visionado están activadas."
+      WatchUpdatesStateOff = "Las novedades de visionado están desactivadas."
+      WatchUpdatesTurnOn = "Activar novedades de visionado"
+      WatchUpdatesTurnOff = "Desactivar novedades de visionado"
+      WatchUpdatesDeleteNote =
+        "Si lo desactivas, o si tu perfil deja de ser público, se borran las novedades ya publicadas. Las copias que otros servidores ya hayan descargado pueden seguir allí."
+      WatchUpdatesNotPublic = "Tu perfil no es público, así que no se publica nada hasta que lo hagas público."
+      WatchUpdatesNotice =
+        fun key ->
+            match key with
+            | "watch-updates-on" -> "Las novedades de visionado están activadas."
+            | "watch-updates-off" -> "Las novedades de visionado están desactivadas. Se están borrando las anteriores."
+            | "watch-updates-invalid" -> "Esa opción no es válida. No ha cambiado nada."
+            | other -> other
+      WatchUpdatePostWatched = "Visto"
+      WatchUpdatePostEpisodes = fun n -> if n = 1 then "1 episodio" else $"{n} episodios"
+      WatchUpdatePostOf = "de"
+      WatchUpdatePostAnd = "y"
+      WatchUpdatePostMoreSeries = fun n -> $"{n} series más"
+      WatchUpdatePostMoreNumbers = "…"
 
       EpisodePageTitle = fun series label -> $"{series}, {label}"
       EpisodeWatchOnCrunchyroll = "Ver en Crunchyroll"

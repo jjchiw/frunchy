@@ -68,6 +68,10 @@ let private save
         if federated && previous <> visibility then
             do! Fediverse.enqueue connection tx "refresh_profile" (string userId)
 
+        // Feature 028: a profile that stops being public stops its watch updates and deletes the earlier ones
+        if federated && previous = Profiles.Public && visibility <> Profiles.Public then
+            do! WatchUpdates.queueRemoval connection tx userId
+
         do! tx.CommitAsync()
     }
 

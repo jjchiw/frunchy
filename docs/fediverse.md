@@ -174,6 +174,36 @@ The ground for the integration is in place, with no federation code yet:
   Frunchy believe the gateway's `X-Forwarded-*` headers, from nobody else.
 - **Also in 014:** Discord sign-in removed, and a clean schema bootstrap for an empty database.
 
+## Watch updates (feature 028)
+
+Following a person used to show almost nothing: their comments are replies in the series' episode threads, and
+Mastodon hides replies from home timelines unless the follower also follows the series. A **watch update** is
+one Note from the user's own account listing what they finished recently, so following someone shows what they
+watch. The full rules are in `specs/028-watch-updates/watch-updates.spec.md`; the short version:
+
+- **Opt-in, off by default** (`/account#watch-updates`, a row in `watch_update_settings`), and only for a profile
+  whose effective visibility is Public and a username that can federate. Both are checked when the post is
+  queued and again when the worker sends it.
+- **At most one post per user and UTC day** (`watch_updates`, primary key `(user_id, day)`), and never one per
+  episode: a sync of 300 episodes gives one post. It is queued in the import's own transaction, only when
+  something qualifies, and only for recent watching: the window is `(covered_from, covered_until]` on
+  `watched_at`, from the latest of 48 hours ago, the moment the user turned updates on and the previous update's
+  `covered_until`. An old history, or anything watched before opting in, is never posted.
+- **The text** is English ("Watched 3 episodes of Frieren (5, 6, 7) and 1 episode of The Apothecary Diaries
+  (12)."): series titles link to `/anime/{seriesId}`, episode numbers to the episode page, at most 5 series and
+  6 numbers each, titles escaped, no episode title or thumbnail, no content warning. It goes out as an
+  `unlisted` Note (it reaches every follower's home timeline and stays out of public timelines) with the `url`
+  `https://{domain}/u/{username}#watched-{yyyy-MM-dd}`, key `watch:{userId}:{yyyy-MM-dd}`.
+- **The request is frozen at the first attempt.** Megáfono answers 409 `conflict` when a key is reused with a
+  different body, so the worker builds `content` and `url` once, stores them on the `watch_updates` row, and
+  every retry sends the stored values.
+- **Turning it off, or the profile leaving Public, deletes the earlier posts** (`delete_watch_updates`:
+  `DELETE /internal/objects/{id}` for each; 404 and 410 count as done) and stops new ones. Copies other servers
+  already fetched may stay. Turning it back on posts new updates only. A change of the instance default
+  visibility deletes nothing; the worker's re-check stops new posts.
+- Outbox kinds `post_watch_update` and `delete_watch_updates`, subject = the user id, so they run in order with
+  the user's `refresh_profile` and `delete_actor`.
+
 ## Decisions taken
 
 - **Spoilers are content warnings.** A spoiler comment carries `summary` (e.g. "Spoilers: S2 E5") and
@@ -214,7 +244,9 @@ The ground for the integration is in place, with no federation code yet:
    `/review/fediverse`), the handle lines and actor links on the dashboard and series pages, and the
    `fediverse-status` and `series-handle` commands. Everything outbound goes through a Postgres outbox and
    a worker; blocks are synchronous.
-5. **Next: following and a feed**, once Megáfono item 6 exists (inbound posts from followed accounts as a
+5. **Frunchy: watch updates** (feature 028): a user's account posts what they finished watching, once a day at
+   most, when they opt in and their profile is public (see "Watch updates" above).
+6. **Next: following and a feed**, once Megáfono item 6 exists (inbound posts from followed accounts as a
    webhook): follow remote accounts from Frunchy, follower and following lists, and a feed.
 
 **Known gap.** A comment whose thread was refused permanently (for example Megáfono answering 400 or 410
