@@ -116,3 +116,47 @@ let ``federation on with every setting starts and the settings resolve from the 
             Assert.Equal(secretWebhook, values.WebhookSecret)
         | Disabled -> failwith "expected federation to be enabled"
     }
+
+[<Fact>]
+let ``private addresses are refused by default and the setting is read`` () =
+    task {
+        let! db = PostgresFixture.newDatabase ()
+        use! app = PostgresFixture.createAppWith db allSettings ignore
+
+        match app.Services.GetRequiredService<FederationSettings>() with
+        | Enabled values -> Assert.False values.AllowPrivateAddresses
+        | Disabled -> failwith "expected federation to be enabled"
+    }
+
+[<Fact>]
+let ``allowing private addresses in Production stops startup naming the key and no value`` () =
+    // the test hosts run in Production
+    let ex =
+        Assert.Throws<InvalidOperationException>(fun () ->
+            build (allSettings @ [ "Frunchy:Federation:AllowPrivateAddresses", "true" ]) |> ignore)
+
+    Assert.Contains("Frunchy:Federation:AllowPrivateAddresses", ex.Message)
+    Assert.DoesNotContain(secretToken, ex.Message)
+    Assert.DoesNotContain(secretWebhook, ex.Message)
+
+[<Fact>]
+let ``allowing private addresses outside Production starts and is read`` () =
+    task {
+        let! db = PostgresFixture.newDatabase ()
+
+        use! app =
+            PostgresFixture.createAppWith db (allSettings @ [ "Frunchy:Federation:AllowPrivateAddresses", "true" ]) (fun builder ->
+                builder.Environment.EnvironmentName <- "Development")
+
+        match app.Services.GetRequiredService<FederationSettings>() with
+        | Enabled values -> Assert.True values.AllowPrivateAddresses
+        | Disabled -> failwith "expected federation to be enabled"
+    }
+
+[<Fact>]
+let ``allowing private addresses with federation off changes nothing`` () =
+    task {
+        let! db = PostgresFixture.newDatabase ()
+        use! app = PostgresFixture.createAppWith db [ "Frunchy:Federation:AllowPrivateAddresses", "true" ] ignore
+        Assert.Equal(Disabled, app.Services.GetRequiredService<FederationSettings>())
+    }

@@ -81,7 +81,15 @@ type Comment =
       /// Hidden by an operator: a placeholder for everyone else
       Hidden: bool
       /// Megáfono refused this comment's publish for good (feature 015): only its author is told
-      NotFederated: bool }
+      NotFederated: bool
+      /// Feature 028: the domain of the other Frunchy instance whose thread the comment came through
+      Via: string option }
+
+/// Feature 028: a thread another Frunchy instance published for this episode (or its dub)
+type RemoteThreadLine =
+    { Domain: string
+      /// Only an https address: the thread's page there, else its object id
+      Link: string option }
 
 /// What the comment form shows: a freshly minted id, and after a refusal the typed text and the error
 type FormState =
@@ -329,11 +337,20 @@ let private commentView (ctx: HttpContext) (t: Texts) (viewer: Guid option) (gra
         | Remote _ -> el.data("remote", "")
         | Local _ -> el
 
+    let el =
+        match c.Via with
+        | Some domain -> el.data("comment-via", domain)
+        | None -> el
+
     (if c.Hidden then el.data("hidden", "") else el) {
         div(class' = "flex flex-wrap items-baseline gap-x-3 gap-y-0.5") {
             authorLine viewer grants c.Author
 
             span(class' = "text-label-md font-normal text-on-surface-variant") { Layout.timeElement t "relative" c.CreatedAt }
+
+            match c.Via with
+            | Some domain -> span(class' = "text-label-md font-normal text-on-surface-variant [overflow-wrap:anywhere]") { t.CommentVia domain }
+            | None -> Fragment()
 
             if c.EditedAt.IsSome then
                 span(class' = "text-label-md font-normal text-on-surface-variant").data("edited", "") { t.CommentEdited }
@@ -427,7 +444,36 @@ let private thread (ctx: HttpContext) (t: Texts) (viewer: Guid option) (comments
         })
         :> HtmlElement
 
-let private view (ctx: HttpContext) (t: Texts) (viewer: Guid option) (people: int option) (m: EpisodeModel) (comments: Comment list) (f: FormState) =
+/// "Also discussed on {domain}" for each live thread another Frunchy instance published for the episode's group
+let private remoteThreads (t: Texts) (threads: RemoteThreadLine list) : HtmlElement =
+    if threads.IsEmpty then
+        Fragment() :> HtmlElement
+    else
+        (ul(class' = "space-y-1").data("remote-threads", string threads.Length) {
+            for thread in threads do
+                li(class' = "text-body-md text-on-surface-variant").data("remote-thread", thread.Domain) {
+                    match thread.Link with
+                    | Some url ->
+                        a(href = url, target = "_blank", class' = "fr-link inline-flex items-center gap-1 [overflow-wrap:anywhere]")
+                            .attr("rel", "nofollow noopener noreferrer") {
+                            t.RemoteThreadAlso thread.Domain
+                            icon Theme.OpenInNew
+                        }
+                    | None -> span(class' = "[overflow-wrap:anywhere]") { t.RemoteThreadAlso thread.Domain }
+                }
+        })
+        :> HtmlElement
+
+let private view
+    (ctx: HttpContext)
+    (t: Texts)
+    (viewer: Guid option)
+    (people: int option)
+    (m: EpisodeModel)
+    (comments: Comment list)
+    (threads: RemoteThreadLine list)
+    (f: FormState)
+    =
     div(class' = "space-y-10").data("episode-page", m.Id).data("series", m.SeriesId) {
         header t people m
 
@@ -438,6 +484,7 @@ let private view (ctx: HttpContext) (t: Texts) (viewer: Guid option) (people: in
             | Some _ -> commentForm ctx t m f
             | None -> signInPrompt t m
 
+            remoteThreads t threads
             thread ctx t viewer comments
 
             if WebAuth.isOperator ctx then
@@ -560,8 +607,10 @@ let private loadThread (connection: NpgsqlConnection) (settings: Profiles.Profil
                        c.format, c.remote_actor, ra.handle, ra.name, ra.profile_url,
                        ps.visibility, ps.share_link_id,
                        EXISTS (SELECT 1 FROM fediverse_outbox o
-                               WHERE o.kind = 'publish_comment' AND o.subject = c.id AND o.state = 'failed')
+                               WHERE o.kind = 'publish_comment' AND o.subject = c.id AND o.state = 'failed'),
+                       rt.domain
                 FROM comments c
+                LEFT JOIN remote_threads rt ON rt.object_id = c.remote_thread
                 LEFT JOIN users u ON u.id = c.author_user_id
                 LEFT JOIN profile_settings ps ON ps.user_id = c.author_user_id
                 LEFT JOIN remote_actors ra ON ra.id = c.remote_actor
@@ -619,7 +668,61 @@ let private loadThread (connection: NpgsqlConnection) (settings: Profiles.Profil
                   CreatedAt = r.GetDateTime 8
                   EditedAt = (if r.IsDBNull 9 then None else Some(r.GetDateTime 9))
                   Hidden = r.GetBoolean 10
-                  NotFederated = r.GetBoolean 18 }
+                  NotFederated = r.GetBoolean 18
+                  Via = text 19 }
+
+        return List.ofSeq rows
+    }
+
+/// Feature 028: the live threads other Frunchy instances published for the page's group, found by the group's
+/// episode ids (ours, or theirs) and its group key, so a thread stored before our catalog knew the episode shows
+/// once it does. Only threads of the page's series, and only links on the thread's own instance. Domain order.
+let private loadRemoteThreads
+    (connection: NpgsqlConnection)
+    (seriesId: string)
+    (group: string list)
+    (groupKey: string)
+    : Task<RemoteThreadLine list> =
+    task {
+        use cmd =
+            new NpgsqlCommand(
+                """
+                SELECT t.domain, t.url, t.object_id
+                FROM remote_threads t
+                WHERE t.deleted_at IS NULL AND t.series_id = @series_id
+                  AND (t.cr_episode_id = ANY(@group) OR t.remote_episode_id = ANY(@group) OR t.remote_group_key = @group_key)
+                ORDER BY t.domain, t.published_at, t.object_id
+                """,
+                connection
+            )
+
+        cmd.Parameters.AddWithValue("series_id", seriesId) |> ignore
+        cmd.Parameters.AddWithValue("group", Array.ofList group) |> ignore
+        cmd.Parameters.AddWithValue("group_key", groupKey) |> ignore
+        use! r = cmd.ExecuteReaderAsync()
+        let rows = ResizeArray<RemoteThreadLine>()
+
+        // An https address on the thread's own instance, or nothing: a followed instance can't point readers elsewhere
+        let onInstance (domain: string) (i: int) =
+            if r.IsDBNull i then
+                None
+            else
+                let url = r.GetString i
+
+                match Uri.TryCreate(url, UriKind.Absolute) with
+                | true, uri when
+                    url.Length <= 2000
+                    && uri.Scheme = Uri.UriSchemeHttps
+                    && uri.IsDefaultPort
+                    && uri.UserInfo = ""
+                    && String.Equals(uri.Host, domain, StringComparison.OrdinalIgnoreCase)
+                    ->
+                    Some url
+                | _ -> None
+
+        while r.Read() do
+            let domain = r.GetString 0
+            rows.Add { Domain = domain; Link = onInstance domain 1 |> Option.orElse (onInstance domain 2) }
 
         return List.ofSeq rows
     }
@@ -733,15 +836,23 @@ let handler (seriesId: string) (episodeId: string) : EndpointHandler =
                     let! comments = loadThread connection (ctx.GetService<Profiles.ProfileSettings>()) group
                     let! people = Charts.episodePeople (ctx.GetService<DbConfig>()) group (Charts.minPeople (ctx.GetService<IConfiguration>()))
 
-                    // With federation on, a published thread is advertised as the page's ActivityPub alternate (research R8)
-                    if Fediverse.isEnabled (ctx.GetService<Federation.FederationSettings>()) then
-                        let! groupKey = Fediverse.episodeGroupKey connection model.Id
+                    // With federation on, a published thread is advertised as the page's ActivityPub alternate (research R8),
+                    // and the threads other Frunchy instances published for the episode are listed (feature 028)
+                    let! remote =
+                        task {
+                            if Fediverse.isEnabled (ctx.GetService<Federation.FederationSettings>()) then
+                                let! groupKey = Fediverse.episodeGroupKey connection model.Id
 
-                        match! threadUrl connection groupKey with
-                        | Some url -> Layout.advertiseActivityPub ctx url
-                        | None -> ()
+                                match! threadUrl connection groupKey with
+                                | Some url -> Layout.advertiseActivityPub ctx url
+                                | None -> ()
 
-                    return! ctx.WriteHtmlView(view ctx t (WebAuth.currentUserId ctx) people model comments (freshForm true "" None))
+                                return! loadRemoteThreads connection model.SeriesId group groupKey
+                            else
+                                return []
+                        }
+
+                    return! ctx.WriteHtmlView(view ctx t (WebAuth.currentUserId ctx) people model comments remote (freshForm true "" None))
         }
 
 /// POST /anime/{seriesId}/episode/{episodeId}/comments: `id`, `content`, `spoiler`. Signed in (else the
@@ -774,8 +885,17 @@ let createHandler (seriesId: string) (episodeId: string) : EndpointHandler =
                             let! group = loadGroup connection model.Id
                             let! comments = loadThread connection (ctx.GetService<Profiles.ProfileSettings>()) group
                             let! people = Charts.episodePeople (ctx.GetService<DbConfig>()) group (Charts.minPeople (ctx.GetService<IConfiguration>()))
+                            let! remote =
+                                task {
+                                    if Fediverse.isEnabled (ctx.GetService<Federation.FederationSettings>()) then
+                                        let! groupKey = Fediverse.episodeGroupKey connection model.Id
+                                        return! loadRemoteThreads connection model.SeriesId group groupKey
+                                    else
+                                        return []
+                                }
+
                             ctx.SetStatusCode 422
-                            return! ctx.WriteHtmlView(view ctx t (Some userId) people model comments (freshForm spoiler typed (Some key)))
+                            return! ctx.WriteHtmlView(view ctx t (Some userId) people model comments remote (freshForm spoiler typed (Some key)))
                         }
 
                     if not (CommentRules.commentIdPattern.IsMatch id) then

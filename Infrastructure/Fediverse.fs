@@ -81,6 +81,14 @@ let seriesHandleOf (slug: string option) (seriesId: string) (taken: string -> bo
     |> List.tryFind (taken >> not)
     |> Option.defaultWith (fun () -> failwith "No free series handle")
 
+/// Feature 028: the namespace every Frunchy instance publishes its thread data under (an identifier only: nothing is
+/// fetched from it) and the prefix Megáfono shows it with
+[<Literal>]
+let ExtensionNamespace = "https://github.com/jjchiw/frunchy/ns#"
+
+[<Literal>]
+let ExtensionPrefix = "frunchy"
+
 /// `https://{domain}/ap/actors/{id}`: the actor URL a page advertises so a pasted link works on Mastodon
 let actorUrl (domain: string) (id: string) = $"https://{domain}/ap/actors/{id}"
 

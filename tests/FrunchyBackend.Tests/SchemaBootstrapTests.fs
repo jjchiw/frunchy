@@ -310,12 +310,12 @@ let private indexesQuery =
     ORDER BY 1
     """
 
-/// The tables features 015, 016, 017 and 020 added after the old bootstrap was frozen (the fediverse ones,
-/// `data_protection_keys`, `profile_settings` and `instance_settings`); the comparison with the old bootstrap leaves them out (their DDL is covered by the
+/// The tables features 015, 016, 017, 020 and 028 added after the old bootstrap was frozen (the fediverse ones,
+/// `data_protection_keys`, `profile_settings`, `instance_settings` and feature 028's three); the comparison with the old bootstrap leaves them out (their DDL is covered by the
 /// clean-bootstrap tests below), so it still proves the older tables unchanged
 let private fediverseTables =
     [ "series_handles"; "episode_threads"; "remote_actors"; "megafono_events"; "fediverse_outbox"; "data_protection_keys"
-      "profile_settings"; "instance_settings" ]
+      "profile_settings"; "instance_settings"; "instance_follows"; "series_follows"; "remote_threads" ]
 
 /// Every catalog line starts with its table name and a bar
 let private belongsToFediverse (line: string) =
@@ -349,21 +349,24 @@ let ``the clean bootstrap builds the schema the old bootstrap built`` () =
         Assert.True(oldConstraints.Length > 30, $"only {oldConstraints.Length} constraints found")
         Assert.True(oldIndexes.Length > 15, $"only {oldIndexes.Length} indexes found")
 
-        // Feature 023 added invites.is_setup and feature 027 cr_episodes.aired_at after the old bootstrap was frozen:
-        // they are the two columns the new schema has on older tables, so check them by themselves and compare the rest
+        // Feature 023 added invites.is_setup, feature 027 cr_episodes.aired_at and feature 028 comments.remote_thread
+        // after the old bootstrap was frozen: they are the three columns the new schema has on older tables, so check
+        // them by themselves and compare the rest
         Assert.Contains("invites|is_setup|boolean|NO|false", newColumns)
         Assert.Contains("cr_episodes|aired_at|timestamp with time zone|YES|<none>", newColumns)
+        Assert.Contains("comments|remote_thread|text|YES|<none>", newColumns)
 
         let afterTheOldBootstrap (l: string) =
-            l.StartsWith "invites|is_setup|" || l.StartsWith "cr_episodes|aired_at|"
+            l.StartsWith "invites|is_setup|" || l.StartsWith "cr_episodes|aired_at|" || l.StartsWith "comments|remote_thread|"
 
         Assert.Equal<string list>(oldColumns, withoutFediverse newColumns |> List.filter (afterTheOldBootstrap >> not))
         Assert.Equal<string list>(oldConstraints, withoutFediverse newConstraints)
         Assert.Equal<string list>(oldIndexes, withoutFediverse newIndexes)
 
-        // And the eight new tables really are there (so the filter above removed something): 29 columns for the
-        // five fediverse tables, 4 for data_protection_keys, 6 for profile_settings, 4 for instance_settings
-        Assert.True((newColumns |> List.filter belongsToFediverse |> List.length) = 43)
+        // And the eleven new tables really are there (so the filter above removed something): 29 columns for the
+        // five fediverse tables, 4 for data_protection_keys, 6 for profile_settings, 4 for instance_settings, and
+        // feature 028's instance_follows (2), series_follows (9) and remote_threads (12)
+        Assert.True((newColumns |> List.filter belongsToFediverse |> List.length) = 66)
     }
 
 [<Fact>]

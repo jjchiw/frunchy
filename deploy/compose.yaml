@@ -87,6 +87,7 @@ services:
       Megafono__App__BaseUrl: http://frunchy:8080
       Megafono__App__Token: ${MEGAFONO_TOKEN:?set MEGAFONO_TOKEN}
       Megafono__App__WebhookSecret: ${MEGAFONO_WEBHOOK_SECRET:?set MEGAFONO_WEBHOOK_SECRET}
+      Megafono__Software__Name: frunchy # NodeInfo's software name: how other Frunchy instances recognise this one (feature 028)
       ConnectionStrings__Database: Host=postgres;Database=megafono;Username=frunchy;Password=${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
       Megafono__TrustedProxies: 172.30.0.10 # the gateway; without it every request would count as the gateway's address
       Megafono__Ports__InternalBindAddress: 172.31.0.10 # the internal API listens on this address only: edge cannot reach 8081

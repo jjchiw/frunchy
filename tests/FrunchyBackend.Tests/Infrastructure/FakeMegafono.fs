@@ -4,7 +4,9 @@
 ///
 /// Defaults: publish gives 201 with a generated id and `objectUrl`, and the same key again gives the same id with 200
 /// (a different body under the same key is 409 `conflict`); PUT of an object is 200, DELETE of an object, DELETE and PUT
-/// of an actor are 202; blocks are kept in memory (201 new, 200 repeat, 204 lifted, 404 unknown); anything else is 404.
+/// of an actor are 202; blocks are kept in memory (201 new, 200 repeat, 204 lifted, 404 unknown); feature 028's
+/// remote-actor lookup is 200 with a Group derived from the request (`@x@host` gives `https://host/ap/actors/series-X`),
+/// a follow is 202 `pending` with `f-<n>` and an unfollow 202; anything else is 404.
 module FrunchyBackend.Tests.Infrastructure.FakeMegafono
 
 open System
@@ -68,6 +70,10 @@ let private errorCodeOf (status: int) =
     | 502 -> "remote_unreachable"
     | 503 -> "app_unavailable"
     | _ -> "server_error"
+
+/// A remote actor as Megáfono shows it
+let private actorJson (id: string) (handle: string) (kind: string) =
+    $$"""{"id":"{{id}}","handle":"{{handle}}","name":"Remote","iconUrl":null,"profileUrl":null,"type":"{{kind}}"}"""
 
 let private errorBody (status: int) =
     $$"""{"error":"{{errorCodeOf status}}","message":"fake {{status}}"}"""
@@ -230,6 +236,34 @@ type FakeMegafonoHandler() =
         | "DELETE", [ "internal"; "objects"; _ ] -> Status 202
         | "DELETE", [ "internal"; "actors"; _ ] -> Status 202
         | "PUT", [ "internal"; "actors"; _ ] -> Status 202
+        // Feature 028: the remote-actor lookup (a handle `@x@host` gives `https://host/ap/actors/series-X`, a URL is
+        // its own id), following and unfollowing
+        | "GET", [ "internal"; "remote-actors" ] ->
+            let handle = queryOf "handle"
+            let url = queryOf "url"
+
+            if not (String.IsNullOrEmpty url) then
+                Body(200, actorJson url $"@{(url.Split('/') |> Array.last).ToLowerInvariant()}@{(Uri url).Host}" "Group")
+            elif not (String.IsNullOrEmpty handle) then
+                match handle.TrimStart('@').Split '@' with
+                | [| user; host |] ->
+                    Body(200, actorJson $"https://{host}/ap/actors/series-{user.ToUpperInvariant().Replace('-', 'X')}" $"@{user}@{host}" "Group")
+                | _ -> Status 404
+            else
+                Status 400
+        | "POST", [ "internal"; "actors"; _; "following" ] ->
+            let target =
+                match request.Json.TryGetProperty "target" with
+                | true, t when t.ValueKind = JsonValueKind.String -> t.GetString()
+                | _ -> ""
+
+            if target = "" then
+                Status 400
+            else
+                let id = $"f-{next ()}"
+                let actor = actorJson target $"@remote@{(Uri target).Host}" "Person"
+                Body(202, $$"""{"followId":"{{id}}","status":"pending","actor":{{actor}}}""")
+        | "DELETE", [ "internal"; "actors"; _; "following" ] -> Status 202
         | _, [ "internal"; "actors"; actor; "blocks" ] -> blockCall actor
         | _, [ "internal"; "blocks" ] -> blockCall ""
         | _ -> Status 404

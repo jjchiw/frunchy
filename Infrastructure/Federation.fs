@@ -6,6 +6,7 @@ module FrunchyBackend.Infrastructure.Federation
 
 open System
 open Microsoft.Extensions.Configuration
+open Microsoft.Extensions.Hosting
 
 /// What federating needs, all validated
 type FederationValues =
@@ -18,6 +19,9 @@ type FederationValues =
         Token: string
         /// HMAC key for the Megafono-Signature header
         WebhookSecret: string
+        /// Feature 028: lets the NodeInfo check connect to loopback and private addresses (a local dev fediverse
+        /// only; `refuseInProduction` stops a Production start that sets it)
+        AllowPrivateAddresses: bool
     }
 
 type FederationSettings =
@@ -38,6 +42,9 @@ let TokenKey = "Frunchy:Megafono:Token"
 
 [<Literal>]
 let WebhookSecretKey = "Frunchy:Megafono:WebhookSecret"
+
+[<Literal>]
+let AllowPrivateAddressesKey = "Frunchy:Federation:AllowPrivateAddresses"
 
 let private valueOf (config: IConfiguration) (key: string) =
     match config[key] with
@@ -72,7 +79,14 @@ let read (config: IConfiguration) : Result<FederationSettings, string> =
                   $"{UrlKey} must be an absolute http or https URL" ]
 
         match missing, malformed with
-        | [], [] -> Ok(Enabled { Domain = domain; MegafonoUrl = Uri url; Token = token; WebhookSecret = secret })
+        | [], [] -> Ok(
+                Enabled
+                    { Domain = domain
+                      MegafonoUrl = Uri url
+                      Token = token
+                      WebhookSecret = secret
+                      AllowPrivateAddresses = config.GetValue<bool>(AllowPrivateAddressesKey, false) }
+            )
         | _ ->
             let missingText =
                 match missing with
@@ -80,3 +94,14 @@ let read (config: IConfiguration) : Result<FederationSettings, string> =
                 | keys -> [ $"""missing: {String.Join(", ", keys)}""" ]
 
             Error $"""Federation is enabled ({EnabledKey}) but its settings are not usable ({String.Join("; ", missingText @ malformed)})"""
+
+/// Feature 028 (FR-016): the NodeInfo guard may only be loosened outside Production. Called from `Program.buildApp`
+/// (the environment isn't known to `read`); names the key, never a value.
+let refuseInProduction (environment: IHostEnvironment) (settings: FederationSettings) =
+    match settings with
+    | Enabled values when values.AllowPrivateAddresses && environment.IsProduction() ->
+        raise (
+            InvalidOperationException
+                $"{AllowPrivateAddressesKey} must not be true in Production: it lets the server connect to private addresses"
+        )
+    | _ -> ()

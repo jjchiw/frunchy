@@ -58,7 +58,7 @@ let newEmptyDatabase () : Task<DbConfig> =
 
 /// The real app (Program.buildApp) on an in-process TestServer, background worker disabled,
 /// with the fake `test` sign-in provider registered (feature 002)
-type TestApp(app: WebApplication, client: HttpClient, db: DbConfig, mal: FakeMal.FakeMalHandler, megafono: FakeMegafono.FakeMegafonoHandler) =
+type TestApp(app: WebApplication, client: HttpClient, db: DbConfig, mal: FakeMal.FakeMalHandler, megafono: FakeMegafono.FakeMegafonoHandler, nodeInfo: FakeNodeInfo.FakeNodeInfoHandler) =
     member _.Client = client
     member _.Db = db
     member _.Services = app.Services
@@ -68,6 +68,9 @@ type TestApp(app: WebApplication, client: HttpClient, db: DbConfig, mal: FakeMal
 
     /// The stand-in for Megáfono's internal API (feature 015); in use only when the app runs with federation on
     member _.Megafono = megafono
+
+    /// The stand-in for other servers' NodeInfo (feature 028); in use only when the app runs with federation on
+    member _.NodeInfo = nodeInfo
 
     /// A fresh browser (own cookie jar) speaking the given language
     member _.NewBrowser(?language: string) =
@@ -88,6 +91,7 @@ let createAppWith (db: DbConfig) (extraConfig: (string * string) list) (customiz
     task {
         let mal = new FakeMal.FakeMalHandler()
         let megafono = new FakeMegafono.FakeMegafonoHandler()
+        let nodeInfo = new FakeNodeInfo.FakeNodeInfoHandler()
 
         let federated =
             extraConfig |> List.exists (fun (key, value) -> key = Federation.EnabledKey && value = "true")
@@ -115,11 +119,12 @@ let createAppWith (db: DbConfig) (extraConfig: (string * string) list) (customiz
 
                 FakeMal.useHandler mal builder.Services
                 if federated then FakeMegafono.useHandler megafono builder.Services
+                if federated then FakeNodeInfo.useHandler nodeInfo builder.Services
                 FakeProvider.register builder
                 customize builder)
 
         do! app.StartAsync()
-        return new TestApp(app, app.GetTestClient(), db, mal, megafono)
+        return new TestApp(app, app.GetTestClient(), db, mal, megafono, nodeInfo)
     }
 
 let createApp (db: DbConfig) : Task<TestApp> = createAppWith db [] ignore

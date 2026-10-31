@@ -32,7 +32,11 @@ type Status =
       /// Failed items by kind
       FailedByKind: (string * int64) list
       /// The newest few failed items, newest first
-      Failed: FailedItem list }
+      Failed: FailedItem list
+      /// Feature 028: series follows on other Frunchy instances, by state
+      Follows: (string * int64) list
+      /// Feature 028: instance follows, (domain, series followed there)
+      Instances: (string * int64) list }
 
 let status (db: DbConfig) : Task<Status> =
     task {
@@ -47,6 +51,8 @@ let status (db: DbConfig) : Task<Status> =
                 FROM fediverse_outbox WHERE state = 'pending' ORDER BY id LIMIT 1;
                 SELECT kind, count(*) FROM fediverse_outbox WHERE state = 'failed' GROUP BY 1 ORDER BY 1;
                 SELECT id, kind, subject, last_error FROM fediverse_outbox WHERE state = 'failed' ORDER BY id DESC LIMIT @shown;
+                SELECT state, count(*) FROM series_follows GROUP BY 1 ORDER BY 1;
+                SELECT f.domain, (SELECT count(*) FROM series_follows s WHERE s.domain = f.domain) FROM instance_follows f ORDER BY f.domain;
                 """,
                 conn
             )
@@ -88,11 +94,25 @@ let status (db: DbConfig) : Task<Status> =
                   Subject = r.GetString 2
                   LastError = if r.IsDBNull 3 then None else Some(r.GetString 3) }
 
+        let! _ = r.NextResultAsync()
+        let follows = ResizeArray()
+
+        while r.Read() do
+            follows.Add(r.GetString 0, r.GetInt64 1)
+
+        let! _ = r.NextResultAsync()
+        let instances = ResizeArray()
+
+        while r.Read() do
+            instances.Add(r.GetString 0, r.GetInt64 1)
+
         return
             { Counts = List.ofSeq counts
               Oldest = oldest
               FailedByKind = List.ofSeq failedByKind
-              Failed = List.ofSeq failed }
+              Failed = List.ofSeq failed
+              Follows = List.ofSeq follows
+              Instances = List.ofSeq instances }
     }
 
 /// Megáfono's address without anything a URL could carry besides the address (no user info, query or fragment): the
@@ -135,7 +155,17 @@ let render (settings: Federation.FederationSettings) (s: Status) : string list =
               yield sprintf "  %-16s %6d" kind count
 
           for item in s.Failed do
-              yield sprintf "  #%d %s %s: %s" item.Id item.Kind item.Subject (defaultArg item.LastError "no reason kept") ]
+              yield sprintf "  #%d %s %s: %s" item.Id item.Kind item.Subject (defaultArg item.LastError "no reason kept")
+
+      // Feature 028: following the same series on other Frunchy instances (nothing is printed while there is none)
+      if not s.Follows.IsEmpty then
+          yield $"FOLLOWS    {s.Follows |> List.sumBy snd} series follows on other Frunchy instances"
+
+          for state, count in s.Follows do
+              yield sprintf "  %-10s %6d" state count
+
+      for domain, count in s.Instances do
+          yield $"INSTANCE   {domain} ({count} series)" ]
 
 /// `fediverse-status`: always exits 0
 let run (db: DbConfig) (settings: Federation.FederationSettings) (_: string list) : Task<int> =

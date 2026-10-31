@@ -244,6 +244,7 @@ let private schema =
         deleted_at     timestamptz NULL,
         hidden_at      timestamptz NULL,
         hidden_by      uuid NULL REFERENCES users(id) ON DELETE SET NULL,
+        remote_thread  text NULL,
         CHECK ((author_user_id IS NULL) <> (remote_actor IS NULL)),
         -- Megáfono publishes replies only as public or unlisted; remote replies may arrive with any audience
         CHECK (author_user_id IS NULL OR audience IN ('public', 'unlisted'))
@@ -293,7 +294,8 @@ let private schema =
     CREATE TABLE IF NOT EXISTS fediverse_outbox (
         id              bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         kind            text NOT NULL CHECK (kind IN ('ensure_thread', 'publish_comment', 'update_comment', 'delete_comment',
-                                                       'delete_actor', 'refresh_profile')),
+                                                       'delete_actor', 'refresh_profile',
+                                                       'follow_series', 'unfollow_series')),
         subject         text NOT NULL,
         state           text NOT NULL DEFAULT 'pending' CHECK (state IN ('pending', 'done', 'failed')),
         attempts        int NOT NULL DEFAULT 0,
@@ -305,6 +307,47 @@ let private schema =
     );
 
     CREATE INDEX IF NOT EXISTS ix_fediverse_outbox_pending ON fediverse_outbox (next_attempt_at, id) WHERE state = 'pending';
+
+    -- Instance follows (feature 028): every series watched here, followed on another Frunchy instance
+    CREATE TABLE IF NOT EXISTS instance_follows (
+        domain     text PRIMARY KEY,
+        created_at timestamptz NOT NULL DEFAULT now()
+    );
+
+    -- Our series account following the same series' account on another Frunchy instance
+    CREATE TABLE IF NOT EXISTS series_follows (
+        series_id    text NOT NULL,
+        domain       text NOT NULL,
+        remote_actor text NOT NULL UNIQUE,            -- https://{domain}/ap/actors/series-{series_id}
+        source       text NOT NULL CHECK (source IN ('series', 'instance')),
+        state        text NOT NULL DEFAULT 'queued'
+                     CHECK (state IN ('queued', 'pending', 'accepted', 'rejected', 'removed', 'not_found', 'failed', 'unfollowed')),
+        follow_id    text NULL,
+        last_error   text NULL,
+        created_at   timestamptz NOT NULL DEFAULT now(),
+        updated_at   timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (series_id, domain)
+    );
+
+    -- Episode threads published by a followed series account on another Frunchy instance
+    CREATE TABLE IF NOT EXISTS remote_threads (
+        object_id         text PRIMARY KEY,
+        domain            text NOT NULL,
+        remote_actor      text NOT NULL,
+        series_id         text NOT NULL,
+        remote_episode_id text NOT NULL,
+        remote_group_key  text NULL,
+        cr_episode_id     text NULL REFERENCES cr_episodes(id),
+        url               text NULL,
+        published_at      timestamptz NOT NULL,
+        updated_at        timestamptz NULL,
+        deleted_at        timestamptz NULL,
+        received_at       timestamptz NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS ix_remote_threads_episode ON remote_threads (cr_episode_id);
+    CREATE INDEX IF NOT EXISTS ix_remote_threads_remote_episode ON remote_threads (remote_episode_id);
+    CREATE INDEX IF NOT EXISTS ix_remote_threads_group ON remote_threads (remote_group_key);
 
     -- Profile visibility and share link (feature 017, 'members' added by 021): one row per user who chose a visibility or made a link.
     -- No row means the instance default applies and there is no link. Only the link's hash is stored.
@@ -542,6 +585,37 @@ let private upgrades =
             WHERE c.id = n.id AND n.aired_at IS NOT NULL;
 
             DROP FUNCTION pg_temp.try_air_date(text);
+        END IF;
+    END $$;
+
+    -- Feature 028: comments.remote_thread, the remote thread's object id a comment came through
+    ALTER TABLE comments ADD COLUMN IF NOT EXISTS remote_thread text NULL;
+
+    -- Feature 028: fediverse_outbox.kind accepts 'follow_series' and 'unfollow_series'. An older database has the
+    -- kind check under whatever name Postgres gave it; find it by what it says (it names kind and lacks the new
+    -- kinds), drop it by that real name, and add the longer check. Once current, the block does nothing.
+    DO $$
+    DECLARE
+        old_check text;
+        replaced  boolean := false;
+    BEGIN
+        FOR old_check IN
+            SELECT c.conname
+            FROM pg_constraint c
+            WHERE c.conrelid = 'fediverse_outbox'::regclass
+              AND c.contype = 'c'
+              AND pg_get_constraintdef(c.oid) LIKE '%kind%'
+              AND pg_get_constraintdef(c.oid) NOT LIKE '%follow_series%'
+        LOOP
+            EXECUTE format('ALTER TABLE fediverse_outbox DROP CONSTRAINT %I', old_check);
+            replaced := true;
+        END LOOP;
+
+        IF replaced THEN
+            ALTER TABLE fediverse_outbox
+                ADD CONSTRAINT fediverse_outbox_kind_check
+                CHECK (kind IN ('ensure_thread', 'publish_comment', 'update_comment', 'delete_comment', 'delete_actor',
+                                'refresh_profile', 'follow_series', 'unfollow_series'));
         END IF;
     END $$;
     """

@@ -283,9 +283,42 @@ let ``fediverse-status never prints credentials that sit in the Megafono address
         { Domain = "frunchy.test"
           MegafonoUrl = Uri "http://user:hunter2@megafono.test:8081/base?token=abc"
           Token = "t"
-          WebhookSecret = "s" }
+          WebhookSecret = "s"
+          AllowPrivateAddresses = false }
 
-    let text = String.Join("\n", FediverseStatus.render (Federation.Enabled values) { Counts = []; Oldest = None; FailedByKind = []; Failed = [] })
+    let text = String.Join("\n", FediverseStatus.render (Federation.Enabled values) { Counts = []; Oldest = None; FailedByKind = []; Failed = []; Follows = []; Instances = [] })
     Assert.Contains("MEGAFONO    http://megafono.test:8081/base", text)
     Assert.DoesNotContain("hunter2", text)
     Assert.DoesNotContain("token=abc", text)
+
+[<Fact>]
+let ``fediverse-status counts the series follows by state and lists the instance follows`` () =
+    task {
+        use! app = sample true
+        let! series = Db.scalar<string> app.Db "SELECT series_id FROM cr_episodes WHERE duration_ms IS NOT NULL ORDER BY id LIMIT 1" []
+
+        do!
+            Db.execute
+                app.Db
+                $"""INSERT INTO instance_follows (domain) VALUES ('other.test');
+                    INSERT INTO series_follows (series_id, domain, remote_actor, source, state) VALUES
+                        ('{series}', 'other.test', 'https://other.test/ap/actors/series-{series}', 'instance', 'accepted'),
+                        ('OTHERSER1', 'other.test', 'https://other.test/ap/actors/series-OTHERSER1', 'instance', 'queued'),
+                        ('OTHERSER2', 'other.test', 'https://other.test/ap/actors/series-OTHERSER2', 'instance', 'queued'),
+                        ('OTHERSER3', 'third.test', 'https://third.test/ap/actors/series-OTHERSER3', 'series', 'not_found')"""
+
+        let! s = FediverseStatus.status app.Db
+        Assert.Equal<(string * int64) list>([ "accepted", 1L; "not_found", 1L; "queued", 2L ], s.Follows)
+        Assert.Equal<(string * int64) list>([ "other.test", 3L ], s.Instances)
+
+        let settings = app.Services.GetRequiredService<Federation.FederationSettings>()
+        let lines = FediverseStatus.render settings s
+        Assert.Contains("FOLLOWS    4 series follows on other Frunchy instances", lines)
+        Assert.Contains("  accepted        1", lines)
+        Assert.Contains("  queued          2", lines)
+        Assert.Contains("  not_found       1", lines)
+        Assert.Contains("INSTANCE   other.test (3 series)", lines)
+
+        let! code = cli app "fediverse-status" []
+        Assert.Equal(0, code)
+    }
