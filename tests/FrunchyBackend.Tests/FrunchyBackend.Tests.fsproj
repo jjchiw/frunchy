@@ -63,6 +63,8 @@
     <Compile Include="DnaTests.fs" />
     <Compile Include="DnaSeasonsTests.fs" />
     <Compile Include="DnaPaceTests.fs" />
+    <Compile Include="RecapRulesTests.fs" />
+    <Compile Include="RecapTests.fs" />
     <Compile Include="YearTests.fs" />
     <Compile Include="YearNavigationTests.fs" />
     <Compile Include="AnimeTests.fs" />

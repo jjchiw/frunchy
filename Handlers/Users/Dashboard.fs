@@ -63,6 +63,9 @@ type DashboardModel =
       Figures: Figures option // None when nothing resolved has been watched yet
       TopGenres: TopGenres option // None when no fully watched episode is in a matched season
       Recent: RecentEpisode list
+      /// The last 7 days and the streaks (feature 029); None together with `Figures`
+      Week: Recap.Week option
+      Streaks: Recap.Streaks option
       /// `@username@domain` with federation on (feature 015); None otherwise, and for a username that can't federate
       FediverseHandle: string option
       /// What the page says about who can see it (feature 017)
@@ -78,6 +81,79 @@ let private stats (t: Texts) (f: Figures) =
         metricTile t.StatEpisodes "episodes" (string f.Episodes) (f.Episodes.ToString("N0", t.Culture)) None
         metricTile t.StatHours "hours" (inv f.Hours) (f.Hours.ToString("N1", t.Culture)) None
         metricTile t.StatDays "days" (inv f.Days) (f.Days.ToString("N1", t.Culture)) None
+    }
+
+/// One figure of the recap card: a label over a mono number
+let private recapFigure (label: string) (value: string) =
+    div(class' = "space-y-1") {
+        p(class' = "fr-overline") { label }
+        p(class' = "font-mono text-headline-md text-primary") { value }
+    }
+
+/// The "Last 7 days" card (feature 029): the dashboard's rules over the window, in the third person
+let private recapCard (t: Texts) (w: Recap.Week) =
+    section(class' = "fr-card flex flex-col gap-5 p-5 md:p-6 lg:col-span-8")
+        .attr("aria-labelledby", "recap-title")
+        .data("recap", "")
+        .data("recap-episodes", string w.Episodes)
+        .data("recap-minutes", string w.Minutes)
+        .data("recap-series", string w.Series)
+        .data("recap-new", string w.New)
+        .data("recap-continued", string w.Continued) {
+        h2(id = "recap-title", class' = "flex items-center gap-2 text-headline-md text-on-surface") {
+            iconWith "text-primary" Theme.CalendarMonth
+            span() { t.RecapTitle }
+        }
+
+        if w.Any then
+            div(class' = "grid grid-cols-1 gap-4 sm:grid-cols-3") {
+                recapFigure t.RecapEpisodes (w.Episodes.ToString("N0", t.Culture))
+                recapFigure t.RecapTimeLabel (t.RecapTime w.Minutes)
+                recapFigure t.RecapSeries (w.Series.ToString("N0", t.Culture))
+            }
+
+            if w.Series > 0L then
+                p(class' = "text-body-md text-on-surface-variant") { t.RecapNewContinued w.New w.Continued }
+        else
+            p(class' = "text-body-md text-on-surface-variant").data("recap-empty", "") { t.RecapEmpty }
+
+        p(class' = "text-label-md font-normal text-on-surface-variant") { t.RecapDaysAreUtc }
+    }
+
+/// The "Streaks" card (feature 029): UTC days in a row with a fully watched episode. The longest run's dates are plain
+/// UTC dates, never a `data-fr-time` element, which would shift them into the viewer's time zone.
+let private streaksCard (t: Texts) (s: Recap.Streaks) =
+    let card =
+        section(class' = "fr-card flex flex-col gap-5 p-5 md:p-6 lg:col-span-4")
+            .attr("aria-labelledby", "streaks-title")
+            .data("streaks", "")
+            .data("streak-current", string s.Current)
+            .data("streak-longest", string (match s.Longest with Some r -> r.Days | None -> 0))
+
+    let card =
+        match s.Longest with
+        | Some r ->
+            card
+                .data("streak-longest-from", r.From.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))
+                .data("streak-longest-to", r.To.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture))
+        | None -> card
+
+    card {
+        h2(id = "streaks-title", class' = "flex items-center gap-2 text-headline-md text-on-surface") {
+            iconWith "text-primary" Theme.LocalFireDepartment
+            span() { t.StreaksTitle }
+        }
+
+        match s.Longest with
+        | Some longest ->
+            recapFigure t.StreakCurrent (t.StreakDays s.Current)
+
+            div(class' = "space-y-1") {
+                p(class' = "fr-overline") { t.StreakLongest }
+                p(class' = "font-mono text-headline-md text-primary") { t.StreakDays longest.Days }
+                p(class' = "text-label-md font-normal text-on-surface-variant") { t.StreakRange longest.From longest.To }
+            }
+        | None -> p(class' = "text-body-md text-on-surface-variant").data("streak-none", "") { t.StreakNone }
     }
 
 /// How far a partly watched episode got, 0–100
@@ -357,6 +433,14 @@ let view (ctx: HttpContext) (t: Texts) (m: DashboardModel) (compat: Compatibilit
         | Some figures ->
             stats t figures
 
+            match m.Week, m.Streaks with
+            | Some week, Some streaks ->
+                div(class' = "grid grid-cols-1 gap-6 lg:grid-cols-12") {
+                    recapCard t week
+                    streaksCard t streaks
+                }
+            | _ -> Fragment()
+
             div(class' = "grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-start lg:gap-6") {
                 recent t m
 
@@ -391,7 +475,11 @@ let private round1 (value: decimal) =
 
 /// `gate` runs right after the user lookup, before any other query: anything but `Show` is an `Error` and the handler
 /// answers the 404 (or, for a Members profile and a signed-out viewer, the sign-in redirect; features 017 and 021)
-let private tryLoad (db: DbConfig) (gate: Guid -> Task<Profiles.GateResult>) (username: string) : Task<Result<DashboardModel, Profiles.GateResult>> =
+let private tryLoad
+    (db: DbConfig)
+    (now: DateTimeOffset)
+    (gate: Guid -> Task<Profiles.GateResult>)
+    (username: string) : Task<Result<DashboardModel, Profiles.GateResult>> =
     task {
         use connection = getConnection db
         do! connection.OpenAsync()
@@ -565,6 +653,17 @@ let private tryLoad (db: DbConfig) (gate: Guid -> Task<Profiles.GateResult>) (us
                                   AllEpisodes = all }
                 }
 
+            // The recap and the streaks (feature 029): after the gate, and only where the figures show
+            let! week, streaks =
+                task {
+                    match figures with
+                    | Some _ ->
+                        let! w = Recap.loadWeek connection userId now
+                        let! s = Recap.loadStreaks connection userId now
+                        return Some w, Some s
+                    | None -> return None, None
+                }
+
             use syncCmd =
                 new NpgsqlCommand(
                     "SELECT max(received_at), coalesce(bool_or(status IN ('pending', 'processing')), false) FROM cr_imports WHERE user_id = @user_id",
@@ -590,6 +689,8 @@ let private tryLoad (db: DbConfig) (gate: Guid -> Task<Profiles.GateResult>) (us
                       Figures = figures
                       TopGenres = topGenres
                       Recent = recent
+                      Week = week
+                      Streaks = streaks
                       FediverseHandle = None
                       Access = access }
     }
@@ -608,7 +709,7 @@ let handler (rawUsername: string) : EndpointHandler =
                 | Some username ->
                     let db = ctx.GetService<DbConfig>()
                     // A hidden profile loads as no user at all: the unknown-user 404 below
-                    tryLoad db (Profiles.gate ctx db) username
+                    tryLoad db (ctx.GetService<TimeProvider>().GetUtcNow()) (Profiles.gate ctx db) username
                 | None -> Task.FromResult(Error Profiles.NotFound)
 
             match model with

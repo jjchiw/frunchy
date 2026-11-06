@@ -1,5 +1,6 @@
 module FrunchyBackend.Views.Texts
 
+open System
 open System.Globalization
 
 /// Every user-facing string of the web UI. Adding a field forces a value in each language.
@@ -49,6 +50,21 @@ type Texts =
       StatEpisodes: string
       StatHours: string
       StatDays: string
+      // Weekly recap and streaks on the dashboard (feature 029)
+      RecapTitle: string
+      RecapEpisodes: string
+      RecapTime: int64 -> string
+      RecapTimeLabel: string
+      RecapSeries: string
+      RecapNewContinued: int64 -> int64 -> string
+      RecapEmpty: string
+      RecapDaysAreUtc: string
+      StreaksTitle: string
+      StreakCurrent: string
+      StreakLongest: string
+      StreakDays: int -> string
+      StreakRange: DateOnly -> DateOnly -> string
+      StreakNone: string
       RecentTitle: string
       EpisodeLabel: int -> string
       SpecialLabel: string
@@ -658,6 +674,28 @@ let en =
       StatEpisodes = "Episodes watched"
       StatHours = "Hours watched"
       StatDays = "Days of life"
+      RecapTitle = "Last 7 days"
+      RecapEpisodes = "Episodes"
+      RecapTime =
+        fun m ->
+            if m < 60L then $"{m} min"
+            else if m % 60L = 0L then $"{m / 60L} h"
+            else $"{m / 60L} h {m % 60L} min"
+      RecapTimeLabel = "Time"
+      RecapSeries = "Series"
+      RecapNewContinued =
+        fun fresh continued -> $"{fresh} new, {continued} continued"
+      RecapEmpty = "Nothing watched in the last 7 days."
+      RecapDaysAreUtc = "Days are counted in UTC."
+      StreaksTitle = "Streaks"
+      StreakCurrent = "Current streak"
+      StreakLongest = "Longest streak"
+      StreakDays = fun d -> if d = 1 then "1 day" else $"{d} days"
+      StreakRange =
+        fun a b ->
+            let c = CultureInfo.GetCultureInfo "en"
+            $"""{a.ToString("d MMM yyyy", c)} to {b.ToString("d MMM yyyy", c)}"""
+      StreakNone = "No streak yet"
       RecentTitle = "Recently watched"
       EpisodeLabel = fun n -> $"Episode {n}"
       SpecialLabel = "Special"
@@ -1445,6 +1483,31 @@ let es =
       StatEpisodes = "Episodios vistos"
       StatHours = "Horas vistas"
       StatDays = "Días de vida"
+      RecapTitle = "Últimos 7 días"
+      RecapEpisodes = "Episodios"
+      RecapTime =
+        fun m ->
+            if m < 60L then $"{m} min"
+            else if m % 60L = 0L then $"{m / 60L} h"
+            else $"{m / 60L} h {m % 60L} min"
+      RecapTimeLabel = "Tiempo"
+      RecapSeries = "Series"
+      RecapNewContinued =
+        fun fresh continued ->
+            let n = if fresh = 1L then "nueva" else "nuevas"
+            let c = if continued = 1L then "continuada" else "continuadas"
+            $"{fresh} {n}, {continued} {c}"
+      RecapEmpty = "Nada visto en los últimos 7 días."
+      RecapDaysAreUtc = "Los días se cuentan en UTC."
+      StreaksTitle = "Rachas"
+      StreakCurrent = "Racha actual"
+      StreakLongest = "Racha más larga"
+      StreakDays = fun d -> if d = 1 then "1 día" else $"{d} días"
+      StreakRange =
+        fun a b ->
+            let c = CultureInfo.GetCultureInfo "es"
+            $"""{a.ToString("d MMM yyyy", c)} a {b.ToString("d MMM yyyy", c)}"""
+      StreakNone = "Aún sin racha"
       RecentTitle = "Últimos vistos"
       EpisodeLabel = fun n -> $"Episodio {n}"
       SpecialLabel = "Especial"
