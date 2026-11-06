@@ -33,7 +33,8 @@
 | `data-progress-entry` | each listed entry | the MyAnimeList id |
 | `data-entry-watched` | in it | episodes fully watched |
 | `data-entry-total` | in it, when known | MyAnimeList episodes |
-| `data-entry-last` | in it | `<time datetime=…>` of the newest watch (also `data-fr-time`) |
+| `data-progress-bar-segment` | the counts bar's two drawn segments (`completed`, then `watching`; absent at 0), inline `width` in % of all started shows; Unfinished is the bar's track, not a segment | `completed` or `watching` |
+| `data-entry-last` | in it | `<time datetime=…>` of the newest watch, also `data-fr-time="relative-only"` (Layout script: the relative text only, the absolute date and time in `title`; the UTC text stays without JS) |
 | `data-entry-long-runner` | in it, when a long runner | `""` |
 | `data-next-episode` | the next-episode link, when there is one | the episode number; `href` is the episode page or Crunchyroll |
 | `data-series-page-link` | the title | (existing hook) `href` `/anime/{seriesId}` |

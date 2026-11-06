@@ -7,7 +7,8 @@ open FrunchyBackend.Infrastructure
 open FrunchyBackend.Views.Texts
 
 /// Rewrites every <time data-fr-time> into the viewer's language and time zone.
-/// data-fr-time="relative" → "2 hours ago · 30 Sep 2026, 23:46"; any other value → the absolute part only.
+/// data-fr-time="relative" → "2 hours ago · 30 Sep 2026, 23:46"; "relative-only" → "2 hours ago", with the absolute
+/// date and time in the element's title; any other value → the absolute part only.
 /// Without JavaScript the server-rendered UTC fallback stays (contracts/dashboard-ui.md).
 let private timeScript =
     """
@@ -32,8 +33,14 @@ document.addEventListener('DOMContentLoaded', function () {
     var date = new Date(el.getAttribute('datetime'));
     if (isNaN(date.getTime())) return;
     var absolute = dtf.format(date);
-    el.textContent = el.getAttribute('data-fr-time') === 'relative' ? relative(date) + ' · ' + absolute : absolute;
-    el.title = date.toISOString();
+    var mode = el.getAttribute('data-fr-time');
+    if (mode === 'relative-only') {
+      el.textContent = relative(date);
+      el.title = absolute;
+    } else {
+      el.textContent = mode === 'relative' ? relative(date) + ' · ' + absolute : absolute;
+      el.title = date.toISOString();
+    }
   });
 });
 """

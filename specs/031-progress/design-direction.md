@@ -90,3 +90,19 @@ sm:gap-4`.
 
 The owner with 100+ unfinished; the owner all caught up; the owner with nothing started; the visitor; one crop with a
 long-runner row, an airing row without a total and a row without a poster; the tab bar at 360 on the Progress page.
+
+## Second look (2026-11-06)
+
+Approved once two fixes land; the tab-scroll selector (`nav.fr-tabs [aria-current]`) and leaving out the Completed
+section at 0 are accepted.
+
+1. **Meta line**: rows and tiles show the relative time only ("last watched 3 months ago"); the absolute date goes
+   in the `<time>` element's `title` (a "relative-only" mode of the time element if Layout's Intl script always
+   writes both). The meta becomes two fixed parts: wrapper `flex flex-col sm:flex-row sm:flex-wrap sm:items-center
+   sm:gap-x-2`; part one "3 of 12 episodes" plus the Airing/Long run pill; a middot `span` with `hidden sm:inline`,
+   `aria-hidden`; part two "last watched …". Two clean lines at 360, one line at 1280.
+2. **Completed tiles**: solved by 1 (title, "12 ep.", "2 months ago").
+3. **Counts bar**: Unfinished is the track, not a segment: the bar's background is `bg-surface-container-highest`
+   and only Completed (`bg-primary`) and Watching (`bg-tertiary`) are drawn, as % of all started shows. The
+   Unfinished number keeps `text-on-surface-variant`. Caught up fills the bar.
+4. Nested "Show all N": keep. 5. Scroll cue: fine. 6. Long runner in a closed year: correct, no change.

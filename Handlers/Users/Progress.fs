@@ -65,12 +65,12 @@ let private header (ctx: HttpContext) (t: Texts) (m: ProgressModel) =
         }
     }
 
-let private segment (colour: string) (count: int) (whole: int) : HtmlElement =
+let private segment (hook: string) (colour: string) (count: int) (whole: int) : HtmlElement =
     if count = 0 then
         Fragment()
     else
         let width = (100m * decimal count / decimal whole).ToString("0.###", CultureInfo.InvariantCulture)
-        div(class' = $"h-full {colour}").attr("style", $"width: {width}%%")
+        div(class' = $"h-full {colour}").data("progress-bar-segment", hook).attr("style", $"width: {width}%%")
 
 let private countCell (t: Texts) (hook: string) (colour: string) (label: string) (count: int) =
     div(class' = "min-w-0") {
@@ -78,8 +78,9 @@ let private countCell (t: Texts) (hook: string) (colour: string) (label: string)
         p(class' = "text-label-md font-normal text-on-surface-variant") { label }
     }
 
-/// One card: the three figures in lifecycle order over one segmented bar. A visitor gets the line under the bar
-/// saying the lists are the owner's.
+/// One card: the three figures in lifecycle order over one bar. The bar's track is Unfinished: only Completed and
+/// Watching are drawn, as shares of every started show, so a caught-up person fills it. A visitor gets the line under
+/// the bar saying the lists are the owner's.
 let private countsCard (t: Texts) (m: ProgressModel) =
     let whole = m.CompletedCount + m.WatchingCount + m.UnfinishedCount
 
@@ -90,10 +91,9 @@ let private countsCard (t: Texts) (m: ProgressModel) =
             countCell t "progress-unfinished" "text-on-surface-variant" t.ProgressUnfinished m.UnfinishedCount
         }
 
-        div(class' = "flex h-2 gap-0.5 overflow-hidden rounded-full").attr("aria-hidden", "true") {
-            segment "bg-primary" m.CompletedCount whole
-            segment "bg-tertiary" m.WatchingCount whole
-            segment "bg-outline" m.UnfinishedCount whole
+        div(class' = "flex h-2 overflow-hidden rounded-full bg-surface-container-highest").attr("aria-hidden", "true") {
+            segment "completed" "bg-primary" m.CompletedCount whole
+            segment "watching" "bg-tertiary" m.WatchingCount whole
         }
 
         match m.Owner with
@@ -156,7 +156,7 @@ let private entryHooks (e: Entry) (row: li) : li =
     if e.LongRunner then row.data("entry-long-runner", "") else row
 
 let private lastWatched (t: Texts) (e: Entry) =
-    (Layout.timeElement t "relative" e.LastWatch.UtcDateTime).data("entry-last", "")
+    (Layout.timeElement t "relative-only" e.LastWatch.UtcDateTime).data("entry-last", "")
 
 /// The title: the public series page, never into anybody's history
 let private titleLink (e: Entry) =
@@ -182,25 +182,29 @@ let private row (t: Texts) (e: Entry) =
                 div(class' = "min-w-0 space-y-1") {
                     p(class' = "line-clamp-2 text-body-md font-semibold [overflow-wrap:anywhere]") { titleLink e }
 
-                    p(class' = "flex flex-wrap items-center gap-x-2 gap-y-1 text-label-md font-normal text-on-surface-variant") {
-                        span() {
-                            match e.Total with
-                            | Some total when not e.LongRunner -> t.ProgressMetaOf e.Watched total
-                            | _ -> t.ProgressMetaEpisodes e.Watched
+                    // two fixed parts: the figures with the Airing or Long run pill, then "last watched …"; the
+                    // middot between them shows only on one line (sm and up), never when they stack on a phone
+                    div(class' = "flex flex-col gap-y-0.5 text-label-md font-normal text-on-surface-variant sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-2") {
+                        span(class' = "flex flex-wrap items-center gap-x-2 gap-y-1") {
+                            span() {
+                                match e.Total with
+                                | Some total when not e.LongRunner -> t.ProgressMetaOf e.Watched total
+                                | _ -> t.ProgressMetaEpisodes e.Watched
+                            }
+
+                            if e.LongRunner then
+                                pill TertiaryTone t.ProgressLongRun
+                            elif e.Total.IsNone && e.Airing then
+                                pill Muted t.ProgressAiring
                         }
 
-                        span().attr("aria-hidden", "true") { "·" }
+                        span(class' = "hidden sm:inline").attr("aria-hidden", "true") { "·" }
 
                         span() {
                             t.ProgressLastWatched
                             " "
                             lastWatched t e
                         }
-
-                        if e.LongRunner then
-                            pill TertiaryTone t.ProgressLongRun
-                        elif e.Total.IsNone && e.Airing then
-                            pill Muted t.ProgressAiring
                     }
 
                     match progress with

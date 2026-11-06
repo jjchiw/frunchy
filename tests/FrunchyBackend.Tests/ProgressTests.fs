@@ -201,6 +201,8 @@ type private Row =
       /// (number, href) of the next-episode button
       Next: (string * string) option
       Last: string
+      /// The `data-fr-time` mode of that time element
+      TimeMode: string
       Block: string }
 
 let private rows (html: string) : Row list =
@@ -220,6 +222,7 @@ let private rows (html: string) : Row list =
             LongRunner = li.ContainsKey "entry-long-runner"
             Next = next
             Last = Regex.Match(m.Value, "<time\\b[^>]*datetime=\"([^\"]*)\"[^>]*data-entry-last").Groups[1].Value
+            TimeMode = Regex.Match(m.Value, "<time\\b[^>]*data-fr-time=\"([^\"]*)\"[^>]*data-entry-last").Groups[1].Value
             Block = m.Value } ]
 
 let private ids (list: string) (html: string) =
@@ -288,12 +291,50 @@ let ``an entry of 12 with 4 watched 3 months ago is unfinished with its figures 
         Assert.False r.LongRunner
         // the newest watch: episode 4, 90 days ago, three minutes after the first
         Assert.Equal((ago 90.0).AddMinutes(3.0).ToString("yyyy-MM-ddTHH:mm:ssZ"), r.Last)
-        Assert.Contains("data-fr-time", r.Block)
+        Assert.Equal("relative-only", r.TimeMode)
         Assert.Contains("4 of 12 episodes", r.Block)
         // the title leads to the public series page, never into a history
         Assert.Contains("href=\"/anime/SHOWUNF\"", r.Block)
         Assert.Contains("data-series-page-link=\"SHOWUNF\"", r.Block)
         Assert.Contains("Series SHOWUNF", r.Block)
+    }
+
+[<Fact>]
+let ``every row and tile shows the relative time only, the date goes in the title`` () =
+    task {
+        use! w = mainWorld ()
+        let! html = ownerPage w
+        let all = rows html
+
+        // watching, unfinished and completed: all ten
+        Assert.Equal(10, all.Length)
+        Assert.All(all, fun r -> Assert.Equal("relative-only", r.TimeMode))
+        // the row's only middot is the one between its two parts, hidden when they stack
+        for r in all |> List.filter (fun r -> r.List <> "completed") do
+            // ViewEngine writes non-ASCII as &#NNN;
+            let block = r.Block.Replace("·", "&#183;")
+            Assert.Equal(1, Regex.Matches(block, "&#183;").Count)
+            Assert.Matches("<span class=\"hidden sm:inline\"[^>]*aria-hidden=\"true\"[^>]*>&#183;</span>", block)
+        // a tile has no middot at all
+        for r in all |> List.filter (fun r -> r.List = "completed") do
+            Assert.DoesNotContain("&#183;", r.Block)
+            Assert.DoesNotContain("·", r.Block)
+    }
+
+[<Fact>]
+let ``the counts bar draws two segments, completed and watching, over the unfinished track`` () =
+    task {
+        use! w = mainWorld ()
+        let! html = ownerPage w
+
+        // 2 + 2 + 6 started shows: 20% and 20%, the other 60% is the track
+        let widths =
+            [ for m in Regex.Matches(html, "<div\\b[^>]*data-progress-bar-segment=\"([a-z]+)\"[^>]*style=\"width: ([0-9.]+)%") ->
+                  m.Groups[1].Value, m.Groups[2].Value ]
+
+        Assert.Equal<(string * string) list>([ "completed", "20"; "watching", "20" ], widths)
+        Assert.Contains("bg-surface-container-highest", html)
+        Assert.DoesNotContain("bg-outline\"", html)
     }
 
 [<Fact>]
@@ -506,6 +547,9 @@ let ``an owner with nothing unfinished sees the all-caught-up line under the hea
         let! html = ownerPage w
 
         Assert.Equal("0", hookValue "progress-unfinished" html)
+        // caught up: the two segments fill the bar (50% each)
+        Assert.Equal<string list>([ "completed"; "watching" ], [ for e in elements "progress-bar-segment" html -> attr "progress-bar-segment" e ])
+        Assert.Equal(2, Regex.Matches(html, "width: 50%").Count)
         Assert.Contains("You're all caught up", html)
         Assert.Empty(ids "unfinished" html)
         Assert.False(html.Contains "data-progress-list=\"unfinished\"")
