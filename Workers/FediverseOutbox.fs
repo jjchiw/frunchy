@@ -753,6 +753,322 @@ let private deleteWatchUpdates (connection: NpgsqlConnection) (client: HttpClien
             return outcome
     }
 
+// ---------------------------------------------------------------------------
+// Weekly recap posts (feature 030)
+// ---------------------------------------------------------------------------
+
+/// What a recap post says: the week's figures (feature 029's rules over the completed week), the UTC days of the week
+/// with a fully watched episode, and the most watched series (at most three, most episodes first)
+type RecapPost =
+    { Week: Recap.Week
+      DaysWatched: int
+      MostWatched: Recap.MostWatched list }
+
+/// At most this many series are named as most watched
+[<Literal>]
+let private MaxMostWatched = 3
+
+/// The Note's HTML (research of feature 030): "My week on Frunchy (Nov 2 – Nov 8, 2026): 14 episodes, 5 h 20 min, 4
+/// series (2 new, 2 continued). Watched on 5 of 7 days." then, when there is any, "Most watched: Frieren (6), The
+/// Apothecary Diaries (4) and Dandadan (2)." as a second paragraph. Titles link to the public series page, absolute
+/// under `https://{domain}`; everything is escaped. English like the other posts (a post on the fediverse is not a page
+/// in a viewer's language).
+let recapPostHtml (domain: string) (weekStart: DateOnly) (post: RecapPost) : string =
+    let t = Texts.en
+    let w = post.Week
+
+    let figures =
+        String.Join(
+            ", ",
+            [ t.RecapPostEpisodes w.Episodes
+              t.RecapTime w.Minutes
+              t.RecapPostSeries w.Series + " " + t.RecapPostNewContinued w.New w.Continued ]
+        )
+
+    let first =
+        "<p>"
+        + enc (t.RecapPostHeading weekStart (weekStart.AddDays 6))
+        + " "
+        + enc figures
+        + ". "
+        + enc (t.RecapPostDays post.DaysWatched)
+        + "</p>"
+
+    let second =
+        match post.MostWatched |> List.truncate MaxMostWatched with
+        | [] -> ""
+        | shown ->
+            let part (m: Recap.MostWatched) =
+                let href = enc ("https://" + domain + "/anime/" + m.SeriesId)
+                "<a href=\"" + href + "\">" + enc m.Title + "</a> (" + string m.Episodes + ")"
+
+            "<p>" + enc t.RecapPostMostWatched + " " + joinWithAnd (enc t.RecapPostAnd) (shown |> List.map part) + ".</p>"
+
+    first + second
+
+/// What the worker re-reads about the user before every recap attempt: when they opted in, besides the username and level
+type private RecapPoster =
+    { RUsername: string
+      EnabledAt: DateTimeOffset option
+      RVisibility: Profiles.Visibility }
+
+let private loadRecapPoster (connection: NpgsqlConnection) (defaultVisibility: Profiles.Visibility) (userId: Guid) : Task<RecapPoster option> =
+    task {
+        use cmd =
+            new NpgsqlCommand(
+                """
+                SELECT u.username, st.enabled_at, ps.visibility
+                FROM users u
+                LEFT JOIN recap_post_settings st ON st.user_id = u.id
+                LEFT JOIN profile_settings ps ON ps.user_id = u.id
+                WHERE u.id = @user_id
+                """,
+                connection
+            )
+
+        param cmd "user_id" userId
+        use! reader = cmd.ExecuteReaderAsync()
+
+        if reader.Read() then
+            let choice = text reader 2 |> Option.bind Profiles.Visibility.tryParse
+
+            return
+                Some
+                    { RUsername = reader.GetString 0
+                      EnabledAt = if reader.IsDBNull 1 then None else Some(DateTimeOffset(reader.GetDateTime 1))
+                      RVisibility = Profiles.effective defaultVisibility choice }
+        else
+            return None
+    }
+
+/// A pending recap post: its week and the window it covers
+type private PendingRecap =
+    { WeekStart: DateOnly
+      From: DateTimeOffset
+      Until: DateTimeOffset }
+
+let private pendingRecaps (connection: NpgsqlConnection) (userId: Guid) : Task<PendingRecap list> =
+    task {
+        use cmd =
+            new NpgsqlCommand(
+                "SELECT week_start, covered_from, covered_until FROM recap_posts WHERE user_id = @user_id AND state = 'pending' ORDER BY week_start",
+                connection
+            )
+
+        param cmd "user_id" userId
+        use! reader = cmd.ExecuteReaderAsync()
+        let rows = ResizeArray<PendingRecap>()
+
+        while reader.Read() do
+            rows.Add
+                { WeekStart = reader.GetFieldValue<DateOnly> 0
+                  From = DateTimeOffset(reader.GetDateTime 1)
+                  Until = DateTimeOffset(reader.GetDateTime 2) }
+
+        return List.ofSeq rows
+    }
+
+let private setRecapState (connection: NpgsqlConnection) (userId: Guid) (week: DateOnly) (fromState: string) (toState: string) : Task<unit> =
+    task {
+        use cmd =
+            new NpgsqlCommand(
+                "UPDATE recap_posts SET state = @to_state WHERE user_id = @user_id AND week_start = @week_start AND state = @from_state",
+                connection
+            )
+
+        param cmd "user_id" userId
+        param cmd "week_start" week
+        param cmd "from_state" fromState
+        param cmd "to_state" toState
+        let! _ = cmd.ExecuteNonQueryAsync()
+        ()
+    }
+
+/// The request frozen on the row, when it has one
+let private loadFrozenRecap (connection: NpgsqlConnection) (userId: Guid) (week: DateOnly) : Task<(string * string) option> =
+    task {
+        use cmd = new NpgsqlCommand("SELECT content, url FROM recap_posts WHERE user_id = @user_id AND week_start = @week_start", connection)
+        param cmd "user_id" userId
+        param cmd "week_start" week
+        use! reader = cmd.ExecuteReaderAsync()
+
+        if reader.Read() && not (reader.IsDBNull 0) && not (reader.IsDBNull 1) then
+            return Some(reader.GetString 0, reader.GetString 1)
+        else
+            return None
+    }
+
+/// The week's figures from `watch_events` in the row's window; None when no fully watched episode of known length is in
+/// it any more (the history changed since the row was queued)
+let private loadRecap (connection: NpgsqlConnection) (userId: Guid) (p: PendingRecap) : Task<RecapPost option> =
+    task {
+        let! week = Recap.loadBetween connection userId p.From (Some p.Until)
+
+        if week.Episodes = 0L then
+            return None
+        else
+            let! days = Recap.loadDaysWatched connection userId p.From p.Until
+            let! most = Recap.loadMostWatched connection userId p.From p.Until MaxMostWatched
+
+            return
+                Some
+                    { Week = week
+                      DaysWatched = days
+                      MostWatched = most }
+    }
+
+/// `post_recap`: for each of the user's pending recap posts, oldest first, send the Note. The conditions are checked
+/// again here (else the posts become `skipped`: opted in before the week began, Public, a username that can federate).
+/// The content and url are built once and stored on the row before the call, and every retry sends the stored values:
+/// Megáfono answers 409 when a key returns with a different body.
+let private postRecap
+    (connection: NpgsqlConnection)
+    (client: HttpClient)
+    (domain: string)
+    (defaultVisibility: Profiles.Visibility)
+    (userSubject: string)
+    : Task<Outcome> =
+    task {
+        match Guid.TryParse userSubject with
+        | false, _ -> return Finished(Some "bad subject")
+        | true, userId ->
+            let! poster = loadRecapPoster connection defaultVisibility userId
+            let! pending = pendingRecaps connection userId
+
+            let mutable outcome = Finished None
+
+            for recap in pending do
+                if outcome = Finished None then
+                    let eligible =
+                        match poster with
+                        | Some p ->
+                            p.RVisibility = Profiles.Public
+                            && Fediverse.isValidHandle p.RUsername
+                            && (match p.EnabledAt with
+                                | Some at -> at <= recap.From
+                                | None -> false)
+                        | None -> false
+
+                    match poster with
+                    | Some p when eligible ->
+                        let! frozen =
+                            task {
+                                match! loadFrozenRecap connection userId recap.WeekStart with
+                                | Some values -> return Some values
+                                | None ->
+                                    match! loadRecap connection userId recap with
+                                    | None -> return None
+                                    | Some post ->
+                                        use store =
+                                            new NpgsqlCommand(
+                                                """
+                                                UPDATE recap_posts SET content = @content, url = @url
+                                                WHERE user_id = @user_id AND week_start = @week_start AND content IS NULL
+                                                """,
+                                                connection
+                                            )
+
+                                        param store "content" (recapPostHtml domain recap.WeekStart post)
+                                        param store "url" $"https://{domain}/u/{p.RUsername}#recap-{dayText recap.WeekStart}"
+                                        param store "user_id" userId
+                                        param store "week_start" recap.WeekStart
+                                        let! _ = store.ExecuteNonQueryAsync()
+                                        // Read back: another worker may have frozen it first, and its values win
+                                        return! loadFrozenRecap connection userId recap.WeekStart
+                            }
+
+                        match frozen with
+                        | None -> do! setRecapState connection userId recap.WeekStart "pending" "skipped" // an empty week
+                        | Some(content, url) ->
+                            let note =
+                                { Audience = "unlisted"
+                                  Content = content
+                                  Url = url
+                                  InReplyTo = None
+                                  Summary = None
+                                  Sensitive = false }
+
+                            let! result = publish client userSubject $"recap:{userSubject}:{dayText recap.WeekStart}" note
+
+                            match publishedOf result with
+                            | Some(objectId, objectUrl) ->
+                                // Stored whatever the row's state, so the object is never lost; `published` only from `pending`
+                                use storeObject =
+                                    new NpgsqlCommand(
+                                        """
+                                        UPDATE recap_posts
+                                        SET object_id = @object_id, object_url = @object_url,
+                                            state = CASE WHEN state = 'pending' THEN 'published' ELSE state END
+                                        WHERE user_id = @user_id AND week_start = @week_start
+                                        """,
+                                        connection
+                                    )
+
+                                param storeObject "object_id" objectId
+                                param storeObject "object_url" objectUrl
+                                param storeObject "user_id" userId
+                                param storeObject "week_start" recap.WeekStart
+                                let! _ = storeObject.ExecuteNonQueryAsync()
+                                ()
+                            | None when result.IsSuccess -> outcome <- Retry "unreadable answer"
+                            | None ->
+                                match classify [] result with
+                                | Refused reason ->
+                                    // A permanent refusal: this recap will never go out
+                                    do! setRecapState connection userId recap.WeekStart "pending" "skipped"
+                                    outcome <- Refused reason
+                                | other -> outcome <- other
+                    | _ -> do! setRecapState connection userId recap.WeekStart "pending" "skipped"
+
+            return outcome
+    }
+
+/// `delete_recaps`: delete every object of the user's recap posts that isn't deleted yet. 2xx, 404 and 410 mark the row
+/// `deleted`; a transient answer retries the item (rows already done stay done); another 4xx is a refusal.
+let private deleteRecaps (connection: NpgsqlConnection) (client: HttpClient) (userSubject: string) : Task<Outcome> =
+    task {
+        match Guid.TryParse userSubject with
+        | false, _ -> return Finished(Some "bad subject")
+        | true, userId ->
+            use listCmd =
+                new NpgsqlCommand(
+                    "SELECT week_start, object_id FROM recap_posts WHERE user_id = @user_id AND object_id IS NOT NULL AND state <> 'deleted' ORDER BY week_start",
+                    connection
+                )
+
+            param listCmd "user_id" userId
+
+            let! rows =
+                task {
+                    use! reader = listCmd.ExecuteReaderAsync()
+                    let found = ResizeArray<DateOnly * string>()
+
+                    while reader.Read() do
+                        found.Add((reader.GetFieldValue<DateOnly> 0, reader.GetString 1))
+
+                    return List.ofSeq found
+                }
+
+            let mutable outcome = Finished None
+
+            for week, objectId in rows do
+                if outcome = Finished None then
+                    let! result = deleteObject client objectId
+
+                    match classify [ 404; 410 ] result with
+                    | Finished _ ->
+                        use mark =
+                            new NpgsqlCommand("UPDATE recap_posts SET state = 'deleted' WHERE user_id = @user_id AND week_start = @week_start", connection)
+
+                        param mark "user_id" userId
+                        param mark "week_start" week
+                        let! _ = mark.ExecuteNonQueryAsync()
+                        ()
+                    | other -> outcome <- other
+
+            return outcome
+    }
+
 let private run (db: DbConfig) (client: HttpClient) (domain: string) (defaultVisibility: Profiles.Visibility) (item: Item) : Task<Outcome> =
     task {
         use connection = getConnection db
@@ -771,6 +1087,8 @@ let private run (db: DbConfig) (client: HttpClient) (domain: string) (defaultVis
             return classify [ 404; 410 ] result
         | "post_watch_update" -> return! postWatchUpdate connection client domain defaultVisibility item.Subject
         | "delete_watch_updates" -> return! deleteWatchUpdates connection client item.Subject
+        | "post_recap" -> return! postRecap connection client domain defaultVisibility item.Subject
+        | "delete_recaps" -> return! deleteRecaps connection client item.Subject
         | other -> return Refused $"unknown kind {other}"
     }
 

@@ -204,6 +204,38 @@ watch. The full rules are in `specs/028-watch-updates/watch-updates.spec.md`; th
 - Outbox kinds `post_watch_update` and `delete_watch_updates`, subject = the user id, so they run in order with
   the user's `refresh_profile` and `delete_actor`.
 
+## Weekly recap posts (feature 030)
+
+The weekly digest to go with the daily watch updates: one Note a week with the figures of the dashboard's recap card
+(feature 029) over a completed week. It is a separate opt-in from the watch updates (two tables, two sections on
+`/account`, two removals), so someone can have a quiet weekly digest without daily posts, or the reverse. The full
+rules are in `specs/030-recap-posts/recap-posts.spec.md`; the short version:
+
+- **Opt-in, off by default** (`/account#recap-posts`, a row in `recap_post_settings`), and only for a profile
+  whose effective visibility is Public and a username that can federate, all checked when the post is queued and
+  again when the worker sends it.
+- **At most one post per user and completed UTC week** (`recap_posts`, primary key `(user_id, week_start)`, the
+  Monday). The week is always the last completed one as of the import's `now()` (Monday 00:00 to the next Monday
+  00:00 UTC). It is queued in the import's own transaction, in the savepoint of the watch update (a recap never
+  fails an import), only when the week has a fully watched episode of known length. **The user must have opted in
+  before the week began** (`enabled_at <= week_start`), so nothing watched before opting in is posted and the first
+  recap is for the first full week after turning it on. There is no backfill: a week nobody synced in the
+  following week is never posted, and later imports or `user-rebuild` never post a week twice.
+- **The text** is English, two paragraphs ("My week on Frunchy (Nov 2 – Nov 8, 2026): 14 episodes, 5 h 20 min, 4
+  series (2 new, 2 continued). Watched on 5 of 7 days." then "Most watched: Frieren (6), The Apothecary Diaries (4)
+  and Dandadan (2)."): the figures are `Recap.loadBetween` over the week (the dashboard's undeduplicated rules),
+  the days are the week's UTC streak days, the most watched are up to 3 series by fully watched episodes, titles
+  link to `https://{domain}/anime/{seriesId}` and are escaped, no content warning. It goes out as an `unlisted`
+  Note with the `url` `https://{domain}/u/{username}#recap-{yyyy-MM-dd}` and key `recap:{userId}:{yyyy-MM-dd}`.
+- **The request is frozen at the first attempt**, as for watch updates (Megáfono answers 409 when a key returns
+  with a different body): `content` and `url` are stored on the `recap_posts` row before the call, and every retry
+  sends them. A week that turns out empty at build time, or a permanent refusal, makes that row `skipped`.
+- **Turning it off, or the profile leaving Public, deletes the earlier recaps** (`delete_recaps`:
+  `DELETE /internal/objects/{id}` for each; 404 and 410 count as done) and stops new ones. Turning recaps off
+  deletes only recaps (and watch updates off only watch updates); leaving Public removes both. Copies other
+  servers already fetched may stay.
+- Outbox kinds `post_recap` and `delete_recaps`, subject = the user id.
+
 ## Decisions taken
 
 - **Spoilers are content warnings.** A spoiler comment carries `summary` (e.g. "Spoilers: S2 E5") and
@@ -246,6 +278,8 @@ watch. The full rules are in `specs/028-watch-updates/watch-updates.spec.md`; th
    a worker; blocks are synchronous.
 5. **Frunchy: watch updates** (feature 028): a user's account posts what they finished watching, once a day at
    most, when they opt in and their profile is public (see "Watch updates" above).
+   **Weekly recap posts** (feature 030): the same, one post a week with the recap figures (see "Weekly recap
+   posts" above).
 6. **Next: following and a feed**, once Megáfono item 6 exists (inbound posts from followed accounts as a
    webhook): follow remote accounts from Frunchy, follower and following lists, and a feed.
 

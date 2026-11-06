@@ -407,6 +407,29 @@ type Texts =
       WatchUpdatePostMoreSeries: int -> string
       WatchUpdatePostMoreNumbers: string
 
+      // Weekly recap posts (feature 030): the account page's section, and the words of the post itself (written with
+      // the English values like the watch updates; the Spanish ones are kept in step)
+      RecapPostsTitle: string
+      RecapPostsIntro: string
+      RecapPostsStateOn: string
+      RecapPostsStateOff: string
+      RecapPostsTurnOn: string
+      RecapPostsTurnOff: string
+      RecapPostsDeleteNote: string
+      RecapPostsNotPublic: string
+      /// The notice for a `msg` key (recap-posts-on, recap-posts-off, recap-posts-invalid)
+      RecapPostsNotice: string -> string
+      /// "My week on Frunchy (Nov 2 – Nov 8, 2026):" from the week's first and last day
+      RecapPostHeading: DateOnly -> DateOnly -> string
+      RecapPostEpisodes: int64 -> string
+      RecapPostSeries: int64 -> string
+      /// "(2 new, 2 continued)"
+      RecapPostNewContinued: int64 -> int64 -> string
+      /// "Watched on 5 of 7 days."
+      RecapPostDays: int -> string
+      RecapPostMostWatched: string
+      RecapPostAnd: string
+
       // Episode page and comments (feature 009)
       /// Page title from the series title and the episode label
       EpisodePageTitle: string -> string -> string
@@ -906,6 +929,8 @@ let en =
             | "signup_mode_changed" -> "Sign-up mode changed"
             | "watch_updates_enabled" -> "Watch updates turned on"
             | "watch_updates_disabled" -> "Watch updates turned off"
+            | "recap_posts_enabled" -> "Weekly recap posts turned on"
+            | "recap_posts_disabled" -> "Weekly recap posts turned off"
             | other -> other
       ByOperator = "by the operator"
 
@@ -1131,6 +1156,34 @@ let en =
       WatchUpdatePostAnd = "and"
       WatchUpdatePostMoreSeries = fun n -> $"{n} more series"
       WatchUpdatePostMoreNumbers = "…"
+
+      RecapPostsTitle = "Weekly recap posts"
+      RecapPostsIntro =
+        "Once a week, post your recap to your fediverse followers: how many episodes, how much time and how many series you watched from Monday to Sunday (UTC), the days you watched and your most watched series, with links to Frunchy. The first one is for the first full week after you turn this on, so nothing from before is posted."
+      RecapPostsStateOn = "Weekly recap posts are on."
+      RecapPostsStateOff = "Weekly recap posts are off."
+      RecapPostsTurnOn = "Turn on weekly recap posts"
+      RecapPostsTurnOff = "Turn off weekly recap posts"
+      RecapPostsDeleteNote =
+        "Turning this off, or making your profile anything but public, deletes the recaps already posted. Copies other servers already fetched may stay there."
+      RecapPostsNotPublic = "Your profile isn't public, so nothing is posted until you make it public."
+      RecapPostsNotice =
+        fun key ->
+            match key with
+            | "recap-posts-on" -> "Weekly recap posts are on."
+            | "recap-posts-off" -> "Weekly recap posts are off. Earlier recaps are being deleted."
+            | "recap-posts-invalid" -> "That choice isn't valid. Nothing changed."
+            | other -> other
+      RecapPostHeading =
+        fun a b ->
+            let c = CultureInfo.GetCultureInfo "en"
+            $"""My week on Frunchy ({a.ToString("MMM d", c)} – {b.ToString("MMM d, yyyy", c)}):"""
+      RecapPostEpisodes = fun n -> if n = 1L then "1 episode" else $"{n} episodes"
+      RecapPostSeries = fun n -> if n = 1L then "1 series" else $"{n} series"
+      RecapPostNewContinued = fun fresh continued -> $"({fresh} new, {continued} continued)"
+      RecapPostDays = fun n -> if n = 1 then "Watched on 1 of 7 days." else $"Watched on {n} of 7 days."
+      RecapPostMostWatched = "Most watched:"
+      RecapPostAnd = "and"
 
       EpisodePageTitle = fun series label -> $"{series}, {label}"
       EpisodeWatchOnCrunchyroll = "Watch on Crunchyroll"
@@ -1718,6 +1771,8 @@ let es =
             | "signup_mode_changed" -> "Modo de registro cambiado"
             | "watch_updates_enabled" -> "Novedades de visionado activadas"
             | "watch_updates_disabled" -> "Novedades de visionado desactivadas"
+            | "recap_posts_enabled" -> "Resúmenes semanales activados"
+            | "recap_posts_disabled" -> "Resúmenes semanales desactivados"
             | other -> other
       ByOperator = "por el operador"
 
@@ -1943,6 +1998,34 @@ let es =
       WatchUpdatePostAnd = "y"
       WatchUpdatePostMoreSeries = fun n -> $"{n} series más"
       WatchUpdatePostMoreNumbers = "…"
+
+      RecapPostsTitle = "Resumen semanal en el fediverso"
+      RecapPostsIntro =
+        "Una vez por semana, publica tu resumen para tus seguidores del fediverso: cuántos episodios, cuánto tiempo y cuántas series has visto de lunes a domingo (UTC), los días que has visto algo y tus series más vistas, con enlaces a Frunchy. El primero es de la primera semana completa después de activarlo, así que no se publica nada anterior."
+      RecapPostsStateOn = "Los resúmenes semanales están activados."
+      RecapPostsStateOff = "Los resúmenes semanales están desactivados."
+      RecapPostsTurnOn = "Activar resúmenes semanales"
+      RecapPostsTurnOff = "Desactivar resúmenes semanales"
+      RecapPostsDeleteNote =
+        "Si lo desactivas, o si tu perfil deja de ser público, se borran los resúmenes ya publicados. Las copias que otros servidores ya hayan descargado pueden seguir allí."
+      RecapPostsNotPublic = "Tu perfil no es público, así que no se publica nada hasta que lo hagas público."
+      RecapPostsNotice =
+        fun key ->
+            match key with
+            | "recap-posts-on" -> "Los resúmenes semanales están activados."
+            | "recap-posts-off" -> "Los resúmenes semanales están desactivados. Se están borrando los anteriores."
+            | "recap-posts-invalid" -> "Esa opción no es válida. No ha cambiado nada."
+            | other -> other
+      RecapPostHeading =
+        fun a b ->
+            let c = CultureInfo.GetCultureInfo "es"
+            $"""Mi semana en Frunchy ({a.ToString("d MMM", c)} – {b.ToString("d MMM yyyy", c)}):"""
+      RecapPostEpisodes = fun n -> if n = 1L then "1 episodio" else $"{n} episodios"
+      RecapPostSeries = fun n -> if n = 1L then "1 serie" else $"{n} series"
+      RecapPostNewContinued = fun fresh continued -> $"({fresh} nuevas, {continued} continuadas)"
+      RecapPostDays = fun n -> if n = 1 then "Visto en 1 de 7 días." else $"Visto en {n} de 7 días."
+      RecapPostMostWatched = "Lo más visto:"
+      RecapPostAnd = "y"
 
       EpisodePageTitle = fun series label -> $"{series}, {label}"
       EpisodeWatchOnCrunchyroll = "Ver en Crunchyroll"

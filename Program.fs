@@ -105,6 +105,8 @@ let federationEndpoints (settings: Federation.FederationSettings) =
           yield! Handlers.Account.Blocks.endpoint
           // Feature 028: the switch for watch updates on the fediverse
           yield! Handlers.Account.WatchUpdates.endpoint
+          // Feature 030: the switch for weekly recap posts on the fediverse
+          yield! Handlers.Account.RecapPosts.endpoint
           yield! Handlers.Review.FediverseBlocks.endpoint ]
     | Federation.Disabled -> []
 

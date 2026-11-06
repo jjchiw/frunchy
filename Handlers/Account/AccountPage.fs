@@ -55,6 +55,9 @@ let private notice (t: Texts) (msg: string) =
     | "watch-updates-on"
     | "watch-updates-off" -> Some(false, t.WatchUpdatesNotice msg)
     | "watch-updates-invalid" -> Some(true, t.WatchUpdatesNotice msg)
+    | "recap-posts-on"
+    | "recap-posts-off" -> Some(false, t.RecapPostsNotice msg)
+    | "recap-posts-invalid" -> Some(true, t.RecapPostsNotice msg)
     | "binding-reset" -> Some(false, t.BindingResetDone)
     | "linked" -> Some(false, t.IdentityLinkedNotice)
     | "unlinked" -> Some(false, t.IdentityUnlinkedNotice)
@@ -349,6 +352,31 @@ let private watchUpdatesSection (ctx: HttpContext) (t: Texts) (isOn: bool) (m: A
     }
     |> accountSection "watch-updates" Theme.Sensors t.WatchUpdatesTitle
 
+/// Feature 030 (federation on, a username that can federate): the switch for weekly recap posts, shown right after the
+/// watch updates one. `data-recap-posts-state` is `on` or `off`; `data-recap-posts-not-public` shows while the profile
+/// isn't public (nothing is posted then).
+let private recapPostsSection (ctx: HttpContext) (t: Texts) (isOn: bool) (m: AccountModel) =
+    div(class' = "space-y-5") {
+        p(class' = "max-w-prose text-body-md text-on-surface-variant") { t.RecapPostsIntro }
+
+        p(class' = "text-body-md text-on-surface").data("recap-posts-state", (if isOn then "on" else "off")) {
+            if isOn then t.RecapPostsStateOn else t.RecapPostsStateOff
+        }
+
+        if m.Visibility <> Profiles.Public then
+            p(class' = "max-w-prose text-body-md text-secondary").data("recap-posts-not-public", "") { t.RecapPostsNotPublic }
+
+        form(method = "post", action = "/account/recap-posts") {
+            ctx.GetAntiforgeryInput()
+            input(type' = "hidden", name = "enabled", value = (if isOn then "off" else "on"))
+
+            button(type' = "submit", class' = btn Secondary) { if isOn then t.RecapPostsTurnOff else t.RecapPostsTurnOn }
+        }
+
+        p(class' = "max-w-prose text-body-md text-on-surface-variant") { t.RecapPostsDeleteNote }
+    }
+    |> accountSection "recap-posts" Theme.CalendarMonth t.RecapPostsTitle
+
 let private securityActivity (t: Texts) (providerName: string -> string) (m: AccountModel) =
     ul(class' = "divide-y divide-outline-variant/40") {
         for event in m.Events do
@@ -385,7 +413,7 @@ let private dangerZone (t: Texts) =
 
 /// `federated`: federation is on (operators get the link to the instance blocks); `blocks`: the user's own blocks,
 /// only when they can federate (None otherwise, and no section); `watchUpdates`: whether watch updates are on, under
-/// the same condition (feature 028)
+/// the same condition (feature 028); `recapPosts`: the same for the weekly recap posts (feature 030)
 let view
     (ctx: HttpContext)
     (t: Texts)
@@ -396,6 +424,7 @@ let view
     (federated: bool)
     (blocks: BlockActions.Listing option)
     (watchUpdates: bool option)
+    (recapPosts: bool option)
     (m: AccountModel)
     =
     let providerName (name: string) =
@@ -459,6 +488,10 @@ let view
 
         match watchUpdates with
         | Some isOn -> watchUpdatesSection ctx t isOn m
+        | None -> Fragment()
+
+        match recapPosts with
+        | Some isOn -> recapPostsSection ctx t isOn m
         | None -> Fragment()
 
         securityActivity t providerName m
@@ -594,17 +627,19 @@ let handler: EndpointHandler =
                     else
                         Task.FromResult None
 
-                // The watch updates switch is shown under the same condition (feature 028)
-                let! watchUpdates =
+                // The watch updates switch (feature 028) and the weekly recap posts switch (feature 030) are shown under
+                // the same condition, read on one connection
+                let! watchUpdates, recapPosts =
                     if federated && Fediverse.isValidHandle model.Username then
                         task {
                             use connection = getConnection (ctx.GetService<DbConfig>())
                             do! connection.OpenAsync()
-                            let! isOn = WatchUpdates.isOn connection userId
-                            return Some isOn
+                            let! watchOn = WatchUpdates.isOn connection userId
+                            let! recapOn = RecapPosts.isOn connection userId
+                            return Some watchOn, Some recapOn
                         }
                     else
-                        Task.FromResult None
+                        Task.FromResult(None, None)
 
                 return!
                     ctx.WriteHtmlView(
@@ -618,6 +653,7 @@ let handler: EndpointHandler =
                             federated
                             blocks
                             watchUpdates
+                            recapPosts
                             model
                     )
             | None ->

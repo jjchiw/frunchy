@@ -310,12 +310,13 @@ let private indexesQuery =
     ORDER BY 1
     """
 
-/// The tables features 015, 016, 017, 020 and 028 added after the old bootstrap was frozen (the fediverse ones,
+/// The tables features 015, 016, 017, 020, 028 and 030 added after the old bootstrap was frozen (the fediverse ones,
 /// `data_protection_keys`, `profile_settings` and `instance_settings`); the comparison with the old bootstrap leaves them out (their DDL is covered by the
 /// clean-bootstrap tests below), so it still proves the older tables unchanged
 let private fediverseTables =
     [ "series_handles"; "episode_threads"; "remote_actors"; "megafono_events"; "fediverse_outbox"; "data_protection_keys"
-      "profile_settings"; "instance_settings"; "watch_update_settings"; "watch_updates" ]
+      "profile_settings"; "instance_settings"; "watch_update_settings"; "watch_updates"
+      "recap_post_settings"; "recap_posts" ]
 
 /// Every catalog line starts with its table name and a bar
 let private belongsToFediverse (line: string) =
@@ -361,10 +362,10 @@ let ``the clean bootstrap builds the schema the old bootstrap built`` () =
         Assert.Equal<string list>(oldConstraints, withoutFediverse newConstraints)
         Assert.Equal<string list>(oldIndexes, withoutFediverse newIndexes)
 
-        // And the ten new tables really are there (so the filter above removed something): 29 columns for the
+        // And the twelve new tables really are there (so the filter above removed something): 29 columns for the
         // five fediverse tables, 4 for data_protection_keys, 6 for profile_settings, 4 for instance_settings,
-        // 2 for watch_update_settings, 10 for watch_updates
-        Assert.True((newColumns |> List.filter belongsToFediverse |> List.length) = 55)
+        // 2 for watch_update_settings, 10 for watch_updates, 2 for recap_post_settings, 10 for recap_posts
+        Assert.True((newColumns |> List.filter belongsToFediverse |> List.length) = 67)
     }
 
 [<Fact>]

@@ -71,6 +71,8 @@ let private save
         // Feature 028: a profile that stops being public stops its watch updates and deletes the earlier ones
         if federated && previous = Profiles.Public && visibility <> Profiles.Public then
             do! WatchUpdates.queueRemoval connection tx userId
+            // Feature 030: the weekly recaps too, each module deleting only its own posts
+            do! RecapPosts.queueRemoval connection tx userId
 
         do! tx.CommitAsync()
     }

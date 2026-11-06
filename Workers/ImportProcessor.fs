@@ -278,9 +278,11 @@ let private processImport (logger: ILogger) (db: DbConfig) (watchUpdates: WatchU
 
                 try
                     do! WatchUpdates.queueAfterImport connection tx policy userId
+                    // Feature 030: the same savepoint, so a failure of either leaves the import complete
+                    do! RecapPosts.queueAfterImport connection tx policy userId
                     do! tx.ReleaseAsync "watch_update"
                 with ex ->
-                    logger.LogError(ex, "Watch update for import {ImportId} failed; the import completes without it", importId)
+                    logger.LogError(ex, "Watch update or recap post for import {ImportId} failed; the import completes without it", importId)
                     do! tx.RollbackAsync "watch_update"
             | None -> ()
 

@@ -48,10 +48,22 @@ let private timestamp (name: string) (value: DateTimeOffset) =
     p.Value <- value.UtcDateTime
     p
 
-/// The last 7 days by the dashboard's own rules, undeduplicated (so the figures read like the tiles above them).
-/// One statement. A series is *new* when the user has no watch event of any of its episodes (an unresolved one
-/// included) before the window, *continued* otherwise.
-let loadWeek (connection: NpgsqlConnection) (userId: Guid) (now: DateTimeOffset) : Task<Week> =
+/// A nullable timestamp parameter: an open end of the window is NULL
+let private optionalTimestamp (name: string) (value: DateTimeOffset option) =
+    let p = NpgsqlParameter(name, NpgsqlDbType.TimestampTz)
+
+    p.Value <-
+        match value with
+        | Some v -> box v.UtcDateTime
+        | None -> box DBNull.Value
+
+    p
+
+/// The recap's figures over `[from, until)` (open-ended when `until` is None) by the dashboard's own rules,
+/// undeduplicated (so the figures read like the tiles above them). One statement. A series is *new* when the user has no
+/// watch event of any of its episodes (an unresolved one included) before `from`, *continued* otherwise. The dashboard's
+/// card is the open-ended window (`loadWeek`); the weekly recap post (feature 030) is a completed week.
+let loadBetween (connection: NpgsqlConnection) (userId: Guid) (from: DateTimeOffset) (until: DateTimeOffset option) : Task<Week> =
     task {
         use cmd =
             new NpgsqlCommand(
@@ -61,6 +73,7 @@ let loadWeek (connection: NpgsqlConnection) (userId: Guid) (now: DateTimeOffset)
                     FROM watch_events w
                     JOIN cr_episodes e ON e.id = w.cr_episode_id
                     WHERE w.user_id = @user_id AND e.duration_ms IS NOT NULL AND w.watched_at >= @from
+                      AND (@until::timestamptz IS NULL OR w.watched_at < @until)
                 ),
                 fs AS (SELECT DISTINCT series_id FROM win WHERE fully_watched)
                 SELECT count(*) FILTER (WHERE fully_watched),
@@ -78,7 +91,8 @@ let loadWeek (connection: NpgsqlConnection) (userId: Guid) (now: DateTimeOffset)
             )
 
         cmd.Parameters.AddWithValue("user_id", userId) |> ignore
-        cmd.Parameters.Add(timestamp "from" (now - weekWindow)) |> ignore
+        cmd.Parameters.Add(timestamp "from" from) |> ignore
+        cmd.Parameters.Add(optionalTimestamp "until" until) |> ignore
 
         use! r = cmd.ExecuteReaderAsync()
         r.Read() |> ignore
@@ -92,6 +106,81 @@ let loadWeek (connection: NpgsqlConnection) (userId: Guid) (now: DateTimeOffset)
               New = fresh
               Continued = series - fresh
               Any = r.GetInt64 4 > 0L }
+    }
+
+/// The last 7 days: the dashboard card's window, open at the end
+let loadWeek (connection: NpgsqlConnection) (userId: Guid) (now: DateTimeOffset) : Task<Week> =
+    loadBetween connection userId (now - weekWindow) None
+
+/// How many distinct UTC days in `[from, until)` have a fully watched episode of known length (the streak rule's days)
+let loadDaysWatched (connection: NpgsqlConnection) (userId: Guid) (from: DateTimeOffset) (until: DateTimeOffset) : Task<int> =
+    task {
+        use cmd =
+            new NpgsqlCommand(
+                """
+                SELECT count(DISTINCT (w.watched_at AT TIME ZONE 'UTC')::date)::int
+                FROM watch_events w
+                JOIN cr_episodes e ON e.id = w.cr_episode_id
+                WHERE w.user_id = @user_id AND w.fully_watched AND e.duration_ms IS NOT NULL
+                  AND w.watched_at >= @from AND w.watched_at < @until
+                """,
+                connection
+            )
+
+        cmd.Parameters.AddWithValue("user_id", userId) |> ignore
+        cmd.Parameters.Add(timestamp "from" from) |> ignore
+        cmd.Parameters.Add(timestamp "until" until) |> ignore
+        let! count = cmd.ExecuteScalarAsync()
+        return unbox<int> count
+    }
+
+/// A series the user watched in a window and how many of its episodes they fully watched there
+type MostWatched =
+    { SeriesId: string
+      Title: string
+      Episodes: int64 }
+
+/// The series with the most fully watched episodes of known length in `[from, until)`, at most `limit`: most episodes,
+/// then title, then series id (undeduplicated, like the rest of the recap)
+let loadMostWatched
+    (connection: NpgsqlConnection)
+    (userId: Guid)
+    (from: DateTimeOffset)
+    (until: DateTimeOffset)
+    (limit: int)
+    : Task<MostWatched list> =
+    task {
+        use cmd =
+            new NpgsqlCommand(
+                """
+                SELECT e.series_id, coalesce(s.title, e.series_title, e.series_id) AS title, count(*) AS episodes
+                FROM watch_events w
+                JOIN cr_episodes e ON e.id = w.cr_episode_id
+                LEFT JOIN cr_series s ON s.id = e.series_id
+                WHERE w.user_id = @user_id AND w.fully_watched AND e.duration_ms IS NOT NULL
+                  AND w.watched_at >= @from AND w.watched_at < @until
+                GROUP BY e.series_id, coalesce(s.title, e.series_title, e.series_id)
+                ORDER BY count(*) DESC, 2, e.series_id
+                LIMIT @limit
+                """,
+                connection
+            )
+
+        cmd.Parameters.AddWithValue("user_id", userId) |> ignore
+        cmd.Parameters.Add(timestamp "from" from) |> ignore
+        cmd.Parameters.Add(timestamp "until" until) |> ignore
+        cmd.Parameters.AddWithValue("limit", limit) |> ignore
+
+        use! r = cmd.ExecuteReaderAsync()
+        let rows = ResizeArray<MostWatched>()
+
+        while! r.ReadAsync() do
+            rows.Add
+                { SeriesId = r.GetString 0
+                  Title = r.GetString 1
+                  Episodes = r.GetInt64 2 }
+
+        return List.ofSeq rows
     }
 
 /// The user's runs of consecutive UTC days with at least one fully watched episode of known length, by the streak rule.

@@ -153,6 +153,9 @@ type SecurityEventType =
     /// Feature 028: the user turned watch updates on or off
     | WatchUpdatesEnabled
     | WatchUpdatesDisabled
+    /// Feature 030: the user turned weekly recap posts on or off
+    | RecapPostsEnabled
+    | RecapPostsDisabled
 
 module SecurityEventType =
     let toDb =
@@ -189,6 +192,8 @@ module SecurityEventType =
         | SecurityEventType.ProfileMadePrivate -> "profile_made_private"
         | SecurityEventType.WatchUpdatesEnabled -> "watch_updates_enabled"
         | SecurityEventType.WatchUpdatesDisabled -> "watch_updates_disabled"
+        | SecurityEventType.RecapPostsEnabled -> "recap_posts_enabled"
+        | SecurityEventType.RecapPostsDisabled -> "recap_posts_disabled"
 
     let all =
         [ SecurityEventType.AccountCreated; SecurityEventType.SignedIn; SecurityEventType.Claimed
@@ -202,6 +207,7 @@ module SecurityEventType =
           SecurityEventType.ShareLinkReplaced; SecurityEventType.ShareLinkRevoked
           SecurityEventType.InviteCreated; SecurityEventType.InviteRevoked; SecurityEventType.SignUpModeChanged
           SecurityEventType.ProfileMadePublic; SecurityEventType.ProfileMadeMembers; SecurityEventType.ProfileMadePrivate
-          SecurityEventType.WatchUpdatesEnabled; SecurityEventType.WatchUpdatesDisabled ]
+          SecurityEventType.WatchUpdatesEnabled; SecurityEventType.WatchUpdatesDisabled
+          SecurityEventType.RecapPostsEnabled; SecurityEventType.RecapPostsDisabled ]
 
     let tryFromDb (value: string) = all |> List.tryFind (fun e -> toDb e = value)

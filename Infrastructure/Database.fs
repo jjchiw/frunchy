@@ -294,7 +294,7 @@ let private schema =
         id              bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
         kind            text NOT NULL CHECK (kind IN ('ensure_thread', 'publish_comment', 'update_comment', 'delete_comment',
                                                        'delete_actor', 'refresh_profile', 'post_watch_update',
-                                                       'delete_watch_updates')),
+                                                       'delete_watch_updates', 'post_recap', 'delete_recaps')),
         subject         text NOT NULL,
         state           text NOT NULL DEFAULT 'pending' CHECK (state IN ('pending', 'done', 'failed')),
         attempts        int NOT NULL DEFAULT 0,
@@ -330,6 +330,30 @@ let private schema =
         url             text NULL,
         created_at      timestamptz NOT NULL DEFAULT now(),
         PRIMARY KEY (user_id, day)
+    );
+
+    -- Weekly recap posts (feature 030): a row in recap_post_settings means the user turned them on (off by default);
+    -- enabled_at is the first moment they did, and only a week that began after it is ever posted.
+    CREATE TABLE IF NOT EXISTS recap_post_settings (
+        user_id    uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+        enabled_at timestamptz NOT NULL DEFAULT now()
+    );
+
+    -- One recap post per user and completed UTC week (week_start is its Monday): the window it covers on watched_at,
+    -- and, once Megafono has published it, the object. The worker builds the text at its first attempt and keeps it.
+    CREATE TABLE IF NOT EXISTS recap_posts (
+        user_id         uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        week_start      date NOT NULL,
+        covered_from    timestamptz NOT NULL,
+        covered_until   timestamptz NOT NULL,
+        state           text NOT NULL DEFAULT 'pending' CHECK (state IN ('pending', 'published', 'skipped', 'deleted')),
+        object_id       text NULL,
+        object_url      text NULL,
+        -- The request, frozen at the first attempt (Megafono answers 409 when a key returns with a different body)
+        content         text NULL,
+        url             text NULL,
+        created_at      timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (user_id, week_start)
     );
 
     -- Profile visibility and share link (feature 017, 'members' added by 021): one row per user who chose a visibility or made a link.
@@ -545,6 +569,35 @@ let private upgrades =
                 ADD CONSTRAINT fediverse_outbox_kind_check
                 CHECK (kind IN ('ensure_thread', 'publish_comment', 'update_comment', 'delete_comment', 'delete_actor',
                                 'refresh_profile', 'post_watch_update', 'delete_watch_updates'));
+        END IF;
+    END $$;
+
+    -- Feature 030: fediverse_outbox.kind accepts 'post_recap' and 'delete_recaps'. A database from before it has the
+    -- six- or eight-kind check under whatever name Postgres or an earlier block gave it; find it by what it says (it
+    -- names kind and lacks 'post_recap'), drop it by that real name, and add the ten-kind check.
+    DO $$
+    DECLARE
+        old_check text;
+        replaced  boolean := false;
+    BEGIN
+        FOR old_check IN
+            SELECT c.conname
+            FROM pg_constraint c
+            WHERE c.conrelid = 'fediverse_outbox'::regclass
+              AND c.contype = 'c'
+              AND pg_get_constraintdef(c.oid) LIKE '%kind%'
+              AND pg_get_constraintdef(c.oid) NOT LIKE '%post_recap%'
+        LOOP
+            EXECUTE format('ALTER TABLE fediverse_outbox DROP CONSTRAINT %I', old_check);
+            replaced := true;
+        END LOOP;
+
+        IF replaced THEN
+            ALTER TABLE fediverse_outbox
+                ADD CONSTRAINT fediverse_outbox_kind_check
+                CHECK (kind IN ('ensure_thread', 'publish_comment', 'update_comment', 'delete_comment', 'delete_actor',
+                                'refresh_profile', 'post_watch_update', 'delete_watch_updates', 'post_recap',
+                                'delete_recaps'));
         END IF;
     END $$;
 

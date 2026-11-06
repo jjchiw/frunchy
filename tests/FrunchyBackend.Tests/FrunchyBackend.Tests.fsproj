@@ -97,6 +97,8 @@
     <Compile Include="FediverseBlocksTests.fs" />
     <Compile Include="WatchUpdateHtmlTests.fs" />
     <Compile Include="WatchUpdatesTests.fs" />
+    <Compile Include="RecapPostHtmlTests.fs" />
+    <Compile Include="RecapPostsTests.fs" />
     <Compile Include="FediversePagesTests.fs" />
     <Compile Include="FediverseOperationsTests.fs" />
     <Compile Include="ProfileRulesTests.fs" />
