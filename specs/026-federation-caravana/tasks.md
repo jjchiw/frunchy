@@ -26,7 +26,7 @@ suite must stay green.
   Each test builds a publish-mode builder with the parameters and settings in configuration, calls `publishGraph`
   and reads `builder.Resources`. Cover every line marked **(test)** in the contract, plus: the run graph isn't
   touched (no test needed if `runGraph` is unchanged apart from T001). Find how the Caravana package records its
-  calls (annotations; reflect on the types in its DLL if they aren't public) and how Aspire 13.6.1 evaluates
+  calls (annotations; reflect on the types in its DLL if they aren't public) and how Aspire 13.6.4 evaluates
   environment callbacks for the publish operation; check secret entries reference the parameter (e.g. a
   `ParameterResource`/`ReferenceExpression` value), never a literal string
   · tests/Frunchy.AppHost.Tests/*, FrunchyBackend.slnx

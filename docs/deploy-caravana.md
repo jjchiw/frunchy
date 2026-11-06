@@ -150,7 +150,7 @@ The gateway's Caravana check is HTTP `/healthz` on 8080, which 0.2.0's gateway a
 
 ### The Aspire CLI and the image tag
 
-- The repo pins the Aspire CLI (NuGet `Aspire.Cli`, 13.6.1, the same as `Aspire.Hosting`) in
+- The repo pins the Aspire CLI (NuGet `Aspire.Cli`, 13.6.4, the same as `Aspire.Hosting`) in
   `.config/dotnet-tools.json`. After `dotnet tool restore`, `dotnet aspire deploy` works locally; the globally
   installed `aspire` works too. Bump both together.
 - The pushed image is tagged with `Deploy:ImageTag` (env `Deploy__ImageTag`), through Aspire's

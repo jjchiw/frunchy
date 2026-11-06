@@ -4,7 +4,7 @@
 
 ## Summary
 
-- **AppHost**: an F# Aspire AppHost (13.6.1 with `FSharp.Aspire.Hosting.AppHost`) runs Postgres
+- **AppHost**: an F# Aspire AppHost (13.6.4 with `FSharp.Aspire.Hosting.AppHost`) runs Postgres
   (`frunchydb` and `megafono`), Megáfono and its gateway, and Frunchy, with the shared secrets as
   parameters.
 - **Frunchy changes**:
@@ -17,7 +17,7 @@
 
 ## Technical Context
 
-- **Language/Version**: F# on .NET 10. Aspire 13.6.1.
+- **Language/Version**: F# on .NET 10. Aspire 13.6.4.
 - **Primary Dependencies**:
   - **added**: Aspire.AppHost.Sdk, Aspire.Hosting.PostgreSQL and FSharp.Aspire.Hosting.AppHost
     (AppHost only);

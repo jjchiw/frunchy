@@ -12,7 +12,7 @@
 
 ### Session 2026-10-17 (decided in the autonomous run with the owner's direction and Megáfono's brief; the owner can overturn any of them)
 
-- Q: AppHost language? → A: F#, with `FSharp.Aspire.Hosting.AppHost`, which adds the F# overloads Aspire's C# API needs. Checked by a spike: Aspire 13.6.1, Postgres with two databases, a Dockerfile-built container with two endpoints, parameters, and a project with its connection string all build. Aspire warns that F# is not fully supported, so project paths are written by hand.
+- Q: AppHost language? → A: F#, with `FSharp.Aspire.Hosting.AppHost`, which adds the F# overloads Aspire's C# API needs. Checked by a spike: Aspire 13.6.4, Postgres with two databases, a Dockerfile-built container with two endpoints, parameters, and a project with its connection string all build. Aspire warns that F# is not fully supported, so project paths are written by hand.
 - Q: Where does the AppHost live, and how does it get Megáfono? → A: In Frunchy's repository, since Megáfono must not depend on Frunchy. Megáfono and its gateway run as containers:
   - **Until v0.1.1 is published**: built from the local Megáfono checkout's Dockerfiles. The path comes from AppHost configuration, defaulting to the sibling `../../Megafono`.
   - **Afterwards**: from `ghcr.io/cosmic-chimps/megafono` and `megafono-gateway` at a pinned version, never `latest`, when the AppHost setting `Megafono:ImageTag` is set.
@@ -200,7 +200,7 @@ A self-hoster copies `deploy/compose.yaml` and `.env.example`, sets the values, 
 
 ## Verbatim Constraints
 
-- Aspire 13.6.1, `FSharp.Aspire.Hosting.AppHost` 13.0.0
+- Aspire 13.6.4, `FSharp.Aspire.Hosting.AppHost` 13.0.0
 - Databases `frunchydb` and `megafono` on one Postgres server
 - Settings: `Frunchy:Federation:Enabled`, `Frunchy:Federation:Domain`, `Frunchy:Megafono:Url|Token|WebhookSecret`, `Frunchy:TrustedProxies`
 - Megáfono settings and ports per its brief: 8080 federation, 8081 internal, `/health` on 8081

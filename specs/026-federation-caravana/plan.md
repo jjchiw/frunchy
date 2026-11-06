@@ -12,7 +12,7 @@ A new test project builds the publish model and checks the contract. Docs, CHANG
 
 ## Technical Context
 
-F# Aspire AppHost 13.6.1, `CosmicChimps.Aspire.Hosting.Caravana` 0.1.0, `Aspire.Hosting.PostgreSQL` 13.6.1,
+F# Aspire AppHost 13.6.4, `CosmicChimps.Aspire.Hosting.Caravana` 0.1.0, `Aspire.Hosting.PostgreSQL` 13.6.4,
 `FSharp.Aspire.Hosting.AppHost` 13.0.0. Tests: xUnit v3 on Microsoft.Testing.Platform (as the main test project),
 no Docker. No change to the Frunchy app itself: federation is already built (feature 015) and configured by
 environment variables.

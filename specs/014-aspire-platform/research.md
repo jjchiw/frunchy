@@ -2,15 +2,15 @@
 
 ## R1. F# AppHost (spike, 2026-10-17)
 
-A spike outside the repository built an F# AppHost against Aspire 13.6.1 (the SDK and packages are
+A spike outside the repository built an F# AppHost against Aspire 13.6.4 (the SDK and packages are
 already in the NuGet cache):
 
 ```xml
-<Project Sdk="Aspire.AppHost.Sdk/13.6.1">
+<Project Sdk="Aspire.AppHost.Sdk/13.6.4">
   <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><UserSecretsId>…</UserSecretsId></PropertyGroup>
   <ItemGroup><Compile Include="AppHost.fs" /></ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.6.1" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.6.4" />
     <PackageReference Include="FSharp.Aspire.Hosting.AppHost" Version="13.0.0" />
   </ItemGroup>
 </Project>
