@@ -456,6 +456,12 @@ let view
                             t.ReviewFediverseLink
                         }
 
+                    if federated then
+                        a(href = "/review/follows", class' = btn Secondary).data("follows-link", "") {
+                            icon Theme.Link
+                            t.FollowsAccountLink
+                        }
+
                     a(href = "/review/invites", class' = btn Secondary).data("invites-link", "") {
                         icon Theme.Key
                         t.InvitesAccountLink

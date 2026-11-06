@@ -176,7 +176,9 @@ type private Reply =
       InReplyTo: string option
       Audience: string
       Published: DateTime
-      Updated: DateTime option }
+      Updated: DateTime option
+      /// Feature 028: the object id of the remote thread the comment came through (None for feature 015's replies)
+      RemoteThread: string option }
 
 /// Insert a new remote comment, or update a live one when the incoming copy is newer than the stored one. A
 /// tombstone is never revived, and a local comment is never touched. True when a row was written.
@@ -186,9 +188,9 @@ let private upsertComment (connection: NpgsqlConnection) (tx: NpgsqlTransaction)
             new NpgsqlCommand(
                 """
                 INSERT INTO comments (id, cr_episode_id, remote_actor, content, format, summary, sensitive, in_reply_to,
-                                      audience, object_id, created_at, edited_at)
+                                      audience, object_id, created_at, edited_at, remote_thread)
                 VALUES (@id, @episode_id, @actor, @content, 'html', @summary, @sensitive, @in_reply_to,
-                        @audience, @object_id, @published, @updated)
+                        @audience, @object_id, @published, @updated, @remote_thread)
                 ON CONFLICT (object_id) DO UPDATE
                 SET content = EXCLUDED.content, summary = EXCLUDED.summary, sensitive = EXCLUDED.sensitive,
                     audience = EXCLUDED.audience, edited_at = EXCLUDED.edited_at
@@ -210,6 +212,7 @@ let private upsertComment (connection: NpgsqlConnection) (tx: NpgsqlTransaction)
         cmd.Parameters.AddWithValue("audience", reply.Audience) |> ignore
         cmd.Parameters.AddWithValue("object_id", reply.ObjectId) |> ignore
         cmd.Parameters.AddWithValue("published", reply.Published) |> ignore
+        cmd.Parameters.AddWithValue("remote_thread", nullable reply.RemoteThread) |> ignore
 
         cmd.Parameters.AddWithValue(
             "updated",
@@ -314,7 +317,8 @@ let private applyReply (connection: NpgsqlConnection) (tx: NpgsqlTransaction) (n
                       InReplyTo = nonEmpty (str o "inReplyTo")
                       Audience = audience
                       Published = instant o "published" |> Option.orElse (instant json "occurredAt") |> Option.defaultValue now
-                      Updated = instant o "updated" }
+                      Updated = instant o "updated"
+                      RemoteThread = None }
 
                 let! written = upsertComment connection tx reply
                 return (if written then Applied else Stale)
@@ -366,13 +370,308 @@ let private applyActorUpdated (connection: NpgsqlConnection) (tx: NpgsqlTransact
         | None -> return Ignored
     }
 
+// ---------------------------------------------------------------------------
+// Feature 028: following another Frunchy instance's series accounts
+// ---------------------------------------------------------------------------
+
+/// `follow.accepted|rejected|removed` for a follow of ours (`direction` `outbound`, the user `series-{ID}`) whose row
+/// we hold: the row takes the state and Megáfono's follow id. Anything else is ignored.
+let private applyFollow (connection: NpgsqlConnection) (tx: NpgsqlTransaction) (eventType: string) (json: JsonElement) : Task<Outcome> =
+    task {
+        let followJson = prop json "follow"
+        let direction = followJson |> Option.bind (fun f -> str f "direction")
+
+        let seriesId =
+            prop json "user"
+            |> Option.bind (fun u -> str u "id")
+            |> Option.bind (fun id -> if id.StartsWith "series-" then Some(id.Substring 7) else None)
+            |> Option.filter InstanceFollows.isSeriesId
+
+        let followId =
+            followJson
+            |> Option.bind (fun f -> nonEmpty (str f "id"))
+            |> Option.filter (fun id -> id.Length <= 200)
+
+        let state =
+            match eventType with
+            | "follow.accepted" -> "accepted"
+            | "follow.rejected" -> "rejected"
+            | _ -> "removed"
+
+        match direction, seriesId, readActor json with
+        | Some "outbound", Some seriesId, Some actor ->
+            use cmd =
+                new NpgsqlCommand(
+                    """
+                    UPDATE series_follows
+                    SET state = @state, follow_id = coalesce(@follow_id, follow_id), last_error = NULL, updated_at = now()
+                    WHERE series_id = @series_id AND remote_actor = @actor AND state <> 'unfollowed'
+                    RETURNING series_id
+                    """,
+                    connection,
+                    tx
+                )
+
+            cmd.Parameters.AddWithValue("state", state) |> ignore
+            cmd.Parameters.AddWithValue("follow_id", nullable followId) |> ignore
+            cmd.Parameters.AddWithValue("series_id", seriesId) |> ignore
+            cmd.Parameters.AddWithValue("actor", actor.Id) |> ignore
+            let! updated = cmd.ExecuteScalarAsync()
+
+            if isNull updated then
+                return Ignored
+            else
+                do! upsertActor connection tx actor
+                return Applied
+        | _ -> return Ignored
+    }
+
+/// The ids a thread declares, from `extensions` under exactly our namespace (checked by pattern), else from the
+/// thread's own URL when it is `https://{the actor's host}/anime/{seriesId}/episode/{episodeId}`. The series must be
+/// the one the follow is for.
+let private threadIds (json: JsonElement) (o: JsonElement) (seriesId: string) (domain: string) : (string * string option) option =
+    let ours =
+        prop json "extensions"
+        |> Option.filter (fun e -> str e "namespace" = Some Fediverse.ExtensionNamespace)
+
+    match ours with
+    | Some e ->
+        // Declared under our namespace: these ids decide, and a bad or foreign one is no thread (no fallback)
+        prop e "data"
+        |> Option.bind (fun d -> prop d "episode")
+        |> Option.bind (fun ep ->
+            match str ep "seriesId", str ep "episodeId" with
+            | Some s, Some episodeId when s = seriesId && InstanceFollows.isSeriesId episodeId ->
+                match nonEmpty (str ep "groupKey") with
+                | None -> Some(episodeId, None)
+                | Some key when InstanceFollows.isGroupKey key -> Some(episodeId, Some key)
+                | Some _ -> None
+            | _ -> None)
+    | None ->
+        // A thread published before this feature (or by another Megáfono app): its own URL, on the actor's host
+        let prefix = $"https://{domain}/anime/{seriesId}/episode/"
+
+        match str o "url" with
+        | Some url when url.StartsWith(prefix, StringComparison.Ordinal) && InstanceFollows.isSeriesId (url.Substring prefix.Length) ->
+            Some(url.Substring prefix.Length, None)
+        | _ -> None
+
+/// A thread a followed series account published: stored by object id, a copy not newer than the stored one changes
+/// nothing and a deleted thread stays deleted
+let private applyThread
+    (connection: NpgsqlConnection)
+    (tx: NpgsqlTransaction)
+    (now: DateTime)
+    (json: JsonElement)
+    (o: JsonElement)
+    (objectId: string)
+    (actor: ActorInfo)
+    : Task<Outcome> =
+    task {
+        use follow = new NpgsqlCommand("SELECT series_id, domain FROM series_follows WHERE remote_actor = @actor AND state <> 'unfollowed'", connection, tx)
+        follow.Parameters.AddWithValue("actor", actor.Id) |> ignore
+        use! reader = follow.ExecuteReaderAsync()
+
+        let followed =
+            if reader.Read() then Some(reader.GetString 0, reader.GetString 1) else None
+
+        do! reader.CloseAsync()
+
+        let audience = str o "audience"
+
+        match followed with
+        | Some(seriesId, domain) when audience = Some "public" || audience = Some "unlisted" ->
+            match threadIds json o seriesId domain with
+            | None -> return Ignored
+            | Some(episodeId, groupKey) ->
+                do! upsertActor connection tx actor
+                let! local = InstanceFollows.localEpisodeOf connection tx seriesId episodeId groupKey
+
+                use cmd =
+                    new NpgsqlCommand(
+                        """
+                        INSERT INTO remote_threads (object_id, domain, remote_actor, series_id, remote_episode_id, remote_group_key,
+                                                    cr_episode_id, url, published_at, updated_at)
+                        VALUES (@object_id, @domain, @actor, @series_id, @episode_id, @group_key, @local, @url, @published, @updated)
+                        ON CONFLICT (object_id) DO UPDATE
+                        SET remote_episode_id = EXCLUDED.remote_episode_id, remote_group_key = EXCLUDED.remote_group_key,
+                            cr_episode_id = coalesce(EXCLUDED.cr_episode_id, remote_threads.cr_episode_id),
+                            url = EXCLUDED.url, updated_at = EXCLUDED.updated_at
+                        WHERE remote_threads.deleted_at IS NULL
+                          AND coalesce(EXCLUDED.updated_at, EXCLUDED.published_at) > coalesce(remote_threads.updated_at, remote_threads.published_at)
+                        RETURNING object_id
+                        """,
+                        connection,
+                        tx
+                    )
+
+                cmd.Parameters.AddWithValue("object_id", objectId) |> ignore
+                cmd.Parameters.AddWithValue("domain", domain) |> ignore
+                cmd.Parameters.AddWithValue("actor", actor.Id) |> ignore
+                cmd.Parameters.AddWithValue("series_id", seriesId) |> ignore
+                cmd.Parameters.AddWithValue("episode_id", episodeId) |> ignore
+                cmd.Parameters.AddWithValue("group_key", nullable groupKey) |> ignore
+                cmd.Parameters.AddWithValue("local", nullable local) |> ignore
+                cmd.Parameters.AddWithValue("url", nullable (httpsOnly (str o "url"))) |> ignore
+                cmd.Parameters.AddWithValue("published", instant o "published" |> Option.orElse (instant json "occurredAt") |> Option.defaultValue now) |> ignore
+
+                cmd.Parameters.AddWithValue(
+                    "updated",
+                    (match instant o "updated" with
+                     | Some value -> box value
+                     | None -> box DBNull.Value)
+                )
+                |> ignore
+
+                let! written = cmd.ExecuteScalarAsync()
+                return (if isNull written then Stale else Applied)
+        | _ -> return Ignored
+    }
+
+/// The live remote thread a post replies to (it replies to the thread itself, or to a comment stored under it):
+/// its object id, its local episode when known, and what is needed to find it
+let private threadOfReply (connection: NpgsqlConnection) (tx: NpgsqlTransaction) (inReplyTo: string) : Task<(string * string option * string * string * string option) option> =
+    task {
+        use cmd =
+            new NpgsqlCommand(
+                """
+                SELECT t.object_id, t.cr_episode_id, t.series_id, t.remote_episode_id, t.remote_group_key
+                FROM remote_threads t
+                WHERE t.deleted_at IS NULL
+                  AND (t.object_id = @reply_to
+                       OR t.object_id = (SELECT c.remote_thread FROM comments c WHERE c.object_id = @reply_to))
+                """,
+                connection,
+                tx
+            )
+
+        cmd.Parameters.AddWithValue("reply_to", inReplyTo) |> ignore
+        use! reader = cmd.ExecuteReaderAsync()
+
+        if reader.Read() then
+            let text (i: int) = if reader.IsDBNull i then None else Some(reader.GetString i)
+            return Some(reader.GetString 0, text 1, reader.GetString 2, reader.GetString 3, text 4)
+        else
+            return None
+    }
+
+/// A comment on a remote thread (or on a comment under one), whoever wrote it: the same upsert as feature 015's
+/// replies, with the thread it came through
+let private applyThreadComment
+    (connection: NpgsqlConnection)
+    (tx: NpgsqlTransaction)
+    (now: DateTime)
+    (json: JsonElement)
+    (o: JsonElement)
+    (objectId: string)
+    (inReplyTo: string)
+    (actor: ActorInfo)
+    : Task<Outcome> =
+    task {
+        match! threadOfReply connection tx inReplyTo with
+        | None -> return Ignored
+        | Some(threadId, episode, seriesId, remoteEpisodeId, groupKey) ->
+            let! local =
+                match episode with
+                | Some e -> Task.FromResult(Some e)
+                | None -> InstanceFollows.localEpisodeOf connection tx seriesId remoteEpisodeId groupKey
+
+            match local with
+            | None -> return UnknownThread
+            | Some episodeId ->
+                if episode.IsNone then
+                    use store = new NpgsqlCommand("UPDATE remote_threads SET cr_episode_id = @episode WHERE object_id = @object_id AND cr_episode_id IS NULL", connection, tx)
+                    store.Parameters.AddWithValue("episode", episodeId) |> ignore
+                    store.Parameters.AddWithValue("object_id", threadId) |> ignore
+                    let! _ = store.ExecuteNonQueryAsync()
+                    ()
+
+                do! upsertActor connection tx actor
+
+                let audience =
+                    match str o "audience" with
+                    | Some a when audiences.Contains a -> a
+                    | _ -> "direct"
+
+                let reply =
+                    { ObjectId = objectId
+                      EpisodeId = episodeId
+                      ActorId = actor.Id
+                      Content = str o "content" |> Option.defaultValue ""
+                      Summary = nonEmpty (str o "summary")
+                      Sensitive = flag o "sensitive"
+                      InReplyTo = Some inReplyTo
+                      Audience = audience
+                      Published = instant o "published" |> Option.orElse (instant json "occurredAt") |> Option.defaultValue now
+                      Updated = instant o "updated"
+                      RemoteThread = Some threadId }
+
+                let! written = upsertComment connection tx reply
+                return (if written then Applied else Stale)
+    }
+
+/// `post.received` and `post.updated`: a thread of a followed series account (no `inReplyTo`), or a comment on one.
+/// Megáfono passes on only posts of accounts we follow (and, once built, replies a followed Group announces), and
+/// everything not matching a rule here is acknowledged and ignored.
+let private applyPost (connection: NpgsqlConnection) (tx: NpgsqlTransaction) (now: DateTime) (json: JsonElement) : Task<Outcome> =
+    task {
+        let objectJson = prop json "object"
+        let objectId = objectJson |> Option.bind (fun o -> nonEmpty (str o "id"))
+
+        match objectJson, readActor json, objectId with
+        | Some o, Some actor, Some objectId when objectId.Length <= 2000 ->
+            match nonEmpty (str o "inReplyTo") with
+            | None -> return! applyThread connection tx now json o objectId actor
+            | Some inReplyTo when inReplyTo.Length <= 2000 -> return! applyThreadComment connection tx now json o objectId inReplyTo actor
+            | Some _ -> return Ignored
+        | _ -> return Ignored
+    }
+
+/// `post.deleted`: a remote thread is marked deleted, a remote comment that came through one is tombstoned (its text
+/// goes); anything else is ignored
+let private applyPostDeleted (connection: NpgsqlConnection) (tx: NpgsqlTransaction) (json: JsonElement) : Task<Outcome> =
+    task {
+        match prop json "object" |> Option.bind (fun o -> nonEmpty (str o "id")) with
+        | Some objectId when objectId.Length <= 2000 ->
+            use thread = new NpgsqlCommand("UPDATE remote_threads SET deleted_at = now() WHERE object_id = @object_id AND deleted_at IS NULL RETURNING object_id", connection, tx)
+            thread.Parameters.AddWithValue("object_id", objectId) |> ignore
+            let! deletedThread = thread.ExecuteScalarAsync()
+
+            if not (isNull deletedThread) then
+                return Applied
+            else
+                use comment =
+                    new NpgsqlCommand(
+                        """
+                        UPDATE comments
+                        SET deleted_at = now(), content = '', summary = NULL, sensitive = false
+                        WHERE object_id = @object_id AND remote_actor IS NOT NULL AND remote_thread IS NOT NULL AND deleted_at IS NULL
+                        RETURNING id
+                        """,
+                        connection,
+                        tx
+                    )
+
+                comment.Parameters.AddWithValue("object_id", objectId) |> ignore
+                let! deletedComment = comment.ExecuteScalarAsync()
+                return (if isNull deletedComment then Ignored else Applied)
+        | _ -> return Ignored
+    }
+
 let private apply (connection: NpgsqlConnection) (tx: NpgsqlTransaction) (now: DateTime) (eventType: string) (json: JsonElement) : Task<Outcome> =
     match eventType with
     | "reply.received"
     | "reply.updated" -> applyReply connection tx now json
     | "object.deleted" -> applyDeleted connection tx json
     | "actor.updated" -> applyActorUpdated connection tx json
-    // follow.*, delivery.failed and types a later contract version adds are acknowledged and recorded
+    // Feature 028: following another Frunchy instance's series accounts
+    | "follow.accepted"
+    | "follow.rejected"
+    | "follow.removed" -> applyFollow connection tx eventType json
+    | "post.received"
+    | "post.updated" -> applyPost connection tx now json
+    | "post.deleted" -> applyPostDeleted connection tx json
+    // delivery.failed and types a later contract version adds are acknowledged and recorded
     | _ -> Task.FromResult Ignored
 
 // ---------------------------------------------------------------------------

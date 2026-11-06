@@ -444,6 +444,35 @@ type Texts =
       RecapPostDays: int -> string
       RecapPostMostWatched: string
       RecapPostAnd: string
+      // Following other Frunchy instances (feature 028): the operator page, and the episode page's marks
+      FollowsTitle: string
+      FollowsIntro: string
+      FollowsAddLabel: string
+      FollowsAddHint: string
+      FollowsAddButton: string
+      FollowsInstancesTitle: string
+      FollowsInstancesEmpty: string
+      FollowsInstanceKind: string
+      FollowsInstanceSeries: int -> string
+      FollowsSeriesTitle: string
+      FollowsSeriesEmpty: string
+      FollowsRemoveButton: string
+      FollowsRemoveLabel: string -> string
+      /// A series follow's state in words (queued, pending, accepted, rejected, removed, not_found, failed, unfollowed)
+      FollowState: string -> string
+      /// How a series follow was made (`series`: typed by an operator, `instance`: an instance follow)
+      FollowSource: string -> string
+      /// "Last answer: 404 not_found"
+      FollowLastError: string -> string
+      /// The notice for a `msg` key (follow-added, follow-already, follow-removed, follow-not-followed, follow-invalid,
+      /// follow-not-found, follow-blocked, follow-unreachable, follow-not-series, follow-self, follow-not-frunchy,
+      /// follow-unknown-series)
+      FollowNotice: string -> string
+      FollowsAccountLink: string
+      /// Episode page: "Also discussed on {domain}"
+      RemoteThreadAlso: string -> string
+      /// Episode page: "via {domain}", on a comment that came through another instance's thread
+      CommentVia: string -> string
 
       // Episode page and comments (feature 009)
       /// Page title from the series title and the episode label
@@ -983,6 +1012,10 @@ let en =
             | "comment_unhidden" -> "Comment shown again"
             | "fediverse_block_added" -> "Fediverse block added"
             | "fediverse_block_removed" -> "Fediverse block removed"
+            | "instance_follow_added" -> "Following a Frunchy instance"
+            | "instance_follow_removed" -> "Stopped following a Frunchy instance"
+            | "series_follow_added" -> "Following a series on another Frunchy instance"
+            | "series_follow_removed" -> "Stopped following a series on another Frunchy instance"
             | "profile_visibility_changed" -> "Profile visibility changed"
             | "profile_made_public" -> "Profile made public"
             | "profile_made_members" -> "Profile set to members"
@@ -1250,6 +1283,59 @@ let en =
       RecapPostDays = fun n -> if n = 1 then "Watched on 1 of 7 days." else $"Watched on {n} of 7 days."
       RecapPostMostWatched = "Most watched:"
       RecapPostAnd = "and"
+      FollowsTitle = "Other Frunchy instances"
+      FollowsIntro =
+        "Follow the same series on another Frunchy instance and its episode threads show on our episode pages. Type a server name to follow every series watched here on that instance, or an account like @frieren@otherfrunchy.io for one series. Only Frunchy instances can be followed, and nothing about anyone's watch history is sent: only which series are watched here."
+      FollowsAddLabel = "Server or series account"
+      FollowsAddHint = "A server name like otherfrunchy.io, a handle like @frieren@otherfrunchy.io, or a series account's web address."
+      FollowsAddButton = "Follow"
+      FollowsInstancesTitle = "Instances followed"
+      FollowsInstancesEmpty = "No instance is followed as a whole."
+      FollowsInstanceKind = "Every series watched here"
+      FollowsInstanceSeries = fun n -> if n = 1 then "1 series" else $"{n} series"
+      FollowsSeriesTitle = "Series followed"
+      FollowsSeriesEmpty = "No series is followed on another instance."
+      FollowsRemoveButton = "Stop following"
+      FollowsRemoveLabel = fun target -> $"Stop following {target}"
+      FollowState =
+        fun state ->
+            match state with
+            | "queued" -> "Queued"
+            | "pending" -> "Waiting for an answer"
+            | "accepted" -> "Following"
+            | "rejected" -> "Refused"
+            | "removed" -> "Ended by them"
+            | "not_found" -> "Not on that instance"
+            | "failed" -> "Failed"
+            | "unfollowed" -> "Unfollowed here"
+            | other -> other
+      FollowSource =
+        fun source ->
+            match source with
+            | "series" -> "Chosen by an operator"
+            | "instance" -> "From an instance follow"
+            | other -> other
+      FollowLastError = fun code -> $"Last answer: {code}"
+      FollowNotice =
+        fun key ->
+            match key with
+            | "follow-added" -> "Added. The follow requests will go out in a moment."
+            | "follow-already" -> "Already following. Nothing changed."
+            | "follow-removed" -> "Stopped following."
+            | "follow-not-followed" -> "That wasn't followed any more. Nothing changed."
+            | "follow-invalid" ->
+                "That isn't a server name, a handle or a series account address. Use otherfrunchy.io or @frieren@otherfrunchy.io. Nothing changed."
+            | "follow-not-found" -> "We couldn't find that account. Check the address and try again. Nothing changed."
+            | "follow-blocked" -> "This site blocks that server, so it can't be followed. Nothing changed."
+            | "follow-unreachable" -> "We couldn't reach that server just now. Try again in a minute. Nothing changed."
+            | "follow-not-series" -> "That account isn't a Frunchy series. Nothing changed."
+            | "follow-self" -> "That is this Frunchy instance. Nothing changed."
+            | "follow-not-frunchy" -> "That server isn't a Frunchy instance. Nothing changed."
+            | "follow-unknown-series" -> "This site doesn't have that series, so there is nothing to follow it with. Nothing changed."
+            | other -> other
+      FollowsAccountLink = "Follow other Frunchy instances"
+      RemoteThreadAlso = fun domain -> $"Also discussed on {domain}"
+      CommentVia = fun domain -> $"via {domain}"
 
       EpisodePageTitle = fun series label -> $"{series}, {label}"
       EpisodeWatchOnCrunchyroll = "Watch on Crunchyroll"
@@ -1848,6 +1934,10 @@ let es =
             | "comment_unhidden" -> "Comentario mostrado de nuevo"
             | "fediverse_block_added" -> "Bloqueo del fediverso añadido"
             | "fediverse_block_removed" -> "Bloqueo del fediverso quitado"
+            | "instance_follow_added" -> "Siguiendo una instancia de Frunchy"
+            | "instance_follow_removed" -> "Se dejó de seguir una instancia de Frunchy"
+            | "series_follow_added" -> "Siguiendo una serie en otra instancia de Frunchy"
+            | "series_follow_removed" -> "Se dejó de seguir una serie en otra instancia de Frunchy"
             | "profile_visibility_changed" -> "Visibilidad del perfil cambiada"
             | "profile_made_public" -> "Perfil hecho público"
             | "profile_made_members" -> "Perfil solo para miembros"
@@ -2115,6 +2205,59 @@ let es =
       RecapPostDays = fun n -> if n = 1 then "Visto en 1 de 7 días." else $"Visto en {n} de 7 días."
       RecapPostMostWatched = "Lo más visto:"
       RecapPostAnd = "y"
+      FollowsTitle = "Otras instancias de Frunchy"
+      FollowsIntro =
+        "Sigue la misma serie en otra instancia de Frunchy y sus hilos de episodio aparecen en nuestras páginas de episodio. Escribe el nombre de un servidor para seguir en esa instancia todas las series que se ven aquí, o una cuenta como @frieren@otherfrunchy.io para una sola serie. Solo se pueden seguir instancias de Frunchy, y no se envía nada del historial de nadie: solo qué series se ven aquí."
+      FollowsAddLabel = "Servidor o cuenta de serie"
+      FollowsAddHint = "El nombre de un servidor como otherfrunchy.io, un identificador como @frieren@otherfrunchy.io o la dirección web de una cuenta de serie."
+      FollowsAddButton = "Seguir"
+      FollowsInstancesTitle = "Instancias seguidas"
+      FollowsInstancesEmpty = "No se sigue ninguna instancia completa."
+      FollowsInstanceKind = "Todas las series que se ven aquí"
+      FollowsInstanceSeries = fun n -> if n = 1 then "1 serie" else $"{n} series"
+      FollowsSeriesTitle = "Series seguidas"
+      FollowsSeriesEmpty = "No se sigue ninguna serie en otra instancia."
+      FollowsRemoveButton = "Dejar de seguir"
+      FollowsRemoveLabel = fun target -> $"Dejar de seguir {target}"
+      FollowState =
+        fun state ->
+            match state with
+            | "queued" -> "En cola"
+            | "pending" -> "Esperando respuesta"
+            | "accepted" -> "Siguiendo"
+            | "rejected" -> "Rechazado"
+            | "removed" -> "Terminado por ellos"
+            | "not_found" -> "No está en esa instancia"
+            | "failed" -> "Falló"
+            | "unfollowed" -> "Dejado de seguir aquí"
+            | other -> other
+      FollowSource =
+        fun source ->
+            match source with
+            | "series" -> "Elegido por un operador"
+            | "instance" -> "De un seguimiento de instancia"
+            | other -> other
+      FollowLastError = fun code -> $"Última respuesta: {code}"
+      FollowNotice =
+        fun key ->
+            match key with
+            | "follow-added" -> "Añadido. Las solicitudes de seguimiento saldrán en un momento."
+            | "follow-already" -> "Ya se seguía. No se cambió nada."
+            | "follow-removed" -> "Se dejó de seguir."
+            | "follow-not-followed" -> "Eso ya no se seguía. No se cambió nada."
+            | "follow-invalid" ->
+                "Eso no es el nombre de un servidor, un identificador ni la dirección de una cuenta de serie. Usa otherfrunchy.io o @frieren@otherfrunchy.io. No se cambió nada."
+            | "follow-not-found" -> "No encontramos esa cuenta. Revisa la dirección e inténtalo de nuevo. No se cambió nada."
+            | "follow-blocked" -> "Este sitio bloquea ese servidor, así que no se puede seguir. No se cambió nada."
+            | "follow-unreachable" -> "No pudimos conectar con ese servidor ahora mismo. Inténtalo en un minuto. No se cambió nada."
+            | "follow-not-series" -> "Esa cuenta no es una serie de Frunchy. No se cambió nada."
+            | "follow-self" -> "Esa es esta misma instancia de Frunchy. No se cambió nada."
+            | "follow-not-frunchy" -> "Ese servidor no es una instancia de Frunchy. No se cambió nada."
+            | "follow-unknown-series" -> "Este sitio no tiene esa serie, así que no hay con qué seguirla. No se cambió nada."
+            | other -> other
+      FollowsAccountLink = "Seguir otras instancias de Frunchy"
+      RemoteThreadAlso = fun domain -> $"También se comenta en {domain}"
+      CommentVia = fun domain -> $"vía {domain}"
 
       EpisodePageTitle = fun series label -> $"{series}, {label}"
       EpisodeWatchOnCrunchyroll = "Ver en Crunchyroll"

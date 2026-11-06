@@ -138,6 +138,11 @@ type SecurityEventType =
     | CommentUnhidden
     | FediverseBlockAdded
     | FediverseBlockRemoved
+    /// Feature 028: the detail (the domain, or `{seriesId}@{domain}`) is the event's `provider` text
+    | InstanceFollowAdded
+    | InstanceFollowRemoved
+    | SeriesFollowAdded
+    | SeriesFollowRemoved
     | ProfileVisibilityChanged
     | ShareLinkCreated
     | ShareLinkReplaced
@@ -180,6 +185,10 @@ module SecurityEventType =
         | SecurityEventType.CommentUnhidden -> "comment_unhidden"
         | SecurityEventType.FediverseBlockAdded -> "fediverse_block_added"
         | SecurityEventType.FediverseBlockRemoved -> "fediverse_block_removed"
+        | SecurityEventType.InstanceFollowAdded -> "instance_follow_added"
+        | SecurityEventType.InstanceFollowRemoved -> "instance_follow_removed"
+        | SecurityEventType.SeriesFollowAdded -> "series_follow_added"
+        | SecurityEventType.SeriesFollowRemoved -> "series_follow_removed"
         | SecurityEventType.ProfileVisibilityChanged -> "profile_visibility_changed"
         | SecurityEventType.ShareLinkCreated -> "share_link_created"
         | SecurityEventType.ShareLinkReplaced -> "share_link_replaced"
@@ -203,6 +212,8 @@ module SecurityEventType =
           SecurityEventType.MalRetry; SecurityEventType.MalAuto; SecurityEventType.OperatorAdded
           SecurityEventType.OperatorRemoved; SecurityEventType.CommentHidden; SecurityEventType.CommentUnhidden
           SecurityEventType.FediverseBlockAdded; SecurityEventType.FediverseBlockRemoved
+          SecurityEventType.InstanceFollowAdded; SecurityEventType.InstanceFollowRemoved
+          SecurityEventType.SeriesFollowAdded; SecurityEventType.SeriesFollowRemoved
           SecurityEventType.ProfileVisibilityChanged; SecurityEventType.ShareLinkCreated
           SecurityEventType.ShareLinkReplaced; SecurityEventType.ShareLinkRevoked
           SecurityEventType.InviteCreated; SecurityEventType.InviteRevoked; SecurityEventType.SignUpModeChanged

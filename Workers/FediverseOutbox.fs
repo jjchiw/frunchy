@@ -244,7 +244,13 @@ let private ensureThread (connection: NpgsqlConnection) (client: HttpClient) (do
                   Url = episodeUrl domain thread.SeriesId thread.EpisodeId
                   InReplyTo = None
                   Summary = None
-                  Sensitive = false }
+                  Sensitive = false
+                  // Feature 028: the ids another Frunchy instance matches this thread to its own episode by
+                  Extensions =
+                    Some
+                        { Namespace = Fediverse.ExtensionNamespace
+                          Prefix = Fediverse.ExtensionPrefix
+                          Data = box {| episode = {| seriesId = thread.SeriesId; episodeId = thread.EpisodeId; groupKey = groupKey |} |} } }
 
             let! result = publish client $"series-{thread.SeriesId}" $"thread:{thread.SeriesId}:{groupKey}" note
 
@@ -336,7 +342,8 @@ let private publishComment (connection: NpgsqlConnection) (client: HttpClient) (
                           Url = commentUrl domain id c
                           InReplyTo = Some threadUrl
                           Summary = c.Summary
-                          Sensitive = c.Sensitive }
+                          Sensitive = c.Sensitive
+                          Extensions = None }
 
                     let! result = publish client (string authorId) $"comment:{id}" note
 
@@ -670,7 +677,8 @@ let private postWatchUpdate
                                   Url = url
                                   InReplyTo = None
                                   Summary = None
-                                  Sensitive = false }
+                                  Sensitive = false
+                                  Extensions = None }
 
                             let! result = publish client userSubject $"watch:{userSubject}:{dayText day}" note
 
@@ -986,7 +994,8 @@ let private postRecap
                                   Url = url
                                   InReplyTo = None
                                   Summary = None
-                                  Sensitive = false }
+                                  Sensitive = false
+                                  Extensions = None }
 
                             let! result = publish client userSubject $"recap:{userSubject}:{dayText recap.WeekStart}" note
 
@@ -1069,6 +1078,88 @@ let private deleteRecaps (connection: NpgsqlConnection) (client: HttpClient) (us
             return outcome
     }
 
+/// `{seriesId}@{domain}`, the subject of the follow items
+let private followSubject (subject: string) : (string * string) option =
+    match subject.Split('@', 2) with
+    | [| seriesId; domain |] when InstanceFollows.isSeriesId seriesId && domain <> "" -> Some(seriesId, domain)
+    | _ -> None
+
+/// What a follow call came to, written on the `series_follows` row (the code only, never a body)
+let private setFollowState (connection: NpgsqlConnection) (seriesId: string) (domain: string) (state: string) (followId: string option) (error: string option) =
+    task {
+        // A `follow.accepted` webhook can overtake the 202: only a follow still waiting takes the answer's state
+        use cmd =
+            new NpgsqlCommand(
+                """
+                UPDATE series_follows
+                SET state = CASE WHEN state IN ('queued', 'pending') THEN @state ELSE state END,
+                    follow_id = coalesce(@follow_id, follow_id), last_error = @error, updated_at = now()
+                WHERE series_id = @series_id AND domain = @domain
+                """,
+                connection
+            )
+
+        param cmd "state" state
+        param cmd "follow_id" (optional followId)
+        param cmd "error" (optional error)
+        param cmd "series_id" seriesId
+        param cmd "domain" domain
+        let! _ = cmd.ExecuteNonQueryAsync()
+        ()
+    }
+
+/// `follow_series` (FR-007): our series account follows the same series' account on another Frunchy instance. No row
+/// (the follow was removed meanwhile) is done; 404 is `not_found` (the other instance doesn't know the series, the
+/// sweep asks again in 7 days); a 409 (blocked), a 400 or any other refusal is `failed` with the code.
+let private followSeries (connection: NpgsqlConnection) (client: HttpClient) (subject: string) : Task<Outcome> =
+    task {
+        match followSubject subject with
+        | None -> return Refused "bad subject"
+        | Some(seriesId, domain) ->
+            use find = new NpgsqlCommand("SELECT remote_actor FROM series_follows WHERE series_id = @series_id AND domain = @domain AND state <> 'unfollowed'", connection)
+            param find "series_id" seriesId
+            param find "domain" domain
+
+            match! find.ExecuteScalarAsync() with
+            | :? string as remoteActor ->
+                // The lookup has to know the series' handle before Megáfono asks for the actor
+                let! _ = Fediverse.ensureSeriesHandle connection seriesId
+
+                let! result = follow client $"series-{seriesId}" remoteActor
+
+                if result.IsSuccess then
+                    match followOf result with
+                    | Some answer ->
+                        let state = if answer.Status = "accepted" then "accepted" else "pending"
+                        do! setFollowState connection seriesId domain state (Some answer.FollowId) None
+                        return Finished None
+                    | None -> return Retry "unreadable answer"
+                elif result.Status = 404 then
+                    do! setFollowState connection seriesId domain "not_found" None (Some result.Describe)
+                    return Finished(Some result.Describe)
+                elif result.Status = 409 || result.Status = 400 then
+                    do! setFollowState connection seriesId domain "failed" None (Some result.Describe)
+                    return Refused result.Describe
+                else
+                    match classify [] result with
+                    | Refused reason as refused ->
+                        do! setFollowState connection seriesId domain "failed" None (Some reason)
+                        return refused
+                    | other -> return other
+            | _ -> return Finished None
+    }
+
+/// `unfollow_series`: undo the follow, whether or not a row is left (a removed follow has none); 404 means it wasn't
+/// followed
+let private unfollowSeries (client: HttpClient) (subject: string) : Task<Outcome> =
+    task {
+        match followSubject subject with
+        | None -> return Refused "bad subject"
+        | Some(seriesId, domain) ->
+            let! result = unfollow client $"series-{seriesId}" (InstanceFollows.remoteSeriesActor domain seriesId)
+            return classify [ 404 ] result
+    }
+
 let private run (db: DbConfig) (client: HttpClient) (domain: string) (defaultVisibility: Profiles.Visibility) (item: Item) : Task<Outcome> =
     task {
         use connection = getConnection db
@@ -1089,6 +1180,8 @@ let private run (db: DbConfig) (client: HttpClient) (domain: string) (defaultVis
         | "delete_watch_updates" -> return! deleteWatchUpdates connection client item.Subject
         | "post_recap" -> return! postRecap connection client domain defaultVisibility item.Subject
         | "delete_recaps" -> return! deleteRecaps connection client item.Subject
+        | "follow_series" -> return! followSeries connection client item.Subject
+        | "unfollow_series" -> return! unfollowSeries client item.Subject
         | other -> return Refused $"unknown kind {other}"
     }
 
@@ -1138,6 +1231,21 @@ let processNext
     : Task<bool> =
     processNextWith NullLogger.Instance db client values defaultVisibility now
 
+/// Feature 028 (FR-013): run the instance-follow sweep when an hour has passed since `last` (or it never ran). Returns
+/// the time to remember: `now` after a run, `last` otherwise. The service keeps it; tests call this with their own times.
+let sweepWhenDue (db: DbConfig) (last: DateTimeOffset option) (now: DateTimeOffset) : Task<DateTimeOffset option> =
+    task {
+        match last with
+        | Some previous when now - previous < InstanceFollows.sweepEvery -> return last
+        | _ ->
+            use connection = getConnection db
+            do! connection.OpenAsync()
+            use tx = connection.BeginTransaction()
+            let! _ = InstanceFollows.sweep connection tx None now
+            do! tx.CommitAsync()
+            return Some now
+    }
+
 /// Polls the outbox: drains while there is work, sleeps 5 seconds when idle. Program registers it only with federation on.
 type FediverseOutboxService
     (
@@ -1155,9 +1263,13 @@ type FediverseOutboxService
             match settings with
             | Federation.Disabled -> ()
             | Federation.Enabled values ->
+                let mutable lastSweep = None
+
                 while not stoppingToken.IsCancellationRequested do
                     try
                         let client = factory.CreateClient MegafonoClient.ClientName
+                        let! swept = sweepWhenDue db lastSweep (time.GetUtcNow())
+                        lastSweep <- swept
                         let! worked = processNextWith logger db client values profiles.DefaultVisibility (time.GetUtcNow())
 
                         if not worked then

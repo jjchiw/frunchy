@@ -272,6 +272,9 @@ let ``megafono's environment`` () =
     Assert.Equal(Param "megafono-webhook-secret", env["Megafono__App__WebhookSecret"])
     Assert.Equal(Literal "172.26.64.0/20", env["Megafono__TrustedProxies"])
 
+    // Feature 028: how another Frunchy instance recognises this one in NodeInfo
+    Assert.Equal(Literal "frunchy", env["Megafono__Software__Name"])
+
     // Refused in Production by Megafono, and never wanted here
     Assert.False(env.ContainsKey "Megafono__Federation__AllowPrivateAddresses")
 
@@ -314,6 +317,8 @@ let ``frunchy keeps every 018 entry and adds the federation ones`` () =
     Assert.Equal(Endpoint("megafono", "internal"), env["Frunchy__Megafono__Url"])
     Assert.Equal(Param "megafono-token", env["Frunchy__Megafono__Token"])
     Assert.Equal(Param "megafono-webhook-secret", env["Frunchy__Megafono__WebhookSecret"])
+    // Dev only, refused by Frunchy in Production
+    Assert.False(env.ContainsKey "Frunchy__Federation__AllowPrivateAddresses")
 
 [<Fact>]
 let ``trusted proxies: the container network for Megafono and Frunchy, Traefik's address for the gateway`` () =

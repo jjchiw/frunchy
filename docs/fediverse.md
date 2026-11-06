@@ -235,6 +235,55 @@ rules are in `specs/030-recap-posts/recap-posts.spec.md`; the short version:
   deletes only recaps (and watch updates off only watch updates); leaving Public removes both. Copies other
   servers already fetched may stay.
 - Outbox kinds `post_recap` and `delete_recaps`, subject = the user id.
+## Following other Frunchy instances (feature 028)
+
+Frunchy instances can share episode discussions. An operator on `frunchy.lacalabaza.xyz` types `otherfrunchy.io`
+on `/review/follows`, and every series watched here follows the same series on `otherfrunchy.io`: its episode
+threads show on our episode pages as "Also discussed on otherfrunchy.io", with a link there. Only an operator sets
+this up, only toward other Frunchy instances, and nobody reads a feed or a timeline for it.
+
+- **Found by id, never by title.** Every Frunchy keys its series actor on the Crunchyroll series id
+  (`https://{domain}/ap/actors/series-{seriesId}`), so our `series-GG5H5XQX4` follows
+  `https://otherfrunchy.io/ap/actors/series-GG5H5XQX4`. One field, read by its shape: a bare server name follows
+  every series of our catalog with a watched episode of known length (an instance follow; a sweep adds series
+  watched later, at most once an hour, and asks again after 7 days for those the other side didn't know); a
+  handle (`@frieren@otherfrunchy.io`) or an `https://` actor URL follows that one series, and the actor must be a
+  Group named exactly `series-{ID}` of a series our catalog has. Removing an instance follow keeps the series
+  follows an operator typed by hand. Removing one series while its instance follow stays keeps the row as
+  `unfollowed`, so the sweep doesn't follow it again (typing it by hand does).
+- **Only Frunchy.** The target's NodeInfo (`/.well-known/nodeinfo`, the 2.x schema link on the same host) must say
+  `software.name` = `frunchy`. Frunchy sets that name through Megáfono: `Megafono__Software__Name=frunchy` in the
+  AppHost (run and publish) and in `deploy/compose.yaml`. A self-hoster with their own compose sets it too. The
+  fetch is the one call Frunchy makes to a host a person typed, so it is guarded: https on port 443, no redirects,
+  5 seconds, at most 256 KB, the schema link only on the same host, and a connection that refuses loopback,
+  private, link-local, CGNAT, multicast, unspecified and unique-local addresses. `Frunchy:Federation:AllowPrivateAddresses`
+  lifts the address rule for a local dev fediverse; Frunchy refuses to start with it in Production.
+- **Threads.** Our series Group follows theirs (`POST /internal/actors/{id}/following`, through the outbox as
+  `follow_series` and `unfollow_series`). Megáfono (feature 005) passes their Group's posts on as `post.received`,
+  `post.updated` and `post.deleted`. A post is a thread only when its actor is the remote actor of one of our series
+  follows, it has no `inReplyTo` and its audience is public or unlisted. `ensure_thread` now publishes with
+  Megáfono `extensions` (namespace `https://github.com/jjchiw/frunchy/ns#`, prefix `frunchy`, data
+  `{ "episode": { "seriesId", "episodeId", "groupKey" } }`), which is how the other instance maps a thread to its
+  own episode (ids only). Threads published before this feature carry none: the thread's URL is read instead when
+  it is `https://{their host}/anime/{seriesId}/episode/{episodeId}`.
+- **Which episode.** The thread's `episodeId` when our catalog has that episode of that series; otherwise an
+  episode of ours with the group key's number whose season is the key's season or a season matched as sharing it
+  (a dub's original). The episode page also finds threads by its group's ids and group key, so a thread stored
+  before our catalog knew the episode shows once it does; only threads of the page's series show, and the link is
+  shown only when it is https on the thread's own instance.
+- **Comments need Megáfono's "Group actors announce the replies they receive"** (not built as of 2026-10-29): a reply
+  in their thread is addressed to their Group and the replier's followers, so it never reaches us today. Frunchy
+  already stores and shows a `post.received` / `post.updated` / `post.deleted` whose `inReplyTo` is a remote thread we
+  hold, or a comment stored under one, whoever wrote it: text only (feature 015's `htmlToText`), spoilers kept, a
+  "via otherfrunchy.io" mark, hideable by operators (hidden here only). If Megáfono ships the announce as a new event
+  type, mapping it onto the same code is a small follow-up. Our users can't reply into their thread: they comment in
+  ours, which their instance can follow the same way. Each instance moderates its own.
+- **Privacy (FR-017).** Nothing about any person's watch history leaves the instance. The follows are series
+  accounts following series accounts. An instance follow reveals only which series are watched here (and that at
+  least one person watches them), to the instances an operator chose.
+- **For operators.** `/review/follows` (federation on only; the plain 404 for everyone else) lists the instance
+  follows and the 500 newest series follows with their state (queued, waiting for an answer, following, refused,
+  ended by them, not on that instance, failed, unfollowed here), and `fediverse-status` counts the follows by state.
 
 ## Decisions taken
 

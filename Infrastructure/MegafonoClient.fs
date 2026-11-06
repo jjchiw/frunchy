@@ -32,6 +32,13 @@ type MegafonoResult =
         | status, Some code -> $"{status} {code}"
         | status, None -> string status
 
+/// Megáfono's `extensions`: data under a namespace the instance owns, passed back on `post.*` events
+type NoteExtensions =
+    { Namespace: string
+      Prefix: string
+      /// The `data` object, as it is serialised
+      Data: obj }
+
 /// What `publish` sends: the Note and its audience
 type NoteToPublish =
     { Audience: string
@@ -39,7 +46,9 @@ type NoteToPublish =
       Url: string
       InReplyTo: string option
       Summary: string option
-      Sensitive: bool }
+      Sensitive: bool
+      /// Feature 028: data published beside the Note under our own namespace (`null` on the wire when absent)
+      Extensions: NoteExtensions option }
 
 /// What `updateObject` sends (the audience can't change)
 type NoteUpdate =
@@ -135,7 +144,11 @@ let publish (client: HttpClient) (actorId: string) (key: string) (note: NoteToPu
                url = note.Url
                inReplyTo = orNull note.InReplyTo
                summary = orNull note.Summary
-               sensitive = note.Sensitive |} |}
+               sensitive = note.Sensitive |}
+           extensions =
+            match note.Extensions with
+            | Some e -> box {| ``namespace`` = e.Namespace; prefix = e.Prefix; data = e.Data |}
+            | None -> null |}
 
     send client HttpMethod.Post $"/internal/actors/{escape actorId}/objects" (Some(box body)) (Some key)
 
@@ -272,6 +285,77 @@ let addInstanceBlock (client: HttpClient) (target: BlockTarget) =
 
 let removeInstanceBlock (client: HttpClient) (target: BlockTarget) =
     send client HttpMethod.Delete $"/internal/blocks?{targetQuery target}" None None
+
+// ---------------------------------------------------------------------------
+// Feature 028: following another Frunchy instance's series accounts
+// ---------------------------------------------------------------------------
+
+/// A remote actor as `GET /internal/remote-actors` answers it (the fields Frunchy reads)
+type RemoteActor =
+    { Id: string
+      Handle: string
+      Type: string }
+
+/// What a remote-actor lookup answered, and the actor when the answer was a readable 200. Only an actor (a handle or
+/// an actor URL) can be looked up: a domain never makes a call.
+let lookupRemoteActor (client: HttpClient) (target: BlockTarget) : Task<MegafonoResult * RemoteActor option> =
+    task {
+        match target with
+        | Domain _ -> return { Status = 400; Body = ""; ErrorCode = Some "invalid_request"; ErrorMessage = None }, None
+        | Actor a ->
+            let query = if a.StartsWith("https://", StringComparison.Ordinal) then $"url={escape a}" else $"handle={escape a}"
+            let! result = sendWithin (Some pageReadTimeout) client HttpMethod.Get $"/internal/remote-actors?{query}" None None
+
+            let actor =
+                if not result.IsSuccess then
+                    None
+                else
+                    try
+                        use doc = JsonDocument.Parse result.Body
+
+                        let text (name: string) =
+                            match doc.RootElement.TryGetProperty name with
+                            | true, v when v.ValueKind = JsonValueKind.String -> Some(v.GetString())
+                            | _ -> None
+
+                        match text "id", text "handle", text "type" with
+                        | Some id, Some handle, Some kind -> Some { Id = id; Handle = handle; Type = kind }
+                        | _ -> None
+                    with _ ->
+                        None
+
+            return result, actor
+    }
+
+/// What a follow call answered: Megáfono's id for the relationship and its status (`pending` or `accepted`)
+type FollowAnswer = { FollowId: string; Status: string }
+
+/// `POST /internal/actors/{id}/following`: 202 with `{ followId, status, actor }`; 404 when the target can't be
+/// resolved, 409 `blocked`, 400 for a refused address
+let follow (client: HttpClient) (actorId: string) (targetUrl: string) =
+    send client HttpMethod.Post $"/internal/actors/{escape actorId}/following" (Some(box {| target = targetUrl |})) None
+
+let followOf (result: MegafonoResult) : FollowAnswer option =
+    if not result.IsSuccess then
+        None
+    else
+        try
+            use doc = JsonDocument.Parse result.Body
+
+            let text (name: string) =
+                match doc.RootElement.TryGetProperty name with
+                | true, v when v.ValueKind = JsonValueKind.String -> Some(v.GetString())
+                | _ -> None
+
+            match text "followId", text "status" with
+            | Some id, Some status -> Some { FollowId = id; Status = status }
+            | _ -> None
+        with _ ->
+            None
+
+/// `DELETE /internal/actors/{id}/following?actor=`: 202; 404 when it wasn't followed
+let unfollow (client: HttpClient) (actorId: string) (remoteActorUrl: string) =
+    send client HttpMethod.Delete $"/internal/actors/{escape actorId}/following?actor={escape remoteActorUrl}" None None
 
 /// The named client, with the base URL, the bearer token and a 10 s timeout. Registered only when federation is on.
 let register (values: Federation.FederationValues) (services: IServiceCollection) =

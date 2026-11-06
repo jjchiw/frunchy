@@ -107,7 +107,9 @@ let federationEndpoints (settings: Federation.FederationSettings) =
           yield! Handlers.Account.WatchUpdates.endpoint
           // Feature 030: the switch for weekly recap posts on the fediverse
           yield! Handlers.Account.RecapPosts.endpoint
-          yield! Handlers.Review.FediverseBlocks.endpoint ]
+          yield! Handlers.Review.FediverseBlocks.endpoint
+          // Feature 028: following the same series on other Frunchy instances (operators, 404 for everyone else)
+          yield! Handlers.Review.InstanceFollows.endpoint ]
     | Federation.Disabled -> []
 
 let private allEndpoints (settings: Federation.FederationSettings) = endpoints @ federationEndpoints settings
@@ -436,6 +438,7 @@ let configureServices (config: IConfiguration) (services: IServiceCollection) =
         match settings with
         | Federation.Enabled values ->
             MegafonoClient.register values services |> ignore
+            NodeInfo.register values services |> ignore
 
             if config.GetValue<bool>(FediverseWorkerEnabledKey, true) then
                 services.AddHostedService<Workers.FediverseOutbox.FediverseOutboxService>() |> ignore
@@ -533,6 +536,12 @@ let buildApp (args: string array) (customize: WebApplicationBuilder -> unit) : W
     configureServices builder.Configuration builder.Services
     // Feature 016: the data-protection keys live in Postgres, encrypted (needs the environment, so it isn't in configureServices)
     DataProtectionStore.register builder.Environment builder.Configuration builder.Services
+
+    // Feature 028: the NodeInfo address guard can only be loosened outside Production (also needs the environment)
+    match Federation.read builder.Configuration with
+    | Ok settings -> Federation.refuseInProduction builder.Environment settings
+    | Error _ -> () // configureServices has already raised it
+
     let app = builder.Build()
 
     match app.Configuration[DataProtectionStore.KeysPathSetting] with

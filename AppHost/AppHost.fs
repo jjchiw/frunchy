@@ -211,6 +211,8 @@ let publishGraph (builder: IDistributedApplicationBuilder) (repoRoot: string) =
                     .WithEnvironment("Megafono__App__Token", token)
                     .WithEnvironment("Megafono__App__WebhookSecret", webhookSecret)
                     .WithEnvironment("Megafono__TrustedProxies", containerNetwork)
+                    // Feature 028: NodeInfo's software name, how other Frunchy instances recognise this one
+                    .WithEnvironment("Megafono__Software__Name", "frunchy")
                     .WithCaravanaHealthCheck(caravana, "/health", 8081)
                     .WithCaravanaMemory(caravana, 256, 512)
                     .WaitFor(megafonoDb)
@@ -398,6 +400,8 @@ let private runGraph (builder: IDistributedApplicationBuilder) (repoRoot: string
             .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
             // Dev only (refused in Production): lets Megafono reach frunchy.test-style private hosts over http
             .WithEnvironment("Megafono__Federation__AllowPrivateAddresses", "true")
+            // Feature 028: NodeInfo's software name, how other Frunchy instances recognise this one
+            .WithEnvironment("Megafono__Software__Name", "frunchy")
             .WithHttpHealthCheck(path = "/health", endpointName = "internal")
             .WaitFor(megafonoDb)
 
@@ -433,6 +437,8 @@ let private runGraph (builder: IDistributedApplicationBuilder) (repoRoot: string
         .WithEnvironment("Frunchy__Megafono__Token", token)
         .WithEnvironment("Frunchy__Megafono__WebhookSecret", webhookSecret)
         .WithEnvironment("Frunchy__TrustedProxies", $"127.0.0.1,::1,{privateRanges}")
+        // Feature 028 (dev only, refused in Production): the NodeInfo check may reach a local dev fediverse's private hosts
+        .WithEnvironment("Frunchy__Federation__AllowPrivateAddresses", "true")
         .WaitFor(frunchyDb)
     |> ignore
 

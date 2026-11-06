@@ -562,3 +562,166 @@ let ``copies starting together on a catalog without aired_at all succeed and dat
         let! dates = airedAt db
         Assert.Contains("E1|2026-04-01T00:00", dates)
     }
+
+// ---------------------------------------------------------------------------
+// Feature 028: comments.remote_thread and the two new outbox kinds
+// ---------------------------------------------------------------------------
+
+let private user028 = Guid.Parse "00000000-0000-0000-0000-0000000000e1"
+
+/// A database from before feature 028: `comments` without `remote_thread`, the outbox with the old kind check
+/// (but already allowing `failed`), one local comment and one outbox row
+let private databaseBefore028 () : Task<DbConfig> =
+    task {
+        let! db = newEmptyDatabase ()
+        do! initializeSchema db
+        do! Db.execute db "ALTER TABLE comments DROP COLUMN remote_thread"
+
+        do!
+            Db.execute
+                db
+                """
+                ALTER TABLE fediverse_outbox DROP CONSTRAINT fediverse_outbox_kind_check;
+                ALTER TABLE fediverse_outbox
+                    ADD CONSTRAINT fediverse_outbox_kind_check
+                    CHECK (kind IN ('ensure_thread', 'publish_comment', 'update_comment', 'delete_comment', 'delete_actor', 'refresh_profile'))
+                """
+
+        do! Db.execute db $"INSERT INTO users (id, username, display_name) VALUES ('{user028}', 'before28', 'before28')"
+        do! Db.execute db "INSERT INTO cr_episodes (id, series_id, duration_ms, source_at) VALUES ('EP28', 'SER28', 1400000, now())"
+
+        do!
+            Db.execute
+                db
+                $"INSERT INTO comments (id, cr_episode_id, author_user_id, content) VALUES ('c28', 'EP28', '{user028}', 'hello')"
+
+        do! Db.execute db "INSERT INTO fediverse_outbox (kind, subject) VALUES ('refresh_profile', 's28')"
+        return db
+    }
+
+let private remoteThreadColumn (db: DbConfig) =
+    Db.dump
+        db
+        "SELECT data_type || '|' || is_nullable FROM information_schema.columns WHERE table_name = 'comments' AND column_name = 'remote_thread'"
+
+let private enqueueFollow (db: DbConfig) =
+    Db.execute db "INSERT INTO fediverse_outbox (kind, subject) VALUES ('follow_series', 'SER28@other.test'), ('unfollow_series', 'SER28@other.test')"
+
+[<Fact>]
+let ``the 027 shape refuses the follow kinds and has no remote_thread column`` () =
+    task {
+        let! db = databaseBefore028 ()
+        let! column = remoteThreadColumn db
+        Assert.Empty column
+        let! error = Assert.ThrowsAnyAsync<PostgresException>(fun () -> enqueueFollow db :> Task)
+        Assert.Equal("23514", error.SqlState)
+    }
+
+[<Fact>]
+let ``the 028 upgrade adds the column and the kinds, keeps the rows, and the second run changes nothing`` () =
+    task {
+        let! db = databaseBefore028 ()
+        do! initializeSchema db
+
+        let! column = remoteThreadColumn db
+        Assert.Equal<string list>([ "text|YES" ], column)
+
+        do! enqueueFollow db
+        let! error = Assert.ThrowsAnyAsync<PostgresException>(fun () -> Db.execute db "INSERT INTO fediverse_outbox (kind, subject) VALUES ('nonsense', 'x')" :> Task)
+        Assert.Equal("23514", error.SqlState)
+
+        let! rows = Db.dump db "SELECT kind || '|' || subject FROM fediverse_outbox ORDER BY id"
+        Assert.Equal<string list>([ "refresh_profile|s28"; "follow_series|SER28@other.test"; "unfollow_series|SER28@other.test" ], rows)
+
+        let! comment = Db.dump db "SELECT id || '|' || content || '|' || coalesce(remote_thread, '<null>') FROM comments"
+        Assert.Equal<string list>([ "c28|hello|<null>" ], comment)
+
+        let! before = kindChecks db
+        do! initializeSchema db
+        do! initializeSchema db
+        let! after = kindChecks db
+        Assert.Equal<string list>(before, after)
+        Assert.Equal(1, after.Length)
+        Assert.Contains("fediverse_outbox_kind_check", after[0])
+    }
+
+[<Fact>]
+let ``a fresh database has the 028 tables and kinds and the upgrade leaves it alone`` () =
+    task {
+        let! db = newEmptyDatabase ()
+        do! initializeSchema db
+        let! before = kindChecks db
+        do! enqueueFollow db
+        do! Db.execute db "INSERT INTO instance_follows (domain) VALUES ('other.test')"
+
+        do!
+            Db.execute
+                db
+                "INSERT INTO series_follows (series_id, domain, remote_actor, source) VALUES ('SER28', 'other.test', 'https://other.test/ap/actors/series-SER28', 'series')"
+
+        let! error =
+            Assert.ThrowsAnyAsync<PostgresException>(fun () ->
+                Db.execute
+                    db
+                    "INSERT INTO series_follows (series_id, domain, remote_actor, source, state) VALUES ('SER29', 'other.test', 'https://other.test/ap/actors/series-SER29', 'series', 'bogus')"
+                :> Task)
+
+        Assert.Equal("23514", error.SqlState)
+        do! initializeSchema db
+        let! after = kindChecks db
+        Assert.Equal<string list>(before, after)
+    }
+
+[<Fact>]
+let ``copies starting together on a database without the 028 changes all succeed`` () =
+    task {
+        let! db = databaseBefore028 ()
+        let! results = Task.WhenAll [| for _ in 1..6 -> initializeSchema db |]
+        Assert.Equal(6, results.Length)
+        let! column = remoteThreadColumn db
+        Assert.Equal<string list>([ "text|YES" ], column)
+        do! enqueueFollow db
+    }
+
+// A database as 0.6.1 left it (the ten-kind check of features 028 watch updates and 030), with watch-update and
+// recap items in the outbox, meets the instance-follows block: every block writes the full list, so the rows stay
+// and the follow kinds are accepted (a block writing only its own kinds would refuse the existing rows)
+[<Fact>]
+let ``a ten-kind outbox with watch update and recap items takes the follow kinds and keeps every row`` () =
+    task {
+        let! db = databaseBefore028 ()
+
+        do!
+            Db.execute
+                db
+                """
+                ALTER TABLE fediverse_outbox DROP CONSTRAINT fediverse_outbox_kind_check;
+                ALTER TABLE fediverse_outbox
+                    ADD CONSTRAINT fediverse_outbox_kind_check
+                    CHECK (kind IN ('ensure_thread', 'publish_comment', 'update_comment', 'delete_comment', 'delete_actor',
+                                    'refresh_profile', 'post_watch_update', 'delete_watch_updates', 'post_recap', 'delete_recaps'));
+                INSERT INTO fediverse_outbox (kind, subject) VALUES ('post_watch_update', 'u1'), ('post_recap', 'u1');
+                """
+
+        do! initializeSchema db
+        do! enqueueFollow db
+
+        let! rows = Db.dump db "SELECT kind || '|' || subject FROM fediverse_outbox ORDER BY id"
+
+        Assert.Equal<string list>(
+            [ "refresh_profile|s28"
+              "post_watch_update|u1"
+              "post_recap|u1"
+              "follow_series|SER28@other.test"
+              "unfollow_series|SER28@other.test" ],
+            rows
+        )
+
+        let! before = kindChecks db
+        Assert.Equal(1, before.Length)
+        Assert.Contains("post_recap", before[0])
+        Assert.Contains("follow_series", before[0])
+        do! initializeSchema db
+        let! after = kindChecks db
+        Assert.Equal<string list>(before, after)
+    }
