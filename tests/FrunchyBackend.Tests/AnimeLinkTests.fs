@@ -78,7 +78,9 @@ let ``the dashboard's newest episode and every recent card link to their anime p
         let! recent = Db.dump app.Db "SELECT e.series_id FROM watch_events w JOIN cr_episodes e ON e.id = w.cr_episode_id WHERE e.duration_ms IS NOT NULL ORDER BY w.watched_at DESC, e.id LIMIT 6"
         Assert.Equal(6, recent.Length)
 
-        let links = seriesLinks html
+        // The milestones section (feature 029) links its long-run series too; it has its own test (MilestonesTests)
+        let withoutMilestones = Text.RegularExpressions.Regex.Replace(html, "(?s)<section[^>]*data-milestones=\"\".*?</section>", "")
+        let links = seriesLinks withoutMilestones
         // the header's newest episode first, then one per card
         Assert.Equal<string list>(recent.Head :: recent, links |> List.map _.Id)
 

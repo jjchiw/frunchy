@@ -63,6 +63,8 @@ type DashboardModel =
       Figures: Figures option // None when nothing resolved has been watched yet
       TopGenres: TopGenres option // None when no fully watched episode is in a matched season
       Recent: RecentEpisode list
+      /// The six milestones of feature 029; empty when `Figures` is None (nothing is queried then)
+      Milestones: Milestones.Track list
       /// `@username@domain` with federation on (feature 015); None otherwise, and for a username that can't federate
       FediverseHandle: string option
       /// What the page says about who can see it (feature 017)
@@ -221,6 +223,95 @@ let private topGenres (t: Texts) (g: TopGenres) =
         }
     }
 
+/// "Milestones" (feature 029, specs/029-milestones/contracts/hooks.md): one card per track, always in the same order
+let private milestoneCard (t: Texts) (username: string) (m: Milestones.Track) =
+    let invariant =
+        if m.Key = "hours" then
+            m.Value.ToString("0.0", CultureInfo.InvariantCulture)
+        else
+            m.Value.ToString("0", CultureInfo.InvariantCulture)
+
+    let trackIcon =
+        match m.Key with
+        | "episodes" -> Theme.Movie
+        | "hours" -> Theme.Schedule
+        | "series" -> Theme.VideoLibrary
+        | "streak" -> Theme.LocalFireDepartment
+        | "marathon" -> Theme.Bolt
+        | _ -> Theme.Layers
+
+    let card =
+        article(class' = "fr-card flex flex-col gap-3 p-5")
+            .data("milestone", m.Key)
+            .data("value", invariant)
+            .data("tier", (match m.Tier with Some tier -> string tier | None -> ""))
+            .data("next", (match m.Next with Some next -> string next | None -> ""))
+
+    let card =
+        match m.Series with
+        | Some(seriesId, _) when m.Value > 0m -> card.data("long-run-series", seriesId)
+        | _ -> card
+
+    card {
+        div(class' = "flex items-center gap-2 text-on-surface-variant") {
+            iconWith (if m.Tier.IsSome then "text-primary" else "") trackIcon
+            h3(class' = "text-body-md font-semibold text-on-surface") { t.MilestoneName m.Key }
+        }
+
+        match m.Tier with
+        | Some tier -> p(class' = "text-headline-md text-primary") { t.MilestoneTier m.Key tier }
+        | None -> p(class' = "text-headline-md text-on-surface-variant") { t.MilestoneNotYet }
+
+        p(class' = "text-body-md text-on-surface-variant [overflow-wrap:anywhere]") {
+            match m.Series with
+            | Some(seriesId, title) when m.Value > 0m ->
+                t.MilestoneLongRunOf(int m.Value) + " "
+                seriesLink username seriesId title
+            | _ -> t.MilestoneValue m.Key m.Value
+        }
+
+        match m.ReachedAt with
+        | Some at ->
+            p(class' = "flex flex-wrap items-center gap-x-1.5 text-label-md font-normal text-on-surface-variant") {
+                icon Theme.CalendarMonth
+                span() { t.MilestoneReachedOn + " " }
+                (timeElement t "date" at).data("milestone-reached", "")
+            }
+        | None -> Fragment()
+
+        match m.Next with
+        | Some next ->
+            let percent = if next = 0 then 0m else 100m * m.Value / decimal next
+
+            div(class' = "mt-auto space-y-2").data("milestone-progress", "") {
+                shareBar percent
+                p(class' = "text-label-md font-normal text-on-surface-variant") { t.MilestoneToGo m.Key m.Remaining next }
+            }
+        | None ->
+            p(class' = "mt-auto flex items-center gap-1.5 text-label-md font-semibold text-primary").data("milestone-top", "") {
+                icon Theme.CheckCircle
+                span() { t.MilestoneTop }
+            }
+    }
+
+let private milestones (t: Texts) (username: string) (all: Milestones.Track list) =
+    section(class' = "space-y-4")
+        .data("milestones", "")
+        .data("milestones-reached", string (Milestones.reached all))
+        .data("milestones-total", string Milestones.totalTiers)
+        .attr("aria-labelledby", "milestones-title") {
+        div(class' = "flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1") {
+            h2(id = "milestones-title", class' = "text-headline-md text-on-surface") { t.MilestonesTitle }
+
+            p(class' = "text-body-md text-on-surface-variant") { t.MilestonesReached (Milestones.reached all) Milestones.totalTiers }
+        }
+
+        div(class' = "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3") {
+            for m in all do
+                milestoneCard t username m
+        }
+    }
+
 /// The sync and fediverse lines, the first block under the tab bar (feature 022)
 let private statusLines (t: Texts) (m: DashboardModel) =
     div(class' = "space-y-2") {
@@ -356,6 +447,9 @@ let view (ctx: HttpContext) (t: Texts) (m: DashboardModel) (compat: Compatibilit
         match m.Figures with
         | Some figures ->
             stats t figures
+
+            if not m.Milestones.IsEmpty then
+                milestones t m.Username m.Milestones
 
             div(class' = "grid grid-cols-1 gap-8 lg:grid-cols-12 lg:items-start lg:gap-6") {
                 recent t m
@@ -565,6 +659,12 @@ let private tryLoad (db: DbConfig) (gate: Guid -> Task<Profiles.GateResult>) (us
                                   AllEpisodes = all }
                 }
 
+            // Milestones (feature 029): only for a history with figures, and only after the visibility gate above
+            let! milestones =
+                match figures with
+                | Some _ -> Milestones.load connection userId
+                | None -> Task.FromResult []
+
             use syncCmd =
                 new NpgsqlCommand(
                     "SELECT max(received_at), coalesce(bool_or(status IN ('pending', 'processing')), false) FROM cr_imports WHERE user_id = @user_id",
@@ -590,6 +690,7 @@ let private tryLoad (db: DbConfig) (gate: Guid -> Task<Profiles.GateResult>) (us
                       Figures = figures
                       TopGenres = topGenres
                       Recent = recent
+                      Milestones = milestones
                       FediverseHandle = None
                       Access = access }
     }

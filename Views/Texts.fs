@@ -58,6 +58,21 @@ type Texts =
       TopGenresTitle: string
       TopGenresEpisodes: int64 -> string
       TopGenresCoverage: int -> string
+      // Milestones on the dashboard (feature 029); the keys are `Milestones.tracks`
+      MilestonesTitle: string
+      MilestonesReached: int -> int -> string
+      MilestoneName: string -> string
+      /// A tier in words, by track key and threshold ("1,000 episodes", "7 days in a row")
+      MilestoneTier: string -> int -> string
+      /// The current value in words, by track key (hours with one decimal)
+      MilestoneValue: string -> decimal -> string
+      /// "N episodes of" (a title follows as its own element)
+      MilestoneLongRunOf: int -> string
+      MilestoneNotYet: string
+      MilestoneReachedOn: string
+      /// What is missing to the next tier: track key, amount, the next threshold
+      MilestoneToGo: string -> decimal -> int -> string
+      MilestoneTop: string
       MyAnimeListLink: string
       ScoreLabel: string
       EmptyTitle: string
@@ -617,6 +632,35 @@ type Texts =
       GuideImageAlt: string -> string
       GuideImageCaption: string -> string }
 
+/// A milestone amount in words (feature 029): `n` with the track's unit, singular for exactly 1
+let private milestonePhraseEn (key: string) (n: decimal) (oneDecimal: bool) =
+    let culture = CultureInfo.GetCultureInfo "en"
+    let number = n.ToString((if oneDecimal then "N1" else "N0"), culture)
+    let one = n = 1m
+
+    match key with
+    | "episodes" -> if one then "1 episode" else $"{number} episodes"
+    | "hours" -> if one && not oneDecimal then "1 hour" else $"{number} hours"
+    | "series" -> $"{number} series"
+    | "streak" -> if one then "1 day in a row" else $"{number} days in a row"
+    | "marathon" -> if one then "1 episode in one day" else $"{number} episodes in one day"
+    | "long-run" -> if one then "1 episode of one series" else $"{number} episodes of one series"
+    | other -> other
+
+let private milestonePhraseEs (key: string) (n: decimal) (oneDecimal: bool) =
+    let culture = CultureInfo.GetCultureInfo "es"
+    let number = n.ToString((if oneDecimal then "N1" else "N0"), culture)
+    let one = n = 1m
+
+    match key with
+    | "episodes" -> if one then "1 episodio" else $"{number} episodios"
+    | "hours" -> if one && not oneDecimal then "1 hora" else $"{number} horas"
+    | "series" -> $"{number} series"
+    | "streak" -> if one then "1 día seguido" else $"{number} días seguidos"
+    | "marathon" -> if one then "1 episodio en un día" else $"{number} episodios en un día"
+    | "long-run" -> if one then "1 episodio de una serie" else $"{number} episodios de una serie"
+    | other -> other
+
 let en =
     { Lang = "en"
       Culture = CultureInfo.GetCultureInfo "en"
@@ -668,6 +712,28 @@ let en =
         fun n -> if n = 1L then "1 episode" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} episodes"""
       TopGenresCoverage =
         fun p -> $"Based on {p}%% of fully watched episodes. An episode counts in each of its genres."
+      MilestonesTitle = "Milestones"
+      MilestonesReached = fun reached total -> $"{reached} of {total} reached"
+      MilestoneName =
+        function
+        | "episodes" -> "Episodes"
+        | "hours" -> "Hours"
+        | "series" -> "Series"
+        | "streak" -> "Streak"
+        | "marathon" -> "Busiest day"
+        | "long-run" -> "Series deep dive"
+        | other -> other
+      MilestoneTier = fun key n -> milestonePhraseEn key (decimal n) false
+      MilestoneValue = fun key v -> milestonePhraseEn key v (key = "hours")
+      MilestoneLongRunOf =
+        fun n -> if n = 1 then "1 episode of" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} episodes of"""
+      MilestoneNotYet = "Not yet"
+      MilestoneReachedOn = "Reached"
+      MilestoneToGo =
+        fun key remaining next ->
+            let number = remaining.ToString((if key = "hours" then "N1" else "N0"), CultureInfo.GetCultureInfo "en")
+            $"{number} to go to {milestonePhraseEn key (decimal next) false}"
+      MilestoneTop = "Every milestone reached"
       MyAnimeListLink = "MyAnimeList"
       ScoreLabel = "MyAnimeList score"
       EmptyTitle = "No history yet"
@@ -1455,6 +1521,29 @@ let es =
         fun n -> if n = 1L then "1 episodio" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} episodios"""
       TopGenresCoverage =
         fun p -> $"Basado en el {p}%% de los episodios vistos completos. Un episodio cuenta en cada uno de sus géneros."
+      MilestonesTitle = "Hitos"
+      MilestonesReached = fun reached total -> $"{reached} de {total} conseguidos"
+      MilestoneName =
+        function
+        | "episodes" -> "Episodios"
+        | "hours" -> "Horas"
+        | "series" -> "Series"
+        | "streak" -> "Racha"
+        | "marathon" -> "Día más intenso"
+        | "long-run" -> "Una serie a fondo"
+        | other -> other
+      MilestoneTier = fun key n -> milestonePhraseEs key (decimal n) false
+      MilestoneValue = fun key v -> milestonePhraseEs key v (key = "hours")
+      MilestoneLongRunOf =
+        fun n -> if n = 1 then "1 episodio de" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} episodios de"""
+      MilestoneNotYet = "Aún no"
+      MilestoneReachedOn = "Conseguido"
+      MilestoneToGo =
+        fun key remaining next ->
+            let number = remaining.ToString((if key = "hours" then "N1" else "N0"), CultureInfo.GetCultureInfo "es")
+            let verb = if remaining = 1m then "Falta" else "Faltan"
+            $"{verb} {number} para {milestonePhraseEs key (decimal next) false}"
+      MilestoneTop = "Todos los hitos conseguidos"
       MyAnimeListLink = "MyAnimeList"
       ScoreLabel = "Puntuación en MyAnimeList"
       EmptyTitle = "Todavía no hay historial"

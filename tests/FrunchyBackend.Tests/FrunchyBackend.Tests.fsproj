@@ -30,6 +30,8 @@
     <Compile Include="WhoAmITests.fs" />
     <Compile Include="ImportProcessorTests.fs" />
     <Compile Include="DashboardTests.fs" />
+    <Compile Include="MilestonesUnitTests.fs" />
+    <Compile Include="MilestonesTests.fs" />
     <Compile Include="OperationsTests.fs" />
     <Compile Include="AuthConfigTests.fs" />
     <Compile Include="FederationSettingsTests.fs" />
