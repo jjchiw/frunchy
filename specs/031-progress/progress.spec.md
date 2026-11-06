@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-06
 
-**Status**: Draft
+**Status**: Implemented (designer signed off 2026-11-06)
 
 **Input**: "It would be good to list the series that were dropped: on MyAnimeList there are 12 episodes but I only
 watched 4. How many completed and how many unfinished, with a list, because sometimes I forget about them." The owner

@@ -106,3 +106,8 @@ section at 0 are accepted.
    and only Completed (`bg-primary`) and Watching (`bg-tertiary`) are drawn, as % of all started shows. The
    Unfinished number keeps `text-on-surface-variant`. Caught up fills the bar.
 4. Nested "Show all N": keep. 5. Scroll cue: fine. 6. Long runner in a closed year: correct, no change.
+
+## Sign-off (2026-11-06)
+
+Signed off at fd15a35: the counts bar on a quiet track, rows one line at 1280 and two clean lines at 360 (es), the
+next-episode button under them on phones. Nothing left from design.
