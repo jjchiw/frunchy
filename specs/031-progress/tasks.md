@@ -33,10 +33,10 @@
 
 ## Phase 3: Docs and snapshots
 
-- [ ] T008 CLAUDE.md route line; `changelog.d/031-progress.md` (Added); PageSnapshots shoots `progress` (owner) and
+- [x] T008 CLAUDE.md route line; `changelog.d/031-progress.md` (Added); PageSnapshots shoots `progress` (owner) and
   `progress-visitor`, with the snapshot user having unfinished, watching and completed entries and a long runner
   · CLAUDE.md, changelog.d/031-progress.md, tests/FrunchyBackend.Tests/PageSnapshots.fs
-- [ ] T009 Commit 2: `docs(031): progress`
+- [x] T009 Commit 2: `docs(031): progress`
 
 ## Phase 4: Review and design (main session)
 

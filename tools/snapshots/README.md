@@ -27,7 +27,7 @@ session can look at them without signing in anywhere. Both steps are opt-in: a n
 Names: `home`, `signin` (signed out), `signup` (back from a provider with no account yet), `dashboard`, `dna`, `year-2026`, `anime`, `compare`, `account` (no share link),
 `account-shared` (with one), `share-link-created` (the show-once page), `review-invites`, `invite-created` (the show-once
 code page), `review-settings`, `sync-key` (the show-once key page, a throwaway key of the test database), `guide` (its screenshots
-are blocked like every root-relative URL).
+are blocked like every root-relative URL), and the Progress tab (feature 031): `progress` (owner `mika`: 110 unfinished over four years, a long runner, an airing show without a total, watching and completed), `progress-caughtup`, `progress-empty`, `progress-visitor` (`mika`'s page as another member) and `progress-sample` (the real 2026 sample).
 
 `signin` also gets two viewport-sized shots per width and language, from real mouse clicks (CDP
 `Input.dispatchMouseEvent`) on the first provider link:
