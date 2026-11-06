@@ -308,6 +308,40 @@ type Texts =
       YearEmptyCount: int64 -> string
       YearEmptyBody: string
 
+      // Progress (/u/{username}/progress, feature 031)
+      ProgressLink: string
+      ProgressTitle: string
+      ProgressIntro: string
+      ProgressCompleted: string
+      ProgressWatching: string
+      ProgressUnfinished: string
+      /// Under the visitor's counts: the lists are the owner's only (the display name)
+      ProgressVisitorLine: string -> string
+      /// Started Crunchyroll seasons without MyAnimeList details, which no count includes
+      ProgressUnmatched: int -> string
+      ProgressWatchingHint: string
+      ProgressWatchingEmpty: string
+      ProgressUnfinishedHint: string
+      ProgressGroupCount: int -> string
+      ProgressShowAll: int -> string
+      ProgressCompletedHeading: string
+      /// "The 12 most recent of {n}."
+      ProgressCompletedMore: int -> int -> string
+      /// "{watched} of {total} episodes"
+      ProgressMetaOf: int -> int -> string
+      /// "{watched} episodes" (the total is unknown or the show is a long runner)
+      ProgressMetaEpisodes: int -> string
+      /// Before the time element: "last watched 3 months ago"
+      ProgressLastWatched: string
+      ProgressLongRun: string
+      ProgressAiring: string
+      ProgressNext: int -> string
+      /// Screen readers only, after "Next: episode 5": the show the button belongs to
+      ProgressNextFor: string -> string
+      ProgressCaughtUp: string
+      ProgressEmptyOwner: string
+      ProgressEmptyVisitor: string -> string
+
       // Anime page (/u/{username}/anime/{seriesId}, feature 006)
       AnimeSeasonsTitle: string
       AnimeSeasonNumber: int -> string
@@ -1088,6 +1122,38 @@ let en =
       YearEmptyTitle = fun y -> $"Not enough data for {y} yet"
       YearEmptyCount = fun n -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} of 15 fully watched episodes"""
       YearEmptyBody = "A year's review appears after 15 fully watched episodes in it. Pick another year, or sync more history with the Frunchy extension."
+
+      // Progress (feature 031)
+      ProgressLink = "Progress"
+      ProgressTitle = "Progress"
+      ProgressIntro = "The shows this profile completed, is watching and left unfinished. Each MyAnimeList entry is one show."
+      ProgressCompleted = "Completed"
+      ProgressWatching = "Watching"
+      ProgressUnfinished = "Unfinished"
+      ProgressVisitorLine = fun name -> $"Only {name} can see which shows these are."
+      ProgressUnmatched =
+        fun n ->
+            if n = 1 then
+                "1 started Crunchyroll season has no MyAnimeList details yet, so it isn't counted."
+            else
+                $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} started Crunchyroll seasons have no MyAnimeList details yet, so they aren't counted."""
+      ProgressWatchingHint = "Watched in the last 30 days, or keeping up with a show that's airing."
+      ProgressWatchingEmpty = "Nothing in progress right now."
+      ProgressUnfinishedHint = "Started, not completed, and not watched in the last 30 days. Most recent first."
+      ProgressGroupCount = fun n -> if n = 1 then "1 show" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "en")} shows"""
+      ProgressShowAll = fun n -> $"Show all {n}"
+      ProgressCompletedHeading = "Recently completed"
+      ProgressCompletedMore = fun listed n -> $"The {listed} most recent of {n}."
+      ProgressMetaOf = fun w t -> $"""{w.ToString("N0", CultureInfo.GetCultureInfo "en")} of {t.ToString("N0", CultureInfo.GetCultureInfo "en")} episodes"""
+      ProgressMetaEpisodes = fun w -> if w = 1 then "1 episode" else $"""{w.ToString("N0", CultureInfo.GetCultureInfo "en")} episodes"""
+      ProgressLastWatched = "last watched"
+      ProgressLongRun = "Long run"
+      ProgressAiring = "Airing"
+      ProgressNext = fun n -> $"Next: episode {n}"
+      ProgressNextFor = fun title -> $", {title}"
+      ProgressCaughtUp = "You're all caught up: every show you started is completed or in progress."
+      ProgressEmptyOwner = "Nothing started yet. When a sync brings a fully watched episode of a show with MyAnimeList details, it appears here."
+      ProgressEmptyVisitor = fun name -> $"{name} hasn't started a show yet."
 
       // Anime page (feature 006)
       AnimeSeasonsTitle = "Seasons"
@@ -2010,6 +2076,38 @@ let es =
       YearEmptyTitle = fun y -> $"Aún no hay suficientes datos de {y}"
       YearEmptyCount = fun n -> $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} de 15 episodios vistos completos"""
       YearEmptyBody = "El resumen de un año aparece tras 15 episodios vistos completos en él. Elige otro año o sincroniza más historial con la extensión de Frunchy."
+
+      // Progress (feature 031)
+      ProgressLink = "Progreso"
+      ProgressTitle = "Progreso"
+      ProgressIntro = "Las series que este perfil completó, está viendo y dejó sin terminar. Cada entrada de MyAnimeList es una serie."
+      ProgressCompleted = "Completadas"
+      ProgressWatching = "Viendo"
+      ProgressUnfinished = "Sin terminar"
+      ProgressVisitorLine = fun name -> $"Solo {name} puede ver qué series son."
+      ProgressUnmatched =
+        fun n ->
+            if n = 1 then
+                "1 temporada de Crunchyroll empezada aún no tiene datos de MyAnimeList, así que no se cuenta."
+            else
+                $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} temporadas de Crunchyroll empezadas aún no tienen datos de MyAnimeList, así que no se cuentan."""
+      ProgressWatchingHint = "Vistas en los últimos 30 días, o al día con una serie en emisión."
+      ProgressWatchingEmpty = "Nada en curso ahora mismo."
+      ProgressUnfinishedHint = "Empezadas, sin completar y sin verse en los últimos 30 días. Las más recientes primero."
+      ProgressGroupCount = fun n -> if n = 1 then "1 serie" else $"""{n.ToString("N0", CultureInfo.GetCultureInfo "es")} series"""
+      ProgressShowAll = fun n -> $"Ver las {n}"
+      ProgressCompletedHeading = "Completadas hace poco"
+      ProgressCompletedMore = fun listed n -> $"Las {listed} más recientes de {n}."
+      ProgressMetaOf = fun w t -> $"""{w.ToString("N0", CultureInfo.GetCultureInfo "es")} de {t.ToString("N0", CultureInfo.GetCultureInfo "es")} episodios"""
+      ProgressMetaEpisodes = fun w -> if w = 1 then "1 episodio" else $"""{w.ToString("N0", CultureInfo.GetCultureInfo "es")} episodios"""
+      ProgressLastWatched = "visto por última vez"
+      ProgressLongRun = "Larga duración"
+      ProgressAiring = "En emisión"
+      ProgressNext = fun n -> $"Siguiente: episodio {n}"
+      ProgressNextFor = fun title -> $", {title}"
+      ProgressCaughtUp = "Vas al día: cada serie que empezaste está completada o en curso."
+      ProgressEmptyOwner = "Aún no hay nada empezado. Cuando una sincronización traiga un episodio visto entero de una serie con datos de MyAnimeList, aparecerá aquí."
+      ProgressEmptyVisitor = fun name -> $"{name} aún no ha empezado ninguna serie."
 
       // Anime page (feature 006)
       AnimeSeasonsTitle = "Temporadas"

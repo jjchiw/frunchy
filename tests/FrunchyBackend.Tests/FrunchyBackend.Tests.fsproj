@@ -121,6 +121,8 @@
     <Compile Include="ProfileLinksTests.fs" />
     <Compile Include="MembersProfileTests.fs" />
     <Compile Include="ProfileTabsTests.fs" />
+    <Compile Include="ProgressUnitTests.fs" />
+    <Compile Include="ProgressTests.fs" />
     <Compile Include="PageSnapshots.fs" />
   </ItemGroup>
 

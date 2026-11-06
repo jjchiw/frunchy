@@ -54,6 +54,8 @@ let endpoints =
       Handlers.Api.WhoAmI.endpoint
       Handlers.Users.Dashboard.endpoint
       Handlers.Users.Dna.endpoint
+      // Feature 031: completed, watching and unfinished shows
+      Handlers.Users.Progress.endpoint
       yield! Handlers.Users.Year.endpoint
       Handlers.Users.Anime.endpoint
       // Feature 011: taste compatibility with another user (signed in)

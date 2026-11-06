@@ -12,6 +12,8 @@ open FrunchyBackend.Views.Texts
 let private timeScript =
     """
 document.addEventListener('DOMContentLoaded', function () {
+  // a profile's tab bar scrolls on a phone: bring the current tab into view
+  document.querySelector('[data-profile-tabs] [aria-current]')?.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   var lang = document.documentElement.lang || 'en';
   var rtf = new Intl.RelativeTimeFormat(lang, { numeric: 'auto' });
   var dtf = new Intl.DateTimeFormat(lang, { dateStyle: 'medium', timeStyle: 'short' });

@@ -1,5 +1,5 @@
 /// Feature 022: every page under /u/{username} shares one masthead and one tab bar (Dashboard, Anime DNA, Year in
-/// review). Tests read `data-*` hooks and ARIA attributes, never classes.
+/// review, and since feature 031 Progress). Tests read `data-*` hooks and ARIA attributes, never classes.
 module FrunchyBackend.Tests.ProfileTabsTests
 
 open System.Net
@@ -38,7 +38,7 @@ let private tabs (html: string) : (string * Tab list) option =
                     Name = Regex.Match(tag, "data-tab=\"([^\"]*)\"").Groups[1].Value
                     Current = tag.Contains "aria-current=\"page\""
                     Label = m.Groups[2].Value.Trim()
-                    Hooks = [ for h in [ "data-dashboard-link"; "data-dna-link"; "data-year-link" ] do if tag.Contains h then h ] } ]
+                    Hooks = [ for h in [ "data-dashboard-link"; "data-dna-link"; "data-year-link"; "data-progress-link" ] do if tag.Contains h then h ] } ]
 
         Some(label, links)
 
@@ -54,19 +54,19 @@ let private masthead (html: string) =
 let private nameTag (html: string) =
     Regex.Match(html, "<[a-z0-9]+\\b[^>]*\\bdata-profile-name\\b[^>]*>").Value
 
-/// The checks every profile page shares: the bar, its three links in order and the right one current
+/// The checks every profile page shares: the bar, its four links in order and the right one current
 let private assertTabs (page: string) (user: string) (selected: string option) (labels: string list) (ariaLabel: string) (html: string) =
     match tabs html with
     | None -> failwith $"{page}: no tab bar"
     | Some(label, links) ->
         Assert.Equal(ariaLabel, label)
-        Assert.Equal<string list>([ "dashboard"; "dna"; "year" ], links |> List.map _.Name)
-        Assert.Equal<string list>([ $"/u/{user}"; $"/u/{user}/dna"; $"/u/{user}/year" ], links |> List.map _.Href)
+        Assert.Equal<string list>([ "dashboard"; "dna"; "year"; "progress" ], links |> List.map _.Name)
+        Assert.Equal<string list>([ $"/u/{user}"; $"/u/{user}/dna"; $"/u/{user}/year"; $"/u/{user}/progress" ], links |> List.map _.Href)
         Assert.Equal<string list>(labels, links |> List.map _.Label)
 
         // the hooks of the old buttons, one each, on the tab of the same view (the selected one included)
         Assert.Equal<string list list>(
-            [ [ "data-dashboard-link" ]; [ "data-dna-link" ]; [ "data-year-link" ] ],
+            [ [ "data-dashboard-link" ]; [ "data-dna-link" ]; [ "data-year-link" ]; [ "data-progress-link" ] ],
             links |> List.map _.Hooks
         )
 
@@ -76,8 +76,8 @@ let private assertTabs (page: string) (user: string) (selected: string option) (
         // nothing but aria-current says "selected": no other page-level marker on the links
         Assert.Equal(1, Regex.Matches(html, "data-profile-tabs").Count)
 
-let private english = [ "Dashboard"; "Anime DNA"; "Year in review" ]
-let private spanish = [ "Panel"; "ADN anime"; "Resumen del año" ]
+let private english = [ "Dashboard"; "Anime DNA"; "Year in review"; "Progress" ]
+let private spanish = [ "Panel"; "ADN anime"; "Resumen del año"; "Progreso" ]
 
 /// A world with a public "animegolden": the owner, another member and a signed-out visitor
 let private publicWorld () = world [ defaultKey, "public" ]
@@ -92,6 +92,7 @@ let ``every profile page has the tab bar with the right tab current and one h1``
               "dna", "/u/animegolden/dna", Some "dna"
               "year", "/u/animegolden/year", Some "year"
               "year 2022", "/u/animegolden/year/2022", Some "year"
+              "progress", "/u/animegolden/progress", Some "progress"
               "anime", $"/u/animegolden/anime/{w.SeriesId}", None ]
 
         for browser, who in [ w.Stranger, "visitor"; w.Owner, "owner"; w.Other, "member" ] do
@@ -179,6 +180,7 @@ let ``the labels are in Spanish for a Spanish visitor`` () =
             [ "/u/animegolden", Some "dashboard"
               "/u/animegolden/dna", Some "dna"
               "/u/animegolden/year/2022", Some "year"
+              "/u/animegolden/progress", Some "progress"
               $"/u/animegolden/anime/{w.SeriesId}", None ] do
             let! page = es.Get path
             Assert.Equal(HttpStatusCode.OK, page.Status)

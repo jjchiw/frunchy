@@ -37,6 +37,7 @@
 | `data-entry-long-runner` | in it, when a long runner | `""` |
 | `data-next-episode` | the next-episode link, when there is one | the episode number; `href` is the episode page or Crunchyroll |
 | `data-series-page-link` | the title | (existing hook) `href` `/anime/{seriesId}` |
+| `data-progress-year`, `data-progress-year-shows` | each year group of Unfinished (only with more than 10 unfinished shows), a `<details>` | the year of the last watch (UTC), how many shows it holds (added with the design direction) |
 | `data-progress-link` | the tab, on every profile page | `""` (with `data-tab="progress"`) |
 
 A visitor's page must contain none of `data-progress-list`, `data-progress-entry`, `data-next-episode` and no title of

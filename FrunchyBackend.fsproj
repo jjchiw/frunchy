@@ -48,6 +48,7 @@
     <Compile Include="Infrastructure/Compatibility.fs" />
     <Compile Include="Infrastructure/Recommendations.fs" />
     <Compile Include="Infrastructure/Seasons.fs" />
+    <Compile Include="Infrastructure/Progress.fs" />
     <Compile Include="Infrastructure/Recap.fs" />
     <Compile Include="Infrastructure/Milestones.fs" />
     <Compile Include="Infrastructure/Charts.fs" />
@@ -67,6 +68,7 @@
     <Compile Include="Handlers/Users/Dashboard.fs" />
     <Compile Include="Handlers/Users/Dna.fs" />
     <Compile Include="Handlers/Users/Year.fs" />
+    <Compile Include="Handlers/Users/Progress.fs" />
     <Compile Include="Handlers/Users/Anime.fs" />
     <Compile Include="Handlers/Users/Compare.fs" />
     <Compile Include="Handlers/Users/Next.fs" />

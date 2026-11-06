@@ -294,13 +294,14 @@ let profileAddress (t: Texts) (access: PageAccess) (address: string) : HtmlEleme
     | OwnPrivatePage -> privateProfileNote t
     | SharedPrivatePage -> Fragment()
 
-/// The three views of a profile (feature 022); `NoTab` for the pages that belong to a profile without being one of
+/// The views of a profile (feature 022; Progress is the fourth, feature 031); `NoTab` for the pages that belong to a profile without being one of
 /// its views (a series, a comparison)
 [<RequireQualifiedAccess>]
 type ProfileTab =
     | Dashboard
     | Dna
     | Year
+    | Progress
     | NoTab
 
 /// The profile masthead (feature 022): the person's name (the page's `h1` on the dashboard, elsewhere a link back to
@@ -337,7 +338,7 @@ let profileMasthead (t: Texts) (asHeading: bool) (username: string) (displayName
 
 /// The tab bar of a profile (feature 022): page links, not an ARIA tablist. The selected one is marked with
 /// `aria-current="page"`, the only thing its style reads. The hooks `data-dashboard-link`, `data-dna-link` and
-/// `data-year-link` sit on the tabs of every profile page.
+/// `data-year-link` and `data-progress-link` sit on the tabs of every profile page.
 let profileTabs (t: Texts) (selected: ProfileTab) (username: string) =
     let tab (which: ProfileTab) (name: string) (hook: string) (href: string) (label: string) =
         let link = a(href = href, class' = "fr-tab").data("tab", name).data(hook, "")
@@ -347,6 +348,7 @@ let profileTabs (t: Texts) (selected: ProfileTab) (username: string) =
         tab ProfileTab.Dashboard "dashboard" "dashboard-link" $"/u/{username}" t.DashboardLink
         tab ProfileTab.Dna "dna" "dna-link" $"/u/{username}/dna" t.DnaLink
         tab ProfileTab.Year "year" "year-link" $"/u/{username}/year" t.YearLink
+        tab ProfileTab.Progress "progress" "progress-link" $"/u/{username}/progress" t.ProgressLink
     }
 
 /// Masthead and tab bar, the same top on every profile page
