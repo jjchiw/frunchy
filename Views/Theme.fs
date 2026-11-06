@@ -201,6 +201,7 @@ type Icon =
     | ArrowBack
     | ArrowForward
     | Block
+    | Bolt
     | CalendarMonth
     | CheckCircle
     | Code
@@ -220,7 +221,9 @@ type Icon =
     | Link
     | LinkOff
     | LocalFireDepartment
+    | Layers
     | Lock
+    | Movie
     | OpenInNew
     | ProgressActivity
     | Schedule
@@ -232,6 +235,7 @@ type Icon =
     | TrendingDown
     | TrendingFlat
     | TrendingUp
+    | VideoLibrary
     | Warning
 
     /// The Material Symbols ligature
@@ -241,6 +245,7 @@ type Icon =
         | ArrowBack -> "arrow_back"
         | ArrowForward -> "arrow_forward"
         | Block -> "block"
+        | Bolt -> "bolt"
         | CalendarMonth -> "calendar_month"
         | CheckCircle -> "check_circle"
         | Code -> "code"
@@ -260,7 +265,9 @@ type Icon =
         | Link -> "link"
         | LinkOff -> "link_off"
         | LocalFireDepartment -> "local_fire_department"
+        | Layers -> "layers"
         | Lock -> "lock"
+        | Movie -> "movie"
         | OpenInNew -> "open_in_new"
         | ProgressActivity -> "progress_activity"
         | Schedule -> "schedule"
@@ -272,6 +279,7 @@ type Icon =
         | TrendingDown -> "trending_down"
         | TrendingFlat -> "trending_flat"
         | TrendingUp -> "trending_up"
+        | VideoLibrary -> "video_library"
         | Warning -> "warning"
 
 let iconNames =
