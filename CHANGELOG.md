@@ -11,6 +11,57 @@ Each section has the changes that matter to whoever runs Frunchy, in this order 
 needed: Added, Changed, Fixed, Security, then Upgrade when an upgrade needs more than deploying the
 new image.
 
+## 0.7.0 - 2026-11-06
+
+### Added
+
+- Operators can follow the same series on other Frunchy instances. On `/review/follows` (only with federation
+  on) typing a server name such as `otherfrunchy.io` follows, on that instance, every series people watch
+  here, and typing `@frieren@otherfrunchy.io` follows one series. Their episode threads then show on our
+  episode pages as "Also discussed on otherfrunchy.io", with a link there. Only Frunchy instances can be
+  followed (Frunchy checks the server's NodeInfo), and nothing about anyone's watch history is sent: only which
+  series are watched here. `fediverse-status` now counts the follows.
+- Comments written in another instance's thread show on our episode page, marked "via otherfrunchy.io", once
+  Megáfono passes on the replies a followed series account announces (not in Megáfono 0.2.0).
+- Watch updates on the fediverse: with federation on, a user can turn on "Watch updates" in their account page, and their
+  fediverse account then posts what they finished watching, so following someone shows what they watch. It is off by
+  default, needs a public profile, and posts at most once a day (one unlisted post listing the series and episode
+  numbers watched, with links to Frunchy), only for watching after it was turned on and within the last 48 hours:
+  importing an old history posts nothing. Turning it off, or making the profile members-only or private, deletes the
+  updates already posted (copies other servers fetched may stay).
+- Milestones on the dashboard: six cards under the figure tiles show how far a history has come, with the date each
+  tier was reached and what is missing to the next one: episodes watched, hours watched, series, longest streak of
+  days in a row, most episodes in one day, and most episodes of a single series (a dub and its original count once).
+  They are computed from the watch history when the page opens, so nothing is stored and a re-sent, reordered or
+  rebuilt history shows the same milestones. Anyone who can see a dashboard sees its milestones; a private profile
+  still answers "user not found".
+- Watch streaks and a weekly recap on every profile's dashboard, for anyone who may see that profile. A "Last 7 days"
+  card shows the episodes finished, the time watched, the series watched and how many of those series were new and how
+  many were continued, and a "Streaks" card shows the current streak and the longest streak (with its dates) in days in
+  a row with at least one finished episode. Days are counted in UTC, and the current streak stays alive until a whole
+  day passes without watching. Nothing is stored and there is nothing to configure or upgrade: both cards are computed
+  from the existing watch history when the page is opened, and a private profile still answers the same not-found page.
+- Weekly recap posts on the fediverse: with federation on, a user can turn on "Weekly recap posts" in their account
+  page, and their fediverse account then posts, once a week, their recap of the last completed week (Monday to
+  Sunday, UTC): the episodes, time and series they watched, the days they watched and their most watched series, with
+  links to Frunchy. It is a separate switch from "Watch updates", off by default, needs a public profile, and the first
+  post is for the first full week after turning it on. The post goes out at the first sync after the week ends
+  (one unlisted post per week, never twice). Turning it off, or making the profile members-only or private, deletes
+  the recaps already posted (copies other servers fetched may stay).
+
+### Changed
+
+- The threads Frunchy publishes now carry the series and episode ids, so another Frunchy instance can match them
+  to its own episode.
+
+### Upgrade
+
+- Megáfono must advertise `frunchy` in NodeInfo so other instances recognise yours. The AppHost and
+  `deploy/compose.yaml` set `Megafono__Software__Name=frunchy`; if you run Megáfono with your own compose file
+  or environment, set `Megafono__Software__Name=frunchy` yourself. Until then other instances refuse to follow you.
+- `Frunchy:Federation:AllowPrivateAddresses` (default false) is for a local development fediverse only; Frunchy
+  refuses to start with it set to true in Production.
+
 ## 0.6.1 - 2026-10-28
 
 ### Added
