@@ -11,6 +11,29 @@ Each section has the changes that matter to whoever runs Frunchy, in this order 
 needed: Added, Changed, Fixed, Security, then Upgrade when an upgrade needs more than deploying the
 new image.
 
+## 0.9.0 - 2026-11-07
+
+### Added
+
+- A light theme. Frunchy follows the system's light or dark setting by default, and the footer has a Light, Dark and
+  System switch next to the language link to override it. The choice is kept in a `frunchy.theme` cookie for a year
+  (not on the account), and a link `/theme/light`, `/theme/dark` or `/theme/system` sets it. Every page, chart, tile,
+  dialog and the logo follow the theme; the favicon keeps its dark tile. The dark look is unchanged.
+
+### Changed
+
+- Better MyAnimeList matching. A title that differs only by spaces now matches ("The Casebook of Arne" and "The Case
+  Book of Arne"), an exact title still wins over a looser one. When a show's title finds nothing on MyAnimeList, its
+  longest words are searched on their own (up to three more searches), and every result still has to pass the same
+  title rules. A search that found nothing is asked again after 3 days instead of 30, and shows that are new
+  (aired in the last 120 days) and still unmatched are looked up again every 3 days. A new operator command,
+  `mal-retry-unmatched`, queues every automatic no-match once.
+
+### Upgrade
+
+- After deploying, run `mal-retry-unmatched` once so the shows that were unmatched before are looked up with the new
+  rules (manual and ambiguous matches are left alone).
+
 ## 0.8.0 - 2026-11-07
 
 ### Added
