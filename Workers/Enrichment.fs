@@ -52,9 +52,16 @@ let private open' (db: DbConfig) =
         return conn
     }
 
+/// A no-match is asked again after this (feature 032), when the season is still new
+let retryNoMatchAfter = TimeSpan.FromDays 3.0
+
+/// A season is new while its earliest known episode aired (or, with no air date, its row was created) this recently
+let newSeasonWindow = TimeSpan.FromDays 120.0
+
 /// Queue every season without a match row; re-queue automatic no-match/ambiguous rows whose
-/// titles changed since they were decided (research R6). Idempotent.
-let sweep (db: DbConfig) : Task<unit> =
+/// titles changed since they were decided (research R6), and (feature 032) automatic no-matches of new seasons
+/// decided more than 3 days ago (MyAnimeList may list the show by now). Never a manual row. Idempotent.
+let sweepAt (db: DbConfig) (now: DateTimeOffset) : Task<unit> =
     task {
         use! conn = open' db
 
@@ -69,16 +76,24 @@ let sweep (db: DbConfig) : Task<unit> =
                 SET status = 'pending', attempts = 0, next_attempt_at = NULL, last_error = NULL
                 FROM cr_seasons se JOIN cr_series sr ON sr.id = se.series_id
                 WHERE m.season_id = se.id
-                  AND m.status IN ('no_match', 'ambiguous')
                   AND m.method IS DISTINCT FROM 'manual'
-                  AND m.title_seen IS DISTINCT FROM (coalesce(sr.title, sr.id) || ' ‖ ' || coalesce(se.title, ''));
+                  AND ((m.status IN ('no_match', 'ambiguous')
+                        AND m.title_seen IS DISTINCT FROM (coalesce(sr.title, sr.id) || ' ‖ ' || coalesce(se.title, '')))
+                       OR (m.status = 'no_match'
+                           AND m.decided_at < @decidedBefore
+                           AND coalesce((SELECT min(e.aired_at) FROM cr_episodes e WHERE e.season_id = se.id), m.created_at) > @newSince));
                 """,
                 conn
             )
 
+        add cmd "decidedBefore" NpgsqlDbType.TimestampTz (now - retryNoMatchAfter)
+        add cmd "newSince" NpgsqlDbType.TimestampTz (now - newSeasonWindow)
         let! _ = cmd.ExecuteNonQueryAsync()
         ()
     }
+
+/// `sweepAt` with the system clock
+let sweep (db: DbConfig) : Task<unit> = sweepAt db DateTimeOffset.UtcNow
 
 /// Claim the next season to look up, in FR-002a order: operator requests, then the most recently
 /// watched (across all users). Rows waiting for their next attempt are skipped. SKIP LOCKED.
@@ -373,8 +388,8 @@ let private refreshAnime (db: DbConfig) (factory: IHttpClientFactory) (clock: Ti
 /// a due refresh. Called by the service in a loop, and directly by the tests.
 let processNext (db: DbConfig) (factory: IHttpClientFactory) (clock: TimeProvider) (settings: EnrichmentSettings) : Task<ProcessResult> =
     task {
-        do! sweep db
         let now = clock.GetUtcNow()
+        do! sweepAt db now
         let source = Live(factory, db, clock, settings.Provider)
 
         match! claimSeason db now true with

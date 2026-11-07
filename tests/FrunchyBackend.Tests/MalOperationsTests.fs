@@ -192,6 +192,42 @@ let ``mal-retry puts automatic seasons at the front and asks Jikan again`` () =
     }
 
 [<Fact>]
+let ``mal-retry-unmatched queues every automatic no match once, never a manual or ambiguous one`` () =
+    task {
+        use! app = enriched ()
+
+        let! ids = Db.dump app.Db "SELECT season_id FROM cr_season_matches WHERE status = 'no_match' ORDER BY season_id"
+        Assert.True(ids.Length >= 3, "the sample has several unmatched seasons")
+        let manual, ambiguous = ids[0], ids[1]
+        let! _ = cli app "mal-none" [ manual ]
+        do! Db.execute app.Db $"UPDATE cr_season_matches SET status = 'ambiguous' WHERE season_id = '{ambiguous}'"
+        let! matchedBefore = Db.scalar<int64> app.Db "SELECT count(*) FROM cr_season_matches WHERE status = 'matched'" []
+
+        let! code = cli app "mal-retry-unmatched" []
+        Assert.Equal(0, code)
+
+        let! pending = Db.dump app.Db "SELECT season_id FROM cr_season_matches WHERE status = 'pending' ORDER BY season_id"
+        Assert.Equal<string list>(ids |> List.skip 2, pending)
+        let! front = Db.scalar<int64> app.Db "SELECT count(*) FROM cr_season_matches WHERE requested_at IS NOT NULL" []
+        Assert.Equal(0L, front) // nothing jumps the queue
+        let! manualRow = matchOf app.Db manual
+        Assert.Equal($"{manual} no_match - manual -", manualRow)
+        let! ambiguousRow = matchOf app.Db ambiguous
+        Assert.StartsWith($"{ambiguous} ambiguous", ambiguousRow)
+        let! matchedAfter = Db.scalar<int64> app.Db "SELECT count(*) FROM cr_season_matches WHERE status = 'matched'" []
+        Assert.Equal(matchedBefore, matchedAfter)
+
+        // a second run queues nothing more: the rows are pending now, not no_match
+        let! again = cli app "mal-retry-unmatched" []
+        Assert.Equal(0, again)
+        let! stillPending = Db.dump app.Db "SELECT season_id FROM cr_season_matches WHERE status = 'pending' ORDER BY season_id"
+        Assert.Equal<string list>(pending, stillPending)
+
+        let! usage = cli app "mal-retry-unmatched" [ "NOPE" ]
+        Assert.Equal(1, usage)
+    }
+
+[<Fact>]
 let ``mal-rebuild sends no requests, keeps every decision, and is idempotent (SC-006)`` () =
     task {
         use! app = enriched ()

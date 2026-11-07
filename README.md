@@ -437,7 +437,7 @@ Without the profile you get Frunchy and Postgres, and Frunchy listens on `127.0.
 - **Fediverse** (feature 015): `fediverse-status` (federation settings without secrets, outbox counts by state and kind, the oldest waiting item; always exit 0), `series-handle <seriesId> <handle>` (set a series handle until its thread is published; exit 0 set, 1 usage or a handle that breaks the rule, 2 unknown series, 3 already federated, 4 taken by another series or a user).
 - **MyAnimeList enrichment** (feature 003): `mal-status`, `mal-list [--status S] [--limit N]`,
   `mal-show <crSeriesId>`, `mal-set <crSeasonId> <malId>`, `mal-none <crSeasonId>`,
-  `mal-retry <crSeasonId | crSeriesId>`, `mal-auto <crSeasonId>` (feature 007: back to automatic), `mal-rebuild` (no requests).
+  `mal-retry <crSeasonId | crSeriesId>`, `mal-retry-unmatched` (feature 032: queue every automatic no-match once more), `mal-auto <crSeasonId>` (feature 007: back to automatic), `mal-rebuild` (no requests).
 
 Details are in [`001 contracts/operator-cli.md`](specs/001-crunchyroll-history-import/contracts/operator-cli.md),
 [`002 contracts/operator-cli.md`](specs/002-social-login-accounts/contracts/operator-cli.md)

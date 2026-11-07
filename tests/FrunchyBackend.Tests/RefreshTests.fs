@@ -29,6 +29,14 @@ let private enrichedWithClock () =
         return app, clock
     }
 
+/// Feature 032 asks new unmatched shows again after 3 days. These tests jump the clock to test refreshes, so the
+/// sample's no-matches are made old shows (aired and created long ago) and the sweep leaves them alone.
+let private makeNoMatchesOld (app: TestApp) =
+    task {
+        do! Db.execute app.Db "UPDATE cr_episodes SET aired_at = NULL"
+        do! Db.execute app.Db "UPDATE cr_season_matches SET created_at = now() - interval '400 days'"
+    }
+
 let private times (app: TestApp) (malId: int) =
     task {
         let! fetched = Db.scalar<DateTime> app.Db "SELECT fetched_at FROM mal_anime WHERE mal_id = @id" [ "id", box malId ]
@@ -44,6 +52,7 @@ let ``nothing is refreshed before 30 days; after that each held anime once, unch
     task {
         let! app, clock = enrichedWithClock ()
         use app = app
+        do! makeNoMatchesOld app
         let! fetchedBefore, _ = times app 52991
 
         clock.Now <- clock.Now.AddDays 29.0
@@ -132,8 +141,10 @@ let ``new lookups go before refreshes`` () =
     task {
         let! app, clock = enrichedWithClock ()
         use app = app
+        do! makeNoMatchesOld app
         let! _ = Db.scalar<int> app.Db "UPDATE cr_season_matches SET status = 'pending', mal_id = NULL, method = NULL, shared_from = NULL WHERE season_id = 'GYK5CNZ9G' RETURNING 1" []
         clock.Now <- clock.Now.AddDays 31.0
         let! _ = processNext app.Db (httpFactory app) clock settings
-        Assert.Equal<string list>([ "search:Platinum End" ], app.Mal.Requests)
+        // 31 days on, the stored empty answers are over 3 days old: the title is asked again, then its fallback word
+        Assert.Equal<string list>([ "search:Platinum End"; "search:Platinum" ], app.Mal.Requests)
     }

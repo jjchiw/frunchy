@@ -253,8 +253,15 @@ let get (provider: Provider) (factory: IHttpClientFactory) (path: string) (etag:
         | :? TaskCanceledException -> return Temporary "timeout"
     }
 
-/// Searches younger than this are reused instead of asked again
+/// Searches with results younger than this are reused instead of asked again
 let searchReuse = TimeSpan.FromDays 30.0
+
+/// An empty answer is reused only this long: a show MyAnimeList hasn't listed yet is asked again soon (feature 032)
+let emptySearchReuse = TimeSpan.FromDays 3.0
+
+/// How long a stored search answer is reused, by what it said
+let reuseFor (results: MalAnime list) =
+    if results.IsEmpty then emptySearchReuse else searchReuse
 
 /// The matcher's view of MyAnimeList.
 /// Live: stored data first (held anime, recent searches from the same provider), otherwise one
@@ -293,22 +300,31 @@ type Source =
                     match source, stored with
                     | Stored _, Some(raw, _, from) -> return parsedSearch from raw
                     | Stored _, None -> return Unavailable "not-held"
-                    | Live(_, _, clock, provider), Some(raw, at, from) when from = provider.Name && clock.GetUtcNow() - at < searchReuse ->
-                        return parsedSearch from raw
-                    | Live(_, _, _, MalApi), _ when query.Length < 3 -> return Got [] // MyAnimeList needs 3 characters
                     | Live(factory, _, clock, provider), _ ->
-                        match! get provider factory (provider.SearchPath query) None with
-                        | Ok(body, _) ->
-                            match provider.ParseSearch body with
-                            | Result.Ok results ->
-                                do! MalCatalog.saveSearch db query body provider.Name (clock.GetUtcNow())
-                                return Got results
-                            | Result.Error e -> return Unavailable $"unreadable search response: {e}"
-                        | NotFound -> return Gone
-                        | Unchanged -> return Unavailable "unexpected 304 on search"
-                        | Definite e
-                        | Temporary e -> return Unavailable e
-                }
+                        let reusable =
+                            match stored with
+                            | Some(raw, at, from) when from = provider.Name ->
+                                match parsedSearch from raw with
+                                | Got results when clock.GetUtcNow() - at < reuseFor results -> Some(Got results)
+                                | _ -> None
+                            | _ -> None
+
+                        match reusable with
+                        | Some answer -> return answer
+                        | None when (provider = MalApi && query.Length < 3) -> return Got [] // MyAnimeList needs 3 characters
+                        | None ->
+                            match! get provider factory (provider.SearchPath query) None with
+                            | Ok(body, _) ->
+                                match provider.ParseSearch body with
+                                | Result.Ok results ->
+                                    do! MalCatalog.saveSearch db query body provider.Name (clock.GetUtcNow())
+                                    return Got results
+                                | Result.Error e -> return Unavailable $"unreadable search response: {e}"
+                            | NotFound -> return Gone
+                            | Unchanged -> return Unavailable "unexpected 304 on search"
+                            | Definite e
+                            | Temporary e -> return Unavailable e
+                    }
           Full =
             fun malId ->
                 task {

@@ -593,6 +593,7 @@ let cliCommands: Map<string, CliEnv -> string list -> Task<int>> =
           "mal-set", (fun env args -> Operations.MalSet.run env.Db env.Http env.Clock env.Mal args)
           "mal-none", dbOnly Operations.MalNone.run
           "mal-retry", dbOnly Operations.MalRetry.run
+          "mal-retry-unmatched", dbOnly Operations.MalRetryUnmatched.run
           "mal-rebuild", dbOnly Operations.MalRebuild.run
           "mal-auto", dbOnly Operations.MalAuto.run
           "operator-add", (fun env args -> Operations.OperatorAdd.run env.Db env.RootOperator args)

@@ -195,3 +195,146 @@ let ``deleting a user leaves the MyAnimeList catalog and the matches`` () =
         Assert.Equal(animeBefore, animeAfter)
         Assert.Equal(matchesBefore, matchesAfter)
     }
+
+// ---------------------------------------------------------------------------------------------
+// Feature 032: better matching
+// ---------------------------------------------------------------------------------------------
+
+type private ClockAt(now: DateTimeOffset) =
+    inherit TimeProvider()
+    override _.GetUtcNow() = now
+
+/// A show with one season and one episode (aired `airedDaysAgo` days ago, or with no air date), nothing else
+let private seedShow (app: TestApp) (key: string) (title: string) (airedDaysAgo: int option) =
+    task {
+        do! Db.execute app.Db $"INSERT INTO cr_series (id, title, source_at) VALUES ('SR{key}', '{title}', now())"
+        do! Db.execute app.Db $"INSERT INTO cr_seasons (id, series_id, season_number, title, audio_locale, source_at) VALUES ('SE{key}', 'SR{key}', 1, 'Season 1', 'ja-JP', now())"
+
+        match airedDaysAgo with
+        | Some days ->
+            do! Db.execute app.Db $"INSERT INTO cr_episodes (id, series_id, season_id, series_title, duration_ms, aired_at) VALUES ('EP{key}', 'SR{key}', 'SE{key}', '{title}', 1420000, now() - interval '{days} days')"
+        | None -> ()
+    }
+
+let private searchRequests (app: TestApp) =
+    app.Mal.Requests |> List.filter (fun r -> r.StartsWith "search:")
+
+let private forcePending (app: TestApp) =
+    Db.execute app.Db "UPDATE cr_season_matches SET status = 'pending', next_attempt_at = NULL, claimed_at = NULL WHERE status = 'no_match'"
+
+[<Fact>]
+let ``an empty search answer is reused 3 days, a non-empty one 30`` () =
+    task {
+        use! app = newApp ()
+        do! seedShow app "ARNE" "The Casebook of Arne" None
+        let other = spec 1 "Something Else" None "TV" "2020-01-01"
+        routeSearch app.Mal "Casebook" [ other ]
+        let t0 = DateTimeOffset.UtcNow
+        let at (days: float) = ClockAt(t0.AddDays days) :> TimeProvider
+
+        // t0: the title, "Casebook" (non-empty, no title hit) and "Arne" are asked
+        let! _ = enrichAllWith app (at 0.0)
+        Assert.Equal<string list>([ "search:The Casebook of Arne"; "search:Casebook"; "search:Arne" ], searchRequests app)
+        let! row = matchOf app.Db "SEARNE"
+        Assert.StartsWith("SEARNE no_match", row)
+
+        // 2 days later nothing is asked again
+        app.Mal.Clear()
+        do! forcePending app
+        let! _ = enrichAllWith app (at 2.0)
+        Assert.Empty(searchRequests app)
+
+        // 4 days later the empty answers are asked again, the non-empty one is not
+        app.Mal.Clear()
+        do! forcePending app
+        let! _ = enrichAllWith app (at 4.0)
+        Assert.Equal<string list>([ "search:The Casebook of Arne"; "search:Arne" ], searchRequests app)
+
+        // 29 days: still the non-empty one reused (the empty ones are older than 3 days)
+        app.Mal.Clear()
+        do! forcePending app
+        let! _ = enrichAllWith app (at 29.0)
+        Assert.Equal<string list>([ "search:The Casebook of Arne"; "search:Arne" ], searchRequests app)
+
+        // 31 days: it is asked again; the other two were stored 2 days earlier
+        app.Mal.Clear()
+        do! forcePending app
+        let! _ = enrichAllWith app (at 31.0)
+        Assert.Equal<string list>([ "search:Casebook" ], searchRequests app)
+    }
+
+[<Fact>]
+let ``the sweep asks again for new automatic no-matches decided over 3 days ago, and for nothing else`` () =
+    task {
+        use! app = newApp ()
+        let now = DateTimeOffset.UtcNow
+        do! seedShow app "NEWOLD" "New Show One" (Some 10) // new, decided 4 days ago: asked again
+        do! seedShow app "NEWFRESH" "New Show Two" (Some 10) // new, decided 2 days ago: not yet
+        do! seedShow app "OLDAIR" "Old Show Three" (Some 400) // aired a year ago: never
+        do! seedShow app "NODATEN" "No Date Four" None // no air date, row created 10 days ago: asked again
+        do! seedShow app "NODATEO" "No Date Five" None // no air date, row created 200 days ago: never
+        do! seedShow app "MANUAL" "Manual Six" (Some 10) // manual: never
+        do! seedShow app "AMBIG" "Ambiguous Seven" (Some 10) // ambiguous: never
+
+        do! Enrichment.sweepAt app.Db now
+
+        let decide (key: string) (status: string) (method': string) (decidedDaysAgo: int) (createdDaysAgo: int) =
+            Db.execute
+                app.Db
+                $"""UPDATE cr_season_matches m
+                    SET status = '{status}', method = {method'}, decided_at = now() - interval '{decidedDaysAgo} days',
+                        created_at = now() - interval '{createdDaysAgo} days',
+                        title_seen = coalesce(sr.title, sr.id) || ' ‖ ' || coalesce(se.title, '')
+                    FROM cr_seasons se JOIN cr_series sr ON sr.id = se.series_id
+                    WHERE m.season_id = se.id AND se.id = 'SE{key}'"""
+
+        do! decide "NEWOLD" "no_match" "NULL" 4 10
+        do! decide "NEWFRESH" "no_match" "NULL" 2 10
+        do! decide "OLDAIR" "no_match" "NULL" 4 10
+        do! decide "NODATEN" "no_match" "NULL" 4 10
+        do! decide "NODATEO" "no_match" "NULL" 4 200
+        do! decide "MANUAL" "no_match" "'manual'" 4 10
+        do! decide "AMBIG" "ambiguous" "NULL" 4 10
+
+        do! Enrichment.sweepAt app.Db now
+
+        let status key = Db.scalar<string> app.Db $"SELECT status FROM cr_season_matches WHERE season_id = 'SE{key}'" []
+
+        for key, expected in
+            [ "NEWOLD", "pending"
+              "NEWFRESH", "no_match"
+              "OLDAIR", "no_match"
+              "NODATEN", "pending"
+              "NODATEO", "no_match"
+              "MANUAL", "no_match"
+              "AMBIG", "ambiguous" ] do
+            let! actual = status key
+            Assert.True((expected = actual), $"{key}: expected {expected}, got {actual}")
+    }
+
+[<Fact>]
+let ``The Casebook of Arne matches on the real app, and mal-rebuild gives the same from the stored searches`` () =
+    task {
+        use! app = newApp ()
+        do! seedShow app "ARNE" "The Casebook of Arne" (Some 10)
+        let arne = spec 60255 "Arne no Jikenbo" (Some "The Case Book of Arne") "TV" "2026-10-05"
+        routeSearch app.Mal "Arne" [ arne ]
+        routeFull app.Mal arne
+
+        let! _ = enrichAll app
+        let! row = matchOf app.Db "SEARNE"
+        Assert.Equal("SEARNE matched 60255 search -", row)
+        Assert.Equal<string list>(
+            [ "search:The Casebook of Arne"; "search:Casebook"; "search:Arne"; "details:60255" ],
+            app.Mal.Requests
+        )
+
+        // Lose the decision: the rebuild finds it again from what is stored, with no request
+        do! Db.execute app.Db "UPDATE cr_season_matches SET status = 'no_match', mal_id = NULL, method = NULL WHERE season_id = 'SEARNE'"
+        app.Mal.Clear()
+        let! counts = FrunchyBackend.Operations.MalRebuild.rebuild app.Db
+        Assert.Equal(1, counts.Changed)
+        Assert.Empty app.Mal.Requests
+        let! again = matchOf app.Db "SEARNE"
+        Assert.Equal("SEARNE matched 60255 search -", again)
+    }

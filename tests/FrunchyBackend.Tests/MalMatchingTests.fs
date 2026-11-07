@@ -314,3 +314,122 @@ let ``a main-title match beats a show that only lists the title as a synonym (Th
     let catalog = Catalog([ s1; other ], [ "The Outcast", [ 33421; 61651 ] ])
     let o = resolve catalog (series "The Outcast" [ season "A" "The Outcast Season 1" 1 "zh-CN" ])
     Assert.Equal(Some 33421, matchedId o["A"])
+
+// ---------------------------------------------------------------------------------------------
+// Feature 032: spacing tiers and fallback queries
+// ---------------------------------------------------------------------------------------------
+
+let private searches (catalog: Catalog) =
+    catalog.Requests |> Seq.filter (fun r -> r.StartsWith "search:") |> List.ofSeq
+
+[<Fact>]
+let ``title tiers 3 and 4 ignore spaces, after the exact tiers, and the season marker still decides`` () =
+    // tier 3: equal once spaces are removed
+    Assert.Equal(Some 3, titleTier "The Casebook of Arne" [ "Arne no Jikenbo"; "The Case Book of Arne" ])
+    // tier 1 and 2 still come first
+    Assert.Equal(Some 1, titleTier "The Casebook of Arne" [ "The Case Book of Arne"; "The Casebook of Arne" ])
+    Assert.Equal(Some 2, titleTier "Casebook" [ "Case Book"; "Casebook: Arne" ])
+    // tier 4: spaces ignored after cutting a subtitle, on either side
+    Assert.Equal(Some 4, titleTier "Casebook of Arne" [ "Case Book of Arne: A Mystery" ])
+    Assert.Equal(Some 4, titleTier "Casebook of Arne: Prologue" [ "Case Book of Arne" ])
+    // the season is read from the spaced form: "Season 2" is not the one season of "Show"
+    Assert.Equal(None, titleTier "Show Season 2" [ "Show2" ])
+    Assert.Equal(None, titleTier "Show Season 2" [ "Sho w" ])
+    Assert.Equal(Some 3, titleTier "Show Season 2" [ "Sho w 2nd Season" ])
+    // whole-title equality only, never a similarity
+    Assert.Equal(None, titleTier "Casebook of Arne" [ "Case Book of Arnold" ])
+    Assert.Equal(None, titleTier "Frieren" [ "Freedom" ])
+
+[<Fact>]
+let ``an exact title beats a spaceless one, and a looser tier never outranks a stricter one`` () =
+    let exact = anime 1 "The Casebook of Arne" None "TV" "2025-01-01" []
+    let spaced = anime 2 "Arne no Jikenbo" (Some "The Case Book of Arne") "TV" "2025-01-02" []
+    let catalog = Catalog([ exact; spaced ], [ "The Casebook of Arne", [ 2; 1 ] ])
+    let o = resolve catalog (series "The Casebook of Arne" [ season "A" "Season 1" 1 "ja-JP" ])
+    Assert.Equal(Some 1, matchedId o["A"])
+
+    // a tier 1 match through a synonym still outranks a tier 3 match on a main title
+    let viaSynonym = { anime 3 "Other Name" None "TV" "2025-01-01" [] with Synonyms = [ "The Casebook of Arne" ] }
+    let catalog = Catalog([ viaSynonym; spaced ], [ "The Casebook of Arne", [ 2; 3 ] ])
+    let o = resolve catalog (series "The Casebook of Arne" [ season "A" "Season 1" 1 "ja-JP" ])
+    Assert.Equal(Some 3, matchedId o["A"])
+
+[<Fact>]
+let ``fallback queries are the content words of the title, longest first, at most three`` () =
+    Assert.Equal<string list>([ "Casebook"; "Arne" ], fallbackQueries "The Casebook of Arne")
+    Assert.Equal<string list>([ "Alternative"; "Online"; "Sword" ], fallbackQueries "Sword Art Online Alternative: Gun Gale Online")
+    Assert.Equal<string list>([ "Game"; "Life" ], fallbackQueries "No Game No Life")
+    Assert.Equal<string list>([ "Platinum" ], fallbackQueries "Platinum End (2021)")
+    // markers don't count, and a title that is one word has nothing more to try
+    Assert.Equal<string list>([ "Casebook"; "Arne" ], fallbackQueries "The Casebook of Arne (English Dub)")
+    Assert.Equal<string list>([], fallbackQueries "Arne")
+    Assert.Equal<string list>([], fallbackQueries "Pokémon")
+    // a repeated word is searched once
+    Assert.Equal<string list>([ "Hunter" ], fallbackQueries "Hunter x Hunter")
+    Assert.Equal<string list>([], fallbackQueries "")
+
+[<Fact>]
+let ``The Casebook of Arne: the title and Casebook find nothing, Arne finds the entry, after exactly three searches`` () =
+    let arne = anime 60255 "Arne no Jikenbo" (Some "The Case Book of Arne") "TV" "2026-10-05" []
+    let catalog = Catalog([ arne ], [ "Arne", [ 60255 ] ])
+    let o = resolve catalog (series "The Casebook of Arne" [ season "A" "Season 1" 1 "ja-JP" ])
+    Assert.Equal(Decided(Matched(60255, BySearch, None)), o["A"])
+    Assert.Equal<string list>([ "search:The Casebook of Arne"; "search:Casebook"; "search:Arne" ], searches catalog)
+
+[<Fact>]
+let ``no fallback search is made when the first search already has a title hit`` () =
+    let frieren = anime 52991 "Sousou no Frieren" (Some "Frieren: Beyond Journey's End") "TV" "2023-09-29" []
+    let catalog = Catalog([ frieren ], [ "Frieren: Beyond Journey's End", [ 52991 ] ])
+    let o = resolve catalog (series "Frieren: Beyond Journey's End" [ season "A" "Season 1" 1 "ja-JP" ])
+    Assert.Equal(Some 52991, matchedId o["A"])
+    Assert.Equal<string list>([ "search:Frieren: Beyond Journey's End" ], searches catalog)
+
+[<Fact>]
+let ``fallbacks that find nothing the rules accept are a no match, with the first non-empty results as candidates`` () =
+    let a = anime 1 "Something Else" None "TV" "2010-01-01" []
+    let b = anime 2 "Another Show" None "TV" "2010-01-01" []
+    let c = anime 3 "Third Show" None "TV" "2010-01-01" []
+
+    // the first search is empty: the first non-empty fallback's results are shown
+    let catalog = Catalog([ a; b; c ], [ "Casebook", [ 1; 2 ]; "Arne", [ 3 ] ])
+    let o = resolve catalog (series "The Casebook of Arne" [ season "A" "Season 1" 1 "ja-JP" ])
+
+    match o["A"] with
+    | Decided(NoMatch("no-title-match", shown)) -> Assert.Equal<int list>([ 1; 2 ], shown |> List.map _.MalId)
+    | x -> failwith $"expected no match, got %A{x}"
+
+    Assert.Equal(3, searches catalog |> List.length)
+
+    // the first search has results: they stay the candidates
+    let catalog = Catalog([ a; b; c ], [ "The Casebook of Arne", [ 3 ]; "Casebook", [ 1; 2 ] ])
+    let o = resolve catalog (series "The Casebook of Arne" [ season "A" "Season 1" 1 "ja-JP" ])
+
+    match o["A"] with
+    | Decided(NoMatch("no-title-match", shown)) -> Assert.Equal<int list>([ 3 ], shown |> List.map _.MalId)
+    | x -> failwith $"expected no match, got %A{x}"
+
+[<Fact>]
+let ``a fallback search that fails defers the decision instead of recording a no match`` () =
+    let lookup =
+        { Search =
+            fun q ->
+                match q with
+                | "Casebook" -> Task.FromResult(Unavailable "503")
+                | _ -> Task.FromResult(Got [])
+          Full = fun _ -> Task.FromResult Gone }
+
+    let o = (resolveSeries lookup (series "The Casebook of Arne" [ season "A" "Season 1" 1 "ja-JP" ]) (set [ "A" ])).Result
+    Assert.Equal(Deferred "503", o["A"])
+
+[<Fact>]
+let ``the season-title search falls back to the title's words too`` () =
+    let arne = anime 60255 "Arne no Jikenbo" (Some "The Case Book of Arne") "TV" "2026-10-05" []
+    let catalog = Catalog([ arne ], [ "Arne", [ 60255 ] ])
+    // the series title finds nothing (no anchor), so the season's own title is searched
+    let o = resolve catalog (series "Foo Bar" [ season "A" "The Casebook of Arne" 1 "ja-JP" ])
+    Assert.Equal(Some 60255, matchedId o["A"])
+
+    Assert.Equal<string list>(
+        [ "search:Foo Bar"; "search:Foo Bar The Casebook of Arne"; "search:Casebook"; "search:Arne" ],
+        searches catalog
+    )

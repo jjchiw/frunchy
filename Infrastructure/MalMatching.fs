@@ -141,23 +141,35 @@ let cutSubtitle (title: string) =
 let private sameTitle (a: Marked) (b: Marked) =
     a.Base <> "" && a.Base = b.Base && defaultArg a.Season 1 = defaultArg b.Season 1
 
+/// The same title, ignoring spaces: "casebook of arne" and "case book of arne" both become "casebookofarne".
+/// The season and part markers were read from the spaced form already, so they still decide.
+let private sameSpaceless (a: Marked) (b: Marked) =
+    sameTitle { a with Base = a.Base.Replace(" ", "") } { b with Base = b.Base.Replace(" ", "") }
+
 let private tierWith (cutCrSide: bool) (crTitle: string) (candidateTitles: string list) : int option =
     let cr = markOf crTitle
     let candidates = candidateTitles |> List.map markOf
+    let candidatesCut = candidateTitles |> List.map (cutSubtitle >> markOf)
+    let crCut = if cutCrSide then Some(markOf (cutSubtitle crTitle)) else None
 
     if candidates |> List.exists (sameTitle cr) then
         Some 1
+    elif candidatesCut |> List.exists (sameTitle cr) then
+        Some 2
+    elif crCut |> Option.exists (fun c -> candidates |> List.exists (sameTitle c)) then
+        Some 2
+    elif candidates |> List.exists (sameSpaceless cr) then
+        Some 3
+    elif
+        candidatesCut |> List.exists (sameSpaceless cr)
+        || crCut |> Option.exists (fun c -> candidates |> List.exists (sameSpaceless c))
+    then
+        Some 4
     else
-        let candidatesCut = candidateTitles |> List.map (cutSubtitle >> markOf)
+        None
 
-        if candidatesCut |> List.exists (sameTitle cr) then
-            Some 2
-        elif cutCrSide && candidates |> List.exists (sameTitle (markOf (cutSubtitle crTitle))) then
-            Some 2
-        else
-            None
-
-/// Tier 1: equal normalized titles. Tier 2: equal after cutting one side's subtitle.
+/// Tier 1: equal normalized titles. Tier 2: equal after cutting one side's subtitle. Tiers 3 and 4: the same two
+/// rules once spaces are ignored ("Casebook" and "Case Book"); a looser tier never outranks a stricter one.
 let titleTier (crTitle: string) (candidateTitles: string list) : int option = tierWith true crTitle candidateTitles
 
 /// A Crunchyroll-side text to compare. A combined "series + season" text is never cut on the
@@ -193,6 +205,38 @@ let private bestHits (texts: CrText list) (candidates: MalAnime list) =
     match ranked |> List.map fst |> List.sort |> List.tryHead with
     | None -> []
     | Some best -> ranked |> List.filter (fun (s, _) -> s = best) |> List.map snd
+
+// ---------------------------------------------------------------------------------------------
+// Fallback queries
+// ---------------------------------------------------------------------------------------------
+
+let private stopWords =
+    set [ "the"; "of"; "and"; "a"; "an"; "to"; "in"; "no"; "wa"; "ga"; "wo"; "ni"; "de"; "with"; "from"; "for"; "season"; "part"; "movie"; "film" ]
+
+/// How many extra searches one query may cause
+let maxFallbackQueries = 3
+
+/// The words of a title worth searching for on their own, when the whole title found nothing: at least 4 letters
+/// once accents and case are set aside, not a stop word, longest first (the title's order breaks a tie), at most
+/// `maxFallbackQueries`. A word keeps the spelling it has in the title. Markers (dub, "(TV)", a year) are ignored.
+let fallbackQueries (title: string) : string list =
+    if String.IsNullOrWhiteSpace title then
+        []
+    else
+        let plain = title |> stripDub |> fun t -> tvMarker.Replace(t, " ") |> fun t -> yearMarker.Replace(t, " ")
+        let plain = plain.Replace("'", "").Replace("’", "").Replace("`", "")
+        let whole = normalize title
+
+        Regex.Split(plain, @"[^\p{L}\p{N}]+")
+        |> Array.filter (fun w -> w <> "")
+        |> Array.map (fun w -> w, (stripAccents w).ToLowerInvariant())
+        |> Array.filter (fun (_, key) -> key.Length >= 4 && not (stopWords.Contains key) && key <> whole)
+        |> Array.distinctBy snd
+        |> Array.mapi (fun i (w, key) -> i, w, key)
+        |> Array.sortBy (fun (i, _, key) -> -key.Length, i)
+        |> Array.truncate maxFallbackQueries
+        |> Array.map (fun (_, w, _) -> w)
+        |> List.ofArray
 
 // ---------------------------------------------------------------------------------------------
 // Formats
@@ -393,6 +437,47 @@ let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) :
                     return f
             }
 
+        /// The title's own search, then (only while it has no hit) the fallback queries, each content word of the
+        /// title in turn, until one has a hit. `hitsOf` says what a hit is. Returns the results the hits come from
+        /// (the first search's when nothing hit), the results to show as candidates (the first non-empty list,
+        /// first search first), and whether the first search found nothing at all; a temporary failure in any
+        /// of the searches is an Error (deferred: a no match must not come from a search that failed).
+        let searchWithFallback (title: string) (hitsOf: MalAnime list -> MalAnime list) =
+            task {
+                match! search title with
+                | Unavailable reason -> return Error reason
+                | first ->
+                    let firstResults =
+                        match first with
+                        | Got results -> results
+                        | _ -> []
+
+                    let firstGone =
+                        match first with
+                        | Gone -> true
+                        | _ -> false
+
+                    if not (hitsOf firstResults).IsEmpty then
+                        return Ok(firstResults, firstResults, firstGone)
+                    else
+                        let mutable found = None
+                        let mutable failure = None
+                        let mutable shown = firstResults
+
+                        for q in fallbackQueries title do
+                            if found.IsNone && failure.IsNone then
+                                match! search q with
+                                | Unavailable reason -> failure <- Some reason
+                                | Gone -> ()
+                                | Got results when not (hitsOf results).IsEmpty -> found <- Some results
+                                | Got results -> if shown.IsEmpty then shown <- results
+
+                        match failure, found with
+                        | Some reason, _ -> return Error reason
+                        | None, Some results -> return Ok(results, results, false)
+                        | None, None -> return Ok(firstResults, shown, firstGone)
+            }
+
         /// Fetch linked entries (capped); a temporary failure stops and reports
         let fetchAll (ids: int list) =
             task {
@@ -416,10 +501,8 @@ let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) :
         let anchorTask: Lazy<Task<Result<MalAnime, Outcome>>> =
             lazy
                 (task {
-                    match! search series.Title with
-                    | Unavailable reason -> return Error(Deferred reason)
-                    | Gone -> return Error(Decided(NoMatch("no-search-results", [])))
-                    | Got results ->
+                    // The title hits among a search's results (the anchor's own rules)
+                    let tierHitsOf (results: MalAnime list) =
                         let candidates =
                             results
                             |> List.filter (hasType tvTypes)
@@ -433,15 +516,19 @@ let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) :
                                 several |> List.filter (hasType sequelTypes)
                             | hits -> hits
 
-                        let tierHits =
-                            match yearHint series.Title with
-                            | Some y ->
-                                match tierHits |> List.filter (fun a -> a.Year = Some y || (a.AiredFrom |> Option.map _.Year) = Some y) with
-                                | [ one ] -> [ one ]
-                                | _ -> tierHits
-                            | None -> tierHits
+                        match yearHint series.Title with
+                        | Some y ->
+                            match tierHits |> List.filter (fun a -> a.Year = Some y || (a.AiredFrom |> Option.map _.Year) = Some y) with
+                            | [ one ] -> [ one ]
+                            | _ -> tierHits
+                        | None -> tierHits
 
-                        let shown = results |> List.truncate 5 |> List.map candidateOf
+                    match! searchWithFallback series.Title tierHitsOf with
+                    | Error reason -> return Error(Deferred reason)
+                    | Ok(_, _, true) -> return Error(Decided(NoMatch("no-search-results", [])))
+                    | Ok(results, shownFrom, _) ->
+                        let tierHits = tierHitsOf results
+                        let shown = shownFrom |> List.truncate 5 |> List.map candidateOf
 
                         match tierHits with
                         | [] -> return Error(Decided(NoMatch("no-title-match", shown)))
@@ -601,11 +688,13 @@ let resolveSeries (lookup: Lookup) (series: SeriesInfo) (pending: Set<string>) :
                     | Own t
                     | Combined t -> t
 
-                match! search query with
-                | Unavailable reason -> return Deferred reason
-                | Gone -> return Decided(NoMatch("no-search-results", []))
-                | Got results ->
-                    let shown = results |> List.truncate 5 |> List.map candidateOf
+                let hitsOf (results: MalAnime list) = bestHits texts (results |> List.filter accept)
+
+                match! searchWithFallback query hitsOf with
+                | Error reason -> return Deferred reason
+                | Ok(_, _, true) -> return Decided(NoMatch("no-search-results", []))
+                | Ok(results, shownFrom, _) ->
+                    let shown = shownFrom |> List.truncate 5 |> List.map candidateOf
 
                     match bestHits texts (results |> List.filter accept) with
                     | [ one ] ->

@@ -120,6 +120,7 @@
     <Compile Include="Operations/MalSet.fs" />
     <Compile Include="Operations/MalNone.fs" />
     <Compile Include="Operations/MalRetry.fs" />
+    <Compile Include="Operations/MalRetryUnmatched.fs" />
     <Compile Include="Operations/MalRebuild.fs" />
     <Compile Include="Operations/MalAuto.fs" />
     <Compile Include="Operations/OperatorAdd.fs" />

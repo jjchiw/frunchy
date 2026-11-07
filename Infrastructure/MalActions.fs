@@ -140,7 +140,36 @@ let private dropSearches (conn: NpgsqlConnection) (tx: NpgsqlTransaction) (seaso
 
         cmd.Parameters.AddWithValue("ids", seasonIds) |> ignore
         let! _ = cmd.ExecuteNonQueryAsync()
-        ()
+
+        // Feature 032: the fallback searches (single title words) go too, or a retry would reuse them
+        use titles =
+            new NpgsqlCommand(
+                """
+                SELECT coalesce((SELECT sr.title FROM cr_series sr WHERE sr.id = se.series_id),
+                                (SELECT min(e.series_title) FROM cr_episodes e WHERE e.series_id = se.series_id)),
+                       se.title
+                FROM cr_seasons se WHERE se.id = ANY(@ids)
+                """,
+                conn,
+                tx
+            )
+
+        titles.Parameters.AddWithValue("ids", seasonIds) |> ignore
+        use! r = titles.ExecuteReaderAsync()
+        let words = ResizeArray<string>()
+
+        while r.Read() do
+            for i in 0..1 do
+                if not (r.IsDBNull i) then
+                    words.AddRange(fallbackQueries (r.GetString i))
+
+        do! r.CloseAsync()
+
+        if words.Count > 0 then
+            use delete = new NpgsqlCommand("DELETE FROM mal_searches WHERE query = ANY(@words)", conn, tx)
+            delete.Parameters.AddWithValue("words", words |> Seq.distinct |> Array.ofSeq) |> ignore
+            let! _ = delete.ExecuteNonQueryAsync()
+            ()
     }
 
 /// Queue a season, or every season of a series, at the front. Automatic rows go back to pending
@@ -210,6 +239,53 @@ let retry (db: DbConfig) (expect: Expect) (id: string) : Task<Result<int * int, 
                 do! counts.CloseAsync()
                 do! tx.CommitAsync()
                 return Ok result
+    }
+
+/// Queue every automatic no-match once more (feature 032, `mal-retry-unmatched`): back to pending with the series'
+/// stored searches dropped, so the lookup asks again with the matcher's current rules. Manual rows (their match is
+/// the operator's) and ambiguous ones (they need an operator) are never touched, and nothing jumps the queue.
+/// Returns how many seasons were queued.
+let retryUnmatched (db: DbConfig) : Task<int> =
+    task {
+        use conn = getConnection db
+        do! conn.OpenAsync()
+        use! tx = conn.BeginTransactionAsync()
+
+        use find =
+            new NpgsqlCommand(
+                "SELECT season_id FROM cr_season_matches WHERE status = 'no_match' AND method IS DISTINCT FROM 'manual' ORDER BY season_id FOR UPDATE",
+                conn,
+                tx
+            )
+
+        use! r = find.ExecuteReaderAsync()
+        let seasons = ResizeArray<string>()
+
+        while r.Read() do
+            seasons.Add(r.GetString 0)
+
+        do! r.CloseAsync()
+
+        if seasons.Count = 0 then
+            return 0
+        else
+            do! dropSearches conn tx (seasons.ToArray())
+
+            use cmd =
+                new NpgsqlCommand(
+                    """
+                    UPDATE cr_season_matches SET status = 'pending', attempts = 0, next_attempt_at = NULL,
+                           claimed_at = NULL, last_error = NULL
+                    WHERE season_id = ANY(@ids) AND status = 'no_match' AND method IS DISTINCT FROM 'manual'
+                    """,
+                    conn,
+                    tx
+                )
+
+            cmd.Parameters.AddWithValue("ids", seasons.ToArray()) |> ignore
+            let! queued = cmd.ExecuteNonQueryAsync()
+            do! tx.CommitAsync()
+            return queued
     }
 
 /// Send a manual decision back to the matcher: the season and the dubs that follow it go to
