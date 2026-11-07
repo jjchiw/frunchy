@@ -82,9 +82,85 @@ let tokens: (string * string) list =
       for name, value in spaces -> $"--space-{name}", value
       yield! effects ]
 
+// ---------------------------------------------------------------------------
+// The light theme (feature 032, specs/032-light-theme). Frunchy's own palette: the same names as `colors`, one value
+// each, in ONE list so the designer can replace the values in one place. The dark tokens above stay as the browser
+// extension shares them; the parity test reads `tokens` only. A view never names a hex colour: it uses these roles.
+// ---------------------------------------------------------------------------
+
+let lightColors =
+    [ "surface", "#efe8dd"
+      "surface-container-lowest", "#e8e0d3"
+      "surface-container-low", "#fdfaf5"
+      "surface-container", "#f6f1e9"
+      "surface-container-high", "#e7dfd2"
+      "surface-container-highest", "#ddd3c4"
+      "on-surface", "#1f1a24"
+      "on-surface-variant", "#4c4554"
+      "outline", "#6b6155"
+      "outline-variant", "#c8bba8"
+      "primary", "#854700"
+      "on-primary", "#2a1700"
+      "primary-container", "#d98a0b"
+      "primary-fixed", "#e8920f"
+      "secondary", "#9c1655"
+      "secondary-container", "#f9dfe9"
+      "tertiary", "#5636b8"
+      "error", "#a1230f"
+      "on-error", "#ffffff"
+      "error-container", "#fbe0d8"
+      "on-error-container", "#5c1007" ]
+
+/// The fill tokens (Frunchy only, not shared with the extension, so outside `colors`): a solid area or data mark (a
+/// bar, a meter, the primary button, the mark) and the tints made from it use the fill; text, links, state borders,
+/// the focus ring and icons keep the role. In dark each fill IS its role's value (derived from `colors`, so they
+/// cannot drift), so the dark site renders as before; on light the roles are deep enough to read as text, and the
+/// fills are the brighter amber, rose and lilac.
+let fillColors =
+    [ for role in [ "primary"; "secondary"; "tertiary" ] -> $"{role}-fill", colors |> List.find (fst >> (=) role) |> snd ]
+
+let lightFillColors =
+    [ "primary-fill", "#f5a623"
+      "secondary-fill", "#e85a94"
+      "tertiary-fill", "#9d86ee" ]
+
+/// Frunchy-only effects (not shared with the extension), dark values: the poster hairline and the mark's frame
+let frunchyEffects =
+    [ "--poster-edge", "inset 0 0 0 1px rgb(0 0 0 / 0.4)"
+      "--mark-frame", "var(--color-primary-fill)" ]
+
+/// The colour-bearing effects, light values (fonts do not change with the theme)
+let lightEffects =
+    [ "--border-micro", "1px solid rgb(31 26 36 / 0.08)"
+      "--border-ghost", "1px solid rgb(31 26 36 / 0.20)"
+      "--edge-highlight", "rgb(217 138 11 / 0.40)"
+      "--shadow-level-2", "0 12px 32px -8px rgb(70 50 25 / 0.18)"
+      "--glow-primary", "0 4px 14px -4px rgb(133 71 0 / 0.30)" ]
+
+let lightFrunchyEffects =
+    [ "--poster-edge", "inset 0 0 0 1px rgb(31 26 36 / 0.12)"
+      "--mark-frame", "var(--color-primary-container)" ]
+
+/// What the dark `:root` declares beyond the shared `tokens`
+let darkExtraTokens: (string * string) list =
+    [ for name, value in fillColors -> $"--color-{name}", value
+      yield! frunchyEffects ]
+
+/// The light declarations: every colour and every colour-bearing effect
+let lightTokens: (string * string) list =
+    [ for name, value in lightColors -> $"--color-{name}", value
+      for name, value in lightFillColors -> $"--color-{name}", value
+      yield! lightEffects
+      yield! lightFrunchyEffects ]
+
+/// The theme CSS, no script: dark on `:root`; light for `data-theme="light"`, and for `data-theme="system"` while
+/// the system says light. `<html data-theme>` comes from the `frunchy.theme` cookie (ThemePreference).
 let tokensCss =
-    let declarations = tokens |> List.map (fun (name, value) -> $"{name}: {value};") |> String.concat " "
-    $":root {{ color-scheme: dark; {declarations} }}"
+    let declare (pairs: (string * string) list) =
+        pairs |> List.map (fun (name, value) -> $"{name}: {value};") |> String.concat " "
+
+    let light = declare lightTokens
+    $":root {{ color-scheme: dark; {declare (tokens @ darkExtraTokens)} }}\n:root[data-theme=\"light\"] {{ color-scheme: light; {light} }}\n@media (prefers-color-scheme: light) {{ :root[data-theme=\"system\"] {{ color-scheme: light; {light} }} }}"
 
 // ---------------------------------------------------------------------------
 // Tailwind (CDN, no build step): utilities resolve to the same values, so mockup classes such as
@@ -94,7 +170,15 @@ let tokensCss =
 let private js (s: string) = "'" + s.Replace("'", "\\'") + "'"
 
 let tailwindConfig =
-    let colorEntries = colors |> List.map (fun (n, v) -> $"{js n}: {js v}") |> String.concat ", "
+    // Every colour resolves to its custom property, so the theme (and every opacity modifier) follows `data-theme`
+    let colorEntries =
+        colors @ fillColors
+        |> List.map (fun (n, _) ->
+            let mixed = $"color-mix(in srgb, var(--color-{n}) calc(<alpha-value> * 100%%), transparent)"
+            let key = js n
+            let value = js mixed
+            key + ": " + value)
+        |> String.concat ", "
 
     let fontSizes =
         typeStyles
@@ -122,7 +206,7 @@ let componentCss =
 @layer base {
   html { background: var(--color-surface); -webkit-font-smoothing: antialiased; }
   body { @apply bg-surface text-on-surface font-sans text-body-lg; font-variant-numeric: tabular-nums; }
-  ::selection { background: rgb(255 181 71 / 0.3); color: var(--color-on-surface); }
+  ::selection { background: color-mix(in srgb, var(--color-primary-fill) 30%, transparent); color: var(--color-on-surface); }
   * { scrollbar-color: var(--color-surface-container-highest) var(--color-surface); }
   :focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; border-radius: var(--radius-sm); }
   a { text-underline-offset: 3px; }
@@ -133,7 +217,7 @@ let componentCss =
   .fr-card { @apply bg-surface-container-low rounded-lg p-6 md:p-8; }
   .fr-btn { @apply inline-flex h-11 items-center justify-center gap-2 rounded-full px-5 text-body-md font-semibold whitespace-nowrap; }
   .fr-btn:disabled, .fr-btn[aria-disabled="true"] { @apply opacity-50 cursor-not-allowed; }
-  .fr-btn-primary { @apply bg-primary text-on-primary; }
+  .fr-btn-primary { @apply bg-primary-fill text-on-primary; }
   .fr-btn-secondary { @apply bg-transparent text-on-surface; border: var(--border-ghost); }
   .fr-btn-ghost { @apply text-on-surface-variant; }
   .fr-btn-destructive { @apply bg-error text-on-error; }
@@ -145,17 +229,17 @@ let componentCss =
   .fr-hint { @apply mt-1.5 text-label-md font-normal text-on-surface-variant; }
   .fr-field-error { @apply mt-1.5 flex items-center gap-1.5 text-label-md text-error; }
   .fr-alert { @apply flex items-start gap-3 rounded p-4 text-body-md border; }
-  .fr-alert-success { @apply bg-primary/10 border-primary/30 text-on-surface; }
+  .fr-alert-success { @apply bg-primary-fill/10 border-primary-fill/30 text-on-surface; }
   .fr-alert-error { @apply bg-error/10 border-error/40 text-error; }
-  .fr-alert-info { @apply bg-secondary/10 border-secondary/30 text-on-surface; }
+  .fr-alert-info { @apply bg-secondary-fill/10 border-secondary-fill/30 text-on-surface; }
   .fr-pill { @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-label-md; }
-  .fr-pill-primary { @apply bg-primary/[0.14] text-primary border-primary/25; }
-  .fr-pill-secondary { @apply bg-secondary/[0.16] text-secondary border-secondary/25; }
-  .fr-pill-tertiary { @apply bg-tertiary/[0.14] text-tertiary border-tertiary/25; }
+  .fr-pill-primary { @apply bg-primary-fill/[0.14] text-primary border-primary-fill/25; }
+  .fr-pill-secondary { @apply bg-secondary-fill/[0.16] text-secondary border-secondary-fill/25; }
+  .fr-pill-tertiary { @apply bg-tertiary-fill/[0.14] text-tertiary border-tertiary-fill/25; }
   .fr-pill-muted { @apply bg-surface-container-high text-on-surface-variant border-outline-variant; }
   .fr-overline { @apply text-label-sm uppercase text-on-surface-variant; }
   .fr-track { @apply h-1.5 w-full overflow-hidden rounded-full bg-surface-container-highest; }
-  .fr-fill { @apply h-full w-full rounded-full origin-left bg-primary; }
+  .fr-fill { @apply h-full w-full rounded-full origin-left bg-primary-fill; }
   .fr-link { @apply text-primary underline decoration-primary/40 hover:decoration-primary; }
   .fr-mono { @apply font-mono; }
   .fr-stat, .text-stat-counter { font-family: var(--font-mono); }
@@ -293,15 +377,30 @@ let fontStylesheets =
       "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=block&icon_names="
       + (iconNames |> List.sort |> String.concat ",") ]
 
-/// The Frunchy mark (design/brand/frunchy-mark.svg): a clapperboard whose body is a bar chart
-let markSvg =
-    """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false"><g transform="rotate(-14 6 15)"><rect x="6" y="9" width="35" height="7" rx="2" fill="#ffb547"/><path d="M14 9 L11 16 M23 9 L20 16 M32 9 L29 16" stroke="#13111a" stroke-width="2.6" stroke-linecap="square"/></g><path d="M6 18 H40 M6 18 V42 H11" stroke="#ffb547" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="14" y="31" width="4" height="11" rx="1" fill="#ffb547"/><rect x="21" y="26" width="4" height="16" rx="1" fill="#e0942a"/><rect x="28" y="21" width="4" height="21" rx="1" fill="#e0942a"/><rect x="35" y="23" width="4" height="19" rx="1" fill="#ff6fa8"/></svg>"""
+/// The Frunchy mark (design/brand/frunchy-mark.svg): a clapperboard whose body is a bar chart. `fill` and `stroke`
+/// say how a role is written: custom properties in the page, literals in the favicon. `mark-frame` is the clapper and
+/// the frame (amber, a deeper one on light through `--mark-frame`); the bars use the fills; the slats are the surface.
+let private mark (fill: string -> string) (stroke: string -> string) =
+    $"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false"><g transform="rotate(-14 6 15)"><rect x="6" y="9" width="35" height="7" rx="2" {fill "mark-frame"}/><path d="M14 9 L11 16 M23 9 L20 16 M32 9 L29 16" {stroke "surface"} stroke-width="2.6" stroke-linecap="square"/></g><path d="M6 18 H40 M6 18 V42 H11" {stroke "mark-frame"} stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="14" y="31" width="4" height="11" rx="1" {fill "primary-fill"}/><rect x="21" y="26" width="4" height="16" rx="1" {fill "primary-container"}/><rect x="28" y="21" width="4" height="21" rx="1" {fill "primary-container"}/><rect x="35" y="23" width="4" height="19" rx="1" {fill "secondary-fill"}/></svg>"""
 
-/// Favicon: the mark on a dark tile, so it stays visible on light browser tabs (as the extension's icons)
+/// The mark in the page: its colours are the theme's tokens
+let markSvg =
+    let ref (role: string) = if role = "mark-frame" then "var(--mark-frame)" else $"var(--color-{role})"
+    mark (fun role -> $"""style="fill:{ref role}" """.TrimEnd()) (fun role -> $"""style="stroke:{ref role}" """.TrimEnd())
+
+/// Favicon: the mark on a dark tile, so it stays visible on light browser tabs (as the extension's icons). A data URI
+/// cannot see the page's custom properties, so it is built from the dark palette's literal values.
 let faviconHref =
-    let inner = markSvg.Replace("""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false">""", "").Replace("</svg>", "")
+    let dark role =
+        // the frame is the bright amber in dark (`--mark-frame`)
+        let role = if role = "mark-frame" then "primary-fill" else role
+        colors @ fillColors |> List.find (fst >> (=) role) |> snd
+    let literal = mark (fun role -> $"""fill="{dark role}" """.TrimEnd()) (fun role -> $"""stroke="{dark role}" """.TrimEnd())
+
+    let inner =
+        literal.Replace("""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none" aria-hidden="true" focusable="false">""", "").Replace("</svg>", "")
 
     let tile =
-        $"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="-4 -4 56 56"><rect x="-4" y="-4" width="56" height="56" rx="12" fill="#13111a"/>{inner}</svg>"""
+        $"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="-4 -4 56 56"><rect x="-4" y="-4" width="56" height="56" rx="12" fill="{dark "surface"}"/>{inner}</svg>"""
 
     "data:image/svg+xml;base64," + Convert.ToBase64String(Text.Encoding.UTF8.GetBytes tile)

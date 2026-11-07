@@ -164,7 +164,7 @@ let private visibilitySection (ctx: HttpContext) (t: Texts) (m: AccountModel) =
     let option (value: Profiles.Visibility) (label': string) (help: string) =
         label(class' = "flex cursor-pointer items-start gap-3 rounded border border-outline-variant p-4 has-[:checked]:border-primary") {
             let radio =
-                input(type' = "radio", name = "visibility", value = Profiles.Visibility.toDb value, class' = "mt-1 h-4 w-4 accent-primary")
+                input(type' = "radio", name = "visibility", value = Profiles.Visibility.toDb value, class' = "mt-1 h-4 w-4 accent-primary-fill")
 
             if m.Visibility = value then radio.attr("checked", "") else radio
 

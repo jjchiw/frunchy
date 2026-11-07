@@ -106,8 +106,8 @@ let private genresSection (t: Texts) (c: Compatibility.Comparison) =
 
         if not c.GenreRows.IsEmpty then
             div(class' = "flex flex-wrap gap-x-5 gap-y-1 text-label-md font-normal text-on-surface-variant") {
-                legendDot "bg-primary" t.CompatYou
-                legendDot "bg-secondary" owner
+                legendDot "bg-primary-fill" t.CompatYou
+                legendDot "bg-secondary-fill" owner
             }
 
             div(class' = "space-y-5") {

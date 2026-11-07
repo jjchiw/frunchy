@@ -92,8 +92,8 @@ let private countsCard (t: Texts) (m: ProgressModel) =
         }
 
         div(class' = "flex h-2 overflow-hidden rounded-full bg-surface-container-highest").attr("aria-hidden", "true") {
-            segment "completed" "bg-primary" m.CompletedCount whole
-            segment "watching" "bg-tertiary" m.WatchingCount whole
+            segment "completed" "bg-primary-fill" m.CompletedCount whole
+            segment "watching" "bg-tertiary-fill" m.WatchingCount whole
         }
 
         match m.Owner with

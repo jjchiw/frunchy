@@ -3,13 +3,23 @@
 import { readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { Tab, enable, load, setViewport, sleep, watch } from './cdp.mjs'
+import { Tab, enable, load, setColorScheme, setViewport, sleep, watch } from './cdp.mjs'
 
 const [dir, port] = process.argv.slice(2)
 if (!dir || !port) {
   console.error('usage: node shoot.mjs <snapshot dir> <debugging port>')
   process.exit(2)
 }
+
+// Feature 032: every page twice. The saved pages render data-theme="system", so the emulated system colour scheme
+// picks the theme. Dark keeps the file names the guide pipeline and the designer know; light adds "-light".
+const ALL_SCHEMES = [
+  { scheme: 'dark', suffix: '' },
+  { scheme: 'light', suffix: '-light' },
+]
+// FRUNCHY_SNAPSHOT_SCHEMES=light (or dark) shoots one theme only; the default is both
+const wanted = (process.env.FRUNCHY_SNAPSHOT_SCHEMES ?? 'dark,light').split(',')
+const SCHEMES = ALL_SCHEMES.filter(s => wanted.includes(s.scheme))
 
 const WIDTHS = [
   { width: 1280, scale: 1, mobile: false, viewportHeight: 800 },
@@ -75,6 +85,8 @@ const state = { errors: [], navigations: [] }
 watch(tab, state)
 await enable(tab)
 
+for (const { scheme, suffix } of SCHEMES) {
+await setColorScheme(tab, scheme)
 for (const file of files) {
   const [, name, lang] = file.match(/^(.*)-(en|es)\.html$/)
   const url = pathToFileURL(join(dir, 'html', file)).href
@@ -86,10 +98,10 @@ for (const file of files) {
     await load(tab, url)
 
     const o = await overflow(tab)
-    const png = join(dir, `${name}-${w.width}-${lang}.png`)
+    const png = join(dir, `${name}-${w.width}-${lang}${suffix}.png`)
     await fullPage(tab, w, png)
     produced.push(png)
-    report.push({ page: `${name}-${w.width}-${lang}`, overflow: w.width === 360 ? o : null, errors: [...new Set(state.errors)] })
+    report.push({ page: `${name}-${w.width}-${lang}${suffix}`, overflow: w.width === 360 ? o : null, errors: [...new Set(state.errors)] })
 
     if (name === 'signin') {
       const link = 'a[data-invite-dialog]'
@@ -102,9 +114,9 @@ for (const file of files) {
       await click(tab, link)
       await sleep(600)
       const opened = await dialogOpen(tab)
-      await viewportShot(tab, join(dir, `signin-dialog-${w.width}-${lang}.png`))
-      produced.push(join(dir, `signin-dialog-${w.width}-${lang}.png`))
-      signinResults.push({ case: `dialog ${w.width} ${lang}`, open: opened, navigated: state.navigations.length > 0, pass: opened === true })
+      await viewportShot(tab, join(dir, `signin-dialog-${w.width}-${lang}${suffix}.png`))
+      produced.push(join(dir, `signin-dialog-${w.width}-${lang}${suffix}.png`))
+      signinResults.push({ case: `dialog ${w.width} ${lang} ${scheme}`, open: opened, navigated: state.navigations.length > 0, pass: opened === true })
 
       // 2. notice already seen: the click must leave the dialog shut and follow the link
       await tab.eval(`localStorage.setItem('frunchy.inviteNoticeSeen', '1')`)
@@ -113,10 +125,10 @@ for (const file of files) {
       await click(tab, link)
       await sleep(600)
       const openedSeen = await dialogOpen(tab)
-      await viewportShot(tab, join(dir, `signin-seen-${w.width}-${lang}.png`))
-      produced.push(join(dir, `signin-seen-${w.width}-${lang}.png`))
+      await viewportShot(tab, join(dir, `signin-seen-${w.width}-${lang}${suffix}.png`))
+      produced.push(join(dir, `signin-seen-${w.width}-${lang}${suffix}.png`))
       signinResults.push({
-        case: `seen ${w.width} ${lang}`,
+        case: `seen ${w.width} ${lang} ${scheme}`,
         open: openedSeen,
         navigated: state.navigations.length > 0,
         navigatedTo: state.navigations[0] ?? null,
@@ -125,6 +137,7 @@ for (const file of files) {
       await tab.eval(`localStorage.removeItem('frunchy.inviteNoticeSeen')`)
     }
   }
+}
 }
 
 tab.close()

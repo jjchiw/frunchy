@@ -260,7 +260,7 @@ let private paceChart (t: Texts) (pc: Pace) =
             let n = pc.PerDayCounts[i]
             let height = if n = 0L then 4m else max 8m (100m * decimal n / decimal peak)
 
-            div(class' = (if n = 0L then "flex-1 rounded-sm bg-surface-container-highest" else "flex-1 rounded-sm bg-primary"))
+            div(class' = (if n = 0L then "flex-1 rounded-sm bg-surface-container-highest" else "flex-1 rounded-sm bg-primary-fill"))
                 .attr("style", $"""height: {height.ToString("0.#", CultureInfo.InvariantCulture)}%%""")
     }
 

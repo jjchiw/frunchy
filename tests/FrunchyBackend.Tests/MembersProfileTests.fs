@@ -32,7 +32,7 @@ let private body (browser: Browser) (path: string) : Task<HttpStatusCode * strin
         use! response = browser.GetRaw path
         let! text = response.Content.ReadAsStringAsync()
         // ... and the footer language link's returnUrl, which is the address asked for
-        let stripped = Regex.Replace(Regex.Replace(text, "(__RequestVerificationToken\"[^>]*value=\")[^\"]*(\")", "$1$2"), "(/language/(en|es)\\?returnUrl=)[^\"]*", "$1")
+        let stripped = Regex.Replace(Regex.Replace(text, "(__RequestVerificationToken\"[^>]*value=\")[^\"]*(\")", "$1$2"), "(/(language/(en|es)|theme/(light|dark|system))\\?returnUrl=)[^\"]*", "$1")
         return response.StatusCode, stripped
     }
 

@@ -82,7 +82,7 @@ let private hero (ctx: HttpContext) (t: Texts) =
 
 let private stepIcons = [ Theme.Extension; Theme.History; Theme.Sync ]
 // Amber throughout: the steps are the reader's own, and rose is for other people
-let private stepTone = "bg-primary/10 text-primary"
+let private stepTone = "bg-primary-fill/10 text-primary"
 
 let private howToSync (t: Texts) =
     section(id = "how-to-sync", class' = "scroll-mt-24 space-y-6").attr("aria-labelledby", "how-to-sync-title") {

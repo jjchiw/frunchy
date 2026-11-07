@@ -107,6 +107,14 @@ export async function setViewport(tab, w, height) {
   })
 }
 
+/**
+ * The system's colour scheme (feature 032). The saved pages render `<html data-theme="system">`, so this decides
+ * their theme; headless Chrome's own default is light, so every script says which one it wants.
+ */
+export async function setColorScheme(tab, scheme) {
+  await tab.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: scheme }] })
+}
+
 /** Navigate (or reload) and wait until Tailwind's CDN build has styled the page and Alpine has started */
 export async function load(tab, url) {
   const loaded = tab.once('Page.loadEventFired')

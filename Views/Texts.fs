@@ -17,6 +17,11 @@ type Texts =
       /// The two languages' own names, the same in both text sets (never translated, never flags)
       LanguageNameEn: string
       LanguageNameEs: string
+      /// aria-label of the footer's theme switch and the three options' words (feature 032)
+      ThemeSwitchLabel: string
+      ThemeLight: string
+      ThemeDark: string
+      ThemeSystem: string
 
       HomeTitle: string
       HomeHeadline: string
@@ -771,6 +776,10 @@ let en =
       LanguageSwitchLabel = "Language"
       LanguageNameEn = "English"
       LanguageNameEs = "Español"
+      ThemeSwitchLabel = "Theme"
+      ThemeLight = "Light"
+      ThemeDark = "Dark"
+      ThemeSystem = "System"
 
       HomeTitle = "Home"
       HomeHeadline = "Your anime identity, in numbers"
@@ -1720,6 +1729,10 @@ let es =
       LanguageSwitchLabel = "Idioma"
       LanguageNameEn = "English"
       LanguageNameEs = "Español"
+      ThemeSwitchLabel = "Tema"
+      ThemeLight = "Claro"
+      ThemeDark = "Oscuro"
+      ThemeSystem = "Sistema"
 
       HomeTitle = "Inicio"
       HomeHeadline = "Tu identidad anime, en números"

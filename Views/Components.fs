@@ -91,7 +91,7 @@ let toneBar (tone: BarTone) (percent: decimal) =
     let fill =
         match tone with
         | PrimaryBar -> "fr-fill"
-        | SecondaryBar -> "fr-fill bg-secondary"
+        | SecondaryBar -> "fr-fill bg-secondary-fill"
 
     div(class' = "fr-track").attr("aria-hidden", "true") { div(class' = fill).attr("style", $"transform: scaleX({scale})") }
 
@@ -105,7 +105,7 @@ let levelMeter (t: Texts) (level: int) =
         .attr("aria-label", t.CompatMeterLabel level)
         .data("level-meter", string level) {
         for i in 1..5 do
-            span(class' = (if i <= level then "block h-2 w-7 rounded-full bg-primary" else "block h-2 w-7 rounded-full bg-surface-container-highest"))
+            span(class' = (if i <= level then "block h-2 w-7 rounded-full bg-primary-fill" else "block h-2 w-7 rounded-full bg-surface-container-highest"))
     }
 
 type AlertKind =
@@ -443,7 +443,7 @@ let posterOn (background: string) (url: string option) (sizeClasses: string) =
             img(src = url, alt = "", class' = "absolute inset-0 h-full w-full object-cover")
                 .attr("loading", "lazy")
                 .attr("onerror", "this.remove()")
-                .attr("style", "box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.4)")
+                .attr("style", "box-shadow: var(--poster-edge)")
         | None -> Fragment()
     }
 

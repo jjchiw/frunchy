@@ -3,7 +3,7 @@
 import { existsSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { Tab, enable, load, setViewport, watch } from './cdp.mjs'
+import { Tab, enable, load, setColorScheme, setViewport, watch } from './cdp.mjs'
 
 const [dir, port, out] = process.argv.slice(2)
 if (!dir || !port || !out) {
@@ -83,6 +83,8 @@ const tab = await Tab.open(port)
 const state = { errors: [], navigations: [] }
 watch(tab, state)
 await enable(tab)
+// the guide shows the dark theme: the saved pages follow the system, and headless Chrome's own default is light
+await setColorScheme(tab, 'dark')
 
 const produced = []
 const problems = []

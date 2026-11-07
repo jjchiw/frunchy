@@ -196,6 +196,6 @@ let ``the dashboard of a private profile is the unknown-user 404 and has no mile
         Assert.Equal(unknownCode, code)
         Assert.DoesNotContain("data-milestone", html)
 
-        let strip (s: string) = Regex.Replace(s, "(__RequestVerificationToken\"[^>]*value=\")[^\"]*(\")|(/language/(en|es)\\?returnUrl=)[^\"]*", "")
+        let strip (s: string) = Regex.Replace(s, "(__RequestVerificationToken\"[^>]*value=\")[^\"]*(\")|(/(language/(en|es)|theme/(light|dark|system))\\?returnUrl=)[^\"]*", "")
         Assert.Equal(strip unknown, strip html)
     }
