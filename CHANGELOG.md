@@ -11,6 +11,26 @@ Each section has the changes that matter to whoever runs Frunchy, in this order 
 needed: Added, Changed, Fixed, Security, then Upgrade when an upgrade needs more than deploying the
 new image.
 
+## 0.8.0 - 2026-11-07
+
+### Added
+
+- A "Progress" tab on every profile (after "Year in review"): how many shows the person completed, is watching and
+  left unfinished. A show is a MyAnimeList entry (one anime season) with at least one fully watched episode. It is
+  completed when they watched at least as many episodes as MyAnimeList lists, watching when the last watch was in the
+  last 30 days (or it is airing and they keep up with it), and unfinished otherwise. Anyone who can see the profile
+  sees the three counts; only the owner sees the lists, with where they stopped, when, and a "Next: episode N" button
+  for the shows in progress or left unfinished. Unfinished shows are grouped by the year of the last watch when there
+  are more than ten, and the 12 most recently completed are listed. Started Crunchyroll seasons without MyAnimeList
+  details are not counted and are mentioned in a note.
+
+### Changed
+
+- Milestones never run out: after the fixed tiers each track keeps going (episodes, hours, series and the longest run
+  of one series climb a 1, 2.5, 5 times ten ladder; the streak adds 365 days and the busiest day adds 24 episodes at
+  each step), so there is always a next one to aim for. The header shows how many milestones are reached instead of
+  "N of 36".
+
 ## 0.7.0 - 2026-11-06
 
 ### Added
