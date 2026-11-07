@@ -52,7 +52,7 @@ let private inviteDialog (t: Texts) (providers: AuthConfig.FrunchyProvider list)
             p(id = "invite-dialog-body", class' = "text-body-md text-on-surface-variant") { t.InviteDialogBody }
 
             label(class' = "flex cursor-pointer items-center gap-3 text-body-md text-on-surface") {
-                input(type' = "checkbox", class' = "h-4 w-4 accent-primary").attr("x-model", "skip").data("invite-remember", "")
+                input(type' = "checkbox", class' = "h-4 w-4 accent-primary-fill").attr("x-model", "skip").data("invite-remember", "")
                 span() { t.InviteDialogRemember }
             }
 

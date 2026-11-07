@@ -35,7 +35,7 @@ let private signUpSection (ctx: HttpContext) (t: Texts) (mode: SignUpMode.SignUp
     let option (value: SignUpMode.SignUpMode) (label': string) (help: string) =
         label(class' = "flex cursor-pointer items-start gap-3 rounded border border-outline-variant p-4 has-[:checked]:border-primary") {
             let radio =
-                input(type' = "radio", name = "mode", value = SignUpMode.toDb value, class' = "mt-1 h-4 w-4 accent-primary")
+                input(type' = "radio", name = "mode", value = SignUpMode.toDb value, class' = "mt-1 h-4 w-4 accent-primary-fill")
                     .data("signup-option", SignUpMode.toDb value)
 
             if mode = value then radio.attr("checked", "") else radio

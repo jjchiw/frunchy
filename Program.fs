@@ -47,6 +47,7 @@ let endpoints =
       Handlers.Home.endpoint
       // Feature 024: the language preference cookie
       Handlers.Language.endpoint
+      Handlers.Theme.endpoint
       // The install guide for people who got an invite (anyone)
       Handlers.Guide.endpoint
       Handlers.Api.CreateImport.endpoint

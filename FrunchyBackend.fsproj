@@ -34,6 +34,7 @@
     <Compile Include="Infrastructure/InviteActions.fs" />
     <Compile Include="Infrastructure/SetupInvite.fs" />
     <Compile Include="Infrastructure/LanguagePreference.fs" />
+    <Compile Include="Infrastructure/ThemePreference.fs" />
     <Compile Include="Infrastructure/WebAuth.fs" />
     <Compile Include="Infrastructure/Profiles.fs" />
     <Compile Include="Infrastructure/WatchUpdates.fs" />
@@ -61,6 +62,7 @@
     <Compile Include="Handlers/Health.fs" />
     <Compile Include="Handlers/Home.fs" />
     <Compile Include="Handlers/Language.fs" />
+    <Compile Include="Handlers/Theme.fs" />
     <Compile Include="Handlers/Guide.fs" />
     <Compile Include="Handlers/Api/CreateImport.fs" />
     <Compile Include="Handlers/Api/GetImportStatus.fs" />

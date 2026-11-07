@@ -25,6 +25,7 @@
     <Compile Include="HomeTests.fs" />
     <Compile Include="GuideTests.fs" />
     <Compile Include="LanguageSwitchTests.fs" />
+    <Compile Include="ThemeSwitchTests.fs" />
     <Compile Include="CrunchyrollPageTests.fs" />
     <Compile Include="CreateImportTests.fs" />
     <Compile Include="GetImportStatusTests.fs" />

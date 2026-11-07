@@ -362,7 +362,7 @@ let private commentView (ctx: HttpContext) (t: Texts) (viewer: Guid option) (gra
         if not showBody then
             p(class' = "text-body-md italic text-on-surface-variant").data("hidden-placeholder", "") { t.CommentHiddenPlaceholder }
         elif c.Sensitive then
-            details(class' = "rounded border border-secondary/30 bg-secondary/5 px-4 py-3").data("spoiler", "") {
+            details(class' = "rounded border border-secondary-fill/30 bg-secondary-fill/5 px-4 py-3").data("spoiler", "") {
                 summary(class' = "flex cursor-pointer flex-wrap items-center justify-between gap-x-4 gap-y-1 text-label-md text-on-surface-variant")
                     .data("spoiler-summary", "") {
                     span() { defaultArg c.Summary "" }
@@ -415,7 +415,7 @@ let private commentForm (ctx: HttpContext) (t: Texts) (m: EpisodeModel) (f: Form
         div(class' = "flex flex-wrap items-center justify-between gap-x-6 gap-y-3") {
             label(class' = "inline-flex min-h-6 items-center gap-2 text-body-md text-on-surface") {
                 let box =
-                    input(type' = "checkbox", name = "spoiler", class' = "h-4 w-4 accent-primary").data("spoiler-toggle", "")
+                    input(type' = "checkbox", name = "spoiler", class' = "h-4 w-4 accent-primary-fill").data("spoiler-toggle", "")
 
                 if f.Spoiler then box.attr("checked", "") else box
                 span() { t.CommentSpoilerLabel }

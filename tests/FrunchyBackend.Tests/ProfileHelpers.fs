@@ -107,7 +107,7 @@ let revokeShareLink (browser: Browser) : Task<HttpResponseMessage> =
 /// Does the response carry any Set-Cookie header?
 let setsCookie (response: HttpResponseMessage) = response.Headers.Contains "Set-Cookie"
 
-/// A page without the footer language link's returnUrl, which is the address that was asked for: two 404s for
-/// different addresses are then the same page
+/// A page without the footer language and theme links' returnUrl, which is the address that was asked for: two
+/// 404s for different addresses are then the same page
 let withoutLanguageReturn (html: string) =
-    System.Text.RegularExpressions.Regex.Replace(html, "(/language/(en|es)\\?returnUrl=)[^\"]*", "$1")
+    System.Text.RegularExpressions.Regex.Replace(html, "(/(language/(en|es)|theme/(light|dark|system))\\?returnUrl=)[^\"]*", "$1")

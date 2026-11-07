@@ -27,6 +27,7 @@ let private customProperties (css: string) =
     [ for m in Regex.Matches(css, @"(--[a-z0-9-]+)\s*:\s*([^;]+);") -> m.Groups[1].Value, m.Groups[2].Value.Trim() ]
     |> Map.ofList
 
+// Feature 032: the parity is scoped to the DARK palette (`Theme.tokens`); the light palette is Frunchy's own
 [<Fact>]
 let ``every token shared with the extension has the same value`` () =
     match extensionTokensFile () with
@@ -58,33 +59,79 @@ let private contrast (a: string) (b: string) =
     let la, lb = luminance a, luminance b
     (max la lb + 0.05) / (min la lb + 0.05)
 
-let private color name = Theme.colors |> List.find (fst >> (=) name) |> snd
+let private colorIn (palette: (string * string) list) name = palette |> List.find (fst >> (=) name) |> snd
 
 let private surfaces =
     [ "surface"; "surface-container-low"; "surface-container"; "surface-container-high"; "surface-container-highest" ]
 
+/// A palette with its fill tokens (feature 032: the fills are Frunchy's own, outside `Theme.colors`)
+let private palettes =
+    [ "dark", Theme.colors @ Theme.fillColors
+      "light", Theme.lightColors @ Theme.lightFillColors ]
+
 [<Fact>]
-let ``text and controls meet WCAG AA contrast on every surface they're used on`` () =
+let ``the light palette has exactly the names of the dark one`` () =
+    Assert.Equal<string list>(Theme.colors |> List.map fst |> List.sort, Theme.lightColors |> List.map fst |> List.sort)
+    Assert.Equal(Theme.colors.Length, Theme.lightColors.Length)
+    // every colour-bearing effect has a light value too
+    for name in [ "--border-micro"; "--border-ghost"; "--edge-highlight"; "--shadow-level-2"; "--glow-primary" ] do
+        Assert.True((Theme.lightEffects |> List.exists (fst >> (=) name)), $"lightEffects has no {name}")
+
+[<Fact>]
+let ``the fill tokens are Frunchy's own: three names, outside the shared colours, and in dark each equals its role`` () =
+    let names = [ "primary-fill"; "secondary-fill"; "tertiary-fill" ]
+    Assert.Equal<string list>(names, Theme.fillColors |> List.map fst)
+    Assert.Equal<string list>(names, Theme.lightFillColors |> List.map fst)
+
+    // not in the colours the extension shares, nor in the shared token list
+    for name in names do
+        Assert.DoesNotContain(name, Theme.colors |> List.map fst)
+        Assert.DoesNotContain($"--color-{name}", Theme.tokens |> List.map fst)
+
+    for name, value in Theme.fillColors do
+        Assert.Equal(colorIn Theme.colors (name.Replace("-fill", "")), value)
+
+    // the poster hairline and the mark's frame are Frunchy-only effects too
+    for name in [ "--poster-edge"; "--mark-frame" ] do
+        Assert.DoesNotContain(name, Theme.effects |> List.map fst)
+
+[<Fact>]
+let ``both themes declare the fills and the two Frunchy effects`` () =
+    let css = Theme.tokensCss
+    let darkBlock = css.Substring(0, css.IndexOf "\n")
+    for name in [ "--color-primary-fill"; "--color-secondary-fill"; "--color-tertiary-fill"; "--poster-edge"; "--mark-frame" ] do
+        Assert.Contains($"{name}:", darkBlock)
+        // and in both light blocks (the light selector and the system media query)
+        Assert.Equal(2, Regex.Matches(css, Regex.Escape $"{name}:").Count - 1)
+
+[<Theory>]
+[<InlineData("dark")>]
+[<InlineData("light")>]
+let ``text and controls meet WCAG AA contrast on every surface they're used on`` (theme: string) =
+    let color = colorIn (palettes |> List.find (fst >> (=) theme) |> snd)
+
     let body =
         [ for s in surfaces do
               for text in [ "on-surface"; "on-surface-variant"; "primary"; "secondary"; "tertiary"; "error" ] -> text, s
           // outline is placeholder text only, on inputs (surface-container) and the page; it fails on
           // surface-container-highest (3.9:1), so it must never be used as text there
           for s in [ "surface"; "surface-container-low"; "surface-container" ] -> "outline", s
-          yield "on-primary", "primary"
+          // the primary button is the bright fill with dark text; its hover is primary-fixed
+          yield "on-primary", "primary-fill"
           yield "on-primary", "primary-fixed"
           yield "on-error", "error"
-          yield "on-error-container", "error-container" ]
+          yield "on-error-container", "error-container"
+          yield "secondary", "secondary-container" ]
 
     for text, background in body do
         let ratio = contrast (color text) (color background)
-        Assert.True(ratio >= 4.5, $"{text} on {background}: {ratio:F2} < 4.5")
+        Assert.True(ratio >= 4.5, $"{theme}: {text} on {background}: {ratio:F2} < 4.5")
 
     // Input borders and other UI boundaries against the surfaces they sit on (WCAG 1.4.11)
     // ... the input itself fills with surface-container, so its border is checked against that too
     for s in [ "surface"; "surface-container-low"; "surface-container" ] do
         let ratio = contrast (color "outline") (color s)
-        Assert.True(ratio >= 3.0, $"outline on {s}: {ratio:F2} < 3")
+        Assert.True(ratio >= 3.0, $"{theme}: outline on {s}: {ratio:F2} < 3")
 
 [<Fact>]
 let ``the icon font is subset to exactly the icons the views can use`` () =
@@ -110,7 +157,8 @@ let ``pages load the design system, not DaisyUI`` (path: string) =
         let! response = getWithLanguage app.Client "en" path
         let! html = readHtml response
         Assert.DoesNotContain("daisyui", html)
-        Assert.DoesNotContain("data-theme", html)
+        // feature 032: the theme is a data-theme attribute on <html>, no theme library
+        Assert.Contains("data-theme=\"system\"", html)
         Assert.Contains("family=Figtree", html)
         Assert.Contains("--color-primary: #ffb547;", html)
         Assert.Contains("tailwind.config", html)

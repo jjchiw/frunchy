@@ -187,7 +187,7 @@ let private months (t: Texts) (year: int) (firstFuture: int option) (f: Figures)
                     if future then
                         div(class' = "h-full w-full rounded-sm border border-dashed border-outline-variant")
                     else
-                        div(class' = (if m = busiest && ms > 0L then "w-full rounded-sm bg-primary" elif ms = 0L then "w-full rounded-sm bg-surface-container-highest" else "w-full rounded-sm bg-primary/45"))
+                        div(class' = (if m = busiest && ms > 0L then "w-full rounded-sm bg-primary-fill" elif ms = 0L then "w-full rounded-sm bg-surface-container-highest" else "w-full rounded-sm bg-primary-fill/45"))
                             .attr("style", $"""height: {height.ToString("0.#", CultureInfo.InvariantCulture)}%%""")
 
                     // one letter on phones, where twelve abbreviations don't fit side by side
@@ -209,7 +209,7 @@ let private streak (t: Texts) (f: Figures) =
             sectionHeading t.YearStreakTitle
 
             div(class' = "flex items-center gap-4") {
-                span(class' = "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-tertiary/10 text-headline-md text-tertiary") {
+                span(class' = "flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-tertiary-fill/10 text-headline-md text-tertiary") {
                     icon Theme.LocalFireDepartment
                 }
 

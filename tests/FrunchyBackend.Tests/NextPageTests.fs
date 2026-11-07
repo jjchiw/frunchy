@@ -181,7 +181,9 @@ let ``no score or percentage is printed, not even in an attribute`` () =
     task {
         use! w = world ()
         let! html = next w.Me
-        Assert.DoesNotMatch("[0-9]+(\\.[0-9]+)?%", html)
+        // the page's content, not its stylesheet and Tailwind config (which are full of CSS percentages)
+        let content = Regex.Replace(html, "<(style|script)\\b.*?</\\1>", "", RegexOptions.Singleline)
+        Assert.DoesNotMatch("[0-9]+(\\.[0-9]+)?%", content)
         // no figure like 0.6 or 1.0 hides in any data attribute but the level, the counts and the MyAnimeList score
         for m in Regex.Matches(html, "data-([a-z-]+)=\"([^\"]*)\"") do
             let name = m.Groups[1].Value

@@ -20,7 +20,12 @@ session can look at them without signing in anywhere. Both steps are opt-in: a n
    bash tools/snapshots/shoot.sh <abs path>
    ```
 
-   It writes `<abs path>/<name>-<width>-<lang>.png`: full page, 1280 at scale 1, 360 at scale 2 (mobile). The Chrome
+   It writes `<abs path>/<name>-<width>-<lang>.png`: full page, 1280 at scale 1, 360 at scale 2 (mobile). Every page is
+   shot twice (feature 032): the saved pages render `<html data-theme="system">`, so the emulated system colour scheme
+   (CDP `Emulation.setEmulatedMedia`, `prefers-color-scheme`) picks the theme. Dark keeps the file names above (the
+   guide pipeline relies on them); light adds `-light`: `<name>-<width>-<lang>-light.png` (headless Chrome's own
+   default is light, so each script sets the scheme it wants). `FRUNCHY_SNAPSHOT_SCHEMES=light` (or `dark`) shoots one
+   theme only. The Chrome
    profile is a temp folder under `<abs path>` and is deleted at the end. Requests to `snapshot.invalid` are aborted, so
    a click on a link never leaves the saved page.
 
@@ -29,14 +34,14 @@ Names: `home`, `signin` (signed out), `signup` (back from a provider with no acc
 code page), `review-settings`, `sync-key` (the show-once key page, a throwaway key of the test database), `guide` (its screenshots
 are blocked like every root-relative URL), and the Progress tab (feature 031): `progress` (owner `mika`: 110 unfinished over four years, a long runner, an airing show without a total, watching and completed), `progress-caughtup`, `progress-empty`, `progress-visitor` (`mika`'s page as another member) and `progress-sample` (the real 2026 sample).
 
-`signin` also gets two viewport-sized shots per width and language, from real mouse clicks (CDP
+`signin` also gets two viewport-sized shots per width, language and theme (`-light` for light), from real mouse clicks (CDP
 `Input.dispatchMouseEvent`) on the first provider link:
 
 - `signin-dialog-…`: first visit, the invite-only dialog must open (`dialog.open === true`).
 - `signin-seen-…`: after `localStorage frunchy.inviteNoticeSeen = '1'`, the dialog must stay shut and the link is followed
   (the aborted navigation to `snapshot.invalid` is the proof).
 
-The shooter prints those eight results, any page wider than the viewport at 360 (with the first offending elements) and
+The shooter prints those sixteen results, any page wider than the viewport at 360 (with the first offending elements) and
 console errors per page, and exits 1 if a sign-in check fails.
 
 ## The /guide screenshots
@@ -47,7 +52,7 @@ The guide page (`/guide`, `Handlers/Guide.fs`) shows Frunchy's own pages from th
 bash tools/snapshots/guide.sh <abs path>            # writes wwwroot/guide/<name>-<lang>.png (en and es)
 ```
 
-It shoots at 1280 wide and scale 2: `signup` (the form filled with invented values), `account-extension`, `sync-key`,
+It shoots in the dark theme (it emulates `prefers-color-scheme: dark`) at 1280 wide and scale 2: `signup` (the form filled with invented values), `account-extension`, `sync-key`,
 `account-visibility` (cropped to their section or card), `dashboard` and `dna` (the top of the page, 1280x800). The list
 is `SHOTS` in `guide.mjs`; an image the guide links to must exist, `GuideTests` checks every one. Look at each image
 before committing it.
@@ -55,5 +60,8 @@ before committing it.
 The `extension-*` images (`ready`, `scraping`, `synced`, `options`, en and es) are the extension's own: copy them from
 `browser-extension/store/guide/` (the popup alone at 380 px and the settings page at 480 px, both at 2x, invented data,
 made by its `npm run store:assets`). The extension's session messages this repository's session when they change.
+
+`crops.mjs` (`bash tools/snapshots/chrome.sh <abs path> crops.mjs`, needs `html/home-es.html` and `home-en.html`) writes the
+theme review's close crops: `footer-360-es[-light].png` and `mark-header-1280-en[-light].png` (the header mark at 6x).
 
 `chrome.sh` starts the headless Chrome both scripts use; `cdp.mjs` holds their DevTools protocol helpers.

@@ -67,7 +67,7 @@ let private editForm (ctx: HttpContext) (t: Texts) (o: Own) (f: FormState) =
 
         label(class' = "inline-flex min-h-6 items-center gap-2 text-body-md text-on-surface") {
             let box =
-                input(type' = "checkbox", name = "spoiler", class' = "h-4 w-4 accent-primary").data("spoiler-toggle", "")
+                input(type' = "checkbox", name = "spoiler", class' = "h-4 w-4 accent-primary-fill").data("spoiler-toggle", "")
 
             if f.Spoiler then box.attr("checked", "") else box
             span() { t.CommentSpoilerLabel }

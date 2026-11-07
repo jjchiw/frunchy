@@ -123,7 +123,7 @@ let private languageSwitch (ctx: HttpContext) (t: Texts) =
     let name = if target = "es" then t.LanguageNameEs else t.LanguageNameEn
     let here = ctx.Request.Path.Value + ctx.Request.QueryString.Value
 
-    nav(class' = "w-full sm:ml-auto sm:w-auto").attr("aria-label", t.LanguageSwitchLabel).data("language-switch", "") {
+    nav().attr("aria-label", t.LanguageSwitchLabel).data("language-switch", "") {
         a(href = LanguagePreference.switchHref target here, class' = Components.btnSm Components.Ghost + " -ml-3.5 sm:ml-0")
             .attr("hreflang", target)
             .attr("lang", target)
@@ -133,14 +133,53 @@ let private languageSwitch (ctx: HttpContext) (t: Texts) =
         }
     }
 
+/// The footer's theme switch (feature 032): Light, Dark and System as a segmented control of three words (no icons:
+/// "System" has none people read reliably). Plain links that set `frunchy.theme` and come back to this page; the
+/// current mode is `aria-current="true"` and reads as the neutral selected segment, not amber.
+let private themeSwitch (ctx: HttpContext) (t: Texts) =
+    let here = ctx.Request.Path.Value + ctx.Request.QueryString.Value
+    let current = ThemePreference.current ctx
+
+    nav().attr("aria-label", t.ThemeSwitchLabel).data("theme-switch", "") {
+        div(class' = "inline-flex items-center rounded-full p-0.5").attr("style", "border: var(--border-ghost)") {
+            for mode in ThemePreference.all do
+                let label =
+                    match mode with
+                    | ThemePreference.Light -> t.ThemeLight
+                    | ThemePreference.Dark -> t.ThemeDark
+                    | ThemePreference.System -> t.ThemeSystem
+
+                let isCurrent = (mode = current)
+                let size = "inline-flex h-8 items-center rounded-full px-3 text-label-md"
+
+                let cls =
+                    if isCurrent then size + " bg-surface-container-high text-on-surface"
+                    else size + " text-on-surface-variant hover:text-on-surface"
+
+                let link = a(href = ThemePreference.switchHref mode here, class' = cls).data("theme-option", mode.Code)
+                let link = if isCurrent then link.attr("aria-current", "true") else link
+                link { label }
+        }
+    }
+
 /// Base HTML layout on the design system (Views/Theme.fs), in the request's language
 let page (ctx: HttpContext) (t: Texts) (titleText: string) (content: HtmlElement) =
-    html(lang = t.Lang, class' = "bg-surface") {
+    let theme = ThemePreference.current ctx
+
+    html(lang = t.Lang, class' = "bg-surface").attr("data-theme", theme.Code) {
         head() {
             meta(charset = "UTF-8")
             meta(name = "viewport", content = "width=device-width, initial-scale=1.0")
-            meta(name = "color-scheme", content = "dark")
-            meta(name = "theme-color", content = "#13111a")
+            meta(name = "color-scheme", content = (match theme with ThemePreference.Light -> "light" | ThemePreference.Dark -> "dark" | ThemePreference.System -> "dark light"))
+
+            let surfaceOf (palette: (string * string) list) = palette |> List.find (fst >> (=) "surface") |> snd
+
+            match theme with
+            | ThemePreference.Light -> meta(name = "theme-color", content = surfaceOf Theme.lightColors)
+            | ThemePreference.Dark -> meta(name = "theme-color", content = surfaceOf Theme.colors)
+            | ThemePreference.System ->
+                meta(name = "theme-color", content = surfaceOf Theme.lightColors).attr("media", "(prefers-color-scheme: light)")
+                meta(name = "theme-color", content = surfaceOf Theme.colors).attr("media", "(prefers-color-scheme: dark)")
             title() { $"{titleText} | {t.SiteName}" }
             link(rel = "icon", href = Theme.faviconHref).attr("type", "image/svg+xml")
 
@@ -188,7 +227,11 @@ let page (ctx: HttpContext) (t: Texts) (titleText: string) (content: HtmlElement
                             p().data("footer-disclaimer", "") { t.FooterDisclaimer }
                         }
                     }
-                    languageSwitch ctx t
+                    // The two switches stay together and wrap as one group
+                    div(class' = "flex w-full flex-wrap items-center gap-x-3 gap-y-2 sm:ml-auto sm:w-auto") {
+                        themeSwitch ctx t
+                        languageSwitch ctx t
+                    }
                 }
             }
         }
