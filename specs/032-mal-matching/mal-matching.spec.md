@@ -4,7 +4,7 @@
 
 **Created**: 2026-11-07
 
-**Status**: Draft
+**Status**: Implemented
 
 **Input**: "How are we matching with MAL? The Casebook of Arne isn't matched, and on MyAnimeList it is Arne no Jikenbo,
 English title The Case Book of Arne." The owner chose all three fixes, in the spec flow: compare titles ignoring

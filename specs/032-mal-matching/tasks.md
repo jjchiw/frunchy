@@ -23,4 +23,4 @@ and `MalFixtures.fs`; no real provider.
 - [x] T007 Docs: CLAUDE.md (the MyAnimeList Matching line: tiers 3-4, fallback queries, the reuse split, the re-queue
   rule, the new command), `changelog.d/032-mal-matching.md`; full suite; commit
   `feat(032): MyAnimeList matching ignores spacing, searches again by title words, and retries new shows`
-- [ ] T008 Review (main session)
+- [x] T008 Review (main session)
