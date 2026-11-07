@@ -83,12 +83,11 @@ fun layer on the existing history that gives users something to share. A small f
   the section described above between `stats` and the recent/top-genres grid.
 - **FR-004**: Hooks (tests read only these; `contracts/hooks.md`):
   - `section[data-milestones]` with `data-milestones-reached` (the tiers reached, summed over the six tracks) and
-    `data-milestones-total` (every tier of every track, 36), `aria-labelledby` its heading;
+    `aria-labelledby` its heading (the total was removed, see "Endless tiers");
   - each card `[data-milestone="<track key>"]` with `data-value` (invariant: an integer, `hours` with one decimal),
-    `data-tier` (the reached threshold, `""` when none), `data-next` (the next threshold, `""` at the top);
+    `data-tier` (the reached threshold, `""` when none), `data-next` (the next threshold, always present);
   - the reached date `<time … data-fr-time data-milestone-reached>` (absent when no tier);
-  - the progress bar inside `[data-milestone-progress]` (absent at the top tier), the top state
-    `[data-milestone-top]`;
+  - the progress bar inside `[data-milestone-progress]` (always present; the top state was removed);
   - on the `long-run` card, `data-long-run-series="<series id>"` on the card when the value is above 0, and the series
     link through `seriesLink` (its `data-series-link`).
 - **FR-005**: Copy in `Views/Texts.fs`, `en` and `es`, no literal in the view: section title ("Milestones" /
@@ -115,3 +114,20 @@ fun layer on the existing history that gives users something to share. A small f
 - **SC-002**: Re-sending, reordering or rebuilding a history gives byte-identical milestone sections.
 - **SC-003**: A hidden profile still answers the unknown-user 404 and runs no milestone query; an empty history shows
   no section.
+
+## Endless tiers (2026-11-07)
+
+The fixed tiers stay, and after the last one each track continues for ever, so a track always has a next tier and
+the "every milestone reached" state (`data-milestone-top`, `Texts.MilestoneTop`) no longer exists:
+
+- `episodes`, `hours`, `series`, `long-run`: the 1 / 2.5 / 5 x 10^n ladder from the last fixed tier (`nextLadder`:
+  after 1 x 10^n comes 2.5 x 10^n, then 5 x 10^n, then 10^(n+1)). Episodes: 5,000, 10,000, 25,000, 50,000, 100,000,
+  250,000 ...; hours: 2,500, 5,000, 10,000 ...; series: 250, 500, 1,000 ...; long-run: 1,000, 2,500, 5,000 ...
+- `streak`: after 365, every further 365 (730, 1,095 ...).
+- `marathon`: after 48, every further 24 (72, 96 ...).
+
+Tiers are generated lazily, only up to the first one above the value (`Milestones.thresholds`, `tierAfter`). The
+reached tier, its date (the same `reachedAt` logic with the generated threshold), the bar and "N to go to X" work as for
+a fixed tier. The header is "N reached" with no total (`Texts.MilestonesReached` takes one number), and
+`data-milestones-reached` counts the generated tiers too; `data-milestones-total` and `Milestones.totalTiers` are removed.
+`Track.Next` is a plain `int`.

@@ -37,9 +37,8 @@ let ``no history gives six tracks with value 0 and no tier`` () =
         Assert.Equal(None, t.ReachedAt)
         Assert.Equal(None, t.Series)
 
-    Assert.Equal(Some 10, (track "episodes" result).Next)
+    Assert.Equal(10, (track "episodes" result).Next)
     Assert.Equal(0, reached result)
-    Assert.Equal(36, totalTiers)
 
 [<Fact>]
 let ``episodes thresholds are exact and dated by the N-th episode`` () =
@@ -47,18 +46,18 @@ let ``episodes thresholds are exact and dated by the N-th episode`` () =
     let nine = track "episodes" (compute (run "A" 9 start))
     Assert.Equal(9m, nine.Value)
     Assert.Equal(None, nine.Tier)
-    Assert.Equal(Some 10, nine.Next)
+    Assert.Equal(10, nine.Next)
     Assert.Equal(1m, nine.Remaining)
 
     let ten = track "episodes" (compute (run "A" 10 start))
     Assert.Equal(Some 10, ten.Tier)
     Assert.Equal(Some(start.AddMinutes 9.0), ten.ReachedAt)
-    Assert.Equal(Some 50, ten.Next)
+    Assert.Equal(50, ten.Next)
 
     let top = track "episodes" (compute (run "A" 5000 start))
     Assert.Equal(Some 5000, top.Tier)
-    Assert.Equal(None, top.Next)
-    Assert.Equal(0m, top.Remaining)
+    Assert.Equal(10000, top.Next) // the last fixed tier is not the top any more
+    Assert.Equal(5000m, top.Remaining)
 
 [<Fact>]
 let ``input order does not matter and ties break by episode id`` () =
@@ -81,7 +80,7 @@ let ``hours use exact milliseconds and count the playhead of partial watches`` (
     let almost = [ { row "E1" "A" "k1" (at 2025 1 1 0 0) with WatchedMs = 24L * hour - 36_000L } ] // 23.99 hours
     let before = track "hours" (compute almost)
     Assert.Equal(None, before.Tier)
-    Assert.Equal(Some 24, before.Next)
+    Assert.Equal(24, before.Next)
     Assert.Equal(24.0m, before.Value) // 23.99 rounds to the dashboard's one decimal
     Assert.Equal(0.1m, before.Remaining) // never "0.0 to go"
 
@@ -119,7 +118,7 @@ let ``streak counts consecutive UTC days, across a gap and two runs`` () =
     let s = track "streak" (compute rows)
     Assert.Equal(7m, s.Value)
     Assert.Equal(Some 7, s.Tier)
-    Assert.Equal(Some 14, s.Next)
+    Assert.Equal(14, s.Next)
     Assert.Equal(Some(at 2025 1 16 23 30), s.ReachedAt) // the 7th day of the run
 
     // the date of the 3-day tier is the first run's third day, not the later run's
@@ -183,3 +182,78 @@ let ``long-run names the series by most keys, then title, then id, and dates the
     // fewer keys loses even with an earlier title
     let few = [ for i in 0..4 -> { row $"F{i}" "F" $"FS1#{i}" (at 2025 1 1 0 i) with SeriesTitle = "Aaa" } ]
     Assert.Equal(Some "D", (compute (few @ d) |> track "long-run").Series |> Option.map fst)
+
+[<Fact>]
+let ``the ladder goes 1, 2.5, 5 times ten to the n`` () =
+    Assert.Equal(2500, nextLadder 1000)
+    Assert.Equal(5000, nextLadder 2500)
+    Assert.Equal(10000, nextLadder 5000)
+    Assert.Equal(25000, nextLadder 10000)
+    Assert.Equal(250, nextLadder 100)
+    Assert.Equal(500, nextLadder 250)
+    Assert.Equal(1000, nextLadder 500)
+    Assert.Equal(250_000, nextLadder 100_000)
+    Assert.Equal(1_000_000_000, nextLadder 500_000_000)
+    // a value between rungs gets the first rung above it
+    Assert.Equal(10000, nextLadder 5873)
+    Assert.Equal(2500, nextLadder 1999)
+
+[<Fact>]
+let ``each track continues after its last fixed tier`` () =
+    let take n key = thresholds key |> Seq.take n |> List.ofSeq
+    Assert.Equal<int list>([ 2500; 5000; 10000; 25000; 50000; 100000; 250000 ], take 13 "episodes" |> List.skip 6)
+    Assert.Equal<int list>([ 5000; 10000; 25000 ], take 9 "hours" |> List.skip 6)
+    Assert.Equal<int list>([ 500; 1000; 2500 ], take 9 "series" |> List.skip 6)
+    Assert.Equal<int list>([ 365; 730; 1095; 1460 ], take 9 "streak" |> List.skip 5)
+    Assert.Equal<int list>([ 48; 72; 96; 120 ], take 7 "marathon" |> List.skip 3)
+    Assert.Equal<int list>([ 1000; 2500; 5000; 10000 ], take 9 "long-run" |> List.skip 5)
+
+[<Fact>]
+let ``episodes go past the last fixed tier`` () =
+    let start = at 2025 1 1 0 0
+    let e = track "episodes" (compute (run "A" 5873 start))
+    Assert.Equal(Some 5000, e.Tier)
+    Assert.Equal(Some(start.AddMinutes 4999.0), e.ReachedAt) // dated by the 5000th episode
+    Assert.Equal(10000, e.Next)
+    Assert.Equal(4127m, e.Remaining)
+
+    let twelve = track "episodes" (compute (run "A" 12000 start))
+    Assert.Equal(Some 10000, twelve.Tier)
+    Assert.Equal(Some(start.AddMinutes 9999.0), twelve.ReachedAt)
+    Assert.Equal(25000, twelve.Next)
+
+[<Fact>]
+let ``a streak goes on every 365 days`` () =
+    let rows = [ for d in 0..399 -> row $"D{d:D3}" "A" $"AS1#{d}" ((at 2025 1 1 12 0).AddDays(float d)) ]
+    let s = track "streak" (compute rows)
+    Assert.Equal(400m, s.Value)
+    Assert.Equal(Some 365, s.Tier)
+    Assert.Equal(Some((at 2025 1 1 12 0).AddDays 364.0), s.ReachedAt)
+    Assert.Equal(730, s.Next)
+    Assert.Equal(330m, s.Remaining)
+
+[<Fact>]
+let ``a busy day goes on every 24 episodes`` () =
+    let rows = [ for i in 0..49 -> row $"M{i:D2}" "A" $"AS1#{i}" (at 2025 1 1 0 i) ]
+    let m = track "marathon" (compute rows)
+    Assert.Equal(50m, m.Value)
+    Assert.Equal(Some 48, m.Tier)
+    Assert.Equal(Some(at 2025 1 1 0 47), m.ReachedAt)
+    Assert.Equal(72, m.Next)
+    Assert.Equal(22m, m.Remaining)
+
+[<Fact>]
+let ``a long run goes on up the ladder`` () =
+    let l = track "long-run" (compute (run "A" 1200 (at 2025 1 1 0 0)))
+    Assert.Equal(1200m, l.Value)
+    Assert.Equal(Some 1000, l.Tier)
+    Assert.Equal(2500, l.Next)
+    Assert.Equal(1300m, l.Remaining)
+
+[<Fact>]
+let ``a huge value terminates with the right tiers and counts every one reached`` () =
+    let e = track "episodes" (compute (run "A" 1_000_000 (at 2020 1 1 0 0)))
+    Assert.Equal(Some 1_000_000, e.Tier)
+    Assert.Equal(2_500_000, e.Next)
+    // 8 fixed tiers, then 10000, 25000, 50000, 100000, 250000, 500000, 1000000
+    Assert.Equal(15, reached [ e ])

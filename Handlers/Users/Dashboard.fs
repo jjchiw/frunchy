@@ -321,7 +321,7 @@ let private milestoneCard (t: Texts) (username: string) (m: Milestones.Track) =
             .data("milestone", m.Key)
             .data("value", invariant)
             .data("tier", (match m.Tier with Some tier -> string tier | None -> ""))
-            .data("next", (match m.Next with Some next -> string next | None -> ""))
+            .data("next", string m.Next)
 
     let card =
         match m.Series with
@@ -355,31 +355,21 @@ let private milestoneCard (t: Texts) (username: string) (m: Milestones.Track) =
             }
         | None -> Fragment()
 
-        match m.Next with
-        | Some next ->
-            let percent = if next = 0 then 0m else 100m * m.Value / decimal next
-
-            div(class' = "mt-auto space-y-2").data("milestone-progress", "") {
-                shareBar percent
-                p(class' = "text-label-md font-normal text-on-surface-variant") { t.MilestoneToGo m.Key m.Remaining next }
-            }
-        | None ->
-            p(class' = "mt-auto flex items-center gap-1.5 text-label-md font-semibold text-primary").data("milestone-top", "") {
-                icon Theme.CheckCircle
-                span() { t.MilestoneTop }
-            }
+        div(class' = "mt-auto space-y-2").data("milestone-progress", "") {
+            shareBar (100m * m.Value / decimal m.Next)
+            p(class' = "text-label-md font-normal text-on-surface-variant") { t.MilestoneToGo m.Key m.Remaining m.Next }
+        }
     }
 
 let private milestones (t: Texts) (username: string) (all: Milestones.Track list) =
     section(class' = "space-y-4")
         .data("milestones", "")
         .data("milestones-reached", string (Milestones.reached all))
-        .data("milestones-total", string Milestones.totalTiers)
         .attr("aria-labelledby", "milestones-title") {
         div(class' = "flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1") {
             h2(id = "milestones-title", class' = "text-headline-md text-on-surface") { t.MilestonesTitle }
 
-            p(class' = "text-body-md text-on-surface-variant") { t.MilestonesReached (Milestones.reached all) Milestones.totalTiers }
+            p(class' = "text-body-md text-on-surface-variant") { t.MilestonesReached (Milestones.reached all) }
         }
 
         div(class' = "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3") {

@@ -76,7 +76,7 @@ type Texts =
       TopGenresCoverage: int -> string
       // Milestones on the dashboard (feature 029); the keys are `Milestones.tracks`
       MilestonesTitle: string
-      MilestonesReached: int -> int -> string
+      MilestonesReached: int -> string
       MilestoneName: string -> string
       /// A tier in words, by track key and threshold ("1,000 episodes", "7 days in a row")
       MilestoneTier: string -> int -> string
@@ -88,7 +88,6 @@ type Texts =
       MilestoneReachedOn: string
       /// What is missing to the next tier: track key, amount, the next threshold
       MilestoneToGo: string -> decimal -> int -> string
-      MilestoneTop: string
       MyAnimeListLink: string
       ScoreLabel: string
       EmptyTitle: string
@@ -837,7 +836,7 @@ let en =
       TopGenresCoverage =
         fun p -> $"Based on {p}%% of fully watched episodes. An episode counts in each of its genres."
       MilestonesTitle = "Milestones"
-      MilestonesReached = fun reached total -> $"{reached} of {total} reached"
+      MilestonesReached = fun reached -> $"{reached} reached"
       MilestoneName =
         function
         | "episodes" -> "Episodes"
@@ -857,7 +856,6 @@ let en =
         fun key remaining next ->
             let number = remaining.ToString((if key = "hours" then "N1" else "N0"), CultureInfo.GetCultureInfo "en")
             $"{number} to go to {milestonePhraseEn key (decimal next) false}"
-      MilestoneTop = "Every milestone reached"
       MyAnimeListLink = "MyAnimeList"
       ScoreLabel = "MyAnimeList score"
       EmptyTitle = "No history yet"
@@ -1790,7 +1788,7 @@ let es =
       TopGenresCoverage =
         fun p -> $"Basado en el {p}%% de los episodios vistos completos. Un episodio cuenta en cada uno de sus géneros."
       MilestonesTitle = "Hitos"
-      MilestonesReached = fun reached total -> $"{reached} de {total} conseguidos"
+      MilestonesReached = fun reached -> if reached = 1 then "1 conseguido" else $"{reached} conseguidos"
       MilestoneName =
         function
         | "episodes" -> "Episodios"
@@ -1811,7 +1809,6 @@ let es =
             let number = remaining.ToString((if key = "hours" then "N1" else "N0"), CultureInfo.GetCultureInfo "es")
             let verb = if remaining = 1m then "Falta" else "Faltan"
             $"{verb} {number} para {milestonePhraseEs key (decimal next) false}"
-      MilestoneTop = "Todos los hitos conseguidos"
       MyAnimeListLink = "MyAnimeList"
       ScoreLabel = "Puntuación en MyAnimeList"
       EmptyTitle = "Todavía no hay historial"

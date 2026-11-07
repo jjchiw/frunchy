@@ -64,7 +64,8 @@ let ``the 2022 sample shows six cards in order, equal to the dashboard figures``
         for name in [ "episodes"; "hours"; "series" ] do
             Assert.Equal(stat html name, attr (card html name) "value")
 
-        Assert.Equal("36", attr section "milestones-total")
+        Assert.DoesNotContain("data-milestones-total", section)
+        Assert.DoesNotContain("data-milestone-top", section)
 
         // the section sits between the figure tiles and the recent list
         let tiles = html.IndexOf "data-stat=\"days\""
@@ -99,7 +100,7 @@ let ``the 2022 sample reaches the expected tiers`` () =
         Assert.Contains("31 episodes of", card html "long-run")
         Assert.Contains("Bungo Stray Dogs", card html "long-run")
         Assert.Equal("12", attr (section html |> Option.get) "milestones-reached")
-        Assert.Contains("12 of 36 reached", section html |> Option.get)
+        Assert.Contains("12 reached", section html |> Option.get)
         // the reached date of a tier is a localized time element
         Assert.Matches("<time datetime=\"2022-12-30T21:01:24Z\" data-fr-time=\"date\" data-milestone-reached", card html "episodes")
     }
@@ -152,6 +153,7 @@ let ``the section is identical after re-sending, rebuilding and reordering the p
         let! _, before = dashboard app
         let reference = (section before).Value
         Assert.Contains("data-milestone=\"episodes\"", reference)
+        Assert.DoesNotContain("data-milestone-top", reference)
 
         let! _ = submitAccepted app key (load2026Sample ())
         let! _ = processAll app.Db

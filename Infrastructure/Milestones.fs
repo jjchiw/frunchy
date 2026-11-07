@@ -1,4 +1,4 @@
-/// Milestones (feature 029): six tracks with fixed tiers, computed per request from one user's `watch_events` and the
+/// Milestones (feature 029): six tracks with fixed tiers that then go on for ever, computed per request from one user's `watch_events` and the
 /// catalog. Nothing is stored, so re-sent, reordered and rebuilt histories give the same result by construction.
 /// `compute` is pure; `load` runs the one statement that feeds it.
 module FrunchyBackend.Infrastructure.Milestones
@@ -7,8 +7,8 @@ open System
 open System.Threading.Tasks
 open Npgsql
 
-/// The tracks, in the order the dashboard shows them, with their ascending thresholds (episodes, hours, series, days,
-/// episodes in one day, episodes of one series)
+/// The tracks, in the order the dashboard shows them, with their fixed ascending thresholds (episodes, hours, series,
+/// days, episodes in one day, episodes of one series). After the last one each track continues by `tierAfter`.
 let tracks: (string * int list) list =
     [ "episodes", [ 10; 50; 100; 250; 500; 1000; 2500; 5000 ]
       "hours", [ 24; 100; 250; 500; 1000; 2500 ]
@@ -17,8 +17,37 @@ let tracks: (string * int list) list =
       "marathon", [ 6; 12; 24; 48 ]
       "long-run", [ 24; 50; 100; 250; 500; 1000 ] ]
 
-/// Every tier of every track (36)
-let totalTiers = tracks |> List.sumBy (fun (_, thresholds) -> thresholds.Length)
+/// The next value of the 1 / 2.5 / 5 x 10^n ladder strictly above `n`: after 1 x 10^n comes 2.5 x 10^n, then 5 x 10^n,
+/// then 10^(n+1). Counts are far below 10^9, and a result above `Int32.MaxValue` fails loudly rather than wrapping.
+let nextLadder (n: int) : int =
+    let n = int64 (max n 0)
+    // p = 10^k, the largest power of ten at or below n (1 for n = 0)
+    let mutable p = 1L
+
+    while p * 10L <= n do
+        p <- p * 10L
+
+    // the ladder in tenths of p, so 2.5 x p is exact: 10p, 25p, 50p, 100p
+    [ 10L; 25L; 50L; 100L ]
+    |> List.map (fun tenths -> p * tenths / 10L)
+    |> List.find (fun candidate -> candidate > n)
+    |> Checked.int
+
+/// The threshold after `last` on a track whose fixed tiers have run out: the ladder for episodes, hours, series and
+/// long-run, every further 365 days for the streak, every further 24 episodes for the busiest day
+let tierAfter (key: string) (last: int) : int =
+    match key with
+    | "streak" -> last + 365
+    | "marathon" -> last + 24
+    | _ -> nextLadder last
+
+/// Every threshold of a track, ascending and without end: the fixed ones, then `tierAfter` from the last of them.
+/// Lazy, so a caller reads only as far as it needs.
+let thresholds (key: string) : int seq =
+    let fixedTiers = tracks |> List.find (fun (k, _) -> k = key) |> snd
+    let last = List.last fixedTiers
+
+    Seq.append fixedTiers (Seq.unfold (fun previous -> let next = tierAfter key previous in Some(next, next)) last)
 
 /// One watch event of known length; `WatchedAt` is UTC
 type WatchRow =
@@ -40,8 +69,8 @@ type Track =
       Tier: int option
       /// When the reached tier was reached (the instant of the watch that made it, UTC)
       ReachedAt: DateTime option
-      /// The first threshold above the value; None at the top
-      Next: int option
+      /// The first threshold above the value; a track always has one
+      Next: int
       /// What is missing to `Next` (hours rounded up to one decimal, so it is never 0 while the tier is not reached)
       Remaining: decimal
       /// `long-run` only: the series with the most episodes (id, title); None when the value is 0
@@ -57,23 +86,22 @@ let private ordered (rows: WatchRow list) =
         | 0 -> String.CompareOrdinal(a.EpisodeId, b.EpisodeId)
         | c -> c)
 
-/// The highest threshold the `value` meets, and the first one above it
-let private tiers (thresholds: int list) (meets: int -> bool) =
-    let reached = thresholds |> List.filter meets |> List.tryLast
-    let next = thresholds |> List.tryFind (fun t -> not (meets t))
+/// The highest threshold the `value` meets, and the first one above it (read lazily, so only up to that one)
+let private tiers (thresholds: int seq) (meets: int -> bool) =
+    let reached = thresholds |> Seq.takeWhile meets |> Seq.tryLast
+    let next = thresholds |> Seq.find (fun t -> not (meets t))
     reached, next
 
 /// A track from `valueAt`: the instant the N-th unit was reached, for a threshold N (None when it was not)
 let private build (key: string) (value: decimal) (remaining: int -> decimal) (reachedAt: int -> DateTime option) (meets: int -> bool) =
-    let thresholds = tracks |> List.find (fun (k, _) -> k = key) |> snd
-    let tier, next = tiers thresholds meets
+    let tier, next = tiers (thresholds key) meets
 
     { Key = key
       Value = value
       Tier = tier
       ReachedAt = tier |> Option.bind reachedAt
       Next = next
-      Remaining = (match next with Some n -> remaining n | None -> 0m)
+      Remaining = remaining next
       Series = None }
 
 /// An integer-valued track: `instants` holds, in order, the instant each unit of the value was reached
@@ -196,12 +224,12 @@ let compute (rows: WatchRow list) : Track list =
 
     [ episodes; hours; series; streak; marathon; longRun ]
 
-/// Tiers reached, summed over the tracks
+/// Tiers reached, summed over the tracks, the generated ones included
 let reached (all: Track list) =
     all
     |> List.sumBy (fun t ->
         match t.Tier with
-        | Some tier -> tracks |> List.find (fun (k, _) -> k = t.Key) |> snd |> List.filter (fun x -> x <= tier) |> List.length
+        | Some tier -> thresholds t.Key |> Seq.takeWhile (fun x -> x <= tier) |> Seq.length
         | None -> 0)
 
 /// One statement: a compact row per watch event of known length (the dashboard's own rule), with the DNA key
