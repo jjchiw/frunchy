@@ -29,15 +29,22 @@ let private switchNav (html: string) =
     Assert.True(nav.Success, "the page has the language switch")
     nav
 
-/// The footer's language link: href, hreflang, lang, data-language and its text
-let private switchLink (html: string) =
+/// The footer's language links, in order: href, hreflang, lang, data-language, aria-current and the text
+let private switchLinks (html: string) =
     let nav = switchNav html
-    let links = Regex.Matches(nav.Groups[2].Value, "<a\\b([^>]*)>(.*?)</a>", RegexOptions.Singleline)
-    Assert.Equal(1, links.Count)
-    let tag = links[0].Groups[1].Value
-    let attr name = Regex.Match(tag, $"(?<![-\\w]){name}=\"([^\"]*)\"").Groups[1].Value
 
-    attr "href", attr "hreflang", attr "lang", attr "data-language", Regex.Replace(Regex.Replace(links[0].Groups[2].Value, "<span\\b[^>]*material-symbols-outlined[^>]*>.*?</span>", ""), "<[^>]+>", "").Trim()
+    [ for link in Regex.Matches(nav.Groups[2].Value, "<a\\b([^>]*)>(.*?)</a>", RegexOptions.Singleline) do
+          let tag = link.Groups[1].Value
+          let attr name = Regex.Match(tag, $"(?<![-\\w]){name}=\"([^\"]*)\"").Groups[1].Value
+          let text = Regex.Replace(link.Groups[2].Value, "<[^>]+>", "").Trim()
+          attr "href", attr "hreflang", attr "lang", attr "data-language", attr "aria-current", text ]
+
+/// The link to one language
+let private switchLink (html: string) (code: string) =
+    let href, hreflang, lang, dataLanguage, _, text =
+        switchLinks html |> List.find (fun (_, _, _, language, _, _) -> language = code)
+
+    href, hreflang, lang, dataLanguage, text
 
 let private switchAriaLabel (html: string) =
     Regex.Match((switchNav html).Groups[1].Value, "aria-label=\"([^\"]*)\"").Groups[1].Value
@@ -177,15 +184,34 @@ let ``the footer offers the other language in its own name and comes back to thi
         use! app = newApp ()
         let! response = getWithLanguage app.Client pageLanguage path
         let! html = readHtml response
-        let linkHref, hreflang, lang, dataLanguage, text = switchLink html
+        let linkHref, hreflang, lang, dataLanguage, text = switchLink html target
         Assert.Equal(href, linkHref)
         Assert.Equal(target, hreflang)
         Assert.Equal(target, lang)
         Assert.Equal(target, dataLanguage)
         Assert.Equal(name, text)
         Assert.Equal(label, switchAriaLabel html)
-        // one link to the other language: no selected state
-        Assert.DoesNotContain("aria-current", (switchNav html).Value)
+    }
+
+[<Theory>]
+[<InlineData("en")>]
+[<InlineData("es")>]
+let ``the footer shows both languages in their own names, the page's one selected`` (pageLanguage: string) =
+    task {
+        use! app = newApp ()
+        let! response = getWithLanguage app.Client pageLanguage "/charts"
+        let! html = readHtml response
+        let links = switchLinks html
+
+        // English then Español whatever the page's language: the names never change with it
+        Assert.Equal<string list>([ "en"; "es" ], links |> List.map (fun (_, _, _, language, _, _) -> language))
+        Assert.Equal<string list>([ "English"; "Español" ], links |> List.map (fun (_, _, _, _, _, text) -> text))
+
+        // exactly one selected, and it's the page's language
+        let selected = links |> List.filter (fun (_, _, _, _, current, _) -> current = "true")
+        Assert.Equal(1, selected.Length)
+        let _, _, _, selectedLanguage, _, _ = selected.Head
+        Assert.Equal(pageLanguage, selectedLanguage)
     }
 
 [<Fact>]
@@ -194,7 +220,7 @@ let ``the switch link round-trips through the route`` () =
         use! app = newApp ()
         let! page = getWithLanguage app.Client "en" "/charts?week=1"
         let! html = readHtml page
-        let href, _, _, _, _ = switchLink html
+        let href, _, _, _, _ = switchLink html "es"
         let! response = send app (Some "en") None href
         Assert.Equal(HttpStatusCode.SeeOther, response.StatusCode)
         Assert.Equal("/charts?week=1", location response)

@@ -116,20 +116,38 @@ let advertiseActivityPub (ctx: HttpContext) (href: string) =
     addHeadLink ctx { Rel = "alternate"; Type = Some "application/activity+json"; Href = href }
     ctx.Response.Headers["Link"] <- $"<{href}>; rel=\"alternate\"; type=\"application/activity+json\""
 
-/// The footer's language link (feature 024): one link to the OTHER language, in that language's own name (never a
-/// flag). It sets the `frunchy.lang` cookie and comes back to this page. `data-language` is the target language.
+/// One segment of the footer's segmented controls (language and theme): the current one is `aria-current="true"`
+/// and reads as the neutral selected segment, not amber
+let private segment (href: string) (isCurrent: bool) =
+    let size = "inline-flex h-8 items-center rounded-full px-3 text-label-md"
+
+    let cls =
+        if isCurrent then size + " bg-surface-container-high text-on-surface"
+        else size + " text-on-surface-variant hover:text-on-surface"
+
+    let link = a(href = href, class' = cls)
+    if isCurrent then link.attr("aria-current", "true") else link
+
+/// The footer's language switch (feature 024): both languages as a segmented control, each in its own name (never a
+/// flag) and marked with its `lang`, the current one selected like the theme switch beside it. A lone link naming the
+/// other language read as the current one ("English" on a Spanish page). Plain links that set the `frunchy.lang`
+/// cookie and come back to this page; `data-language` is each link's language.
 let private languageSwitch (ctx: HttpContext) (t: Texts) =
-    let target = LanguagePreference.other t.Lang
-    let name = if target = "es" then t.LanguageNameEs else t.LanguageNameEn
     let here = ctx.Request.Path.Value + ctx.Request.QueryString.Value
 
     nav().attr("aria-label", t.LanguageSwitchLabel).data("language-switch", "") {
-        a(href = LanguagePreference.switchHref target here, class' = Components.btnSm Components.Ghost + " -ml-3.5 sm:ml-0")
-            .attr("hreflang", target)
-            .attr("lang", target)
-            .data("language", target) {
-            Components.icon Theme.Language
-            name
+        div(class' = "inline-flex items-center gap-1") {
+            span(class' = "text-on-surface-variant").attr("aria-hidden", "true") { Components.icon Theme.Language }
+
+            div(class' = "inline-flex items-center rounded-full p-0.5").attr("style", "border: var(--border-ghost)") {
+                for code, name in [ "en", t.LanguageNameEn; "es", t.LanguageNameEs ] do
+                    (segment (LanguagePreference.switchHref code here) (code = t.Lang))
+                        .attr("hreflang", code)
+                        .attr("lang", code)
+                        .data("language", code) {
+                        name
+                    }
+            }
         }
     }
 
@@ -149,16 +167,7 @@ let private themeSwitch (ctx: HttpContext) (t: Texts) =
                     | ThemePreference.Dark -> t.ThemeDark
                     | ThemePreference.System -> t.ThemeSystem
 
-                let isCurrent = (mode = current)
-                let size = "inline-flex h-8 items-center rounded-full px-3 text-label-md"
-
-                let cls =
-                    if isCurrent then size + " bg-surface-container-high text-on-surface"
-                    else size + " text-on-surface-variant hover:text-on-surface"
-
-                let link = a(href = ThemePreference.switchHref mode here, class' = cls).data("theme-option", mode.Code)
-                let link = if isCurrent then link.attr("aria-current", "true") else link
-                link { label }
+                (segment (ThemePreference.switchHref mode here) (mode = current)).data("theme-option", mode.Code) { label }
         }
     }
 
