@@ -11,6 +11,14 @@ Each section has the changes that matter to whoever runs Frunchy, in this order 
 needed: Added, Changed, Fixed, Security, then Upgrade when an upgrade needs more than deploying the
 new image.
 
+## 0.10.0 - 2026-11-13
+
+### Changed
+
+- The footer's language switch shows both languages, English and Español, each in its own name, with the page's
+  language selected, like the theme switch beside it. It used to show only the other language, which read as the
+  current one ("English" on a Spanish page).
+
 ## 0.9.0 - 2026-11-07
 
 ### Added
